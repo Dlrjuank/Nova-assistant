@@ -1,5 +1,7 @@
 import { listNotes } from '@/modules/notes';
 
+export const dynamic = 'force-dynamic';
+
 function formatDate(value: string): string {
   return new Intl.DateTimeFormat('es-CO', { dateStyle: 'medium' }).format(new Date(value));
 }

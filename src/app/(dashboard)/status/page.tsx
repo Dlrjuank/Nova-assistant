@@ -1,5 +1,7 @@
 import { count } from '@/lib/json-db';
 
+export const dynamic = 'force-dynamic';
+
 export default async function StatusPage() {
   const noteCount = await count('note');
 
