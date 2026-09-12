@@ -1,0 +1,18 @@
+{
+  "_meta": {
+    "version": 1,
+    "lastModified": "2026-09-12T00:00:00.000Z",
+    "description": "Notas operativas de NovaAssistant"
+  },
+  "records": [
+    {
+      "id": "not_001",
+      "createdAt": "2026-09-12T00:00:00.000Z",
+      "updatedAt": "2026-09-12T00:00:00.000Z",
+      "title": "Bienvenido a NovaAssistant",
+      "content": "Esta nota valida el módulo de ejemplo y el motor JSON-DB.",
+      "category": "general",
+      "pinned": true
+    }
+  ]
+}
