@@ -23,13 +23,15 @@ export async function GET(request: Request, context: RouteContext) {
     }
     const url = new URL(request.url);
     const id = url.searchParams.get('id');
+    const sortBy = url.searchParams.get('sortBy');
+    const sortOrder = url.searchParams.get('sortOrder') === 'desc' ? 'desc' : 'asc';
     const data = id
       ? await getById(collection, id)
       : await getAll(collection, {
           limit: Number(url.searchParams.get('limit') ?? 50),
           offset: Number(url.searchParams.get('offset') ?? 0),
-          sortBy: url.searchParams.get('sortBy') ?? undefined,
-          sortOrder: url.searchParams.get('sortOrder') === 'desc' ? 'desc' : 'asc',
+          ...(sortBy ? { sortBy } : {}),
+          sortOrder,
         });
 
     return NextResponse.json({ success: true, data, timestamp: new Date().toISOString() });
