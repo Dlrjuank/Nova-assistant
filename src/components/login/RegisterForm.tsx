@@ -3,56 +3,54 @@
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 
-type FormErrors = {
-  email?: string;
-  password?: string;
-};
-
-export function LoginForm() {
+export function RegisterForm() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [errors, setErrors] = useState<FormErrors>({});
-  const [authError, setAuthError] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setError('');
+    setSuccess('');
 
-    const nextErrors: FormErrors = {};
-    const normalizedEmail = email.trim();
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
-      nextErrors.email = 'Ingresa un correo electrónico válido.';
+    if (password.length < 8 || password.length > 128) {
+      setError('La contraseña debe tener entre 8 y 128 caracteres.');
+      return;
     }
-    if (!password.trim()) {
-      nextErrors.password = 'Ingresa tu contraseña.';
-    }
-
-    setErrors(nextErrors);
-    setAuthError('');
-
-    if (Object.keys(nextErrors).length > 0) {
+    if (password !== confirmPassword) {
+      setError('Las contraseñas no coinciden.');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: normalizedEmail, password }),
+        body: JSON.stringify({ email: email.trim(), password }),
       });
-      const result = (await response.json()) as { error?: string };
+      const result = (await response.json()) as {
+        error?: string;
+        data?: { requiresEmailConfirmation?: boolean };
+      };
 
       if (!response.ok) {
-        setAuthError(result.error ?? 'No se pudo iniciar sesión.');
+        setError(result.error ?? 'No se pudo crear la cuenta.');
+        return;
+      }
+
+      if (result.data?.requiresEmailConfirmation) {
+        setSuccess('Revisa tu correo y confirma la cuenta para poder iniciar sesión.');
         return;
       }
 
       router.replace('/home');
     } catch {
-      setAuthError('No se pudo conectar con Supabase. Revisa la configuración del proyecto.');
+      setError('No se pudo conectar con Supabase. Revisa la configuración del proyecto.');
     } finally {
       setIsSubmitting(false);
     }
@@ -67,10 +65,10 @@ export function LoginForm() {
           </span>
           NovaAssistant
         </div>
-        <p className="mb-2 text-sm font-medium text-blue-300">Tu asistente virtual</p>
-        <h1 className="text-3xl font-bold tracking-tight text-white">Bienvenido de nuevo</h1>
+        <p className="mb-2 text-sm font-medium text-blue-300">Cuenta de Supabase</p>
+        <h1 className="text-3xl font-bold tracking-tight text-white">Crear cuenta</h1>
         <p className="mt-2 text-sm leading-6 text-slate-400">
-          Inicia sesión para continuar.
+          Tu cuenta se administrará de forma segura con Supabase Auth.
         </p>
       </div>
 
@@ -87,53 +85,51 @@ export function LoginForm() {
             name="email"
             onChange={(event) => setEmail(event.target.value)}
             placeholder="tu@correo.com"
-            aria-describedby={errors.email ? 'email-error' : undefined}
-            aria-invalid={Boolean(errors.email)}
+            required
             type="email"
             value={email}
           />
-          {errors.email && (
-            <p className="mt-2 text-sm text-rose-300" id="email-error">
-              {errors.email}
-            </p>
-          )}
         </div>
-
         <div>
-          <div className="mb-2 flex items-center justify-between gap-3">
-            <label htmlFor="password" className="block text-sm font-medium text-slate-200">
-              Contraseña
-            </label>
-            <a
-              className="text-right text-sm text-blue-300 transition hover:text-blue-200"
-              href="#"
-              onClick={(event) => event.preventDefault()}
-            >
-              Olvidé mi contraseña
-            </a>
-          </div>
+          <label htmlFor="password" className="mb-2 block text-sm font-medium text-slate-200">
+            Contraseña
+          </label>
           <input
-            autoComplete="current-password"
+            autoComplete="new-password"
             className="w-full min-w-0 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-base text-white outline-none transition placeholder:text-slate-500 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20"
             id="password"
             name="password"
             onChange={(event) => setPassword(event.target.value)}
-            placeholder="Tu contraseña"
-            aria-describedby={errors.password ? 'password-error' : undefined}
-            aria-invalid={Boolean(errors.password)}
+            placeholder="Mínimo 8 caracteres"
+            required
             type="password"
             value={password}
           />
-          {errors.password && (
-            <p className="mt-2 text-sm text-rose-300" id="password-error">
-              {errors.password}
-            </p>
-          )}
+        </div>
+        <div>
+          <label htmlFor="confirm-password" className="mb-2 block text-sm font-medium text-slate-200">
+            Confirmar contraseña
+          </label>
+          <input
+            autoComplete="new-password"
+            className="w-full min-w-0 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-base text-white outline-none transition placeholder:text-slate-500 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20"
+            id="confirm-password"
+            name="confirm-password"
+            onChange={(event) => setConfirmPassword(event.target.value)}
+            required
+            type="password"
+            value={confirmPassword}
+          />
         </div>
 
-        {authError && (
+        {error && (
           <p className="rounded-xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-200" role="alert">
-            {authError}
+            {error}
+          </p>
+        )}
+        {success && (
+          <p className="rounded-xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200" role="status">
+            {success}
           </p>
         )}
 
@@ -142,13 +138,14 @@ export function LoginForm() {
           disabled={isSubmitting}
           type="submit"
         >
-          {isSubmitting ? 'Entrando...' : 'Iniciar sesión'}
+          {isSubmitting ? 'Creando cuenta...' : 'Crear cuenta'}
         </button>
       </form>
 
-      <p className="mt-7 text-center text-xs leading-5 text-slate-500">
-        <a className="text-blue-300 transition hover:text-blue-200" href="/register">
-          Crear una cuenta
+      <p className="mt-7 text-center text-sm text-slate-400">
+        ¿Ya tienes cuenta?{' '}
+        <a className="text-blue-300 transition hover:text-blue-200" href="/login">
+          Inicia sesión
         </a>
       </p>
     </section>
