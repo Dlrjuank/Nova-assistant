@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   signInWithPassword: vi.fn(),
   signOut: vi.fn(),
   getUser: vi.fn(),
+  from: vi.fn(),
 }));
 
 vi.mock('@/lib/supabase/server', () => ({
@@ -15,6 +16,7 @@ vi.mock('@/lib/supabase/server', () => ({
       signOut: mocks.signOut,
       getUser: mocks.getUser,
     },
+    from: mocks.from,
   }),
 }));
 
@@ -25,6 +27,17 @@ import { GET as getSession } from '@/app/api/auth/session/route';
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.signOut.mockResolvedValue({ error: null });
+  mocks.from.mockReturnValue({
+    select: () => ({
+      eq: () => ({
+        maybeSingle: async () => ({
+          data: { id: 'auth-user-1', email: 'user@example.com' },
+          error: null,
+        }),
+      }),
+    }),
+  });
 });
 
 describe('Supabase authentication routes', () => {
@@ -92,6 +105,64 @@ describe('Supabase authentication routes', () => {
 
     expect(response.status).toBe(401);
     expect(await response.json()).toMatchObject({ error: 'Correo o contraseña incorrectos.' });
+  });
+
+  it('requires a matching account in public.users after Supabase Auth succeeds', async () => {
+    mocks.from.mockReturnValue({
+      select: () => ({
+        eq: () => ({
+          maybeSingle: async () => ({ data: null, error: null }),
+        }),
+      }),
+    });
+    mocks.signInWithPassword.mockResolvedValue({
+      data: { user: { id: 'auth-user-1', email: 'user@example.com' }, session: {} },
+      error: null,
+    });
+
+    const response = await login(
+      new Request('http://localhost/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'user@example.com', password: 'secure-pass-123' }),
+      }),
+    );
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toMatchObject({
+      error: expect.stringContaining('public.users'),
+    });
+    expect(mocks.from).toHaveBeenCalledWith('users');
+    expect(mocks.signOut).toHaveBeenCalledOnce();
+  });
+
+  it('fails explicitly when public.users cannot be queried', async () => {
+    mocks.from.mockReturnValue({
+      select: () => ({
+        eq: () => ({
+          maybeSingle: async () => ({
+            data: null,
+            error: { message: 'relation does not exist' },
+          }),
+        }),
+      }),
+    });
+    mocks.signInWithPassword.mockResolvedValue({
+      data: { user: { id: 'auth-user-1', email: 'user@example.com' }, session: {} },
+      error: null,
+    });
+
+    const response = await login(
+      new Request('http://localhost/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'user@example.com', password: 'secure-pass-123' }),
+      }),
+    );
+
+    expect(response.status).toBe(503);
+    expect(await response.json()).toMatchObject({ error: expect.stringContaining('public.users') });
+    expect(mocks.signOut).toHaveBeenCalledOnce();
   });
 
   it('closes the Supabase Auth session', async () => {

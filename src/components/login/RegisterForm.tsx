@@ -48,7 +48,7 @@ export function RegisterForm() {
         return;
       }
 
-      router.replace('/home');
+      router.replace('/dashboard');
     } catch {
       setError('No se pudo conectar con Supabase. Revisa la configuración del proyecto.');
     } finally {

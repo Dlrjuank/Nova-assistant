@@ -50,7 +50,7 @@ export function LoginForm() {
         return;
       }
 
-      router.replace('/home');
+      router.replace('/dashboard');
     } catch {
       setAuthError('No se pudo conectar con Supabase. Revisa la configuración del proyecto.');
     } finally {
