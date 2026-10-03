@@ -41,7 +41,7 @@ export function LoginForm() {
 
     // TODO: conectar con la API real
     if (normalizedEmail.toLowerCase() === 'demo@novaassistant.com' && password === 'demo1234') {
-      router.push('/');
+      router.push('/home');
       return;
     }
 
