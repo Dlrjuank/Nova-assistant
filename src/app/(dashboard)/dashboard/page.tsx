@@ -33,7 +33,9 @@ export default async function DashboardPage() {
           </p>
           <h1 className="mt-4 text-3xl font-semibold">No tienes permisos de administrador</h1>
           <p className="mt-3 text-sm leading-6 text-slate-400">
-            La sesión está activa, pero el correo de esta cuenta no está incluido en
+            La sesión está activa como{' '}
+            <span className="font-medium text-slate-200">{currentUser.email ?? 'cuenta sin correo'}</span>,
+            {' '}pero ese correo no está incluido en
             {' '}<code className="text-slate-300">SUPABASE_ADMIN_EMAILS</code>.
           </p>
           <div className="mt-7 flex items-center justify-center gap-4">
