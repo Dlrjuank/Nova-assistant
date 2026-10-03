@@ -1,6 +1,8 @@
 create table if not exists public.users (
   id uuid primary key references auth.users (id) on delete cascade,
   email text,
+  full_name text not null default '',
+  phone text not null default '',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -24,8 +26,8 @@ security definer
 set search_path = ''
 as $$
 begin
-  insert into public.users (id, email)
-  values (new.id, new.email)
+  insert into public.users (id, email, full_name, phone)
+  values (new.id, new.email, '', '')
   on conflict (id) do update
     set email = excluded.email,
         updated_at = now();
@@ -38,8 +40,8 @@ create trigger on_auth_user_public_account_created
   after insert or update of email on auth.users
   for each row execute function public.handle_auth_user_public_account();
 
-insert into public.users (id, email, created_at)
-select id, email, created_at
+insert into public.users (id, email, full_name, phone, created_at)
+select id, email, '', '', created_at
 from auth.users
 on conflict (id) do update
   set email = excluded.email,

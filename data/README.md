@@ -25,6 +25,6 @@ El registro, inicio y cierre de sesión usan Supabase Auth. Después de verifica
 
 Configura `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` en `.env.local` (la aplicación también admite los nombres con prefijo que ya existan allí). Ejecuta la migración una vez en el SQL Editor del proyecto Supabase y agrega las URL absolutas de callback (`http://localhost:3000/auth/callback` y la URL equivalente de producción) a sus Redirect URLs para permitir la confirmación de correo.
 
-El dashboard `/dashboard` lista las 100 cuentas más recientes de `public.users` y solo permite el acceso a las direcciones listadas en `SUPABASE_ADMIN_EMAILS`. La lectura de todas las cuentas usa la clave de servicio exclusivamente en el servidor (`SUPABASE_SERVICE_ROLE_KEY` o `NOVAASSISTANT_SUPABASE_SERVICE_ROLE_KEY`); nunca la expongas con prefijo `NEXT_PUBLIC_`.
+El dashboard `/dashboard` lista las 100 cuentas más recientes de `public.users` y permite editar sus campos de nombre y teléfono. Solo pueden acceder las direcciones listadas en `SUPABASE_ADMIN_EMAILS`. La lectura y actualización de todas las cuentas usa la clave de servicio exclusivamente en el servidor (`SUPABASE_SERVICE_ROLE_KEY` o `NOVAASSISTANT_SUPABASE_SERVICE_ROLE_KEY`); nunca la expongas con prefijo `NEXT_PUBLIC_`. Aplica también `supabase/migrations/20261003124000_add_user_profile_fields.sql` para añadir `full_name` y `phone`.
 
 En Vercel el sistema funciona en modo lectura: la persistencia de producción requiere una base de datos o almacenamiento externo.
