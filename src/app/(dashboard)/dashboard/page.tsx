@@ -1,4 +1,4 @@
-import { notFound, redirect } from 'next/navigation';
+import { redirect } from 'next/navigation';
 import { LogoutButton } from '@/components/login/LogoutButton';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { isAdminEmail } from '@/modules/auth/admin';
@@ -25,7 +25,29 @@ export default async function DashboardPage() {
     redirect('/login');
   }
   if (!isAdminEmail(currentUser.email)) {
-    notFound();
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-950 px-6 py-16 text-slate-100">
+        <section className="w-full max-w-lg rounded-2xl border border-white/10 bg-white/[0.04] p-8 text-center">
+          <p className="font-mono text-sm uppercase tracking-[0.2em] text-amber-300">
+            Acceso restringido
+          </p>
+          <h1 className="mt-4 text-3xl font-semibold">No tienes permisos de administrador</h1>
+          <p className="mt-3 text-sm leading-6 text-slate-400">
+            La sesión está activa, pero el correo de esta cuenta no está incluido en
+            {' '}<code className="text-slate-300">SUPABASE_ADMIN_EMAILS</code>.
+          </p>
+          <div className="mt-7 flex items-center justify-center gap-4">
+            <a
+              className="rounded-lg border border-white/20 px-4 py-2 text-sm text-white transition hover:bg-white/10"
+              href="/home"
+            >
+              Ir al inicio
+            </a>
+            <LogoutButton />
+          </div>
+        </section>
+      </main>
+    );
   }
 
   const supabase = createSupabaseAdminClient();
