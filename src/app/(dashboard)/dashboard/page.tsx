@@ -90,7 +90,7 @@ export default async function DashboardPage() {
 
         <UserTable users={users as AdminUser[]} />
         <p className="mt-4 text-xs text-slate-500">
-          Por seguridad, las contraseñas y credenciales de acceso nunca se muestran en este panel.
+          Las contraseñas actuales nunca se muestran; puedes asignar una nueva desde la edición de cada cuenta.
         </p>
       </div>
     </main>

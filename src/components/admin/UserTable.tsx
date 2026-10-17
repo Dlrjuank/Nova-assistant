@@ -24,16 +24,25 @@ function formatDate(value: string): string {
 export function UserTable({ users: initialUsers }: UserTableProps) {
   const [users, setUsers] = useState(initialUsers);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [savingId, setSavingId] = useState<string | null>(null);
 
   function startEditing(user: AdminUser) {
     setEditingId(user.id);
+    setEmail(user.email ?? '');
     setFullName(user.full_name ?? '');
     setPhone(user.phone ?? '');
+    setPassword('');
     setError('');
+  }
+
+  function cancelEditing() {
+    setEditingId(null);
+    setPassword('');
   }
 
   async function saveUser(event: FormEvent<HTMLFormElement>, id: string) {
@@ -45,7 +54,12 @@ export function UserTable({ users: initialUsers }: UserTableProps) {
       const response = await fetch(`/api/admin/users/${encodeURIComponent(id)}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ full_name: fullName, phone }),
+        body: JSON.stringify({
+          email: email.trim(),
+          full_name: fullName,
+          phone,
+          ...(password ? { password } : {}),
+        }),
       });
       const result = (await response.json()) as { data?: AdminUser; error?: string };
 
@@ -58,6 +72,7 @@ export function UserTable({ users: initialUsers }: UserTableProps) {
         currentUsers.map((user) => (user.id === id ? result.data! : user)),
       );
       setEditingId(null);
+      setPassword('');
     } catch {
       setError('No se pudo conectar con el servidor para guardar los cambios.');
     } finally {
@@ -103,7 +118,18 @@ export function UserTable({ users: initialUsers }: UserTableProps) {
                           id={`edit-user-${user.id}`}
                           onSubmit={(event) => saveUser(event, user.id)}
                         >
-                          <span className="font-medium text-slate-100">{user.email ?? 'Sin correo'}</span>
+                          <label className="grid gap-1 text-xs text-slate-400">
+                            Correo de inicio de sesión
+                            <input
+                              autoComplete="email"
+                              className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-blue-400"
+                              maxLength={254}
+                              onChange={(event) => setEmail(event.target.value)}
+                              required
+                              type="email"
+                              value={email}
+                            />
+                          </label>
                           <label className="grid gap-1 text-xs text-slate-400">
                             Nombre
                             <input
@@ -123,6 +149,22 @@ export function UserTable({ users: initialUsers }: UserTableProps) {
                               value={phone}
                             />
                           </label>
+                          <label className="grid gap-1 text-xs text-slate-400">
+                            Nueva contraseña (opcional)
+                            <input
+                              autoComplete="new-password"
+                              className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-blue-400"
+                              maxLength={128}
+                              minLength={8}
+                              onChange={(event) => setPassword(event.target.value)}
+                              placeholder="Deja en blanco para conservarla"
+                              type="password"
+                              value={password}
+                            />
+                          </label>
+                          <span className="text-xs text-slate-500">
+                            La contraseña actual no se muestra. Al guardarla, se reemplazará por la nueva. Supabase podría pedir confirmación para aplicar un correo nuevo.
+                          </span>
                         </form>
                       ) : (
                         <div>
@@ -150,7 +192,7 @@ export function UserTable({ users: initialUsers }: UserTableProps) {
                         </button>
                         <button
                           className="rounded-lg border border-white/15 px-3 py-2 text-xs text-slate-300 transition hover:bg-white/10"
-                          onClick={() => setEditingId(null)}
+                          onClick={cancelEditing}
                           type="button"
                         >
                           Cancelar
@@ -173,7 +215,7 @@ export function UserTable({ users: initialUsers }: UserTableProps) {
         </div>
       )}
       <p className="border-t border-white/[0.07] px-6 py-4 text-xs text-slate-500">
-        El correo y la contraseña se gestionan en Supabase Auth y no se editan aquí.
+        Puedes cambiar el correo de acceso y asignar una contraseña nueva. Las contraseñas actuales nunca se muestran.
       </p>
     </section>
   );
