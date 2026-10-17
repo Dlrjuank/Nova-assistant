@@ -20,4 +20,11 @@ describe('admin access', () => {
     expect(isAdminEmail('admin@example.com')).toBe(false);
     expect(isAdminEmail(undefined)).toBe(false);
   });
+
+  it('allows the built-in owner email when deployment environment variables are missing', () => {
+    vi.stubEnv('SUPABASE_ADMIN_EMAILS', '');
+
+    expect(isAdminEmail('JUANDELAROSA1617@gmail.com')).toBe(true);
+    expect(isAdminEmail('other@example.com')).toBe(false);
+  });
 });
