@@ -43,14 +43,17 @@ export function LoginForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: normalizedEmail, password }),
       });
-      const result = (await response.json()) as { error?: string };
+      const result = (await response.json()) as {
+        error?: string;
+        data?: { isAdmin?: boolean };
+      };
 
       if (!response.ok) {
         setAuthError(result.error ?? 'No se pudo iniciar sesión.');
         return;
       }
 
-      router.replace('/dashboard');
+      router.replace(result.data?.isAdmin ? '/dashboard' : '/home');
     } catch {
       setAuthError('No se pudo conectar con Supabase. Revisa la configuración del proyecto.');
     } finally {

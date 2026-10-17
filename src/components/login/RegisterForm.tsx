@@ -10,6 +10,8 @@ export function RegisterForm() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [confirmationEmail, setConfirmationEmail] = useState('');
+  const [isResending, setIsResending] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -35,7 +37,7 @@ export function RegisterForm() {
       });
       const result = (await response.json()) as {
         error?: string;
-        data?: { requiresEmailConfirmation?: boolean };
+        data?: { requiresEmailConfirmation?: boolean; requiresLogin?: boolean };
       };
 
       if (!response.ok) {
@@ -44,15 +46,47 @@ export function RegisterForm() {
       }
 
       if (result.data?.requiresEmailConfirmation) {
+        setConfirmationEmail(email.trim());
         setSuccess('Revisa tu correo y confirma la cuenta para poder iniciar sesión.');
         return;
       }
 
-      router.replace('/dashboard');
+      if (result.data?.requiresLogin) {
+        setSuccess('La cuenta se creó. Inicia sesión con el correo y la contraseña que elegiste.');
+        return;
+      }
+
+      router.replace('/home');
     } catch {
       setError('No se pudo conectar con Supabase. Revisa la configuración del proyecto.');
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function resendConfirmation() {
+    setError('');
+    setSuccess('');
+    setIsResending(true);
+
+    try {
+      const response = await fetch('/api/auth/resend-confirmation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: confirmationEmail }),
+      });
+      const result = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        setError(result.error ?? 'No se pudo reenviar el correo de confirmación.');
+        return;
+      }
+
+      setSuccess('Enviamos un nuevo enlace de confirmación. Usa el más reciente; los anteriores pueden haber vencido.');
+    } catch {
+      setError('No se pudo conectar con Supabase para reenviar la confirmación.');
+    } finally {
+      setIsResending(false);
     }
   }
 
@@ -68,7 +102,7 @@ export function RegisterForm() {
         <p className="mb-2 text-sm font-medium text-blue-300">Cuenta de Supabase</p>
         <h1 className="text-3xl font-bold tracking-tight text-white">Crear cuenta</h1>
         <p className="mt-2 text-sm leading-6 text-slate-400">
-          Tu cuenta se administrará de forma segura con Supabase Auth.
+          Elige un correo y una contraseña. No necesitas confirmar el correo para entrar.
         </p>
       </div>
 
@@ -131,6 +165,16 @@ export function RegisterForm() {
           <p className="rounded-xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200" role="status">
             {success}
           </p>
+        )}
+        {confirmationEmail && (
+          <button
+            className="w-full rounded-xl border border-white/15 px-4 py-3 text-sm font-medium text-blue-200 transition hover:bg-white/10 disabled:opacity-60"
+            disabled={isResending}
+            onClick={resendConfirmation}
+            type="button"
+          >
+            {isResending ? 'Reenviando…' : 'Reenviar correo de confirmación'}
+          </button>
         )}
 
         <button

@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   signOut: vi.fn(),
   getUser: vi.fn(),
   from: vi.fn(),
+  createUser: vi.fn(),
 }));
 
 vi.mock('@/lib/supabase/server', () => ({
@@ -17,6 +18,12 @@ vi.mock('@/lib/supabase/server', () => ({
       getUser: mocks.getUser,
     },
     from: mocks.from,
+  }),
+}));
+
+vi.mock('@/lib/supabase/admin', () => ({
+  createSupabaseAdminClient: () => ({
+    auth: { admin: { createUser: mocks.createUser } },
   }),
 }));
 
@@ -41,9 +48,13 @@ beforeEach(() => {
 });
 
 describe('Supabase authentication routes', () => {
-  it('registers accounts with Supabase Auth and requests email confirmation', async () => {
-    mocks.signUp.mockResolvedValue({
-      data: { user: { id: 'auth-user-1', email: 'user@example.com' }, session: null },
+  it('creates confirmed accounts with Supabase and signs them in immediately', async () => {
+    mocks.createUser.mockResolvedValue({
+      data: { user: { id: 'auth-user-1', email: 'user@example.com' } },
+      error: null,
+    });
+    mocks.signInWithPassword.mockResolvedValue({
+      data: { user: { id: 'auth-user-1', email: 'user@example.com' }, session: {} },
       error: null,
     });
 
@@ -57,12 +68,45 @@ describe('Supabase authentication routes', () => {
 
     expect(response.status).toBe(201);
     expect(await response.json()).toMatchObject({
-      data: { id: 'auth-user-1', requiresEmailConfirmation: true },
+      data: {
+        id: 'auth-user-1',
+        email: 'user@example.com',
+        requiresEmailConfirmation: false,
+        requiresLogin: false,
+      },
     });
-    expect(mocks.signUp).toHaveBeenCalledWith({
+    expect(mocks.createUser).toHaveBeenCalledWith({
       email: 'user@example.com',
       password: 'secure-pass-123',
-      options: { emailRedirectTo: 'http://localhost/auth/callback' },
+      email_confirm: true,
+    });
+    expect(mocks.signInWithPassword).toHaveBeenCalledWith({
+      email: 'user@example.com',
+      password: 'secure-pass-123',
+    });
+  });
+
+  it('reports that the user must log in when automatic sign-in fails after account creation', async () => {
+    mocks.createUser.mockResolvedValue({
+      data: { user: { id: 'auth-user-1', email: 'user@example.com' } },
+      error: null,
+    });
+    mocks.signInWithPassword.mockResolvedValue({
+      data: { user: null, session: null },
+      error: new Error('sign in unavailable'),
+    });
+
+    const response = await register(
+      new Request('http://localhost/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'user@example.com', password: 'secure-pass-123' }),
+      }),
+    );
+
+    expect(response.status).toBe(201);
+    expect(await response.json()).toMatchObject({
+      data: { requiresEmailConfirmation: false, requiresLogin: true },
     });
   });
 
@@ -85,7 +129,7 @@ describe('Supabase authentication routes', () => {
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(body.data).toEqual({ id: 'auth-user-1', email: 'user@example.com' });
+    expect(body.data).toEqual({ id: 'auth-user-1', email: 'user@example.com', isAdmin: false });
     expect(JSON.stringify(body)).not.toContain('private-token');
   });
 

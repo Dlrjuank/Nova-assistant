@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { isAdminEmail } from '@/modules/auth/admin';
 
 const loginSchema = z.object({
   email: z.email().max(254),
@@ -71,7 +72,11 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      data: { id: profile.id, email: profile.email },
+      data: {
+        id: profile.id,
+        email: profile.email,
+        isAdmin: isAdminEmail(profile.email ?? data.user.email),
+      },
     });
   } catch (error) {
     console.error('No se pudo conectar con Supabase para iniciar sesión.', error);

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 
 const registrationSchema = z.object({
   email: z.email().max(254),
@@ -24,21 +25,29 @@ export async function POST(request: Request) {
   }
 
   try {
-    const supabase = await createSupabaseServerClient();
-    const { data, error } = await supabase.auth.signUp({
+    const adminSupabase = createSupabaseAdminClient();
+    const { data, error } = await adminSupabase.auth.admin.createUser({
       email: parsed.data.email.trim(),
       password: parsed.data.password,
-      options: {
-        emailRedirectTo: new URL('/auth/callback', request.url).toString(),
-      },
+      email_confirm: true,
     });
 
     if (error) {
       console.error('Supabase rechazó el registro.', error.message);
       return NextResponse.json(
-        { success: false, error: 'Supabase no pudo crear la cuenta. Verifica la configuración de Auth.' },
+        { success: false, error: 'Supabase no pudo crear la cuenta. Comprueba si el correo ya está registrado y revisa la configuración del servidor.' },
         { status: 400 },
       );
+    }
+
+    const supabase = await createSupabaseServerClient();
+    const { data: sessionData, error: signInError } = await supabase.auth.signInWithPassword({
+      email: parsed.data.email.trim(),
+      password: parsed.data.password,
+    });
+
+    if (signInError || !sessionData.user) {
+      console.error('La cuenta se creó, pero no se pudo iniciar sesión automáticamente.', signInError?.message);
     }
 
     return NextResponse.json(
@@ -47,7 +56,8 @@ export async function POST(request: Request) {
         data: {
           id: data.user?.id ?? null,
           email: data.user?.email ?? parsed.data.email.trim(),
-          requiresEmailConfirmation: !data.session,
+          requiresEmailConfirmation: false,
+          requiresLogin: Boolean(signInError || !sessionData.user),
         },
       },
       { status: 201 },

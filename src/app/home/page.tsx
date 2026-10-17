@@ -1,5 +1,5 @@
-import { HolaMundo } from '@/components/home/HolaMundo';
-import { LogoutButton } from '@/components/login/LogoutButton';
+import { UserPortal } from '@/components/home/UserPortal';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { getCurrentUser } from '@/modules/auth/session';
 import { redirect } from 'next/navigation';
 
@@ -11,13 +11,19 @@ export default async function WelcomePage() {
     redirect('/login');
   }
 
+  const supabase = await createSupabaseServerClient();
+  const { data: profile, error } = await supabase
+    .from('users')
+    .select('full_name, phone')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (error) {
+    console.error('No se pudo cargar el perfil del usuario.', error.message);
+    throw new Error('No se pudo cargar el perfil del usuario.', { cause: error });
+  }
+
   return (
-    <main className="relative min-h-screen overflow-hidden">
-      <div className="absolute right-6 top-6 z-20 flex items-center gap-4 sm:right-10">
-        <span className="text-sm text-white/70">{user.email}</span>
-        <LogoutButton />
-      </div>
-      <HolaMundo />
-    </main>
+    <UserPortal email={user.email ?? ''} fullName={profile?.full_name ?? null} phone={profile?.phone ?? null} />
   );
 }
