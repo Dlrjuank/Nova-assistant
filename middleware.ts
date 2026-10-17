@@ -3,6 +3,18 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { getSupabaseConfig } from './src/lib/supabase/config';
 
 export async function middleware(request: NextRequest) {
+  const ruta = request.nextUrl.pathname;
+  if (
+    ruta === '/prueba-correo' ||
+    ruta === '/api/correo/prueba' ||
+    ruta === '/recuperar-contrasena' ||
+    ruta === '/restablecer-contrasena' ||
+    ruta === '/api/auth/recuperar' ||
+    ruta === '/api/auth/restablecer'
+  ) {
+    return NextResponse.next();
+  }
+
   let response = NextResponse.next({ request });
   const { url, publishableKey } = getSupabaseConfig();
   const supabase = createServerClient(url, publishableKey, {

@@ -8,7 +8,11 @@ type FormErrors = {
   password?: string;
 };
 
-export function LoginForm() {
+interface LoginFormProps {
+  successMessage?: string | undefined;
+}
+
+export function LoginForm({ successMessage }: LoginFormProps) {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -109,10 +113,9 @@ export function LoginForm() {
             </label>
             <a
               className="text-right text-sm text-blue-300 transition hover:text-blue-200"
-              href="#"
-              onClick={(event) => event.preventDefault()}
+              href="/recuperar-contrasena"
             >
-              Olvidé mi contraseña
+              ¿Olvidaste tu contraseña?
             </a>
           </div>
           <input
@@ -133,6 +136,15 @@ export function LoginForm() {
             </p>
           )}
         </div>
+
+        {successMessage && (
+          <p
+            className="rounded-xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200"
+            role="status"
+          >
+            {successMessage}
+          </p>
+        )}
 
         {authError && (
           <p className="rounded-xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-200" role="alert">
