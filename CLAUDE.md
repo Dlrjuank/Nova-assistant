@@ -9,7 +9,7 @@ Asistente RAG (Next.js 15 + Supabase/pgvector + Vercel Blob + Gemini), desplegad
 - Reglas de código: `.github/copilot-instructions.md`.
 
 ## Progreso
-- **Prompts completados: P00 a P08. Último: P08** (esperando confirmación del usuario para P09). P04 a P07 ya están en producción; P08 aún no tiene commit. Actualizar esta línea al terminar cada prompt.
+- **Prompts completados: P00 a P08, más los ajustes P08b. Último: P08b** (esperando confirmación del usuario para P09). P08b: fecha pasada con aviso, máscara AAAA-MM-DD, historial del chat en la base (M4) y preguntas de seguimiento. Actualizar esta línea al terminar cada prompt.
 - Completar tarea (F5, previsto en P10) y eliminar tarea (no estaba en el plan) ya están hechos: se agregaron en P07 a pedido del usuario. En P10 queda solo el índice de productividad.
 - Tras cada prompt: resumir qué se hizo, qué debe probar el usuario y esperar su confirmación antes del siguiente.
 
@@ -28,3 +28,6 @@ Asistente RAG (Next.js 15 + Supabase/pgvector + Vercel Blob + Gemini), desplegad
 - El middleware vive en `src/middleware.ts`: con carpeta `src/`, Next ignora el de la raíz.
 - `npm run dev` ejecuta `scripts/tokenVercel.mjs`, que reescribe `.env.local`; para pruebas automáticas usar `npx next dev`.
 - Índice vectorial: HNSW (M3), no ivfflat (devolvía menos filas de las pedidas con pocos datos).
+- Historial del chat (M4, RN-20 y RN-21): tablas `conversaciones` y `mensajes_chat` con `usuario_id` (son las únicas con dueño); la pantalla muestra la conversación más reciente y "Conversación nueva" conserva las anteriores. El modelo recibe los últimos 6 mensajes y la búsqueda usa la pregunta anterior con la nueva.
+- Fechas pasadas: se permiten (RN-07, T-15); el formulario solo avisa. El usuario lo decidió así.
+- `doc/CORREO RESEND VERCEL CONNECT (1).md` no es de este trabajo: no tiene secretos, pero no se incluye en los commits.

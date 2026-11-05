@@ -138,6 +138,97 @@ describe('Chat', () => {
     expect(await screen.findByText('No se pudo obtener respuesta del asistente. Intente de nuevo.')).toBeTruthy();
   });
 
+  it('RN-20: muestra el historial guardado y continúa en esa conversación', async () => {
+    const f = vi.fn().mockResolvedValue(
+      responder({ ok: true, datos: { respuesta: 'El segundo es secar.', fuentes: [], conversacionId: 'c1', guardada: true } }),
+    );
+    vi.stubGlobal('fetch', f);
+    render(
+      <Chat
+        conversacionId="c1"
+        historial={[
+          { id: 1, autor: 'usuario', texto: '¿Cuáles son los pasos?', fuentes: [] },
+          { id: 2, autor: 'asistente', texto: 'Retirar y secar.', fuentes: [{ tipo: 'pdf', etiqueta: 'h.pdf · fragmento 1' }] },
+        ]}
+      />,
+    );
+    expect(screen.getByText('¿Cuáles son los pasos?')).toBeTruthy();
+    expect(screen.getByText('h.pdf · fragmento 1')).toBeTruthy();
+    expect(screen.queryByText(/Pregúntale algo/)).toBeNull();
+
+    escribir('¿y el segundo?');
+    fireEvent.click(boton());
+    expect(await screen.findByText('El segundo es secar.')).toBeTruthy();
+    expect(JSON.parse(f.mock.calls[0]?.[1].body)).toEqual({ pregunta: '¿y el segundo?', conversacionId: 'c1' });
+  });
+
+  it('sin conversación previa no envía id y usa el que devuelve el servidor en la siguiente pregunta', async () => {
+    const f = vi
+      .fn()
+      .mockResolvedValue(responder({ ok: true, datos: { respuesta: 'Sí.', fuentes: [], conversacionId: 'c9', guardada: true } }));
+    vi.stubGlobal('fetch', f);
+    render(<Chat />);
+    escribir('Mi agenda de hoy');
+    fireEvent.click(boton());
+    await screen.findByText('Sí.');
+    escribir('¿y la de mañana?');
+    fireEvent.click(boton());
+    await waitFor(() => expect(f).toHaveBeenCalledTimes(2));
+    expect(JSON.parse(f.mock.calls[0]?.[1].body)).toEqual({ pregunta: 'Mi agenda de hoy' });
+    expect(JSON.parse(f.mock.calls[1]?.[1].body)).toEqual({ pregunta: '¿y la de mañana?', conversacionId: 'c9' });
+  });
+
+  it('"Conversación nueva" crea otra en el servidor, vacía la pantalla y pregunta en la nueva', async () => {
+    const f = vi
+      .fn()
+      .mockResolvedValueOnce(responder({ ok: true, datos: { id: 'c2' } }, 201))
+      .mockResolvedValueOnce(responder({ ok: true, datos: { respuesta: 'Hola.', fuentes: [], conversacionId: 'c2', guardada: true } }));
+    vi.stubGlobal('fetch', f);
+    render(<Chat conversacionId="c1" historial={[{ id: 1, autor: 'usuario', texto: 'Pregunta vieja', fuentes: [] }]} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Conversación nueva' }));
+
+    await waitFor(() => expect(screen.queryByText('Pregunta vieja')).toBeNull());
+    expect(f).toHaveBeenCalledWith('/api/nova/conversaciones', { method: 'POST' });
+    expect(screen.queryByRole('button', { name: 'Conversación nueva' })).toBeNull();
+    escribir('Mi agenda de hoy');
+    fireEvent.click(boton());
+    await screen.findByText('Hola.');
+    expect(JSON.parse(f.mock.calls[1]?.[1].body).conversacionId).toBe('c2');
+  });
+
+  it('si no se puede crear la conversación nueva, conserva la actual y avisa', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('red')));
+    render(<Chat conversacionId="c1" historial={[{ id: 1, autor: 'usuario', texto: 'Pregunta vieja', fuentes: [] }]} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Conversación nueva' }));
+    expect(await screen.findByText('No se pudo conectar con el servidor. Intente de nuevo.')).toBeTruthy();
+    expect(screen.getByText('Pregunta vieja')).toBeTruthy();
+  });
+
+  it('avisa si la respuesta no se pudo guardar en el historial', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(responder({ ok: true, datos: { respuesta: 'Sí.', fuentes: [], conversacionId: 'c1', guardada: false } })),
+    );
+    render(<Chat />);
+    escribir('Mi agenda de hoy');
+    fireEvent.click(boton());
+    expect(await screen.findByText(/no se pudo guardar en el historial/)).toBeTruthy();
+  });
+
+  it('CONVERSACION_NO_ENCONTRADA no ofrece reintentar', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        responder({ ok: false, error: { codigo: 'CONVERSACION_NO_ENCONTRADA', mensaje: 'La conversación no existe. Recargue la página.' } }, 404),
+      ),
+    );
+    render(<Chat conversacionId="c1" />);
+    escribir('Mi agenda de hoy');
+    fireEvent.click(boton());
+    expect(await screen.findByText('La conversación no existe. Recargue la página.')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Reintentar' })).toBeNull();
+  });
+
   it('sin conexión muestra un aviso y se puede reintentar', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('red')));
     render(<Chat />);

@@ -8,8 +8,9 @@ import {
   SYSTEM_PROMPT,
   type FragmentoContexto,
   type TareaContexto,
+  type TurnoConversacion,
 } from '@/lib/llm/prompts';
-import { mencionaTareas, normalizarConsulta, validarConsulta } from '@/lib/reglas/consulta';
+import { mencionaTareas, normalizarConsulta, textoDeBusqueda, validarConsulta } from '@/lib/reglas/consulta';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
 import { existenDocumentos } from './documentos';
 import { recuperarFragmentos } from './fragmentos';
@@ -36,20 +37,23 @@ export function armarFuentes(
   return citadas.length > 0 ? citadas : entregadas;
 }
 
-/** CU-03, secuencia de la sección 7.1. */
-export async function consultar(pregunta: string): Promise<RespuestaAsistente> {
+/** CU-03, secuencia de la sección 7.1. `historial`: los últimos mensajes de la conversación (RN-21). */
+export async function consultar(pregunta: string, historial: TurnoConversacion[] = []): Promise<RespuestaAsistente> {
   validarConsulta(pregunta); // RN-02
   if (!(await existenDocumentos())) throw new ErrorDeNegocio('SIN_DOCUMENTOS'); // RN-15
 
   const preguntaNormal = normalizarConsulta(pregunta);
-  const vector = await llm.generarEmbedding(preguntaNormal);
+  const anterior = historial.findLast((m) => m.autor === 'usuario')?.texto;
+  const busqueda = textoDeBusqueda(preguntaNormal, anterior); // RN-21
+  const vector = await llm.generarEmbedding(busqueda);
   const fragmentos = await recuperarFragmentos(vector, FRAGMENTOS_RECUPERADOS); // RN-12
-  const tareas = mencionaTareas(preguntaNormal) ? await tareasPendientesComoTexto() : []; // RN-12
+  const tareas = mencionaTareas(busqueda) ? await tareasPendientesComoTexto() : []; // RN-12
 
   const respuesta = await llm.responder({
     sistema: SYSTEM_PROMPT,
     contexto: construirContexto(fragmentos, tareas),
     pregunta: preguntaNormal,
+    historial,
   }); // RN-13
 
   // Sin respuesta en el contexto: mensaje exacto de la sección 5.1 y ninguna fuente.

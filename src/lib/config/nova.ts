@@ -13,6 +13,8 @@ export const MINUTOS_TOPE_INDICE = 120; // RN-03
 export const MAX_FUENTES_WEB_POR_CATEGORIA = 20; // RN-05 (F4)
 export const ZONA_HORARIA = 'America/Bogota';
 export const LIMITE_LISTADO = 500;
+export const CONVERSACION_MAX_MENSAJES = 200; // RN-20: los que se muestran al volver al Asistente
+export const CONVERSACION_MENSAJES_CONTEXTO = 6; // RN-21: los últimos mensajes que recibe el modelo
 
 // Modelos de Gemini (se pueden ajustar sin tocar la lógica)
 export const MODELO_EMBEDDING = 'gemini-embedding-001';

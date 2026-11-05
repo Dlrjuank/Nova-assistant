@@ -43,6 +43,7 @@ const LINEAS_PDF = [
   'Manual del purificador de agua AquaNova.',
   'La garantía del producto es de 24 meses desde la fecha de compra.',
   'El filtro principal debe cambiarse cada 6 meses.',
+  'Pasos para cambiar el filtro: primero, cerrar la llave de paso; segundo, girar la carcasa hacia la izquierda; tercero, colocar el filtro nuevo.',
   ...Array.from(
     { length: 70 },
     (_, i) => `Apartado ${i + 1}: limpie la carcasa exterior con un paño húmedo y revise las conexiones de la manguera.`,
@@ -155,6 +156,19 @@ async function main(): Promise<void> {
       dato.respuesta.includes('24') && dato.fuentes.some((f) => f.tipo === 'pdf' && f.etiqueta.includes(NOMBRE_PDF)),
       'Paso 6: dato presente en el PDF',
       `${dato.respuesta} | fuentes: ${dato.fuentes.map((f) => f.etiqueta).join(', ')}`,
+    );
+
+    // RN-21: la pregunta de seguimiento solo se entiende con la anterior.
+    const primera = '¿Cuáles son los pasos para cambiar el filtro?';
+    const pasos = await consultar(primera);
+    const seguimiento = await consultar('¿y el segundo?', [
+      { autor: 'usuario', texto: primera },
+      { autor: 'asistente', texto: pasos.respuesta },
+    ]);
+    marcar(
+      /gira/i.test(seguimiento.respuesta) && seguimiento.respuesta !== SIN_RESPUESTA,
+      'Paso 6b: seguimiento "¿y el segundo?" con el historial',
+      `${seguimiento.respuesta} | fuentes: ${seguimiento.fuentes.map((f) => f.etiqueta).join(', ')}`,
     );
 
     const pendientes = await consultar('¿Qué tareas tengo pendientes?');

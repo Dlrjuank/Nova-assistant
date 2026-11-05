@@ -12,7 +12,7 @@ if (!url) {
 const DIM = 768;
 const vec = (pos) => `[${Array.from({ length: DIM }, (_, i) => (i === pos ? 1 : 0)).join(',')}]`;
 const hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota' }).format(new Date());
-const TABLAS = ['tareas_personales', 'documentos', 'fragmentos_pdf', 'fuentes_web'];
+const TABLAS = ['tareas_personales', 'documentos', 'fragmentos_pdf', 'fuentes_web', 'conversaciones', 'mensajes_chat'];
 
 let fallas = 0;
 const marcar = (ok, texto) => {
@@ -107,9 +107,11 @@ try {
   try {
     // consulta cercana a la posición 0: el fragmento 1 debe ir primero
     const q = Array.from({ length: DIM }, (_, i) => (i === 0 ? 1 : i === 1 ? 0.2 : 0));
-    const r = await c.query('SELECT numero, distancia FROM buscar_fragmentos($1::vector, 4)', [`[${q.join(',')}]`]);
-    const orden = r.rows.every((f, i) => i === 0 || r.rows[i - 1].distancia <= f.distancia);
-    marcar(r.rowCount === 2 && orden && r.rows[0].numero === 1, `f) buscar_fragmentos: ${r.rows.map((x) => `#${x.numero}@${Number(x.distancia).toFixed(4)}`).join(', ')}`);
+    const todas = await c.query('SELECT documento_id, numero, distancia FROM buscar_fragmentos($1::vector, 4)', [`[${q.join(',')}]`]);
+    const orden = todas.rows.every((f, i) => i === 0 || todas.rows[i - 1].distancia <= f.distancia);
+    // Solo cuentan los fragmentos de prueba: la base puede tener documentos reales.
+    const r = todas.rows.filter((f) => f.documento_id === docId);
+    marcar(r.length === 2 && orden && todas.rows[0].documento_id === docId && r[0].numero === 1, `f) buscar_fragmentos: ${r.map((x) => `#${x.numero}@${Number(x.distancia).toFixed(4)}`).join(', ')}`);
   } catch (e) {
     marcar(false, `f) buscar_fragmentos: ${e.message}`);
   }
@@ -121,6 +123,22 @@ try {
       'INSERT INTO fragmentos_pdf (documento_id, numero, contenido, vector) VALUES ($1,1,$2,$3::vector)',
       [docId, 'dup', vec(2)],
     );
+  }
+  // h) e i) RN-20: un mensaje no puede quedar con un usuario distinto al de su conversación.
+  const usuario = (await c.query('SELECT id FROM auth.users LIMIT 1')).rows[0]?.id;
+  if (usuario) {
+    const conv = (await c.query('INSERT INTO conversaciones (usuario_id) VALUES ($1) RETURNING id', [usuario])).rows[0].id;
+    const insMensaje = 'INSERT INTO mensajes_chat (conversacion_id, usuario_id, autor, texto) VALUES ($1,$2,$3,$4)';
+    try {
+      await c.query(insMensaje, [conv, usuario, 'usuario', 'hola']);
+      marcar(true, 'h) mensaje en la conversación de su usuario');
+    } catch (e) {
+      marcar(false, `h) mensaje válido: ${e.message}`);
+    }
+    await esperaFalla('i) mensaje con otro usuario', '23503', insMensaje, [conv, '00000000-0000-4000-8000-000000000000', 'usuario', 'x']);
+    await esperaFalla('j) autor inválido', '23514', insMensaje, [conv, usuario, 'sistema', 'x']);
+  } else {
+    console.log('     h-j) omitidas: no hay usuarios en auth.users');
   }
   await c.query('ROLLBACK');
 

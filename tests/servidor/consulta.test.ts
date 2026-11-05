@@ -82,6 +82,35 @@ describe('consultar', () => {
     expect(r.fuentes).toEqual([{ tipo: 'tarea', etiqueta: 'Tarea 1a2b3c4d' }]);
   });
 
+  it('RN-21 seguimiento "¿y el segundo?": busca con la pregunta anterior y la nueva, y el modelo recibe el historial', async () => {
+    m.responder.mockResolvedValue('El segundo paso es secar [a.pdf · fragmento 1].');
+    const historial = [
+      { autor: 'usuario' as const, texto: '¿Cuáles son los pasos de limpieza del horno?' },
+      { autor: 'asistente' as const, texto: 'Primero, retirar la bandeja; segundo, secarla [a.pdf · fragmento 1].' },
+    ];
+    await consultar('¿y el segundo?', historial);
+    expect(m.generarEmbedding).toHaveBeenCalledWith('¿Cuáles son los pasos de limpieza del horno?\n¿y el segundo?');
+    const llamada = m.responder.mock.calls[0]?.[0];
+    expect(llamada.pregunta).toBe('¿y el segundo?');
+    expect(llamada.historial).toEqual(historial);
+  });
+
+  it('RN-21: un seguimiento de una pregunta sobre tareas también recibe las tareas', async () => {
+    m.responder.mockResolvedValue('Pagar luz [Tarea 1a2b3c4d].');
+    await consultar('¿y la más urgente?', [
+      { autor: 'usuario', texto: '¿Qué tareas tengo pendientes?' },
+      { autor: 'asistente', texto: 'Pagar luz.' },
+    ]);
+    expect(m.tareasPendientesComoTexto).toHaveBeenCalled();
+  });
+
+  it('sin historial busca solo con la pregunta nueva', async () => {
+    m.responder.mockResolvedValue('Dice uno [a.pdf · fragmento 1].');
+    await consultar('  ¿Qué dice   la factura? ');
+    expect(m.generarEmbedding).toHaveBeenCalledWith('¿Qué dice la factura?');
+    expect(m.responder.mock.calls[0]?.[0].historial).toEqual([]);
+  });
+
   it('sin respuesta en el contexto devuelve el mensaje exacto y ninguna fuente', async () => {
     m.responder.mockResolvedValue('No encontré esto en tus documentos.');
     await expect(consultar('¿Cuál es la capital de Mongolia?')).resolves.toEqual({

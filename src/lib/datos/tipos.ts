@@ -48,6 +48,23 @@ export interface RespuestaAsistente {
   fuentes: Fuente[];
 }
 
+export interface RespuestaConHistorial extends RespuestaAsistente {
+  conversacionId: string;
+  guardada: boolean; // false si la respuesta llegó pero no se pudo guardar en el historial
+}
+
+export interface MensajeGuardado {
+  id: number;
+  autor: 'usuario' | 'asistente';
+  texto: string;
+  fuentes: Fuente[];
+}
+
+export interface ConversacionActual {
+  id: string;
+  mensajes: MensajeGuardado[];
+}
+
 export interface ResultadoProductividad {
   puntos: number;
   nivel: NivelProductividad;

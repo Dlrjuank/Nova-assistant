@@ -466,6 +466,8 @@ AL TERMINAR:
 
 ## P08 · Chat del asistente
 
+> **Nota:** tras P08, a pedido del usuario, la conversación ya no vive en memoria: se guarda en la base por usuario (M4, RN-20), con el botón "Conversación nueva", y el modelo recibe los últimos 6 mensajes para entender preguntas de seguimiento (RN-21). También se agregó la máscara AAAA-MM-DD y el aviso de fecha pasada en el formulario de tareas. Ver el plan, secciones 5 y 8.5.
+
 **Fase:** 5 · **Crea:** la pantalla del asistente con chat y fuentes
 
 ````text

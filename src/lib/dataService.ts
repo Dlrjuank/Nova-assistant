@@ -126,6 +126,7 @@ export async function actualizarContrasena(usuarioId: string, contrasena: string
 // Nova Assistant: fachada única de datos (plan, sección 10.6).
 export { obtenerSesion } from '@/lib/auth/sesion';
 export { consultar } from '@/lib/datos/consulta';
+export { consultarYRegistrar, conversacionActual, crearConversacion } from '@/lib/datos/conversacion';
 export {
   emitirTokenSubida,
   existenDocumentos,
@@ -134,11 +135,14 @@ export {
 } from '@/lib/datos/documentos';
 export { completarTarea, crearTarea, eliminarTarea, listarTareas } from '@/lib/datos/tareas';
 export type {
+  ConversacionActual,
   DatosTarea,
   Documento,
   EstadoTarea,
   Fragmento,
   Fuente,
+  MensajeGuardado,
   RespuestaAsistente,
+  RespuestaConHistorial,
   Tarea,
 } from '@/lib/datos/tipos';

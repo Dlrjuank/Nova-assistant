@@ -5,12 +5,18 @@ import {
   MODELO_CHAT_RESPALDO,
   MODELO_EMBEDDING,
 } from '@/lib/config/nova';
+import type { TurnoConversacion } from '@/lib/llm/prompts';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
 
 export interface LLMClient {
   generarEmbedding(texto: string): Promise<number[]>;
   generarEmbeddings(textos: string[]): Promise<number[][]>;
-  responder(d: { sistema: string; contexto: string; pregunta: string }): Promise<string>;
+  responder(d: {
+    sistema: string;
+    contexto: string;
+    pregunta: string;
+    historial?: TurnoConversacion[] | undefined;
+  }): Promise<string>;
 }
 
 // El plan gratuito admite 30.000 tokens de embeddings por minuto y 500 palabras pueden pasar de 800 tokens:
@@ -137,13 +143,18 @@ export const llm: LLMClient = {
     return embeber(textos, 'RETRIEVAL_DOCUMENT', ESPERA_MAXIMA_INDEXAR_MS);
   },
 
-  async responder({ sistema, contexto, pregunta }) {
+  async responder({ sistema, contexto, pregunta, historial = [] }) {
     const ai = obtenerCliente();
+    // RN-21: los mensajes previos van como turnos; el contexto recuperado acompaña solo a la pregunta nueva.
+    const contents = [
+      ...historial.map((m) => ({ role: m.autor === 'usuario' ? 'user' : 'model', parts: [{ text: m.texto }] })),
+      { role: 'user', parts: [{ text: `CONTEXTO:\n${contexto || '(sin contexto)'}\n\nPREGUNTA:\n${pregunta}` }] },
+    ];
     const generar = (model: string) =>
       conReintentos(() =>
         ai.models.generateContent({
           model,
-          contents: `CONTEXTO:\n${contexto || '(sin contexto)'}\n\nPREGUNTA:\n${pregunta}`,
+          contents,
           config: { systemInstruction: sistema, temperature: 0.2 },
         }),
       );

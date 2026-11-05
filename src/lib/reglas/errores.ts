@@ -12,6 +12,7 @@ export type CodigoError =
   | 'ERROR_LLM'
   | 'TAREA_NO_ENCONTRADA'
   | 'TAREA_YA_COMPLETADA'
+  | 'CONVERSACION_NO_ENCONTRADA'
   | 'LIMITE_FUENTES'
   | 'ERROR_WIKIPEDIA'
   | 'ERROR_INTERNO';
@@ -31,6 +32,7 @@ export const MENSAJES: Record<CodigoError, string> = {
   ERROR_LLM: 'No se pudo obtener respuesta del asistente. Intente de nuevo.',
   TAREA_NO_ENCONTRADA: 'La tarea no existe.',
   TAREA_YA_COMPLETADA: 'La tarea ya está completada.',
+  CONVERSACION_NO_ENCONTRADA: 'La conversación no existe. Recargue la página.',
   LIMITE_FUENTES: 'Alcanzó el máximo de 20 fuentes en esta categoría; archive o elimine una.',
   ERROR_WIKIPEDIA: 'No se pudo consultar Wikipedia. Intente de nuevo.',
   ERROR_INTERNO: 'Ocurrió un error inesperado. Intente de nuevo.',
@@ -50,6 +52,7 @@ export const ESTADO_HTTP: Record<CodigoError, number> = {
   ERROR_LLM: 502,
   TAREA_NO_ENCONTRADA: 404,
   TAREA_YA_COMPLETADA: 409,
+  CONVERSACION_NO_ENCONTRADA: 404,
   LIMITE_FUENTES: 409,
   ERROR_WIKIPEDIA: 502,
   ERROR_INTERNO: 500,

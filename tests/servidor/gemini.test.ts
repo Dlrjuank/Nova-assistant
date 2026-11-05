@@ -62,6 +62,24 @@ describe('llm.responder', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
+  it('RN-21: el historial va como turnos user/model y el contexto solo acompaña a la pregunta nueva', async () => {
+    const { llm } = await import('@/lib/llm/gemini');
+    generateContent.mockResolvedValueOnce({ text: 'ok' });
+    await llm.responder({
+      ...DATOS,
+      historial: [
+        { autor: 'usuario', texto: '¿Cuáles son los pasos?' },
+        { autor: 'asistente', texto: 'Primero y segundo.' },
+      ],
+    });
+    const { contents } = generateContent.mock.calls[0]?.[0];
+    expect(contents.map((c: { role: string }) => c.role)).toEqual(['user', 'model', 'user']);
+    expect(contents[0].parts[0].text).toBe('¿Cuáles son los pasos?');
+    expect(contents[1].parts[0].text).toBe('Primero y segundo.');
+    expect(contents[2].parts[0].text).toContain('CONTEXTO:');
+    expect(contents[2].parts[0].text).toContain(`PREGUNTA:\n${DATOS.pregunta}`);
+  });
+
   it('reintenta ante un 503 y devuelve la respuesta', async () => {
     const { llm } = await import('@/lib/llm/gemini');
     generateContent.mockRejectedValueOnce(error(503)).mockResolvedValueOnce({ text: ' hola ' });

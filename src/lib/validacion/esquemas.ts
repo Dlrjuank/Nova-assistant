@@ -19,6 +19,7 @@ export const esquemaFiltroTareas = z.object({
 
 export const esquemaConsulta = z.object({
   pregunta: z.string().trim().min(1).max(CONSULTA_MAX_CARACTERES),
+  conversacionId: z.uuid().optional(), // sin id, la conversación más reciente del usuario (RN-20)
 });
 export type DatosConsulta = z.infer<typeof esquemaConsulta>;
 

@@ -22,6 +22,15 @@ export function validarConsulta(texto: string): void {
   }
 }
 
+/**
+ * RN-21: una pregunta de seguimiento como "¿y el segundo?" no dice de qué habla, así que la búsqueda en
+ * los documentos (y RN-12) usa la pregunta anterior del usuario junto con la nueva.
+ */
+export function textoDeBusqueda(pregunta: string, preguntaAnterior?: string | undefined): string {
+  const nueva = normalizarConsulta(pregunta);
+  return preguntaAnterior ? `${normalizarConsulta(preguntaAnterior)}\n${nueva}` : nueva;
+}
+
 /** RN-12: la pregunta pide tareas si contiene alguna palabra clave. */
 export function mencionaTareas(texto: string): boolean {
   const minusculas = texto.toLowerCase();

@@ -9,7 +9,9 @@ const m = vi.hoisted(() => ({
   indexarDocumento: vi.fn(),
   listarDocumentos: vi.fn(),
   emitirTokenSubida: vi.fn(),
-  consultar: vi.fn(),
+  consultarYRegistrar: vi.fn(),
+  conversacionActual: vi.fn(),
+  crearConversacion: vi.fn(),
 }));
 vi.mock('@/lib/auth/sesion', () => ({ exigirSesion: m.exigirSesion }));
 vi.mock('@/lib/dataService', () => ({
@@ -18,10 +20,13 @@ vi.mock('@/lib/dataService', () => ({
   indexarDocumento: m.indexarDocumento,
   listarDocumentos: m.listarDocumentos,
   emitirTokenSubida: m.emitirTokenSubida,
-  consultar: m.consultar,
+  consultarYRegistrar: m.consultarYRegistrar,
+  conversacionActual: m.conversacionActual,
+  crearConversacion: m.crearConversacion,
 }));
 
 import * as consultarRuta from '@/app/api/nova/consultar/route';
+import * as conversacionesRuta from '@/app/api/nova/conversaciones/route';
 import * as documentosRuta from '@/app/api/nova/documentos/route';
 import * as subidaRuta from '@/app/api/nova/documentos/subida/route';
 import * as tareasRuta from '@/app/api/nova/tareas/route';
@@ -32,12 +37,13 @@ const post = (cuerpo: unknown) =>
     body: typeof cuerpo === 'string' ? cuerpo : JSON.stringify(cuerpo),
   });
 const get = (url: string) => new Request(url);
+const USUARIO = '22222222-2222-4222-8222-222222222222';
 const URL_BLOB = 'https://abc123.public.blob.vercel-storage.com/a-xyz.pdf';
 
 describe('rutas /api/nova', () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    m.exigirSesion.mockResolvedValue({ email: 'dueno@ejemplo.com' });
+    m.exigirSesion.mockResolvedValue({ id: USUARIO, email: 'dueno@ejemplo.com' });
   });
 
   describe('ninguna ruta toca datos sin sesión o fuera de la lista', () => {
@@ -55,7 +61,9 @@ describe('rutas /api/nova', () => {
         () => subidaRuta.POST(post({ type: 'blob.generate-client-token' })),
         () => m.emitirTokenSubida,
       ],
-      ['POST consultar', () => consultarRuta.POST(post({ pregunta: 'Mi agenda de hoy' })), () => m.consultar],
+      ['POST consultar', () => consultarRuta.POST(post({ pregunta: 'Mi agenda de hoy' })), () => m.consultarYRegistrar],
+      ['GET conversaciones', () => conversacionesRuta.GET(), () => m.conversacionActual],
+      ['POST conversaciones', () => conversacionesRuta.POST(), () => m.crearConversacion],
     ];
 
     it.each(casos)('%s: 401 sin sesión y 403 fuera de la lista', async (_nombre, llamar, servicio) => {
@@ -127,14 +135,37 @@ describe('rutas /api/nova', () => {
     });
 
     it('POST consultar: corta es 422 con el mensaje exacto; válida devuelve respuesta y fuentes', async () => {
-      m.consultar.mockRejectedValueOnce(new ErrorDeNegocio('CONSULTA_MUY_CORTA'));
+      m.consultarYRegistrar.mockRejectedValueOnce(new ErrorDeNegocio('CONSULTA_MUY_CORTA'));
       const corta = await consultarRuta.POST(post({ pregunta: 'Agenda' }));
       expect(corta.status).toBe(422);
       expect((await corta.json()).error.mensaje).toBe('La instrucción es demasiado corta');
 
-      m.consultar.mockResolvedValueOnce({ respuesta: 'Sí', fuentes: [] });
+      const datos = { respuesta: 'Sí', fuentes: [], conversacionId: 'c1', guardada: true };
+      m.consultarYRegistrar.mockResolvedValueOnce(datos);
       const ok = await consultarRuta.POST(post({ pregunta: 'Mi agenda de hoy' }));
-      expect(await ok.json()).toEqual({ ok: true, datos: { respuesta: 'Sí', fuentes: [] } });
+      expect(await ok.json()).toEqual({ ok: true, datos });
+      expect(m.consultarYRegistrar).toHaveBeenLastCalledWith(USUARIO, 'Mi agenda de hoy', undefined);
+    });
+
+    it('POST consultar pasa el id de conversación del cuerpo y rechaza uno que no es UUID', async () => {
+      const CONV = '33333333-3333-4333-8333-333333333333';
+      m.consultarYRegistrar.mockResolvedValue({ respuesta: 'Sí', fuentes: [], conversacionId: CONV, guardada: true });
+      await consultarRuta.POST(post({ pregunta: '¿y el segundo?', conversacionId: CONV }));
+      expect(m.consultarYRegistrar).toHaveBeenLastCalledWith(USUARIO, '¿y el segundo?', CONV);
+      const malo = await consultarRuta.POST(post({ pregunta: '¿y el segundo?', conversacionId: 'x' }));
+      expect(malo.status).toBe(400);
+      expect(m.consultarYRegistrar).toHaveBeenCalledTimes(1);
+    });
+
+    it('conversaciones: GET devuelve la del usuario; POST crea una con 201', async () => {
+      m.conversacionActual.mockResolvedValue(null);
+      expect(await (await conversacionesRuta.GET()).json()).toEqual({ ok: true, datos: null });
+      expect(m.conversacionActual).toHaveBeenCalledWith(USUARIO);
+      m.crearConversacion.mockResolvedValue({ id: 'c2' });
+      const r = await conversacionesRuta.POST();
+      expect(r.status).toBe(201);
+      expect(await r.json()).toEqual({ ok: true, datos: { id: 'c2' } });
+      expect(m.crearConversacion).toHaveBeenCalledWith(USUARIO);
     });
 
     it('subida: entrega cuerpo y petición a handleUpload y conserva su respuesta', async () => {

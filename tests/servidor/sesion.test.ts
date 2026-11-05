@@ -32,8 +32,8 @@ describe('acceso a Nova', () => {
     await expect(exigirSesion()).rejects.toMatchObject({ codigo: 'ACCESO_DENEGADO' });
   });
 
-  it('con sesión en la lista devuelve el correo', async () => {
-    getCurrentUser.mockResolvedValue({ email: 'dueno@ejemplo.com' });
-    await expect(exigirSesion()).resolves.toEqual({ email: 'dueno@ejemplo.com' });
+  it('con sesión en la lista devuelve el id y el correo', async () => {
+    getCurrentUser.mockResolvedValue({ id: 'u1', email: 'dueno@ejemplo.com' });
+    await expect(exigirSesion()).resolves.toEqual({ id: 'u1', email: 'dueno@ejemplo.com' });
   });
 });

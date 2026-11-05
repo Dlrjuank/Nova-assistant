@@ -6,7 +6,7 @@ import { MensajeChat, type AutorMensaje } from '@/components/nova/MensajeChat';
 import { Aviso } from '@/components/ui/Aviso';
 import { Boton } from '@/components/ui/Boton';
 import { CLASE_CONTROL } from '@/components/ui/Campo';
-import type { Fuente, RespuestaAsistente } from '@/lib/dataService';
+import type { Fuente, MensajeGuardado, RespuestaConHistorial } from '@/lib/dataService';
 import { contarPalabrasYCaracteres, normalizarConsulta } from '@/lib/reglas/consulta';
 import { MENSAJES } from '@/lib/reglas/errores';
 import { CONSULTA_MAX_CARACTERES, CONSULTA_MIN_CARACTERES, CONSULTA_MIN_PALABRAS } from '@/lib/config/nova';
@@ -24,18 +24,36 @@ interface ErrorChat {
   pregunta: string;
 }
 
+// Reintentar no sirve para estos: repetir la misma pregunta daría el mismo error.
+const SIN_REINTENTO = ['CONSULTA_MUY_CORTA', 'CONVERSACION_NO_ENCONTRADA'];
+
 function esValida(texto: string): boolean {
   const { palabras, caracteres } = contarPalabrasYCaracteres(texto);
   return palabras >= CONSULTA_MIN_PALABRAS && caracteres >= CONSULTA_MIN_CARACTERES;
 }
 
-/** La conversación vive en memoria: se pierde al recargar (plan, P08). */
-export function Chat() {
-  const [mensajes, setMensajes] = useState<Mensaje[]>([]);
+/**
+ * RN-20: la conversación se guarda en la base por usuario y la página entrega la más reciente al cargar.
+ * RN-21: el servidor le pasa al modelo los últimos mensajes, así que se puede preguntar "¿y el segundo?".
+ */
+export function Chat({
+  conversacionId: idInicial = null,
+  historial = [],
+}: {
+  conversacionId?: string | null;
+  historial?: MensajeGuardado[];
+}) {
+  const [mensajes, setMensajes] = useState<Mensaje[]>(() =>
+    historial.map((m, i) => ({ id: i, autor: m.autor, texto: m.texto, fuentes: m.fuentes })),
+  );
+  const [conversacionId, setConversacionId] = useState(idInicial);
   const [texto, setTexto] = useState('');
   const [pensando, setPensando] = useState(false);
   const [error, setError] = useState<ErrorChat | null>(null);
-  const siguienteId = useRef(0);
+  const [sinGuardar, setSinGuardar] = useState(false);
+  const [creando, setCreando] = useState(false);
+  const [errorNueva, setErrorNueva] = useState('');
+  const siguienteId = useRef(historial.length);
   const fin = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -49,17 +67,18 @@ export function Chat() {
 
   async function preguntar(pregunta: string) {
     setError(null);
+    setSinGuardar(false);
     setPensando(true);
     try {
       const respuesta = await fetch('/api/nova/consultar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pregunta }),
+        body: JSON.stringify(conversacionId ? { pregunta, conversacionId } : { pregunta }),
       });
       // Si Vercel corta la función por tiempo, la respuesta no es JSON.
       const cuerpo = (await respuesta.json().catch(() => null)) as {
         ok?: boolean;
-        datos?: RespuestaAsistente;
+        datos?: RespuestaConHistorial;
         error?: { codigo?: string; mensaje?: string };
       } | null;
       if (!respuesta.ok || !cuerpo?.ok || !cuerpo.datos) {
@@ -71,10 +90,38 @@ export function Chat() {
         return;
       }
       agregar('asistente', cuerpo.datos.respuesta, cuerpo.datos.fuentes);
+      setConversacionId(cuerpo.datos.conversacionId);
+      setSinGuardar(cuerpo.datos.guardada === false);
     } catch {
       setError({ codigo: 'SIN_CONEXION', mensaje: 'No se pudo conectar con el servidor.', pregunta });
     } finally {
       setPensando(false);
+    }
+  }
+
+  /** La conversación anterior queda guardada en la base; solo deja de mostrarse. */
+  async function empezarNueva() {
+    setErrorNueva('');
+    setCreando(true);
+    try {
+      const respuesta = await fetch('/api/nova/conversaciones', { method: 'POST' });
+      const cuerpo = (await respuesta.json().catch(() => null)) as {
+        ok?: boolean;
+        datos?: { id: string };
+        error?: { mensaje?: string };
+      } | null;
+      if (!respuesta.ok || !cuerpo?.ok || !cuerpo.datos) {
+        setErrorNueva(cuerpo?.error?.mensaje ?? MENSAJES.ERROR_INTERNO);
+        return;
+      }
+      setConversacionId(cuerpo.datos.id);
+      setMensajes([]);
+      setError(null);
+      setSinGuardar(false);
+    } catch {
+      setErrorNueva('No se pudo conectar con el servidor. Intente de nuevo.');
+    } finally {
+      setCreando(false);
     }
   }
 
@@ -98,6 +145,25 @@ export function Chat() {
 
   return (
     <div className="flex flex-col gap-4">
+      {mensajes.length > 0 && (
+        <div className="flex flex-col items-end gap-2">
+          <Boton
+            variante="secundario"
+            cargando={creando}
+            onClick={() => void empezarNueva()}
+            disabled={pensando}
+            className="min-h-9 py-1.5"
+          >
+            Conversación nueva
+          </Boton>
+          {errorNueva && (
+            <p role="alert" className="text-xs font-medium text-prioridad-alta">
+              {errorNueva}
+            </p>
+          )}
+        </div>
+      )}
+
       {mensajes.length === 0 && !pensando && !error && (
         <p className="rounded-xl border border-dashed border-borde bg-superficie px-4 py-8 text-center text-sm text-texto-suave">
           Pregúntale algo a tus documentos o a tus tareas, por ejemplo: «¿Qué tareas tengo pendientes?»
@@ -127,12 +193,16 @@ export function Chat() {
       {error && error.codigo !== 'SIN_DOCUMENTOS' && (
         <div className="flex flex-col items-start gap-2">
           <Aviso tipo="error">{error.mensaje}</Aviso>
-          {error.codigo !== 'CONSULTA_MUY_CORTA' && (
+          {!SIN_REINTENTO.includes(error.codigo) && (
             <Boton variante="secundario" onClick={() => void preguntar(error.pregunta)} disabled={pensando}>
               Reintentar
             </Boton>
           )}
         </div>
+      )}
+
+      {sinGuardar && (
+        <Aviso tipo="advertencia">Esta respuesta no se pudo guardar en el historial: no estará al volver.</Aviso>
       )}
 
       <div ref={fin} />

@@ -11,6 +11,7 @@
 | P06 Interfaz base y tareas | completado | correcto | 141 pasan | 2026-11-05 |
 | P07 Documentos (subida e indexación), más completar y eliminar tareas | completado | correcto | 164 pasan | 2026-11-05 |
 | P08 Chat del asistente | completado | correcto | 175 pasan | 2026-11-05 |
+| P08b Ajustes tras probar P08: fechas, historial y seguimiento | completado | correcto | 202 pasan | 2026-11-05 |
 | P09 Aceptación del MVP | pendiente | | | |
 | P10 Opcionales: completar tarea e índice | pendiente | | | |
 | P11 Opcional: búsqueda en Wikipedia | pendiente | | | |
@@ -201,3 +202,27 @@ Total de fallas: 0
 - **`npm run probar:rag`:** 0 fallas con el System Prompt nuevo; `npm test` 175/175; `npm run build` correcto.
 - **Sin probar:** el chat en producción (sin commit ni push); con PDF reales (A-14, en P09); el aviso real de `ERROR_LLM` contra Gemini (solo con pruebas simuladas); un lector de pantalla.
 - **Pendientes:** P09 (aceptación y README).
+
+### P08b Ajustes tras probar P08 (pedido del usuario)
+
+- **Decisiones del usuario:** fechas pasadas se permiten con aviso (1A, respeta RN-07 y T-15); máscara AAAA-MM-DD en lugar de selector; historial en la base de datos, con dos tablas para poder listar conversaciones después; el modelo recibe los últimos 6 mensajes y la búsqueda usa la pregunta anterior con la nueva.
+- **Archivos creados:** `supabase/migrations/20261003136000_nova_conversaciones.sql` (M4), `src/lib/datos/conversacion.ts`, `src/app/api/nova/conversaciones/route.ts`, `tests/servidor/conversacion.test.ts`.
+- **Archivos modificados:** `src/lib/reglas/fechas.ts` (`aplicarMascaraFecha`, `esFechaPasada`), `src/components/nova/FormularioTarea.tsx`, `src/lib/reglas/consulta.ts` (`textoDeBusqueda`), `src/lib/datos/consulta.ts`, `src/lib/llm/gemini.ts` (turnos de historial), `src/lib/llm/prompts.ts`, `src/lib/auth/sesion.ts` (devuelve también el id), `src/app/api/nova/consultar/route.ts`, `src/app/nova/page.tsx`, `src/components/nova/Chat.tsx`, `src/lib/reglas/errores.ts` (`CONVERSACION_NO_ENCONTRADA`), `src/lib/config/nova.ts`, `src/lib/validacion/esquemas.ts`, `src/lib/datos/tipos.ts`, `src/lib/dataService.ts`, `scripts/verificar-bd.mjs`, `scripts/probar-rag.ts`, `doc/PLAN_NOVA.md` (RN-07, RN-20, RN-21, CU-08, sección 8.5, API, A-19, A-20), `doc/PROMPTS_NOVA.md` (nota en P08).
+- **Decisiones técnicas:**
+  - El guion de la máscara aparece al escribir el dígito siguiente, para que borrar no se trabe. `2026-02-30` se puede escribir y conserva el mensaje exacto.
+  - `mensajes_chat` tiene una clave foránea compuesta `(conversacion_id, usuario_id)`: la base impide un mensaje con un usuario distinto al de su conversación. El id del usuario sale siempre de la sesión.
+  - Solo se guarda una pregunta que obtuvo respuesta, junto con ella y en una transacción. Si el guardado falla, la respuesta se entrega igual (`guardada: false`) y el chat lo avisa.
+  - "Conversación nueva" crea otra y conserva la anterior (si la más reciente está vacía, la reutiliza). No pide confirmación porque no borra nada.
+  - RN-12 también usa la pregunta anterior: un seguimiento de una pregunta sobre tareas recibe las tareas.
+- **`npm run db:migrar`:** M4 aplicada. **`npm run db:verificar`:** 0 fallas, con 3 comprobaciones nuevas (mensaje válido, mensaje con otro usuario 23503, autor inválido 23514). La comprobación f) de `buscar_fragmentos` contaba todas las filas y fallaba si había documentos reales; ahora cuenta solo las del documento de prueba.
+- **`npm run probar:rag`:** 0 fallas. Paso nuevo 6b con Gemini real: "¿y el segundo?" respondió "El segundo paso es girar la carcasa hacia la izquierda [prueba-nova-rag.pdf · fragmento 1]".
+- **Navegador real** (Edge con `puppeteer-core`, dos usuarios temporales ya borrados con sus conversaciones; 21 de 22 comprobaciones):
+  - "¿y el segundo?" tras preguntar los pasos de limpieza responde "retirar la bandeja de vidrio", con cita.
+  - Escribir `20200101` deja `2020-01-01`, aparece el aviso y la tarea se guarda; `20260230` muestra el mensaje exacto.
+  - Al salir a Tareas y volver por el menú, y tras recargar, siguen las 4 burbujas; en la base, 1 conversación y 4 mensajes del usuario.
+  - Preguntar y salir a Documentos mientras piensa: al volver, la respuesta está.
+  - Otro usuario no ve la conversación y recibe 404 `CONVERSACION_NO_ENCONTRADA` al intentar escribir en ella.
+  - "Conversación nueva" deja la pantalla vacía, también tras recargar, y la anterior queda en la base (2 conversaciones). 390 px sin desplazamiento horizontal y sin errores de página.
+  - La comprobación que falló estaba mal planteada: en la conversación nueva, sin historial, "¿y el segundo?" también respondió "retirar la bandeja", porque el único PDF dice literalmente "segundo, retirar la bandeja". No prueba una fuga de historial; que la conversación nueva arranca vacía lo muestran la recarga con 0 mensajes y la prueba unitaria.
+- **Archivo `doc/CORREO RESEND VERCEL CONNECT (1).md`:** revisado sin mostrar valores. No tiene claves ni tokens: solo identificadores de conector, el nombre de la variable `VERCEL_OIDC_TOKEN` y el remitente público de prueba de Resend. No se agregó al `.gitignore`. Nunca llegó a GitHub: solo está en dos commits de puntos de control locales del agente (`refs/agents/...`), que no están en ninguna rama. Se deja fuera de los commits.
+- **Sin probar:** el historial y el seguimiento en producción hasta el despliegue; un lector de pantalla.
