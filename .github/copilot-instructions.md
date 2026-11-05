@@ -28,7 +28,7 @@
 - Fechas 'YYYY-MM-DD' como texto entre capas. Zona horaria America/Bogota; "hoy" solo con hoyBogota().
 - En rutas dinámicas params es una Promise: const { id } = await params.
 - SQL siempre con parámetros ($1, $2). Nunca concatenar valores.
-- Las tareas y los documentos no se editan ni se borran (salvo la transición opcional a Completada).
+- Las tareas no se editan: solo se completan o se eliminan con confirmación. Los documentos no se borran.
 - No instalar librerías de componentes (shadcn, MUI u otras). Usar components/ui/.
 - Prefijo de imports para lib: `@/lib/...`.
 - Archivo de protección de rutas: `src/middleware.ts` (refresca la sesión y protege `/nova` y `/api/nova`). Ruta de login: `/login`.

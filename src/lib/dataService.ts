@@ -132,7 +132,7 @@ export {
   indexarDocumento,
   listarDocumentos,
 } from '@/lib/datos/documentos';
-export { crearTarea, listarTareas } from '@/lib/datos/tareas';
+export { completarTarea, crearTarea, eliminarTarea, listarTareas } from '@/lib/datos/tareas';
 export type {
   DatosTarea,
   Documento,

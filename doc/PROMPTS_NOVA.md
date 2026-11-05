@@ -529,6 +529,8 @@ AL TERMINAR:
 
 ## P10 · Opcionales: completar tarea e índice de productividad
 
+> **Nota:** F5 (completar tarea) y eliminar tarea ya se implementaron en P07 a pedido del usuario. En P10 queda solo F6 (índice de productividad); la TAREA 1 y la parte de F5 de la verificación ya están hechas.
+
 **Fase:** 7 · **Requisito:** `doc/checkpoints/FASE_6_COMPLETADA.md` existe y `doc/ACEPTACION.md` está diligenciado
 
 ````text

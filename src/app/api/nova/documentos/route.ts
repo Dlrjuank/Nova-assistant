@@ -4,8 +4,9 @@ import { conManejoDeErrores, leerCuerpo, responderOk } from '@/lib/http/respuest
 import { esquemaIndexar } from '@/lib/validacion/esquemas';
 
 export const dynamic = 'force-dynamic';
-// Genera embeddings de todos los fragmentos y Gemini a veces tarda decenas de segundos.
-export const maxDuration = 60;
+// Genera embeddings de todos los fragmentos. Con el límite de Gemini de 30.000 tokens por minuto,
+// un documento largo necesita varios minutos (ver ESPERA_MAXIMA_INDEXAR_MS en lib/llm/gemini.ts).
+export const maxDuration = 300;
 
 export const GET = conManejoDeErrores(async () => {
   await exigirSesion();

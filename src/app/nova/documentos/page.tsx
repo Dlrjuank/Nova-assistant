@@ -1,14 +1,36 @@
+import Link from 'next/link';
+import { TablaDocumentos } from '@/components/nova/TablaDocumentos';
+import { claseBoton } from '@/components/ui/Boton';
 import { EstadoVacio } from '@/components/ui/EstadoVacio';
+import { listarDocumentos } from '@/lib/dataService';
 
-// Marcador de posición: la subida y el listado de documentos llegan en P07.
-export default function DocumentosPage() {
+export const dynamic = 'force-dynamic';
+
+export default async function DocumentosPage() {
+  const documentos = await listarDocumentos();
+
   return (
     <>
-      <h1 className="text-2xl font-bold">Documentos</h1>
-      <EstadoVacio
-        titulo="La gestión de documentos llega en un próximo paso"
-        descripcion="Aquí podrás indexar PDF para preguntarle al asistente."
-      />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold">Documentos</h1>
+        <Link href="/nova/documentos/nuevo" className={claseBoton('primario')}>
+          Indexar PDF
+        </Link>
+      </div>
+
+      {documentos.length === 0 ? (
+        <EstadoVacio
+          titulo="Aún no hay documentos"
+          descripcion="Indexa un PDF para poder preguntarle al asistente."
+          accion={
+            <Link href="/nova/documentos/nuevo" className={claseBoton('primario')}>
+              Indexar PDF
+            </Link>
+          }
+        />
+      ) : (
+        <TablaDocumentos documentos={documentos} />
+      )}
     </>
   );
 }

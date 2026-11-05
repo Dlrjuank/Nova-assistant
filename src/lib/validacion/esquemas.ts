@@ -32,8 +32,10 @@ export const esquemaIndexar = z.object({
 });
 export type DatosIndexar = z.infer<typeof esquemaIndexar>;
 
+export const esquemaIdTarea = z.uuid();
+
 export const esquemaCompletar = z.object({
-  minutos: z.number().int().min(0),
+  minutos: z.number().int().min(0).max(2_147_483_647), // tope de la columna INTEGER
 });
 export type DatosCompletar = z.infer<typeof esquemaCompletar>;
 

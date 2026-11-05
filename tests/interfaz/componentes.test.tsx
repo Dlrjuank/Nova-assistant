@@ -50,7 +50,7 @@ describe('insignias', () => {
 describe('TablaTareas', () => {
   it('muestra todas las columnas del plan y las fechas formateadas', () => {
     render(<TablaTareas tareas={[TAREA]} />);
-    for (const columna of ['Título', 'Categoría', 'Prioridad', 'Estado', 'Fecha límite', 'Creada']) {
+    for (const columna of ['Título', 'Categoría', 'Prioridad', 'Estado', 'Fecha límite', 'Creada', 'Acciones']) {
       expect(screen.getByRole('columnheader', { name: columna })).toBeTruthy();
     }
     expect(screen.getAllByText('Renovar pasaporte').length).toBe(2); // tabla y tarjeta apilada

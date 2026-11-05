@@ -9,14 +9,15 @@ Asistente RAG (Next.js 15 + Supabase/pgvector + Vercel Blob + Gemini), desplegad
 - Reglas de código: `.github/copilot-instructions.md`.
 
 ## Progreso
-- **Prompts completados: P00 a P06. Último: P06** (el usuario probó P06 en local y confirmó que funciona; esperando su confirmación del despliegue para empezar P07). Actualizar esta línea al terminar cada prompt.
+- **Prompts completados: P00 a P07. Último: P07** (esperando confirmación del usuario para P08). Actualizar esta línea al terminar cada prompt.
+- Completar tarea (F5, previsto en P10) y eliminar tarea (no estaba en el plan) ya están hechos: se agregaron en P07 a pedido del usuario. En P10 queda solo el índice de productividad.
 - Tras cada prompt: resumir qué se hizo, qué debe probar el usuario y esperar su confirmación antes del siguiente.
 
 ## Decisiones y restricciones
 - Producción: https://nova-assistantsm-kappa.vercel.app (despliega con push a `master`). `nova-assistant.vercel.app` NO es de este proyecto.
 - Migraciones: usar `NOVAASSISTANT_POSTGRES_URL_NON_POOLING`. El pooler (6543, `NOVAASSISTANT_POSTGRES_URL`) ya conecta con la CA de Supabase (verificado 2026-11-05); es el que usa el runtime.
 - Blob store: `Nova-pdf` (público). `GEMINI_API_KEY` y `BLOB_READ_WRITE_TOKEN` están en Vercel (Production y Preview, verificado por nombre) y en `.env.local`. El valor de la clave en Vercel aún no se ha probado desde un despliegue.
-- Modelos Gemini (ya actualizados en el plan): embeddings `gemini-embedding-001` con `outputDimensionality: 768` (verificado: devuelve 768); chat `gemini-3.1-flash-lite` con respaldo `gemini-3.5-flash-lite`. `gemini-3.5-flash` solo permite 20 peticiones/día en el plan gratuito (cuota por modelo): no gastar cuota en pruebas innecesarias. `gemini.ts` reintenta ante 500/503 y ante 429 pasa directo al respaldo.
+- Modelos Gemini (ya actualizados en el plan): embeddings `gemini-embedding-001` con `outputDimensionality: 768` (verificado: devuelve 768); chat `gemini-3.1-flash-lite` con respaldo `gemini-3.5-flash-lite`. `gemini-3.5-flash` solo permite 20 peticiones/día en el plan gratuito (cuota por modelo): no gastar cuota en pruebas innecesarias. `gemini.ts` reintenta ante 500/503; en el chat, ante 429 pasa directo al respaldo. Embeddings: 30.000 tokens/min en el plan gratuito, lotes de 20 y espera de `retryDelay`; por eso `POST /api/nova/documentos` usa `maxDuration = 300`. Requiere Fluid Compute en Vercel (activado por el usuario).
 - Acceso a Nova: solo correos de la lista de admins (`SUPABASE_ADMIN_EMAILS` + el incorporado en `modules/auth/admin.ts`), porque `/register` está abierto. Sin sesión 401; con sesión fuera de la lista 403 `ACCESO_DENEGADO`; en páginas, redirige a `/login` o `/home`. En Vercel `SUPABASE_ADMIN_EMAILS` no existe: allí solo entra el correo incorporado.
 - Los PDF se borran de Blob al terminar la indexación. `npm run db:limpiar` solo lista; borra con `-- --confirmar`.
 - Nunca mostrar ni subir a git el contenido de `.env.local` (ni de `.env.respaldo.local`).

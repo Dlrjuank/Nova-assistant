@@ -9,7 +9,7 @@
 | P04 Datos: tareas, documentos, consulta | completado | correcto | 106 pasan | 2026-11-05 |
 | P05 API | completado | correcto | 124 pasan | 2026-11-05 |
 | P06 Interfaz base y tareas | completado | correcto | 141 pasan | 2026-11-05 |
-| P07 Documentos (subida e indexación) | pendiente | | | |
+| P07 Documentos (subida e indexación), más completar y eliminar tareas | completado | correcto | 164 pasan | 2026-11-05 |
 | P08 Chat del asistente | pendiente | | | |
 | P09 Aceptación del MVP | pendiente | | | |
 | P10 Opcionales: completar tarea e índice | pendiente | | | |
@@ -159,3 +159,23 @@ Total de fallas: 0
 - **Problema de la prueba (no de la app):** un primer intento falló porque el triple clic no seleccionaba el campo de fecha y quedó la fecha inválida; el formulario hizo bien en no guardar. Se corrigió la prueba con Ctrl+A.
 - **Sin probar:** en un teléfono real; con lector de pantalla; en producción (sin commit ni push); un contraste medido con herramienta (solo ajustado por criterio).
 - **Pendientes:** la acción "Completar" (P10), Productividad y Web en la navegación (P10, P11); `/nova` y `/nova/documentos` son marcadores.
+
+### P07 Documentos, más completar y eliminar tareas
+
+- **Archivos creados:** `src/components/nova/{SubidorPdf,TablaDocumentos,AccionesTarea}.tsx`, `src/app/nova/documentos/nuevo/page.tsx`, `src/app/api/nova/tareas/[id]/route.ts`, `src/app/api/nova/tareas/[id]/completar/route.ts`, `tests/interfaz/{SubidorPdf,AccionesTarea}.test.tsx`, `tests/servidor/tareas-acciones.test.ts`.
+- **Archivos modificados:** `src/app/nova/documentos/page.tsx` (deja de ser marcador), `src/components/nova/TablaTareas.tsx`, `src/lib/datos/tareas.ts`, `src/lib/dataService.ts`, `src/lib/validacion/esquemas.ts`, `src/lib/llm/gemini.ts`, `src/app/api/nova/documentos/route.ts`, `tests/servidor/gemini.test.ts`, `tests/interfaz/componentes.test.tsx`, `doc/PLAN_NOVA.md`, `doc/PROMPTS_NOVA.md`.
+- **Cambio de alcance pedido por el usuario:** completar tarea (F5) se adelanta desde P10 y eliminar tarea se agrega; no estaba en el plan. El plan se actualizó (3.2, 3.3, 3.4, RN-19, CU-07, 12.3, 13 y 16). Eliminar aplica solo a tareas, es definitivo y pide confirmación; los documentos siguen sin poder borrarse.
+- **Problema encontrado, cuota de embeddings:** el plan gratuito de Gemini limita a 30.000 tokens por minuto. Con lotes de 50, un lote de texto denso podía superarlo por sí solo y no pasar nunca, y un 429 hacía fallar toda la indexación. Ahora: lotes de 20; ante un 429 espera el `retryDelay` que indica Gemini si cabe en el tiempo de la ruta; una cuota diaria falla enseguida con un mensaje claro. `POST /api/nova/documentos` pasa a `maxDuration = 300`. Medido con Gemini real: 140 fragmentos (unas 63.000 palabras) en 133 s, unos 60 fragmentos por minuto. Con 270 s de espera máxima caben unos 280 fragmentos (unas 125.000 palabras); un documento mayor recibe el mensaje de límite. La cifra es orientativa: el texto real puede gastar más tokens por palabra.
+- **Decisiones:**
+  - `completarTarea` lleva la condición en el `UPDATE`, para que dos envíos simultáneos no sobrescriban los minutos.
+  - `SubidorPdf` sube con una ruta sin caracteres especiales y guarda el nombre original para mostrarlo.
+  - Si Vercel corta la función por tiempo, la respuesta no es JSON: la interfaz lo detecta y muestra un aviso.
+- **Verificación en navegador real** (Edge con `puppeteer-core`; solo se crearon y borraron filas con prefijo de prueba; la tarea real del usuario no se tocó; 28 comprobaciones, 0 fallas):
+  - Archivo de 15.728.641 bytes: mensaje exacto, sin subir. Archivo `.txt`: rechazado.
+  - Subida real desde el navegador a Vercel Blob: indexado con 3 fragmentos, categoría y nombre original con tildes y `#` en la tabla.
+  - PDF sin texto y falso PDF: mensajes exactos. No quedó ningún archivo en Blob ni filas de los rechazados.
+  - Completar: minutos negativos con error en vivo; 90 min guardados con fecha de cierre; la tabla se actualiza sin recargar y ya no ofrece Completar; repetir por API da 409 y no sobrescribe.
+  - Eliminar: pide confirmación; cancelar no borra; confirmar borra de la tabla y de la base; inexistente da 404.
+  - 390 px: sin desplazamiento horizontal y acciones funcionando en las tarjetas.
+- **Sin probar:** el `maxDuration = 300` en Vercel (depende de que el proyecto tenga fluid compute; si no, el despliegue fallaría y habría que volver a 60); PDF reales; el tiempo real en producción; un PDF de 15 MB real.
+- **Pendientes:** `/nova` sigue siendo un marcador hasta P08.

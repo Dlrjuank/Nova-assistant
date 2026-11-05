@@ -3,6 +3,7 @@ import { consultar } from '@/lib/db/conexion';
 import { hoyBogota } from '@/lib/reglas/fechas';
 import { formatearFecha, formatearPrioridad } from '@/lib/formato';
 import type { TareaContexto } from '@/lib/llm/prompts';
+import { ErrorDeNegocio } from '@/lib/reglas/errores';
 import { validarTarea } from '@/lib/reglas/tarea';
 import type { DatosTarea, EstadoTarea, Tarea } from './tipos';
 
@@ -55,6 +56,23 @@ export async function tareasPendientesComoTexto(): Promise<TareaContexto[]> {
   }));
 }
 
-export async function completarTarea(): Promise<Tarea> {
-  throw new Error('completarTarea se implementa en P10.');
+/** RN-16: la condición va en el UPDATE para que dos envíos simultáneos no sobrescriban los minutos. */
+export async function completarTarea(id: string, minutos: number): Promise<Tarea> {
+  const [tarea] = await consultar<Tarea>(
+    `UPDATE tareas_personales
+     SET estado = 'Completada', minutos_invertidos = $2, fecha_cierre = $3
+     WHERE id = $1 AND estado <> 'Completada'
+     RETURNING ${COLUMNAS}`,
+    [id, minutos, hoyBogota()],
+  );
+  if (tarea) return tarea;
+
+  const existe = await consultar<{ id: string }>('SELECT id FROM tareas_personales WHERE id = $1', [id]);
+  throw new ErrorDeNegocio(existe.length > 0 ? 'TAREA_YA_COMPLETADA' : 'TAREA_NO_ENCONTRADA');
+}
+
+/** RN-19: el borrado es definitivo; la interfaz pide confirmación antes de llamarlo. */
+export async function eliminarTarea(id: string): Promise<void> {
+  const borradas = await consultar<{ id: string }>('DELETE FROM tareas_personales WHERE id = $1 RETURNING id', [id]);
+  if (borradas.length === 0) throw new ErrorDeNegocio('TAREA_NO_ENCONTRADA');
 }

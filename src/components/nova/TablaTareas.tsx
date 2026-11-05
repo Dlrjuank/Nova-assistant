@@ -1,9 +1,10 @@
+import { AccionesTarea } from '@/components/nova/AccionesTarea';
 import { InsigniaEstadoTarea } from '@/components/nova/InsigniaEstadoTarea';
 import { InsigniaPrioridad } from '@/components/nova/InsigniaPrioridad';
 import type { Tarea } from '@/lib/dataService';
-import { formatearFecha } from '@/lib/formato';
+import { formatearFecha, formatearMinutos } from '@/lib/formato';
 
-const COLUMNAS = ['Título', 'Categoría', 'Prioridad', 'Estado', 'Fecha límite', 'Creada'];
+const COLUMNAS = ['Título', 'Categoría', 'Prioridad', 'Estado', 'Fecha límite', 'Creada', 'Acciones'];
 
 /** Tabla desde 640 px; por debajo, tarjetas apiladas. */
 export function TablaTareas({ tareas }: { tareas: Tarea[] }) {
@@ -22,7 +23,7 @@ export function TablaTareas({ tareas }: { tareas: Tarea[] }) {
           </thead>
           <tbody className="divide-y divide-borde">
             {tareas.map((t) => (
-              <tr key={t.id}>
+              <tr key={t.id} className="align-top">
                 <th scope="row" className="px-4 py-3 font-medium text-texto">
                   {t.titulo}
                 </th>
@@ -32,9 +33,17 @@ export function TablaTareas({ tareas }: { tareas: Tarea[] }) {
                 </td>
                 <td className="px-4 py-3">
                   <InsigniaEstadoTarea estado={t.estado} />
+                  {t.estado === 'Completada' && (
+                    <p className="mt-1 whitespace-nowrap text-xs text-texto-suave">
+                      {formatearMinutos(t.minutosInvertidos)}
+                    </p>
+                  )}
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-texto-suave">{formatearFecha(t.fechaLimite)}</td>
                 <td className="whitespace-nowrap px-4 py-3 text-texto-suave">{formatearFecha(t.fechaCreacion)}</td>
+                <td className="px-4 py-3">
+                  <AccionesTarea id={t.id} titulo={t.titulo} completada={t.estado === 'Completada'} prefijo="tabla" />
+                </td>
               </tr>
             ))}
           </tbody>
@@ -56,7 +65,16 @@ export function TablaTareas({ tareas }: { tareas: Tarea[] }) {
               <dd>{formatearFecha(t.fechaLimite)}</dd>
               <dt className="text-texto-suave">Creada</dt>
               <dd>{formatearFecha(t.fechaCreacion)}</dd>
+              {t.estado === 'Completada' && (
+                <>
+                  <dt className="text-texto-suave">Dedicado</dt>
+                  <dd>{formatearMinutos(t.minutosInvertidos)}</dd>
+                </>
+              )}
             </dl>
+            <div className="mt-3">
+              <AccionesTarea id={t.id} titulo={t.titulo} completada={t.estado === 'Completada'} prefijo="tarjeta" />
+            </div>
           </li>
         ))}
       </ul>

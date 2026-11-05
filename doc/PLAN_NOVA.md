@@ -118,22 +118,23 @@ Las funciones serverless de Vercel rechazan cuerpos de petición de más de 4,5 
 
 | ID | Funcionalidad | Casos de uso | Prompts |
 |---|---|---|---|
-| F5 | Marcar tarea como completada | CU-04 | P10 |
+| F5 | Marcar tarea como completada (adelantada a P07 a pedido del usuario) | CU-04 | P07 |
 | F6 | Índice de productividad diaria | CU-05 | P10 |
+| — | Eliminar tarea (agregada a pedido del usuario; no estaba en el plan funcional) | CU-07 | P07 |
 | F4 | Buscar información en Wikipedia | CU-06 | P11 |
 
 Orden del plan funcional: primero F5 (pequeña y habilita F6), luego F6, luego F4. Se construyen solo con la fase 5 cerrada.
 
 ### 3.3 Fuera de alcance
 
-Se mantiene la lista del plan funcional: registro de notas rápidas y recordatorios, notificaciones SMS o alarmas, sincronización con calendarios externos, OCR para PDF escaneados, cuentas de usuario y multiusuario, aplicación móvil (solo interfaz web), y edición o eliminación de tareas y borrado de documentos indexados.
+Se mantiene la lista del plan funcional: registro de notas rápidas y recordatorios, notificaciones SMS o alarmas, sincronización con calendarios externos, OCR para PDF escaneados, cuentas de usuario y multiusuario, aplicación móvil (solo interfaz web), edición de tareas y borrado de documentos indexados.
 
 ### 3.4 Decisiones de alcance de esta versión técnica
 
 | Decisión | Motivo |
 |---|---|
 | El estado `En Progreso` se guarda en el modelo pero ninguna funcionalidad lo usa | El propio plan funcional (cambio 8) lo deja explícito: no hay forma de llegar a ese estado dentro del alcance |
-| Las tareas no se editan ni se eliminan; los documentos no se borran | Plan funcional, sección 7 |
+| Las tareas no se editan, pero se pueden completar y eliminar; los documentos no se borran | Plan funcional, sección 7, ampliado a pedido del usuario |
 | Una tarea completada no se puede volver a completar (no se sobrescriben los minutos) | Regla de la funcionalidad 5 |
 | Los embeddings se generan llamando a Gemini al indexar y al preguntar | No hay modelo local en serverless (sección 2) |
 | Se avisa en la interfaz que los fragmentos y la pregunta se envían al proveedor del LLM | Privacidad (plan funcional, sección 9); el sistema no es para datos sensibles |
@@ -178,7 +179,7 @@ Se mantiene la lista del plan funcional: registro de notas rápidas y recordator
 | RN-16 | Completar tarea (opcional): si no existe, error; si ya está completada, se rechaza; si no, pasa a `Completada` con los minutos y `fecha_cierre` | Funcionalidad 5 | Sección 19 |
 | RN-17 | Minutos dedicados: entero mayor o igual a 0 | Funcionalidad 5 | Sección 19 |
 | RN-18 | Índice: si la fecha no tiene tareas, se informa "Sin tareas programadas para esta fecha" y no se calcula | Funcionalidad 6 | Sección 19; evita la división por cero |
-| RN-19 | Las tareas son inmutables salvo la transición única a `Completada` (opcional); los documentos y fragmentos no se borran | Sección 3.4 | Servicio; BD |
+| RN-19 | Las tareas no se editan, salvo la transición única a `Completada`; se pueden eliminar de forma definitiva, con confirmación en la interfaz. Los documentos y fragmentos no se borran | Sección 3.4 | Servicio; BD |
 
 ### 5.1 Mensajes exactos (del plan funcional)
 
@@ -236,6 +237,7 @@ La recuperación se hace en una sola consulta SQL con el operador de distancia d
 | CU-02 Indexar PDF | PDF (≤ 15 MB) en Blob, categoría | — | Documento con N fragmentos vectorizados | `ARCHIVO_MUY_GRANDE`, `PDF_INVALIDO`, `PDF_SIN_TEXTO` |
 | CU-03 Consultar | pregunta | hay al menos un documento indexado | Respuesta con fuentes | `CONSULTA_MUY_CORTA`, `SIN_DOCUMENTOS`, `ERROR_LLM` |
 | CU-04 Completar tarea (opcional) | id de tarea, minutos | tarea existe y no está completada | Tarea `Completada` con minutos y fecha de cierre | `TAREA_NO_ENCONTRADA`, `TAREA_YA_COMPLETADA`, `DATOS_INVALIDOS` |
+| CU-07 Eliminar tarea | id de tarea | tarea existe | La tarea se borra de forma definitiva | `TAREA_NO_ENCONTRADA`, `DATOS_INVALIDOS` |
 | CU-05 Índice de productividad (opcional) | fecha (por defecto hoy) | — | Puntuación, nivel y recomendación; o aviso si no hay tareas | ninguno |
 | CU-06 Buscar en Wikipedia (opcional) | consulta | — | Resumen y fuente guardada | `CONSULTA_MUY_CORTA`, `LIMITE_FUENTES`, `ERROR_WIKIPEDIA` |
 
@@ -692,7 +694,7 @@ Detalles:
 
 - La clave se lee de `process.env.GEMINI_API_KEY` (el nombre exacto lo confirma P00). Si falta, las rutas que la usan responden `ERROR_LLM` con un mensaje claro y lo registran en consola; las reglas puras y el resto del sistema siguen funcionando.
 - Embeddings con `MODELO_EMBEDDING`; chat con `MODELO_CHAT`. Ambos en `lib/config/nova.ts`.
-- `generarEmbeddings` procesa los fragmentos por lotes para no hacer una llamada por fragmento cuando el proveedor admite varios por petición; si no, los hace en serie con un límite de concurrencia bajo.
+- `generarEmbeddings` procesa los fragmentos en lotes de 20. Ante un 429 espera lo que indique Gemini (`retryDelay`) si cabe en el tiempo de la ruta; una cuota diaria agotada falla enseguida con un mensaje claro.
 - El System Prompt (`lib/llm/prompts.ts`) ordena: responder únicamente con el contexto entregado; si el contexto no contiene la respuesta, decir exactamente `No encontré esto en tus documentos`; no inventar; citar las fuentes por su etiqueta. (RN-13)
 - `construirContexto` numera los fragmentos y las tareas para que el modelo pueda referirse a ellos, y antepone una línea por fuente con su etiqueta.
 
@@ -744,7 +746,8 @@ Los mensajes de la sección 5.1 aparecen textualmente (prioridad, PDF grande, PD
 | `GET /api/nova/sesion` | | `{ email }` |
 | `GET /api/nova/tareas?estado=&fecha=` | | `Tarea[]` |
 | `POST /api/nova/tareas` | `{ titulo, categoria?, prioridad?, fechaLimite }` | `Tarea` (201) |
-| `POST /api/nova/tareas/[id]/completar` | `{ minutos }` | `Tarea` (opcional, F5) |
+| `POST /api/nova/tareas/[id]/completar` | `{ minutos }` | `Tarea` (F5) |
+| `DELETE /api/nova/tareas/[id]` | | `{ id }` |
 | `GET /api/nova/documentos` | | `Documento[]` |
 | `POST /api/nova/documentos/subida` | (protocolo de subida de Vercel Blob) | token de subida |
 | `POST /api/nova/documentos` | `{ urlBlob, nombreArchivo, categoria? }` | `{ documentoId, numFragmentos }` (201) |
@@ -752,7 +755,7 @@ Los mensajes de la sección 5.1 aparecen textualmente (prioridad, PDF grande, PD
 | `POST /api/nova/productividad` | `{ fecha? }` | `ResultadoProductividad` o `{ sinTareas: true }` (opcional, F6) |
 | `POST /api/nova/web` | `{ consulta, categoria? }` | `ResultadoWeb` (opcional, F4) |
 
-`POST /api/nova/documentos` y `POST /api/nova/consultar` declaran `export const maxDuration` holgado (por ejemplo 60) porque llaman a Gemini varias veces.
+`POST /api/nova/consultar` declara `maxDuration = 60` y `POST /api/nova/documentos`, `maxDuration = 300`: el plan gratuito de Gemini limita los embeddings a 30.000 tokens por minuto y un documento largo necesita varios minutos (medido: 140 fragmentos en 133 s).
 
 ### 12.4 Esquemas Zod (`lib/validacion/esquemas.ts`)
 
@@ -773,7 +776,7 @@ Los mensajes de la sección 5.1 aparecen textualmente (prioridad, PDF grande, PD
 |---|---|
 | Layout `/nova` | Verifica la sesión; sin sesión redirige al login. Barra con "Nova", navegación (Asistente, Tareas, Documentos; Productividad y Web cuando estén activos), correo del usuario y botón de cerrar sesión. Aviso de privacidad visible una vez: "Tus preguntas y los fragmentos recuperados se envían al proveedor del asistente. No subas documentos con datos sensibles." Menú desplegable en móvil. |
 | `/nova` · Asistente | `Chat`: campo de pregunta y conversación. Cada respuesta del asistente muestra el texto y, debajo, `ListaFuentes` (nombre del PDF y fragmento, o tarea). Si no hay documentos, muestra el aviso de `SIN_DOCUMENTOS` con enlace a indexar. Validación en vivo de la consulta (2 palabras, 8 caracteres) antes de habilitar enviar. Estado de carga mientras el asistente responde. |
-| `/nova/tareas` · Tareas | `TablaTareas`: título, categoría, prioridad (`InsigniaPrioridad`), estado (`InsigniaEstadoTarea`), fecha límite, fecha de creación. Filtro por estado. Botón "Registrar tarea". Si F5 está activo, acción "Completar" en las pendientes. |
+| `/nova/tareas` · Tareas | `TablaTareas`: título, categoría, prioridad (`InsigniaPrioridad`), estado (`InsigniaEstadoTarea`), fecha límite, fecha de creación. Filtro por estado. Botón "Registrar tarea". Acción "Completar" en las pendientes y "Eliminar" con confirmación en todas. |
 | `/nova/tareas/nueva` · Registrar tarea | `FormularioTarea`: título, categoría (por defecto "General"), prioridad (selector 1/2/3, por defecto 2), fecha límite (`YYYY-MM-DD`). Validación en vivo; los mensajes de error coinciden con los de la sección 5.1. |
 | `/nova/documentos` · Documentos | `TablaDocumentos`: nombre, categoría, número de fragmentos, fecha de indexación. Botón "Indexar PDF". `EstadoVacio` con guía si no hay documentos. |
 | `/nova/documentos/nuevo` · Indexar PDF | `SubidorPdf`: selector de archivo que valida el tamaño (≤ 15 MB) en el navegador, sube a Vercel Blob mostrando progreso, y luego llama a la indexación. Muestra el número de fragmentos indexados o el mensaje de error (`PDF_SIN_TEXTO`, `ARCHIVO_MUY_GRANDE`). Campo de categoría. |
@@ -832,7 +835,7 @@ Vercel corre en UTC; Colombia es UTC-5 sin horario de verano. La fecha de creaci
 | Validación en tres puntos | Navegador (Zod y reglas), API (Zod y reglas) y base de datos (CHECK, UNIQUE) |
 | Tamaño de PDF verificado en el servidor | No se confía solo en la validación del navegador (RN-01) |
 | Subida de PDF | A Vercel Blob con token de un solo uso emitido por el servidor; la ruta de indexación solo recibe la URL y borra el PDF del Blob al terminar, se haya indexado o rechazado |
-| Tareas y documentos inmutables | Sin rutas de edición o borrado (salvo la transición a Completada, opcional) |
+| Edición y borrado limitados | Sin rutas de edición; las tareas solo se completan o se eliminan con confirmación; los documentos no se borran |
 | SQL parametrizado | Ningún valor se concatena; los vectores van como parámetro casteado |
 | Errores internos | Se registran con `console.error`; el usuario recibe `ERROR_INTERNO` sin detalles técnicos |
 
