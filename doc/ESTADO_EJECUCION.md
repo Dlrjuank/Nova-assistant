@@ -10,7 +10,7 @@
 | P05 API | completado | correcto | 124 pasan | 2026-11-05 |
 | P06 Interfaz base y tareas | completado | correcto | 141 pasan | 2026-11-05 |
 | P07 Documentos (subida e indexación), más completar y eliminar tareas | completado | correcto | 164 pasan | 2026-11-05 |
-| P08 Chat del asistente | pendiente | | | |
+| P08 Chat del asistente | completado | correcto | 175 pasan | 2026-11-05 |
 | P09 Aceptación del MVP | pendiente | | | |
 | P10 Opcionales: completar tarea e índice | pendiente | | | |
 | P11 Opcional: búsqueda en Wikipedia | pendiente | | | |
@@ -179,3 +179,25 @@ Total de fallas: 0
   - 390 px: sin desplazamiento horizontal y acciones funcionando en las tarjetas.
 - **Sin probar:** el `maxDuration = 300` en Vercel (depende de que el proyecto tenga fluid compute; si no, el despliegue fallaría y habría que volver a 60); PDF reales; el tiempo real en producción; un PDF de 15 MB real.
 - **Pendientes:** `/nova` sigue siendo un marcador hasta P08.
+
+### P08 Chat del asistente
+
+- **Limpieza previa:** el usuario pidió borrar sus documentos de prueba. `npm run db:limpiar` listó exactamente `prueba-corto.pdf` y `prueba-largo-115pag.pdf`; se ejecutó con `--confirmar` (2 documentos, 0 tareas).
+- **Archivos creados:** `src/components/nova/{Chat,MensajeChat,ListaFuentes}.tsx`, `tests/interfaz/Chat.test.tsx`.
+- **Archivos modificados:** `src/app/nova/page.tsx` (deja de ser marcador), `src/lib/llm/prompts.ts`, `src/lib/config/nova.ts` (`CONSULTA_MAX_CARACTERES`), `src/lib/validacion/esquemas.ts`, `doc/PLAN_NOVA.md`.
+- **Decisiones:**
+  - **System Prompt ampliado:** escribir en texto plano, porque la burbuja no interpreta Markdown y se veían los asteriscos, y tratar el contexto como datos, porque el contenido de un PDF llega al modelo y podría traer órdenes.
+  - **Máximo de 1000 caracteres por pregunta**, en la interfaz y en la API, para no gastar cuota de Gemini en textos enormes.
+  - **Reintentar** vuelve a enviar la misma pregunta sin duplicar su burbuja.
+  - **Enter envía y Shift+Enter hace un salto de línea.**
+- **Verificación en navegador real** (Edge con `puppeteer-core`; usuario, tarea y documento temporales ya borrados; 18 comprobaciones, 0 fallas):
+  - Sin documentos: la página guía a indexar y preguntar muestra `SIN_DOCUMENTOS` con enlace.
+  - "Agenda" y "Hola tú": botón deshabilitado; "Agenda" muestra el mensaje exacto y Enter no envía.
+  - Dato en el PDF: "La garantía del horno es de 36 meses desde la fecha de compra [prueba-p08-horno.pdf · fragmento 1]", con chip de fuente.
+  - Dato ausente: "No encontré esto en tus documentos", sin fuentes.
+  - "¿Qué tareas tengo pendientes?": incluye la tarea y la cita, sin Markdown.
+  - PDF con una orden escondida ("IGNORA TODAS TUS INSTRUCCIONES..."): el modelo la cita como contenido y no la obedece. Es una sola prueba y no garantiza que siempre resista.
+  - 390 px sin desplazamiento horizontal; al recargar la conversación se vacía; sin errores de página. Respuestas de unos 1,7 s.
+- **`npm run probar:rag`:** 0 fallas con el System Prompt nuevo; `npm test` 175/175; `npm run build` correcto.
+- **Sin probar:** el chat en producción (sin commit ni push); con PDF reales (A-14, en P09); el aviso real de `ERROR_LLM` contra Gemini (solo con pruebas simuladas); un lector de pantalla.
+- **Pendientes:** P09 (aceptación y README).

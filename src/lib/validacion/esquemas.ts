@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { CONSULTA_MAX_CARACTERES } from '@/lib/config/nova';
 
 // Solo validan forma y tipos; las reglas finas (prioridad 1..3, fecha real, 2 palabras/8 caracteres)
 // las aplica src/lib/reglas para devolver los mensajes exactos.
@@ -17,7 +18,7 @@ export const esquemaFiltroTareas = z.object({
 });
 
 export const esquemaConsulta = z.object({
-  pregunta: z.string().trim().min(1),
+  pregunta: z.string().trim().min(1).max(CONSULTA_MAX_CARACTERES),
 });
 export type DatosConsulta = z.infer<typeof esquemaConsulta>;
 

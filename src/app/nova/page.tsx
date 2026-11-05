@@ -1,21 +1,25 @@
 import Link from 'next/link';
-import { claseBoton } from '@/components/ui/Boton';
-import { EstadoVacio } from '@/components/ui/EstadoVacio';
+import { Chat } from '@/components/nova/Chat';
+import { Aviso } from '@/components/ui/Aviso';
+import { existenDocumentos } from '@/lib/dataService';
 
-// Marcador de posición: el chat del asistente llega en P08.
-export default function AsistentePage() {
+export const dynamic = 'force-dynamic';
+
+export default async function AsistentePage() {
+  const hayDocumentos = await existenDocumentos();
+
   return (
     <>
       <h1 className="text-2xl font-bold">Asistente</h1>
-      <EstadoVacio
-        titulo="El chat del asistente llega en un próximo paso"
-        descripcion="Mientras tanto puedes registrar tus tareas."
-        accion={
-          <Link href="/nova/tareas" className={claseBoton('primario')}>
-            Ver tareas
+      {!hayDocumentos && (
+        <Aviso tipo="advertencia">
+          Aún no hay documentos indexados. Indexa un PDF antes de preguntar.{' '}
+          <Link href="/nova/documentos/nuevo" className="font-semibold text-primario underline">
+            Indexar un PDF
           </Link>
-        }
-      />
+        </Aviso>
+      )}
+      <Chat />
     </>
   );
 }

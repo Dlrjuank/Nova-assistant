@@ -9,7 +9,7 @@ Asistente RAG (Next.js 15 + Supabase/pgvector + Vercel Blob + Gemini), desplegad
 - Reglas de código: `.github/copilot-instructions.md`.
 
 ## Progreso
-- **Prompts completados: P00 a P07. Último: P07** (esperando confirmación del usuario para P08). Actualizar esta línea al terminar cada prompt.
+- **Prompts completados: P00 a P08. Último: P08** (esperando confirmación del usuario para P09). P04 a P07 ya están en producción; P08 aún no tiene commit. Actualizar esta línea al terminar cada prompt.
 - Completar tarea (F5, previsto en P10) y eliminar tarea (no estaba en el plan) ya están hechos: se agregaron en P07 a pedido del usuario. En P10 queda solo el índice de productividad.
 - Tras cada prompt: resumir qué se hizo, qué debe probar el usuario y esperar su confirmación antes del siguiente.
 
