@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { tieneAccesoNova } from '@/lib/auth/acceso';
 import { getSupabaseConfig } from '@/lib/supabase/config';
 
 export async function middleware(request: NextRequest) {
@@ -38,17 +39,20 @@ export async function middleware(request: NextRequest) {
 
   const esApiNova = ruta === '/api/nova' || ruta.startsWith('/api/nova/');
   const esPaginaNova = ruta === '/nova' || ruta.startsWith('/nova/');
-  if (!data.user && (esApiNova || esPaginaNova)) {
-    if (esApiNova) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: { codigo: 'NO_AUTORIZADO', mensaje: 'Debe iniciar sesión.', detalles: null },
-        },
-        { status: 401, headers: { 'Cache-Control': 'no-store' } },
-      );
+  if (esApiNova || esPaginaNova) {
+    const sinSesion = !data.user;
+    if (sinSesion || !tieneAccesoNova(data.user?.email)) {
+      if (esApiNova) {
+        const [estado, codigo, mensaje] = sinSesion
+          ? [401, 'NO_AUTORIZADO', 'Debe iniciar sesión.']
+          : [403, 'ACCESO_DENEGADO', 'Su cuenta no tiene acceso a Nova Assistant.'];
+        return NextResponse.json(
+          { ok: false, error: { codigo, mensaje, detalles: null } },
+          { status: estado, headers: { 'Cache-Control': 'no-store' } },
+        );
+      }
+      return NextResponse.redirect(new URL(sinSesion ? '/login' : '/home', request.url));
     }
-    return NextResponse.redirect(new URL('/login', request.url));
   }
 
   return response;

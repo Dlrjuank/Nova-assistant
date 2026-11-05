@@ -1,0 +1,19 @@
+import { exigirSesion } from '@/lib/auth/sesion';
+import { indexarDocumento, listarDocumentos } from '@/lib/dataService';
+import { conManejoDeErrores, leerCuerpo, responderOk } from '@/lib/http/respuestas';
+import { esquemaIndexar } from '@/lib/validacion/esquemas';
+
+export const dynamic = 'force-dynamic';
+// Genera embeddings de todos los fragmentos y Gemini a veces tarda decenas de segundos.
+export const maxDuration = 60;
+
+export const GET = conManejoDeErrores(async () => {
+  await exigirSesion();
+  return responderOk(await listarDocumentos());
+});
+
+export const POST = conManejoDeErrores(async (peticion: Request) => {
+  await exigirSesion();
+  const datos = await leerCuerpo(peticion, esquemaIndexar);
+  return responderOk(await indexarDocumento(datos), 201);
+});

@@ -11,6 +11,11 @@ export const esquemaTarea = z.object({
 });
 export type DatosTareaEntrada = z.infer<typeof esquemaTarea>;
 
+export const esquemaFiltroTareas = z.object({
+  estado: z.enum(['Pendiente', 'En Progreso', 'Completada']).optional(),
+  fecha: z.string().optional(),
+});
+
 export const esquemaConsulta = z.object({
   pregunta: z.string().trim().min(1),
 });

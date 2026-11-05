@@ -1,6 +1,7 @@
 export type CodigoError =
   | 'DATOS_INVALIDOS'
   | 'NO_AUTORIZADO'
+  | 'ACCESO_DENEGADO'
   | 'PRIORIDAD_INVALIDA'
   | 'FECHA_INVALIDA'
   | 'ARCHIVO_MUY_GRANDE'
@@ -19,6 +20,7 @@ export type CodigoError =
 export const MENSAJES: Record<CodigoError, string> = {
   DATOS_INVALIDOS: 'Revise los datos ingresados.',
   NO_AUTORIZADO: 'Debe iniciar sesión.',
+  ACCESO_DENEGADO: 'Su cuenta no tiene acceso a Nova Assistant.',
   PRIORIDAD_INVALIDA: 'La prioridad debe ser 1, 2 o 3',
   FECHA_INVALIDA: 'La fecha debe tener formato AAAA-MM-DD y ser una fecha real.',
   ARCHIVO_MUY_GRANDE: 'El documento supera el límite permitido de 15 MB',
@@ -37,6 +39,7 @@ export const MENSAJES: Record<CodigoError, string> = {
 export const ESTADO_HTTP: Record<CodigoError, number> = {
   DATOS_INVALIDOS: 400,
   NO_AUTORIZADO: 401,
+  ACCESO_DENEGADO: 403,
   PRIORIDAD_INVALIDA: 422,
   FECHA_INVALIDA: 422,
   ARCHIVO_MUY_GRANDE: 413,
