@@ -13,3 +13,19 @@ export function esFechaISOValida(fecha: string): boolean {
   const d = new Date(Date.UTC(anio, mes - 1, dia));
   return d.getUTCFullYear() === anio && d.getUTCMonth() === mes - 1 && d.getUTCDate() === dia;
 }
+
+/**
+ * Máscara AAAA-MM-DD: deja solo dígitos (hasta 8) y pone cada guion cuando llega el dígito que lo sigue,
+ * para que borrar hacia atrás no se trabe en un guion.
+ */
+export function aplicarMascaraFecha(texto: string): string {
+  const d = texto.replace(/\D/g, '').slice(0, 8);
+  if (d.length <= 4) return d;
+  if (d.length <= 6) return `${d.slice(0, 4)}-${d.slice(4)}`;
+  return `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6)}`;
+}
+
+/** RN-07 permite fechas pasadas; esto solo sirve para avisar. Compara textos YYYY-MM-DD. */
+export function esFechaPasada(fecha: string, hoy: string): boolean {
+  return esFechaISOValida(fecha) && fecha < hoy;
+}

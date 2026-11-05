@@ -55,6 +55,33 @@ describe('FormularioTarea', () => {
     expect(screen.queryByText(/formato AAAA-MM-DD y ser una fecha real/)).toBeNull();
   });
 
+  it('máscara: con solo números el campo queda en AAAA-MM-DD', () => {
+    render(<FormularioTarea />);
+    const campo = screen.getByLabelText('Fecha límite') as HTMLInputElement;
+    escribir('Fecha límite', '20990');
+    expect(campo.value).toBe('2099-0');
+    escribir('Fecha límite', '20990210');
+    expect(campo.value).toBe('2099-02-10');
+    escribir('Fecha límite', '20260230');
+    fireEvent.blur(campo);
+    expect(campo.value).toBe('2026-02-30');
+    expect(screen.getByText('La fecha debe tener formato AAAA-MM-DD y ser una fecha real.')).toBeTruthy();
+  });
+
+  it('una fecha pasada muestra un aviso, pero se puede guardar (RN-07)', async () => {
+    const fetchMock = vi.fn().mockImplementation(() => respuesta({ ok: true, datos: { id: '1' } }, 201));
+    vi.stubGlobal('fetch', fetchMock);
+    render(<FormularioTarea />);
+    escribir('Título', 'Pagar luz');
+    escribir('Fecha límite', '2099-01-01');
+    expect(screen.queryByText(/Esta fecha ya pasó/)).toBeNull();
+    escribir('Fecha límite', '2020-01-01');
+    expect(screen.getByText(/Esta fecha ya pasó/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar tarea' }));
+    await waitFor(() => expect(nav.push).toHaveBeenCalledWith('/nova/tareas'));
+    expect(JSON.parse(fetchMock.mock.calls[0]?.[1].body).fechaLimite).toBe('2020-01-01');
+  });
+
   it('un título en blanco muestra error y al enviar no llama al servidor', async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);

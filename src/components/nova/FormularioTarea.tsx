@@ -8,7 +8,7 @@ import { Campo } from '@/components/ui/Campo';
 import { Selector } from '@/components/ui/Selector';
 import { CATEGORIA_POR_DEFECTO, PRIORIDAD_POR_DEFECTO } from '@/lib/config/nova';
 import { ErrorDeNegocio, MENSAJES } from '@/lib/reglas/errores';
-import { esFechaISOValida } from '@/lib/reglas/fechas';
+import { aplicarMascaraFecha, esFechaISOValida, esFechaPasada, hoyBogota } from '@/lib/reglas/fechas';
 import { normalizarTitulo, resolverPrioridad } from '@/lib/reglas/tarea';
 
 type Campos = 'titulo' | 'prioridad' | 'fechaLimite';
@@ -125,16 +125,20 @@ export function FormularioTarea() {
         id="fechaLimite"
         etiqueta="Fecha límite"
         value={valores.fechaLimite}
-        onChange={cambiar('fechaLimite')}
+        onChange={(e) => cambiar('fechaLimite')({ target: { value: aplicarMascaraFecha(e.target.value) } })}
         onBlur={tocar('fechaLimite')}
         error={visible('fechaLimite')}
-        ayuda="Formato AAAA-MM-DD, por ejemplo 2026-03-10. Se permiten fechas pasadas."
+        ayuda="Formato AAAA-MM-DD, por ejemplo 2026-03-10. Escribe solo los números: los guiones se ponen solos."
         placeholder="AAAA-MM-DD"
         inputMode="numeric"
         maxLength={10}
         autoComplete="off"
         required
       />
+      {/* RN-07 permite fechas pasadas: se avisa por si fue un error al escribir, pero no se bloquea. */}
+      {esFechaPasada(valores.fechaLimite, hoyBogota()) && (
+        <Aviso tipo="advertencia">Esta fecha ya pasó. Puedes guardar la tarea de todos modos.</Aviso>
+      )}
 
       {errorServidor && <Aviso tipo="error">{errorServidor}</Aviso>}
 
