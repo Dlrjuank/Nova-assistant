@@ -8,7 +8,7 @@
 ## Stack
 - Next.js App Router + TypeScript + Tailwind CSS. Despliegue en Vercel.
 - Postgres de Supabase con pgvector, el paquete pg y `NOVAASSISTANT_POSTGRES_URL_NON_POOLING` para aplicar las migraciones P01. `NOVAASSISTANT_POSTGRES_URL` es el Transaction pooler para runtime (conecta bien). SSL siempre verificado con `supabase/prod-ca-2021.crt`.
-- Embeddings y chat con la API de Gemini (clave en `GEMINI_API_KEY`). Modelos: `gemini-embedding-001` (outputDimensionality 768) y `gemini-3.5-flash` (respaldo `gemini-3.1-flash-lite`).
+- Embeddings y chat con la API de Gemini (clave en `GEMINI_API_KEY`). Modelos: `gemini-embedding-001` (outputDimensionality 768) y `gemini-3.1-flash-lite` (respaldo `gemini-3.5-flash-lite`).
 - PDF de hasta 15 MB subidos a Vercel Blob (`BLOB_READ_WRITE_TOKEN`); extracción de texto con `unpdf`.
 - Validación con Zod. Pruebas con Vitest.
 - Login existente: Supabase Auth con `@supabase/ssr`, cookie `sb-<project-ref>-auth-token`; se conserva y no se reescribe. El login actual redirige a `/dashboard` o `/home`; el plan prevé `/nova`. Puerta única, sin roles para Nova.

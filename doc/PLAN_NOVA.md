@@ -100,7 +100,7 @@ El modelo local del plan produce vectores de 384 dimensiones; `gemini-embedding-
 
 ### 2.2 El límite de 15 MB y Vercel
 
-Las funciones serverless de Vercel rechazan cuerpos de petición de más de 4,5 MB, así que un PDF de hasta 15 MB no puede subirse directo a una ruta API. El PDF se sube desde el navegador a **Vercel Blob** con una subida client-side (token de subida de un solo uso que emite el servidor), y la ruta de indexación recibe solo la URL del Blob, descarga el archivo en el servidor, verifica su tamaño real y lo procesa. El límite de 15 MB (regla 1) se valida en dos puntos: en el navegador antes de subir, y en el servidor sobre el tamaño real descargado.
+Las funciones serverless de Vercel rechazan cuerpos de petición de más de 4,5 MB, así que un PDF de hasta 15 MB no puede subirse directo a una ruta API. El PDF se sube desde el navegador a **Vercel Blob** con una subida client-side (token de subida de un solo uso que emite el servidor), y la ruta de indexación recibe solo la URL del Blob, descarga el archivo en el servidor, verifica su tamaño real, lo procesa y lo borra del Blob (el store es público; lo que se consulta después son los fragmentos). El límite de 15 MB (regla 1) se valida en dos puntos: en el navegador antes de subir, y en el servidor sobre el tamaño real descargado.
 
 ---
 
@@ -151,8 +151,8 @@ Se mantiene la lista del plan funcional: registro de notas rápidas y recordator
 | Ruta | Sin sesión | Con sesión |
 |---|:-:|:-:|
 | `/` | Redirige al login | Redirige a `/nova` |
-| `/nova/*` | Redirige al login | Sí |
-| `/api/nova/*` | 401 | Sí |
+| `/nova/*` | Redirige al login | Sí si el correo está en la lista de acceso; si no, redirige a `/home` |
+| `/api/nova/*` | 401 | Sí si el correo está en la lista de acceso; si no, 403 `ACCESO_DENEGADO` |
 
 ---
 
@@ -207,6 +207,7 @@ PDF en Vercel Blob
   → por cada fragmento: embedding con Gemini (vector de 768 dims)
   → guardado del fragmento (texto + vector + número + documento) en pgvector
   → registro del documento con su número de fragmentos
+  → borrado del PDF en Vercel Blob (también si se rechazó)
 ```
 
 ### 6.2 Consulta (al preguntar, F3)
@@ -563,8 +564,8 @@ export const LIMITE_LISTADO = 500;
 
 // Modelos de Gemini (se pueden ajustar sin tocar la lógica)
 export const MODELO_EMBEDDING = 'gemini-embedding-001';
-export const MODELO_CHAT = 'gemini-3.5-flash';
-export const MODELO_CHAT_RESPALDO = 'gemini-3.1-flash-lite';  // si el principal sigue saturado tras reintentar
+export const MODELO_CHAT = 'gemini-3.1-flash-lite';            // gemini-3.5-flash solo permite 20 peticiones al día en el plan gratuito
+export const MODELO_CHAT_RESPALDO = 'gemini-3.5-flash-lite';    // si el principal se satura o agota su cuota
 
 export const NIVELES_PALABRAS_CLAVE_TAREAS = ['tarea', 'tareas', 'pendiente', 'pendientes', 'fecha', 'fechas', 'vence', 'límite', 'limite'];  // RN-12
 ```
@@ -574,7 +575,7 @@ export const NIVELES_PALABRAS_CLAVE_TAREAS = ['tarea', 'tareas', 'pendiente', 'p
 ```ts
 // lib/reglas/errores.ts
 export type CodigoError =
-  | 'DATOS_INVALIDOS' | 'NO_AUTORIZADO'
+  | 'DATOS_INVALIDOS' | 'NO_AUTORIZADO' | 'ACCESO_DENEGADO'
   | 'PRIORIDAD_INVALIDA' | 'FECHA_INVALIDA'
   | 'ARCHIVO_MUY_GRANDE' | 'PDF_INVALIDO' | 'PDF_SIN_TEXTO'
   | 'CONSULTA_MUY_CORTA' | 'SIN_DOCUMENTOS' | 'ERROR_LLM'
@@ -628,7 +629,7 @@ listarTareas(f?: { estado?: EstadoTarea; fecha?: string }): Promise<Tarea[]>
 completarTarea(id: string, minutos: number): Promise<Tarea>    // opcional F5; RN-16
 
 // Documentos y fragmentos
-emitirTokenSubida(nombreArchivo: string): Promise<{ token: string; ruta: string }>  // Vercel Blob client upload
+emitirTokenSubida(cuerpo: HandleUploadBody, peticion: Request)  // protocolo handleUpload de Vercel Blob; devuelve lo que espera upload() en el navegador
 indexarDocumento(d: { urlBlob: string; nombreArchivo: string; categoria: string }): Promise<{ documentoId: string; numFragmentos: number }>
 listarDocumentos(): Promise<Documento[]>
 existenDocumentos(): Promise<boolean>
@@ -719,6 +720,7 @@ Todas las respuestas llevan `Cache-Control: no-store`.
 |---|---|---|
 | `DATOS_INVALIDOS` | 400 | Revise los datos ingresados. |
 | `NO_AUTORIZADO` | 401 | Debe iniciar sesión. |
+| `ACCESO_DENEGADO` | 403 | Su cuenta no tiene acceso a Nova Assistant. |
 | `PRIORIDAD_INVALIDA` | 422 | La prioridad debe ser 1, 2 o 3 |
 | `FECHA_INVALIDA` | 422 | La fecha debe tener formato AAAA-MM-DD y ser una fecha real. |
 | `ARCHIVO_MUY_GRANDE` | 413 | El documento supera el límite permitido de 15 MB |
@@ -829,7 +831,7 @@ Vercel corre en UTC; Colombia es UTC-5 sin horario de verano. La fecha de creaci
 | Aviso de privacidad | La interfaz advierte que la pregunta y los fragmentos se envían al proveedor del LLM; el sistema no es para datos sensibles |
 | Validación en tres puntos | Navegador (Zod y reglas), API (Zod y reglas) y base de datos (CHECK, UNIQUE) |
 | Tamaño de PDF verificado en el servidor | No se confía solo en la validación del navegador (RN-01) |
-| Subida de PDF | A Vercel Blob con token de un solo uso emitido por el servidor; la ruta de indexación solo recibe la URL |
+| Subida de PDF | A Vercel Blob con token de un solo uso emitido por el servidor; la ruta de indexación solo recibe la URL y borra el PDF del Blob al terminar, se haya indexado o rechazado |
 | Tareas y documentos inmutables | Sin rutas de edición o borrado (salvo la transición a Completada, opcional) |
 | SQL parametrizado | Ningún valor se concatena; los vectores van como parámetro casteado |
 | Errores internos | Se registran con `console.error`; el usuario recibe `ERROR_INTERNO` sin detalles técnicos |

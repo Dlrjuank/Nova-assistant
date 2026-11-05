@@ -6,9 +6,9 @@
 | P01 Base de datos (pgvector) | completado | correcto | 47 pasan | 2026-11-05 |
 | P02 Reglas de negocio | completado | correcto | 79 pasan (32 de reglas) | 2026-11-05 |
 | P03 Servidor y cliente LLM | completado | correcto | 88 pasan | 2026-11-05 |
-| P04 Datos: tareas, documentos, consulta | pendiente | | | |
-| P05 API | pendiente | | | |
-| P06 Interfaz base y tareas | pendiente | | | |
+| P04 Datos: tareas, documentos, consulta | completado | correcto | 106 pasan | 2026-11-05 |
+| P05 API | completado | correcto | 124 pasan | 2026-11-05 |
+| P06 Interfaz base y tareas | completado | correcto | 141 pasan | 2026-11-05 |
 | P07 Documentos (subida e indexación) | pendiente | | | |
 | P08 Chat del asistente | pendiente | | | |
 | P09 Aceptación del MVP | pendiente | | | |
@@ -81,3 +81,81 @@
 - **Sin comprobar:** la redirección de `LoginForm` a `/nova` en un navegador (solo revisada en el código).
 - **Gemini real, 6 llamadas:** 6/6 correctas, con una que usó el modelo de respaldo. Latencia de 3,6 a 32,7 s: tenerlo en cuenta para `maxDuration` en P05.
 - **Lint:** corregidos los 3 errores (`z.ZodObject` sin `any` en `data/_schema/registry.ts`; `next-env.d.ts`, generado, ignorado en ESLint). Queda 1 aviso en `eslint.config.mjs`. `npm run type-check` sigue con 2 errores previos en `json-db.test.ts`.
+
+### P04 Datos: tareas, documentos y consulta
+
+- **Archivos creados:** `src/lib/datos/{tipos,tareas,documentos,fragmentos,consulta,productividad,wikipedia}.ts`, `scripts/limpiar-prueba.mjs`, `scripts/probar-rag.ts`, `tests/servidor/{consulta,documentos}.test.ts`.
+- **Archivos modificados:** `src/lib/dataService.ts` (agrega la fachada de Nova sin tocar la recuperación de contraseña), `src/lib/llm/prompts.ts` (`SIN_RESPUESTA`), `src/lib/reglas/tarea.ts` (tipo opcional), `package.json` (`db:limpiar`, `probar:rag`), `doc/PLAN_NOVA.md` (firma de `emitirTokenSubida`).
+- **Salida de `npm run probar:rag`:**
+
+```text
+OK    Paso 9: consulta sin documentos -> SIN_DOCUMENTOS
+OK    Paso 1: tarea creada, Pendiente -> Prueba renovar pasaporte, categoría General, límite 2099-01-15
+OK    Paso 2: prioridad 7 -> PRIORIDAD_INVALIDA
+OK    Paso 3: fecha 2026-02-30 -> FECHA_INVALIDA
+OK    Paso 4: PDF indexado -> 3 fragmentos
+OK    Paso 4b: fragmentos guardados en la base -> 3 filas de 768 dimensiones
+OK    Paso 5: consulta "info" -> CONSULTA_MUY_CORTA
+OK    Paso 6: dato presente en el PDF -> La garantía del purificador de agua AquaNova es de 24 meses desde la fecha de compra [prueba-nova-rag.pdf · fragmento 1]. | fuentes: prueba-nova-rag.pdf · fragmento 1
+OK    Paso 7: tareas pendientes -> Prueba renovar pasaporte [...] [Tarea 398fd86f] | fuentes: Tarea 398fd86f
+OK    Paso 8: dato ausente -> No encontré esto en tus documentos | 0 fuentes
+Limpieza: 1 tarea(s) y 1 documento(s) borrados
+Total de fallas: 0
+```
+
+- **Otros comandos:** `npm test` 102/102; `npm run build` correcto; `npm run db:limpiar` probado con datos sembrados (1 tarea, 1 documento y su fragmento); la base quedó con 0 filas en las cuatro tablas.
+- **Decisiones que precisan el plan:**
+  - `emitirTokenSubida` recibe el cuerpo y la petición, porque `handleUpload` los necesita. Sin `onUploadCompleted` no hay webhook, así que la ruta puede exigir sesión siempre.
+  - `consultar` devuelve solo las fuentes citadas por el modelo (RN-14: fuentes usadas); si no reconoce ninguna, devuelve todas. Con la respuesta "No encontré..." no devuelve fuentes.
+  - `descargarPdf` corta la descarga al superar 15 MB y `indexarContenido` quita el carácter NUL, que Postgres rechaza.
+  - `indexarContenido` indexa bytes ya descargados y no se expone en `dataService`.
+- **Pendientes:**
+  - La fase 4 sigue abierta hasta P05.
+
+#### Ajustes posteriores a P04 (2026-11-05)
+
+- **Cuota de Gemini (corrige el diagnóstico de P03):** gran parte de los fallos no eran saturación, sino el límite del plan gratuito: `gemini-3.5-flash` permite 20 peticiones al día por proyecto y modelo (`GenerateRequestsPerDayPerProjectPerModel-FreeTier`). Parte de esa cuota la gastaron las pruebas de esta sesión.
+- **Modelos:** principal `gemini-3.1-flash-lite` (8/8 disponibles y correctas, mediana 2,1 s), respaldo `gemini-3.5-flash-lite` (7/8). Muestra pequeña: 4 preguntas sencillas, 2 veces. El límite diario de estos dos modelos no se conoce. Ante 429 no se reintenta y se pasa directo al respaldo.
+- **PDF en Blob:** `indexarDocumento` borra el PDF al terminar, se haya indexado o rechazado. Plan actualizado (2.2, 6.1, 16).
+- **Blob real:** `probar:rag` ahora emite el token, sube, descarga, indexa y confirma el borrado contra Vercel Blob. Solo falta el navegador (`upload()`), en P07.
+- **`db:limpiar`:** por defecto solo lista; borra con `npm run db:limpiar -- --confirmar`.
+- **Capas:** `scripts/probar-rag.ts` ya no importa `conexion.ts`.
+- **Resuelto en P05:** `/register` permite crear cuentas sin restricción y las tablas de Nova no tienen dueño; se limitó el acceso a una lista de correos (ver P05).
+
+### P05 API
+
+- **Archivos creados:** `src/app/api/nova/{tareas,documentos,documentos/subida,consultar}/route.ts`, `src/lib/auth/acceso.ts`, `tests/servidor/{sesion,rutas-nova}.test.ts`, `doc/checkpoints/FASE_4_COMPLETADA.md`.
+- **Archivos modificados:** `src/lib/auth/sesion.ts`, `src/middleware.ts`, `src/lib/reglas/errores.ts` (código `ACCESO_DENEGADO`, 403), `src/lib/validacion/esquemas.ts` (`esquemaFiltroTareas`), `src/lib/datos/tareas.ts` (tipo del filtro), `doc/PLAN_NOVA.md` (secciones 4 y 12.2).
+- **Decisión, control de acceso:** `/register` está abierto y las tablas de Nova no tienen dueño, así que cualquier cuenta nueva habría visto los PDF y las tareas y gastado la cuota de Gemini. `exigirSesion()` y el middleware ahora exigen que el correo esté en la lista de admins (`isAdminEmail`). `acceso.ts` vive aparte de `sesion.ts` porque el middleware corre en edge y no puede importar `next/headers`.
+- **Decisión, ruta `/subida`:** responde con el formato propio de `handleUpload`, no con `{ ok, datos }`, porque `upload()` del navegador lo espera así. Los errores sí usan el formato del contrato. Sin `onUploadCompleted` no hay webhook, así que exigir sesión es seguro.
+- **Verificación contra `next dev` con 2 usuarios temporales** (uno en la lista, otro no; ambos borrados):
+  - Cuenta fuera de la lista: las 6 rutas dan 403 `ACCESO_DENEGADO`; `/nova` redirige a `/home`; `/home` 200; no se creó ninguna tarea.
+  - Cuenta en la lista: `sesion` 200; prioridad 5 → 422 "La prioridad debe ser 1, 2 o 3"; fecha 2026-02-30 → 422 `FECHA_INVALIDA`; sin título → 400; tarea válida 201 con estado Pendiente y categoría General; sin prioridad queda en 2; filtro por estado y estado inválido (400); "Agenda" → 422 "La instrucción es demasiado corta"; sin documentos → 409 `SIN_DOCUMENTOS`.
+  - Subida como el navegador: token para `.txt` rechazado (422), token para `.pdf` emitido, `put` correcto, `POST /documentos` 201 con 2 fragmentos, el listado lo muestra con su categoría, URL ajena 400.
+  - Consultas reales: dato en el PDF respondido con cita; tareas pendientes con sus 2 citas; dato ausente → "No encontré esto en tus documentos" sin fuentes.
+  - Limpieza: 0 tareas, 0 documentos, 0 fragmentos y 0 usuarios temporales.
+- **Sin probar:** `/subida` desde el navegador (P07); las rutas en producción (sin commit ni push); el middleware con una cuenta admin real.
+- **Pendientes:** `SUPABASE_ADMIN_EMAILS` no existe en Vercel: allí solo entra el correo incorporado en `admin.ts`.
+
+### P06 Interfaz base y tareas
+
+- **Archivos creados:** `src/components/ui/{Boton,Campo,Selector,Tarjeta,Insignia,Aviso,EstadoVacio}.tsx`, `src/components/nova/{NavegacionNova,InsigniaPrioridad,InsigniaEstadoTarea,FormularioTarea,TablaTareas}.tsx`, `src/app/nova/{layout,page}.tsx`, `src/app/nova/tareas/{page,nueva/page}.tsx`, `src/app/nova/documentos/page.tsx`, `tests/interfaz/{FormularioTarea,componentes}.test.tsx`.
+- **Archivos modificados:** `src/app/globals.css` (tokens en `@theme`, sin borrar nada), `src/app/page.tsx`, `vitest.config.ts` (incluye `tests/**/*.test.tsx`).
+- **Decisiones:**
+  - **Fecha límite como texto `AAAA-MM-DD`, no como selector de fecha.** Un `<input type="date">` solo deja elegir fechas reales y los mensajes de la sección 5.1 nunca se verían. Se mantiene la validación en vivo con el mensaje exacto.
+  - **Prioridad como selector 1/2/3** (como indica el plan). Por eso la interfaz no permite elegir 5: el rechazo de A-03 ("La prioridad debe ser 1, 2 o 3") solo se puede probar por la API (verificado en P05) o en las pruebas del componente.
+  - **`app/page.tsx`** no era la plantilla de Next.js sino un `redirect('/login')`. Ahora sigue la tabla de la sección 4: sin sesión a `/login`, con acceso a `/nova` y sin acceso a `/home`.
+  - **Marcadores de posición:** `/nova` (Asistente) y `/nova/documentos` son páginas con un aviso de que llegan en P08 y P07; sin ellas, el login y la barra de navegación llevarían a un 404.
+  - **Insignias:** fondo tintado y texto oscurecido, porque el color puro de prioridad media (#B7791F) no alcanza contraste AA sobre blanco.
+  - **Fechas:** `Intl` es-CO con `dateStyle: medium` y UTC da `10/03/2026`, tal como indica el plan.
+  - **Sin `confirmar` de errores de red** más allá de un aviso con opción de reintentar.
+- **Verificación en un navegador real** (Edge controlado con `puppeteer-core`, instalado fuera del proyecto; usuario temporal y tareas de prueba ya borrados; 33 comprobaciones, 0 fallas):
+  - `/` sin sesión → `/login`; el login lleva a `/nova`; fondo #F6F6FA y barra #5B3DF5; aviso de privacidad y correo visibles.
+  - Estado vacío con guía; sección actual marcada con `aria-current`.
+  - Formulario: categoría General y prioridad 2 por defecto; la fecha `2026-02-30` y `03-10-2026` se rechazan en vivo con el mensaje exacto; sin título muestra error y no guarda; tarea válida guardada (Alta, Pendiente, General, fecha de creación de hoy); fecha pasada y sin tocar prioridad queda en 2.
+  - Filtro por estado (Pendientes, Completadas, estado inválido ignorado).
+  - 390 px: tarjetas en lugar de tabla, sin desplazamiento horizontal, menú desplegable; formulario sin desplazamiento horizontal.
+  - Cerrar sesión lleva a `/login` y `/nova` vuelve a exigir sesión; sin errores de consola.
+- **Problema de la prueba (no de la app):** un primer intento falló porque el triple clic no seleccionaba el campo de fecha y quedó la fecha inválida; el formulario hizo bien en no guardar. Se corrigió la prueba con Ctrl+A.
+- **Sin probar:** en un teléfono real; con lector de pantalla; en producción (sin commit ni push); un contraste medido con herramienta (solo ajustado por criterio).
+- **Pendientes:** la acción "Completar" (P10), Productividad y Web en la navegación (P10, P11); `/nova` y `/nova/documentos` son marcadores.
