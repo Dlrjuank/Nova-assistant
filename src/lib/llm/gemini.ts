@@ -35,12 +35,21 @@ function comoErrorLlm(error: unknown): never {
 
 const ESPERAS_REINTENTO_MS = [500, 1500]; // cortas: las rutas tienen un tiempo máximo de ejecución
 
-function esErrorTemporal(error: unknown): boolean {
-  const { status } = (error ?? {}) as { status?: number };
-  return status === 429 || status === 500 || status === 503;
+function estadoDe(error: unknown): number | undefined {
+  return ((error ?? {}) as { status?: number }).status;
 }
 
-/** Gemini responde 503 con frecuencia por alta demanda; se reintenta solo ante errores temporales. */
+/** Saturación momentánea (503 frecuente): reintentar puede bastar. */
+function esErrorTemporal(error: unknown): boolean {
+  const estado = estadoDe(error);
+  return estado === 500 || estado === 503;
+}
+
+/** Además de la saturación, una cuota agotada (429): no se reintenta, pero la cuota es por modelo. */
+function ameritaRespaldo(error: unknown): boolean {
+  return esErrorTemporal(error) || estadoDe(error) === 429;
+}
+
 async function conReintentos<T>(trabajo: () => Promise<T>): Promise<T> {
   for (const espera of ESPERAS_REINTENTO_MS) {
     try {
@@ -103,7 +112,7 @@ export const llm: LLMClient = {
       );
     try {
       const respuesta = await generar(MODELO_CHAT).catch((error: unknown) => {
-        if (!esErrorTemporal(error)) throw error;
+        if (!ameritaRespaldo(error)) throw error;
         console.warn(`${MODELO_CHAT} no disponible; se usa ${MODELO_CHAT_RESPALDO}.`);
         return generar(MODELO_CHAT_RESPALDO);
       });

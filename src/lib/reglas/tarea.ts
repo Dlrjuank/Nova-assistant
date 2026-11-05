@@ -19,7 +19,7 @@ export function resolverPrioridad(prioridad: number | null | undefined): number 
 export function validarTarea(d: {
   titulo: string;
   fechaLimite: string;
-  prioridad?: number | null;
+  prioridad?: number | null | undefined;
 }): { titulo: string; prioridad: number } {
   const titulo = normalizarTitulo(d.titulo);
   if (titulo.length === 0) throw new ErrorDeNegocio('DATOS_INVALIDOS');

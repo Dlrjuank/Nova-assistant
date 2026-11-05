@@ -15,7 +15,9 @@
     "db:migrar": "node scripts/migrar.mjs",
     "db:verificar": "node scripts/verificar-bd.mjs",
     "test:ver": "vitest",
-    "probar:reglas": "tsx scripts/probar-reglas.ts"
+    "probar:reglas": "tsx scripts/probar-reglas.ts",
+    "db:limpiar": "node scripts/limpiar-prueba.mjs",
+    "probar:rag": "tsx scripts/probar-rag.ts"
   },
   "dependencies": {
     "@google/genai": "^2.32.0",

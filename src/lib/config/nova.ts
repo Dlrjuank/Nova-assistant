@@ -15,8 +15,9 @@ export const LIMITE_LISTADO = 500;
 
 // Modelos de Gemini (se pueden ajustar sin tocar la lógica)
 export const MODELO_EMBEDDING = 'gemini-embedding-001';
-export const MODELO_CHAT = 'gemini-3.5-flash';
-export const MODELO_CHAT_RESPALDO = 'gemini-3.1-flash-lite'; // si el principal sigue saturado tras reintentar
+// gemini-3.5-flash solo permite 20 peticiones al día en el plan gratuito. La cuota es por modelo.
+export const MODELO_CHAT = 'gemini-3.1-flash-lite';
+export const MODELO_CHAT_RESPALDO = 'gemini-3.5-flash-lite'; // si el principal se satura o agota su cuota
 
 export const NIVELES_PALABRAS_CLAVE_TAREAS = [
   'tarea',

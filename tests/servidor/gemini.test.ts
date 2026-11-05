@@ -37,6 +37,14 @@ describe('llm.responder', () => {
     expect(generateContent).toHaveBeenLastCalledWith(expect.objectContaining({ model: MODELO_CHAT_RESPALDO }));
   }, 15_000);
 
+  it('una cuota agotada (429) no reintenta y pasa directo al respaldo', async () => {
+    const { llm } = await import('@/lib/llm/gemini');
+    generateContent.mockRejectedValueOnce(error(429)).mockResolvedValueOnce({ text: 'respaldo' });
+    await expect(llm.responder(DATOS)).resolves.toBe('respaldo');
+    expect(generateContent).toHaveBeenCalledTimes(2);
+    expect(generateContent).toHaveBeenLastCalledWith(expect.objectContaining({ model: MODELO_CHAT_RESPALDO }));
+  });
+
   it('un error no temporal no reintenta y sale como ERROR_LLM', async () => {
     const { llm } = await import('@/lib/llm/gemini');
     generateContent.mockRejectedValue(error(404));

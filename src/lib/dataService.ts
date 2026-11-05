@@ -122,3 +122,23 @@ export async function actualizarContrasena(usuarioId: string, contrasena: string
     throw new Error('Supabase no pudo actualizar la contraseña.', { cause: error });
   }
 }
+
+// Nova Assistant: fachada única de datos (plan, sección 10.6).
+export { obtenerSesion } from '@/lib/auth/sesion';
+export { consultar } from '@/lib/datos/consulta';
+export {
+  emitirTokenSubida,
+  existenDocumentos,
+  indexarDocumento,
+  listarDocumentos,
+} from '@/lib/datos/documentos';
+export { crearTarea, listarTareas } from '@/lib/datos/tareas';
+export type {
+  DatosTarea,
+  Documento,
+  EstadoTarea,
+  Fragmento,
+  Fuente,
+  RespuestaAsistente,
+  Tarea,
+} from '@/lib/datos/tipos';
