@@ -1,5 +1,21 @@
 @import 'tailwindcss';
 
+/* Identidad visual de Nova Assistant (plan, sección 14). Genera utilidades como bg-primario o text-texto-suave. */
+@theme {
+  --color-primario: #5b3df5;
+  --color-primario-suave: #ece8fe;
+  --color-usuario: #e8eef4;
+  --color-prioridad-alta: #b83232;
+  --color-prioridad-media: #b7791f;
+  --color-prioridad-baja: #5b6770;
+  --color-completada: #2f7d4f;
+  --color-fondo: #f6f6fa;
+  --color-superficie: #ffffff;
+  --color-texto: #1f2933;
+  --color-texto-suave: #52606d;
+  --color-borde: #ddd9ec;
+}
+
 :root {
   --background: #080b14;
   --foreground: #f8fafc;
