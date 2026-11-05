@@ -9,7 +9,7 @@ Asistente RAG (Next.js 15 + Supabase/pgvector + Vercel Blob + Gemini), desplegad
 - Reglas de código: `.github/copilot-instructions.md`.
 
 ## Progreso
-- **Prompts completados: P00 a P08, más los ajustes P08b. Último: P08b** (esperando confirmación del usuario para P09). P08b: fecha pasada con aviso, máscara AAAA-MM-DD, historial del chat en la base (M4) y preguntas de seguimiento. Actualizar esta línea al terminar cada prompt.
+- **Prompts completados: P00 a P08, más los ajustes P08b. Último: P08b** (esperando confirmación del usuario para P09). P08b: fecha pasada con aviso, máscara AAAA-MM-DD, historial del chat en la base (M4) y preguntas de seguimiento. P08 y P08b tienen commit y push, pero al cierre **no estaban desplegados**: Vercel respondió `BUILD_FAILED` "Resource provisioning timed out" tres veces (antes de compilar; el build local pasa). Producción seguía con P07. Confirmar con `npx vercel ls` (en Git Bash, `MSYS_NO_PATHCONV=1` para `vercel api`). Actualizar esta línea al terminar cada prompt.
 - Completar tarea (F5, previsto en P10) y eliminar tarea (no estaba en el plan) ya están hechos: se agregaron en P07 a pedido del usuario. En P10 queda solo el índice de productividad.
 - Tras cada prompt: resumir qué se hizo, qué debe probar el usuario y esperar su confirmación antes del siguiente.
 
