@@ -1,6 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
-import { getSupabaseConfig } from './src/lib/supabase/config';
+import { getSupabaseConfig } from '@/lib/supabase/config';
 
 export async function middleware(request: NextRequest) {
   const ruta = request.nextUrl.pathname;
@@ -34,7 +34,23 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  await supabase.auth.getUser();
+  const { data } = await supabase.auth.getUser();
+
+  const esApiNova = ruta === '/api/nova' || ruta.startsWith('/api/nova/');
+  const esPaginaNova = ruta === '/nova' || ruta.startsWith('/nova/');
+  if (!data.user && (esApiNova || esPaginaNova)) {
+    if (esApiNova) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: { codigo: 'NO_AUTORIZADO', mensaje: 'Debe iniciar sesión.', detalles: null },
+        },
+        { status: 401, headers: { 'Cache-Control': 'no-store' } },
+      );
+    }
+    return NextResponse.redirect(new URL('/login', request.url));
+  }
+
   return response;
 }
 

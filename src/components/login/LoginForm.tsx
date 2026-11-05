@@ -57,7 +57,7 @@ export function LoginForm({ successMessage }: LoginFormProps) {
         return;
       }
 
-      router.replace(result.data?.isAdmin ? '/dashboard' : '/home');
+      router.replace('/nova');
     } catch {
       setAuthError('No se pudo conectar con Supabase. Revisa la configuración del proyecto.');
     } finally {

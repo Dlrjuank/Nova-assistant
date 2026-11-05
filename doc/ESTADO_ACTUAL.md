@@ -1,5 +1,7 @@
 # Estado actual · Nova Assistant
 
+> **Corrección posterior (P03):** esta auditoría dice que `middleware.ts` en la raíz refresca la sesión. En realidad nunca se ejecutó, porque con carpeta `src/` Next.js solo reconoce `src/middleware.ts`. Se movió allí en P03. También cambiaron los modelos de Gemini: ver `doc/ESTADO_EJECUCION.md`.
+
 Auditoría del repositorio para P00, contrastada con [PLAN_NOVA.md](./PLAN_NOVA.md). Se inspeccionaron los archivos y nombres de variables presentes localmente; no se copiaron valores secretos.
 
 ## 1. Versiones en `package.json`
@@ -21,7 +23,7 @@ Auditoría del repositorio para P00, contrastada con [PLAN_NOVA.md](./PLAN_NOVA.
 | `pdf-parse` | No existe |
 | `@google/generative-ai` (SDK Gemini) | No existe |
 
-El build utilizó Next.js `15.5.27`, resuelto desde el rango del lockfile. `jose` y `@vercel/blob` están en `node_modules`, pero no declarados como dependencias directas en `package.json`.
+El build utilizó Next.js `15.5.27`, resuelto desde el rango del lockfile. `jose` y `@vercel/blob` se declararon como dependencias directas tras P01; también `pg` y `@types/pg`.
 
 ## 2. Scripts de `package.json`
 
@@ -42,7 +44,7 @@ No existen scripts de migración, verificación de base, prueba de reglas ni pru
 ## 3. Estructura existente (hasta tres niveles)
 
 El código de aplicación vive bajo `src/`; no hay `app/`, `lib/` ni `components/` en la raíz.
-La carpeta de documentación del checkout se llama `Doc/` (D mayúscula); algunas referencias del plan usan `doc/`. Windows no distingue esas rutas, pero sistemas sensibles a mayúsculas sí.
+La carpeta de documentación del checkout se llama `doc/` (D mayúscula); algunas referencias del plan usan `doc/`. Windows no distingue esas rutas, pero sistemas sensibles a mayúsculas sí.
 
 ```text
 src/
