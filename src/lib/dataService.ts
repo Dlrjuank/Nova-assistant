@@ -128,6 +128,7 @@ export { obtenerSesion } from '@/lib/auth/sesion';
 export { consultar } from '@/lib/datos/consulta';
 export { consultarYRegistrar, conversacionActual, crearConversacion } from '@/lib/datos/conversacion';
 export {
+  eliminarDocumento,
   emitirTokenSubida,
   existenDocumentos,
   indexarDocumento,

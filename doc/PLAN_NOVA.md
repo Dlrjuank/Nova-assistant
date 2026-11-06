@@ -121,6 +121,7 @@ Las funciones serverless de Vercel rechazan cuerpos de petición de más de 4,5 
 | F5 | Marcar tarea como completada (adelantada a P07 a pedido del usuario) | CU-04 | P07 |
 | F6 | Índice de productividad diaria | CU-05 | P10 |
 | — | Eliminar tarea (agregada a pedido del usuario; no estaba en el plan funcional) | CU-07 | P07 |
+| — | Eliminar documento indexado (agregado a pedido del usuario; el plan funcional lo dejaba fuera de alcance) | CU-09 | P08 |
 | — | Historial del chat por usuario y preguntas de seguimiento (agregados a pedido del usuario tras P08) | CU-03, CU-08 | P08 |
 | F4 | Buscar información en Wikipedia | CU-06 | P11 |
 
@@ -128,14 +129,14 @@ Orden del plan funcional: primero F5 (pequeña y habilita F6), luego F6, luego F
 
 ### 3.3 Fuera de alcance
 
-Se mantiene la lista del plan funcional: registro de notas rápidas y recordatorios, notificaciones SMS o alarmas, sincronización con calendarios externos, OCR para PDF escaneados, cuentas de usuario y multiusuario, aplicación móvil (solo interfaz web), edición de tareas y borrado de documentos indexados.
+Se mantiene la lista del plan funcional: registro de notas rápidas y recordatorios, notificaciones SMS o alarmas, sincronización con calendarios externos, OCR para PDF escaneados, cuentas de usuario y multiusuario, aplicación móvil (solo interfaz web), edición de tareas. (El borrado de documentos indexados estaba en esta lista; se agregó a pedido del usuario, RN-22.)
 
 ### 3.4 Decisiones de alcance de esta versión técnica
 
 | Decisión | Motivo |
 |---|---|
 | El estado `En Progreso` se guarda en el modelo pero ninguna funcionalidad lo usa | El propio plan funcional (cambio 8) lo deja explícito: no hay forma de llegar a ese estado dentro del alcance |
-| Las tareas no se editan, pero se pueden completar y eliminar; los documentos no se borran | Plan funcional, sección 7, ampliado a pedido del usuario |
+| Las tareas no se editan, pero se pueden completar y eliminar; los documentos se pueden eliminar | Plan funcional, sección 7, ampliado a pedido del usuario |
 | Una tarea completada no se puede volver a completar (no se sobrescriben los minutos) | Regla de la funcionalidad 5 |
 | Los embeddings se generan llamando a Gemini al indexar y al preguntar | No hay modelo local en serverless (sección 2) |
 | Se avisa en la interfaz que los fragmentos y la pregunta se envían al proveedor del LLM | Privacidad (plan funcional, sección 9); el sistema no es para datos sensibles |
@@ -182,9 +183,10 @@ Se mantiene la lista del plan funcional: registro de notas rápidas y recordator
 | RN-16 | Completar tarea (opcional): si no existe, error; si ya está completada, se rechaza; si no, pasa a `Completada` con los minutos y `fecha_cierre` | Funcionalidad 5 | Sección 19 |
 | RN-17 | Minutos dedicados: entero mayor o igual a 0 | Funcionalidad 5 | Sección 19 |
 | RN-18 | Índice: si la fecha no tiene tareas, se informa "Sin tareas programadas para esta fecha" y no se calcula | Funcionalidad 6 | Sección 19; evita la división por cero |
-| RN-19 | Las tareas no se editan, salvo la transición única a `Completada`; se pueden eliminar de forma definitiva, con confirmación en la interfaz. Los documentos y fragmentos no se borran | Sección 3.4 | Servicio; BD |
+| RN-19 | Las tareas no se editan, salvo la transición única a `Completada`; se pueden eliminar de forma definitiva, con confirmación en la interfaz | Sección 3.4 | Servicio; BD |
 | RN-20 | Historial del chat: cada pregunta respondida se guarda con su respuesta y sus fuentes, en una transacción, en la conversación del usuario; al volver al Asistente se muestra la conversación más reciente (hasta 200 mensajes). "Conversación nueva" crea otra y conserva las anteriores. Nadie lee ni escribe en conversaciones ajenas | Pedido del usuario | `lib/datos/conversacion.ts`; BD (M4) |
 | RN-21 | Preguntas de seguimiento: el modelo recibe los últimos 6 mensajes de la conversación; la búsqueda en los documentos y RN-12 usan la pregunta anterior del usuario junto con la nueva ("¿y el segundo?"). La respuesta sigue saliendo solo del contexto (RN-13) | Pedido del usuario | `lib/reglas/consulta.ts` `textoDeBusqueda`; `lib/datos/consulta.ts` |
+| RN-22 | Eliminar documento: borrado definitivo, con confirmación en la interfaz; sus fragmentos caen por `ON DELETE CASCADE` y el PDF ya no está en Blob (se borra al indexar). Si no existe, `DOCUMENTO_NO_ENCONTRADO`. Los mensajes guardados del chat conservan sus citas como texto | Pedido del usuario | `lib/datos/documentos.ts` `eliminarDocumento` |
 
 ### 5.1 Mensajes exactos (del plan funcional)
 
@@ -243,6 +245,7 @@ La recuperación se hace en una sola consulta SQL con el operador de distancia d
 | CU-03 Consultar | pregunta, id de conversación (opcional) | hay al menos un documento indexado | Respuesta con fuentes, guardada en el historial (RN-20) | `CONSULTA_MUY_CORTA`, `SIN_DOCUMENTOS`, `ERROR_LLM`, `CONVERSACION_NO_ENCONTRADA` |
 | CU-04 Completar tarea (opcional) | id de tarea, minutos | tarea existe y no está completada | Tarea `Completada` con minutos y fecha de cierre | `TAREA_NO_ENCONTRADA`, `TAREA_YA_COMPLETADA`, `DATOS_INVALIDOS` |
 | CU-07 Eliminar tarea | id de tarea | tarea existe | La tarea se borra de forma definitiva | `TAREA_NO_ENCONTRADA`, `DATOS_INVALIDOS` |
+| CU-09 Eliminar documento | id de documento | documento existe | El documento y sus fragmentos se borran de forma definitiva; el asistente ya no los usa | `DOCUMENTO_NO_ENCONTRADO`, `DATOS_INVALIDOS` |
 | CU-08 Conversación nueva | — | sesión | Conversación vacía del usuario; las anteriores se conservan (si la más reciente está vacía, se reutiliza) | ninguno |
 | CU-05 Índice de productividad (opcional) | fecha (por defecto hoy) | — | Puntuación, nivel y recomendación; o aviso si no hay tareas | ninguno |
 | CU-06 Buscar en Wikipedia (opcional) | consulta | — | Resumen y fuente guardada | `CONSULTA_MUY_CORTA`, `LIMITE_FUENTES`, `ERROR_WIKIPEDIA` |
@@ -755,6 +758,7 @@ Todas las respuestas llevan `Cache-Control: no-store`.
 | `TAREA_NO_ENCONTRADA` | 404 | La tarea no existe. |
 | `TAREA_YA_COMPLETADA` | 409 | La tarea ya está completada. |
 | `CONVERSACION_NO_ENCONTRADA` | 404 | La conversación no existe. Recargue la página. |
+| `DOCUMENTO_NO_ENCONTRADO` | 404 | El documento no existe. |
 | `LIMITE_FUENTES` | 409 | Alcanzó el máximo de 20 fuentes en esta categoría; archive o elimine una. |
 | `ERROR_WIKIPEDIA` | 502 | No se pudo consultar Wikipedia. Intente de nuevo. |
 | `ERROR_INTERNO` | 500 | Ocurrió un error inesperado. Intente de nuevo. |
@@ -770,6 +774,7 @@ Los mensajes de la sección 5.1 aparecen textualmente (prioridad, PDF grande, PD
 | `POST /api/nova/tareas` | `{ titulo, categoria?, prioridad?, fechaLimite }` | `Tarea` (201) |
 | `POST /api/nova/tareas/[id]/completar` | `{ minutos }` | `Tarea` (F5) |
 | `DELETE /api/nova/tareas/[id]` | | `{ id }` |
+| `DELETE /api/nova/documentos/[id]` | | `{ id }` (RN-22) |
 | `GET /api/nova/documentos` | | `Documento[]` |
 | `POST /api/nova/documentos/subida` | (protocolo de subida de Vercel Blob) | token de subida |
 | `POST /api/nova/documentos` | `{ urlBlob, nombreArchivo, categoria? }` | `{ documentoId, numFragmentos }` (201) |
@@ -802,7 +807,7 @@ Los mensajes de la sección 5.1 aparecen textualmente (prioridad, PDF grande, PD
 | `/nova` · Asistente | `Chat`: campo de pregunta y conversación. Cada respuesta del asistente muestra el texto y, debajo, `ListaFuentes` (nombre del PDF y fragmento, o tarea). Si no hay documentos, muestra el aviso de `SIN_DOCUMENTOS` con enlace a indexar. Validación en vivo de la consulta (2 palabras, 8 caracteres) antes de habilitar enviar. Estado de carga mientras el asistente responde. Muestra la conversación más reciente guardada (RN-20) y el botón "Conversación nueva" cuando hay mensajes; si una respuesta no se pudo guardar, lo avisa. |
 | `/nova/tareas` · Tareas | `TablaTareas`: título, categoría, prioridad (`InsigniaPrioridad`), estado (`InsigniaEstadoTarea`), fecha límite, fecha de creación. Filtro por estado. Botón "Registrar tarea". Acción "Completar" en las pendientes y "Eliminar" con confirmación en todas. |
 | `/nova/tareas/nueva` · Registrar tarea | `FormularioTarea`: título, categoría (por defecto "General"), prioridad (selector 1/2/3, por defecto 2), fecha límite (`YYYY-MM-DD` con máscara: se escriben solo los números y los guiones se ponen solos; una fecha pasada muestra un aviso pero se puede guardar, RN-07). Validación en vivo; los mensajes de error coinciden con los de la sección 5.1. |
-| `/nova/documentos` · Documentos | `TablaDocumentos`: nombre, categoría, número de fragmentos, fecha de indexación. Botón "Indexar PDF". `EstadoVacio` con guía si no hay documentos. |
+| `/nova/documentos` · Documentos | `TablaDocumentos`: nombre, categoría, número de fragmentos, fecha de indexación. Botón "Indexar PDF". Acción "Eliminar" con confirmación en cada documento (RN-22). `EstadoVacio` con guía si no hay documentos. |
 | `/nova/documentos/nuevo` · Indexar PDF | `SubidorPdf`: selector de archivo que valida el tamaño (≤ 15 MB) en el navegador, sube a Vercel Blob mostrando progreso, y luego llama a la indexación. Muestra el número de fragmentos indexados o el mensaje de error (`PDF_SIN_TEXTO`, `ARCHIVO_MUY_GRANDE`). Campo de categoría. |
 | `/nova/productividad` · Productividad (opcional) | `TarjetaProductividad`: selector de fecha (por defecto hoy); muestra puntos, nivel y recomendación, o el aviso "Sin tareas programadas para esta fecha". |
 | `/nova/web` · Web (opcional) | Campo de consulta y categoría; muestra el resumen y la fuente guardada; avisa si se alcanzó el límite de 20 por categoría. |
@@ -859,7 +864,7 @@ Vercel corre en UTC; Colombia es UTC-5 sin horario de verano. La fecha de creaci
 | Validación en tres puntos | Navegador (Zod y reglas), API (Zod y reglas) y base de datos (CHECK, UNIQUE) |
 | Tamaño de PDF verificado en el servidor | No se confía solo en la validación del navegador (RN-01) |
 | Subida de PDF | A Vercel Blob con token de un solo uso emitido por el servidor; la ruta de indexación solo recibe la URL y borra el PDF del Blob al terminar, se haya indexado o rechazado |
-| Edición y borrado limitados | Sin rutas de edición; las tareas solo se completan o se eliminan con confirmación; los documentos no se borran |
+| Edición y borrado limitados | Sin rutas de edición; las tareas solo se completan o se eliminan con confirmación; los documentos solo se eliminan con confirmación |
 | Historial por usuario | Cada ruta toma el id del usuario de la sesión, nunca del cuerpo; una conversación ajena responde `CONVERSACION_NO_ENCONTRADA`; la BD impide mensajes con un usuario distinto al de su conversación (RN-20) |
 | SQL parametrizado | Ningún valor se concatena; los vectores van como parámetro casteado |
 | Errores internos | Se registran con `console.error`; el usuario recibe `ERROR_INTERNO` sin detalles técnicos |
@@ -954,6 +959,7 @@ Se ejecuta en el despliegue de Vercel y se documenta en `doc/ACEPTACION.md`.
 | A-14 | Criterio del plan: con 3 PDF reales, de 10 preguntas con respuesta en los documentos, acierta y cita bien en al menos 7 | Se registra el conteo |
 | A-15 | Cerrar el navegador y volver a entrar | Las tareas, los documentos y la conversación del Asistente persisten |
 | A-19 | Preguntar por una lista del PDF y luego "¿y el segundo?" | Responde el segundo elemento y cita el PDF (RN-21) |
+| A-21 | Eliminar un documento desde Documentos, confirmando | Desaparece de la lista; sus fragmentos se borran y el asistente ya no lo cita (RN-22) |
 | A-20 | Salir del Asistente (por ejemplo a Tareas) y volver; luego pulsar "Conversación nueva" | La conversación sigue al volver; con "Conversación nueva" la pantalla queda vacía y la anterior se conserva en la base (RN-20) |
 
 A-16 a A-18 (opcionales): completar una tarea con minutos; ver el índice de un día con tareas (y el aviso en un día sin tareas); buscar en Wikipedia y guardar la fuente. Se verifican tras P10 y P11.

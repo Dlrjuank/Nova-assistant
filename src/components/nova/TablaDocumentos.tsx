@@ -1,7 +1,8 @@
+import { EliminarDocumento } from '@/components/nova/EliminarDocumento';
 import type { Documento } from '@/lib/dataService';
 import { formatearFecha } from '@/lib/formato';
 
-const COLUMNAS = ['Nombre', 'Categoría', 'Fragmentos', 'Indexado'];
+const COLUMNAS = ['Nombre', 'Categoría', 'Fragmentos', 'Indexado', 'Acciones'];
 
 /** Tabla desde 640 px; por debajo, tarjetas apiladas. */
 export function TablaDocumentos({ documentos }: { documentos: Documento[] }) {
@@ -27,6 +28,9 @@ export function TablaDocumentos({ documentos }: { documentos: Documento[] }) {
                 <td className="px-4 py-3 text-texto-suave">{d.categoria}</td>
                 <td className="px-4 py-3 text-texto-suave">{d.numFragmentos}</td>
                 <td className="whitespace-nowrap px-4 py-3 text-texto-suave">{formatearFecha(d.fechaGuardado)}</td>
+                <td className="px-4 py-3">
+                  <EliminarDocumento id={d.id} nombre={d.nombreArchivo} />
+                </td>
               </tr>
             ))}
           </tbody>
@@ -45,6 +49,9 @@ export function TablaDocumentos({ documentos }: { documentos: Documento[] }) {
               <dt className="text-texto-suave">Indexado</dt>
               <dd>{formatearFecha(d.fechaGuardado)}</dd>
             </dl>
+            <div className="mt-3">
+              <EliminarDocumento id={d.id} nombre={d.nombreArchivo} />
+            </div>
           </li>
         ))}
       </ul>

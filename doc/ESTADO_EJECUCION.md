@@ -12,6 +12,7 @@
 | P07 Documentos (subida e indexación), más completar y eliminar tareas | completado | correcto | 164 pasan | 2026-11-05 |
 | P08 Chat del asistente | completado | correcto | 175 pasan | 2026-11-05 |
 | P08b Ajustes tras probar P08: fechas, historial y seguimiento | completado | correcto | 202 pasan | 2026-11-05 |
+| P08c Eliminar documento | completado | correcto | 209 pasan | 2026-11-05 |
 | P09 Aceptación del MVP | pendiente | | | |
 | P10 Opcionales: completar tarea e índice | pendiente | | | |
 | P11 Opcional: búsqueda en Wikipedia | pendiente | | | |
@@ -227,3 +228,12 @@ Total de fallas: 0
 - **Archivo `doc/CORREO RESEND VERCEL CONNECT (1).md`:** revisado sin mostrar valores. No tiene claves ni tokens: solo identificadores de conector, el nombre de la variable `VERCEL_OIDC_TOKEN` y el remitente público de prueba de Resend. No se agregó al `.gitignore`. Nunca llegó a GitHub: solo está en dos commits de puntos de control locales del agente (`refs/agents/...`), que no están en ninguna rama. Se deja fuera de los commits.
 - **Sin probar:** el historial y el seguimiento en producción hasta el despliegue; un lector de pantalla.
 - **Despliegue:** push a `master` hecho (`c298f05`, `17b812e`), pero Vercel falló tres veces con `BUILD_FAILED` "Resource provisioning timed out": no consiguió máquina de build y el build nunca empezó (0 ms, sin registro). Vercel tuvo un incidente de builds ese día (18:25 a 18:50 UTC, marcado como resuelto); los intentos fueron entre 18:58 y 19:14 UTC. `next build` local pasa. Producción siguió con el despliegue anterior (P07).
+- **Despliegue (más tarde):** unas 6 horas después, `vercel redeploy` del mismo commit terminó en Ready en 2 minutos y quedó en https://nova-assistantsm-kappa.vercel.app. Comprobado: `/api/health` 200, `/login` 200, `/nova` 307 y `/api/nova/conversaciones` 401 sin sesión.
+
+### P08c Eliminar documento (pedido del usuario)
+
+- **Cambio respecto al plan:** el plan funcional dejaba fuera de alcance "borrado de documentos indexados" (sección 3.3) y RN-19 decía que los documentos no se borran. Se agregó a pedido del usuario: RN-22, CU-09, `DOCUMENTO_NO_ENCONTRADO`, A-21.
+- **Archivos creados:** `src/app/api/nova/documentos/[id]/route.ts`, `src/components/nova/EliminarDocumento.tsx`, `tests/servidor/documentos-eliminar.test.ts`, `tests/interfaz/EliminarDocumento.test.tsx`.
+- **Archivos modificados:** `src/lib/datos/documentos.ts` (`eliminarDocumento`), `src/components/nova/TablaDocumentos.tsx` (columna Acciones y botón en las tarjetas), `src/lib/reglas/errores.ts`, `src/lib/validacion/esquemas.ts`, `src/lib/dataService.ts`, `doc/PLAN_NOVA.md`.
+- **Decisiones:** borrado definitivo con confirmación, igual que eliminar tarea. Los fragmentos caen por la cascada que ya tenía M1; no hace falta tocar Blob porque el PDF se borra al indexar. Los mensajes del chat que citaban el documento conservan la cita como texto.
+- **Navegador real** (Edge con `puppeteer-core`; usuario y documento temporales ya borrados; 8 comprobaciones, 0 fallas): el botón está en la tabla y en la tarjeta móvil, pide confirmación, Cancelar no borra, al confirmar la fila desaparece y en la base el documento y sus fragmentos quedan en 0. 390 px sin desplazamiento horizontal y sin errores de página.

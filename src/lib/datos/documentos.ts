@@ -135,6 +135,15 @@ export async function listarDocumentos(): Promise<Documento[]> {
   );
 }
 
+/**
+ * RN-22: el borrado es definitivo; sus fragmentos caen por ON DELETE CASCADE y el PDF ya no está en Blob
+ * (se borra al indexar). La interfaz pide confirmación antes de llamarlo.
+ */
+export async function eliminarDocumento(id: string): Promise<void> {
+  const borrados = await consultar<{ id: string }>('DELETE FROM documentos WHERE id = $1 RETURNING id', [id]);
+  if (borrados.length === 0) throw new ErrorDeNegocio('DOCUMENTO_NO_ENCONTRADO');
+}
+
 export async function existenDocumentos(): Promise<boolean> {
   const [fila] = await consultar<{ existe: boolean }>(
     'SELECT EXISTS (SELECT 1 FROM documentos WHERE num_fragmentos > 0) AS existe',
