@@ -29,7 +29,6 @@ Revisión de calidad y preparación de la aceptación del MVP (P09). La ejecuci�
 - **Citas de tareas con el índice interno:** en `probar:rag` el modelo citó `[Tarea T1]` (el índice que ponía `construirContexto`) en lugar de la etiqueta real. `armarFuentes` no lo reconocía y devolvía todas las fuentes. Ahora cada fuente del contexto se encabeza solo con su etiqueta citable; hay una prueba nueva y el paso 7 de `probar:rag` exige que las fuentes sean solo tareas.
 - `.env.example` incluye los nombres de las variables de Nova, sin valores.
 
-## Pendiente del usuario
+## Aceptación en Vercel
 
-- Ejecutar A-01 a A-15 (más A-19 a A-21) en https://nova-assistantsm-kappa.vercel.app.
-- A-14: indexar 3 PDF reales y comprobar que de 10 preguntas con respuesta conocida acierta y cita bien en al menos 7.
+Ejecutada por el usuario el 2026-11-06 en https://nova-assistantsm-kappa.vercel.app: **A-01 a A-15 y A-19 a A-21 pasan.** A-14: 10 de 10 con 3 PDF reales. Registro completo en `doc/ACEPTACION.md`.

@@ -13,7 +13,7 @@
 | P08 Chat del asistente | completado | correcto | 175 pasan | 2026-11-05 |
 | P08b Ajustes tras probar P08: fechas, historial y seguimiento | completado | correcto | 202 pasan | 2026-11-05 |
 | P08c Eliminar documento | completado | correcto | 209 pasan | 2026-11-05 |
-| P09 Aceptación del MVP | completado (falta la ejecución en Vercel) | correcto | 210 pasan | 2026-11-06 |
+| P09 Aceptación del MVP | completado (aceptación en Vercel: todo pasa) | correcto | 210 pasan | 2026-11-06 |
 | P10 Opcionales: completar tarea e índice | pendiente | | | |
 | P11 Opcional: búsqueda en Wikipedia | pendiente | | | |
 
@@ -249,3 +249,4 @@ Total de fallas: 0
 - **Plan:** la sección 11 describe el nuevo formato del contexto; A-21 quedó después de A-20; la fase 6 menciona A-19 a A-21.
 - **Al cierre:** `npm test` 210/210, `npm run build` correcto, `eslint` sin errores; `tsc` mantiene los 2 errores previos de `src/lib/__tests__/json-db.test.ts`. Checkpoints `FASE_5_COMPLETADA.md` y `FASE_6_COMPLETADA.md`.
 - **Pendiente del usuario:** ejecutar A-01 a A-15 y A-19 a A-21 en Vercel; A-14 con 3 PDF reales y 10 preguntas.
+- **Aceptación en Vercel (ejecutada por el usuario, 2026-11-06):** A-01 a A-15 y A-19 a A-21 pasan. A-14: 10 de 10 con `politica-teletrabajo.pdf`, `guia-viaje-cartagena.pdf` y `manual-laboratorio-quimica.pdf`. A-11 se cubrió con "¿Quién es el presidente de la empresa?" ("No encontré esto en tus documentos"); faltaba en la lista de pasos que se le dio al usuario. Prueba extra: "¿Cuánto cuesta el desayuno en el hotel?" respondió que está incluido en la tarifa, citó la guía y no inventó precio. Registro en `doc/ACEPTACION.md`.
