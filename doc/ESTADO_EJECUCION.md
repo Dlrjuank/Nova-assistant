@@ -13,7 +13,7 @@
 | P08 Chat del asistente | completado | correcto | 175 pasan | 2026-11-05 |
 | P08b Ajustes tras probar P08: fechas, historial y seguimiento | completado | correcto | 202 pasan | 2026-11-05 |
 | P08c Eliminar documento | completado | correcto | 209 pasan | 2026-11-05 |
-| P09 Aceptación del MVP | pendiente | | | |
+| P09 Aceptación del MVP | completado (falta la ejecución en Vercel) | correcto | 210 pasan | 2026-11-06 |
 | P10 Opcionales: completar tarea e índice | pendiente | | | |
 | P11 Opcional: búsqueda en Wikipedia | pendiente | | | |
 
@@ -237,3 +237,15 @@ Total de fallas: 0
 - **Archivos modificados:** `src/lib/datos/documentos.ts` (`eliminarDocumento`), `src/components/nova/TablaDocumentos.tsx` (columna Acciones y botón en las tarjetas), `src/lib/reglas/errores.ts`, `src/lib/validacion/esquemas.ts`, `src/lib/dataService.ts`, `doc/PLAN_NOVA.md`.
 - **Decisiones:** borrado definitivo con confirmación, igual que eliminar tarea. Los fragmentos caen por la cascada que ya tenía M1; no hace falta tocar Blob porque el PDF se borra al indexar. Los mensajes del chat que citaban el documento conservan la cita como texto.
 - **Navegador real** (Edge con `puppeteer-core`; usuario y documento temporales ya borrados; 8 comprobaciones, 0 fallas): el botón está en la tabla y en la tarjeta móvil, pide confirmación, Cancelar no borra, al confirmar la fila desaparece y en la base el documento y sus fragmentos quedan en 0. 390 px sin desplazamiento horizontal y sin errores de página.
+
+### P09 Aceptación del MVP
+
+- **TAREA 1:** `npm test` 209/209 al empezar; `npm run probar:rag` 0 fallas, con el paso 9 (`SIN_DOCUMENTOS`) ejecutado porque la base estaba vacía. Pero el paso 7 pasó con un defecto que la prueba no detectaba: el modelo citó `[Tarea T1]`, el índice interno que ponía `construirContexto`, y `armarFuentes`, al no reconocer la cita, devolvió las 4 fuentes entregadas (3 fragmentos y la tarea).
+  - **Corrección (en el código):** `construirContexto` encabeza cada fuente solo con su etiqueta citable (`[a.pdf · fragmento 1]`, `[Tarea 1a2b3c4d]`), sin `[1]` ni `[T1]`, y el System Prompt pide copiar esa etiqueta. Prueba nueva en `tests/servidor/consulta.test.ts`; el paso 7 de `probar:rag` ahora exige que todas las fuentes sean tareas. Repetido: "- Prueba renovar pasaporte [Tarea 2adcd461]", fuente solo la tarea.
+- **TAREA 2 (secciones 10.3 y 16):** sin hallazgos. Detalle en `doc/checkpoints/FASE_6_COMPLETADA.md`: mensajes de 5.1 textuales; reglas sin red ni base; Gemini solo en `lib/llm` (fuera, solo comentarios y los nombres de modelo de `lib/config/nova.ts`, que la sección 10.4 pone allí); las 9 rutas con `exigirSesion`; tamaño del PDF también en el servidor; vectores como parámetro casteado; textos en español; estado con texto además de color.
+- **TAREA 3:** `doc/ACEPTACION.md` con A-01 a A-15 (columnas de resultado, evidencia y observación vacías), notas para A-03, A-04, A-05 y A-13, la planilla de A-14 (3 PDF, 10 preguntas, ≥ 7) y una sección aparte con A-19 a A-21. A-16 a A-18 quedan como opcionales (A-16 ya se puede ejecutar).
+- **TAREA 4:** `README.md` nuevo (no existía): qué es RAG, funcionalidades, tecnologías, requisitos, variables por nombre, cómo correr en local, scripts, estructura, privacidad, claves fuera del repositorio y enlace al plan.
+- **TAREA 5:** `.env.local` y `.env.respaldo.local` ignorados por `.env*.local`. Búsqueda en los archivos versionados de claves de Gemini, tokens de Blob, JWT, claves de Resend y cadenas de conexión con contraseña: ninguna. `.env.example` tenía solo valores de ejemplo; se le agregaron los nombres de las variables de Nova sin valor.
+- **Plan:** la sección 11 describe el nuevo formato del contexto; A-21 quedó después de A-20; la fase 6 menciona A-19 a A-21.
+- **Al cierre:** `npm test` 210/210, `npm run build` correcto, `eslint` sin errores; `tsc` mantiene los 2 errores previos de `src/lib/__tests__/json-db.test.ts`. Checkpoints `FASE_5_COMPLETADA.md` y `FASE_6_COMPLETADA.md`.
+- **Pendiente del usuario:** ejecutar A-01 a A-15 y A-19 a A-21 en Vercel; A-14 con 3 PDF reales y 10 preguntas.
