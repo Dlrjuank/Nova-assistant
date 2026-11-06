@@ -5,11 +5,12 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Boton } from '@/components/ui/Boton';
 
-// Productividad y Web se agregan en P10 y P11.
+// Web se agrega en P11.
 const ENLACES = [
   { href: '/nova', texto: 'Asistente' },
   { href: '/nova/tareas', texto: 'Tareas' },
   { href: '/nova/documentos', texto: 'Documentos' },
+  { href: '/nova/productividad', texto: 'Productividad' },
 ];
 
 function esActivo(ruta: string, href: string): boolean {

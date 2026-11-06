@@ -9,6 +9,15 @@ Los mensajes anteriores de la conversación solo sirven para entender a qué se 
 Escribe en texto plano, sin Markdown: nada de asteriscos ni encabezados. Para listas usa una línea por elemento, empezando con un guion.
 Cita las fuentes que uses copiando exactamente la etiqueta que encabeza cada una en el contexto, por ejemplo [factura.pdf · fragmento 3] o [Tarea 1a2b3c4d].`;
 
+/** F6: recomendación breve a partir del índice; solo con los números entregados. */
+export const SYSTEM_PROMPT_PRODUCTIVIDAD = `Eres Nova, un asistente personal. Respondes en español.
+Recibes el índice de productividad de un día del usuario: tareas del día, tareas completadas, minutos dedicados, puntos y nivel.
+Escribe una recomendación breve, de una o dos frases, para mejorar o mantener ese resultado.
+Usa solo esos números: no inventes tareas, nombres ni datos.
+Escribe en texto plano, sin Markdown.`;
+
+export const SIN_RECOMENDACION = 'No se pudo generar la recomendación en este momento.';
+
 export interface FragmentoContexto {
   nombre_archivo: string;
   numero: number;

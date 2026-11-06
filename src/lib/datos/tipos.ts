@@ -65,7 +65,13 @@ export interface ConversacionActual {
   mensajes: MensajeGuardado[];
 }
 
+/** Los conteos van junto al resultado para que el usuario pueda comprobar la fórmula a mano (sección 9.1). */
 export interface ResultadoProductividad {
+  fecha: string;
+  totales: number;
+  completadas: number;
+  minutos: number; // suma de las completadas, sin tope; la regla aplica el tope de 120
+  recomendacionDisponible: boolean; // false si Gemini falló: el índice se muestra igual
   puntos: number;
   nivel: NivelProductividad;
   recomendacion: string;

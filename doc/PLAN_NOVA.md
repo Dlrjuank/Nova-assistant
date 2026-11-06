@@ -668,7 +668,7 @@ calcularProductividad(fecha: string): Promise<ResultadoProductividad | { sinTare
 buscarEnWikipedia(consulta: string, categoria: string): Promise<ResultadoWeb>                 // F4
 ```
 
-Tipos principales (`lib/datos/tipos.ts`): `Tarea`, `Documento`, `Fragmento`, `RespuestaAsistente { respuesta: string; fuentes: Fuente[] }`, `Fuente { tipo: 'pdf' | 'tarea'; etiqueta: string }` (p. ej. "factura.pdf · fragmento 3" o "Tarea abc123"), `ResultadoProductividad { puntos: number; nivel: NivelProductividad; recomendacion: string }`, `RespuestaConHistorial` (`RespuestaAsistente` más `conversacionId` y `guardada`, que es `false` si la respuesta llegó pero no se pudo guardar), `ConversacionActual { id; mensajes: MensajeGuardado[] }`.
+Tipos principales (`lib/datos/tipos.ts`): `Tarea`, `Documento`, `Fragmento`, `RespuestaAsistente { respuesta: string; fuentes: Fuente[] }`, `Fuente { tipo: 'pdf' | 'tarea'; etiqueta: string }` (p. ej. "factura.pdf · fragmento 3" o "Tarea abc123"), `ResultadoProductividad { fecha; totales; completadas; minutos; puntos: number; nivel: NivelProductividad; recomendacion: string; recomendacionDisponible: boolean }` (los conteos van para poder comprobar la fórmula a mano; si Gemini falla, el índice se entrega con un texto fijo y `recomendacionDisponible: false`), `RespuestaConHistorial` (`RespuestaAsistente` más `conversacionId` y `guardada`, que es `false` si la respuesta llegó pero no se pudo guardar), `ConversacionActual { id; mensajes: MensajeGuardado[] }`.
 
 ### 10.7 Conexión y transacciones
 
@@ -809,7 +809,7 @@ Los mensajes de la sección 5.1 aparecen textualmente (prioridad, PDF grande, PD
 | `/nova/tareas/nueva` · Registrar tarea | `FormularioTarea`: título, categoría (por defecto "General"), prioridad (selector 1/2/3, por defecto 2), fecha límite (`YYYY-MM-DD` con máscara: se escriben solo los números y los guiones se ponen solos; una fecha pasada muestra un aviso pero se puede guardar, RN-07). Validación en vivo; los mensajes de error coinciden con los de la sección 5.1. |
 | `/nova/documentos` · Documentos | `TablaDocumentos`: nombre, categoría, número de fragmentos, fecha de indexación. Botón "Indexar PDF". Acción "Eliminar" con confirmación en cada documento (RN-22). `EstadoVacio` con guía si no hay documentos. |
 | `/nova/documentos/nuevo` · Indexar PDF | `SubidorPdf`: selector de archivo que valida el tamaño (≤ 15 MB) en el navegador, sube a Vercel Blob mostrando progreso, y luego llama a la indexación. Muestra el número de fragmentos indexados o el mensaje de error (`PDF_SIN_TEXTO`, `ARCHIVO_MUY_GRANDE`). Campo de categoría. |
-| `/nova/productividad` · Productividad (opcional) | `TarjetaProductividad`: selector de fecha (por defecto hoy); muestra puntos, nivel y recomendación, o el aviso "Sin tareas programadas para esta fecha". |
+| `/nova/productividad` · Productividad (opcional) | `TarjetaProductividad`: fecha con la misma máscara AAAA-MM-DD (por defecto hoy en Bogotá, con botón "Hoy"); muestra puntos con un decimal, nivel con texto y color, tareas completadas de las del día, minutos, la fórmula y la recomendación, o el aviso "Sin tareas programadas para esta fecha". |
 | `/nova/web` · Web (opcional) | Campo de consulta y categoría; muestra el resumen y la fuente guardada; avisa si se alcanzó el límite de 20 por categoría. |
 
 Si `app/page.tsx` es la plantilla de Next.js, se reemplaza por una redirección a `/nova`. Si tiene contenido propio, se agrega un enlace a `/nova`.

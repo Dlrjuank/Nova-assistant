@@ -14,7 +14,7 @@
 | P08b Ajustes tras probar P08: fechas, historial y seguimiento | completado | correcto | 202 pasan | 2026-11-05 |
 | P08c Eliminar documento | completado | correcto | 209 pasan | 2026-11-05 |
 | P09 Aceptación del MVP | completado (aceptación en Vercel: todo pasa) | correcto | 210 pasan | 2026-11-06 |
-| P10 Opcionales: completar tarea e índice | pendiente | | | |
+| P10 Opcionales: completar tarea e índice | completado | correcto | 224 pasan | 2026-11-06 |
 | P11 Opcional: búsqueda en Wikipedia | pendiente | | | |
 
 ## Bitácora
@@ -250,3 +250,26 @@ Total de fallas: 0
 - **Al cierre:** `npm test` 210/210, `npm run build` correcto, `eslint` sin errores; `tsc` mantiene los 2 errores previos de `src/lib/__tests__/json-db.test.ts`. Checkpoints `FASE_5_COMPLETADA.md` y `FASE_6_COMPLETADA.md`.
 - **Pendiente del usuario:** ejecutar A-01 a A-15 y A-19 a A-21 en Vercel; A-14 con 3 PDF reales y 10 preguntas.
 - **Aceptación en Vercel (ejecutada por el usuario, 2026-11-06):** A-01 a A-15 y A-19 a A-21 pasan. A-14: 10 de 10 con `politica-teletrabajo.pdf`, `guia-viaje-cartagena.pdf` y `manual-laboratorio-quimica.pdf`. A-11 se cubrió con "¿Quién es el presidente de la empresa?" ("No encontré esto en tus documentos"); faltaba en la lista de pasos que se le dio al usuario. Prueba extra: "¿Cuánto cuesta el desayuno en el hotel?" respondió que está incluido en la tarifa, citó la guía y no inventó precio. Registro en `doc/ACEPTACION.md`.
+
+### P10 Opcionales: completar tarea e índice de productividad
+
+- **F5 (completar tarea):** ya estaba hecho desde P07 (a pedido del usuario); no se tocó.
+- **Archivos creados:** `src/app/api/nova/productividad/route.ts`, `src/components/nova/TarjetaProductividad.tsx`, `src/app/nova/productividad/page.tsx`, `tests/servidor/productividad.test.ts`, `tests/interfaz/TarjetaProductividad.test.tsx`.
+- **Archivos modificados:** `src/lib/datos/productividad.ts` (deja de ser stub), `src/lib/datos/tipos.ts`, `src/lib/llm/prompts.ts` (`SYSTEM_PROMPT_PRODUCTIVIDAD`, `SIN_RECOMENDACION`), `src/lib/dataService.ts`, `src/components/nova/NavegacionNova.tsx` (enlace "Productividad"), `doc/PLAN_NOVA.md`, `doc/ACEPTACION.md`.
+- **Decisiones:**
+  - Una sola consulta SQL cuenta las tareas del día, las completadas y la suma de sus minutos (BIGINT para no desbordar). Con 0 tareas devuelve `{ sinTareas: true }` sin llamar a Gemini (RN-18).
+  - El resultado incluye `totales`, `completadas` y `minutos`, y la tarjeta muestra la fórmula, para que el número se pueda comprobar a mano.
+  - Si Gemini falla, el índice se entrega igual con "No se pudo generar la recomendación en este momento." (`recomendacionDisponible: false`): los números no dependen del modelo. Un error que no es de negocio sí se propaga.
+  - La fecha usa la misma máscara AAAA-MM-DD que las tareas; el valor inicial (hoy en Bogotá) llega del servidor. El cálculo inicial se hace una sola vez, aunque React monte dos veces en desarrollo, para no pedir dos recomendaciones.
+  - El nivel se muestra con texto ("Nivel: Excelente") y color (rojo, ámbar, verde).
+- **T-24 a T-28:** pasan (creadas en P02).
+- **Verificación:** Edge no arrancó (salía sin error, también fuera de puppeteer), por una actualización a la versión 157 pendiente con Edge abierto. No se tocó el navegador del usuario; la verificación se hizo por HTTP contra `next dev` con una sesión real (login por `/api/auth/login`), la base y Gemini reales: 12 comprobaciones, 0 fallas.
+  - 5 tareas del 2099-12-29 (fecha libre), 4 completadas con 30 min: 86,0 Excelente (a mano 56 + 30). Recomendación: "Has logrado un nivel excelente, así que intenta completar esa tarea pendiente mañana para alcanzar el puntaje máximo. [...]".
+  - Pasando a 3 completadas con 10 min cada una: 49,5 Bajo (a mano 42 + 7,5).
+  - 2099-12-28: `{ sinTareas: true }`. `2026-02-30`: 422 `FECHA_INVALIDA`. Sin fecha: calcula hoy. Sin sesión: 401.
+  - Volver a completar una tarea: 409 `TAREA_YA_COMPLETADA`, minutos sin cambio.
+  - `/nova/productividad` responde 200 con sesión y la navegación incluye el enlace.
+  - Usuario y tareas temporales borrados. Un intento previo con Edge creó el usuario temporal antes de fallar; se borró a mano.
+- **Sin verificar:** la tarjeta en un navegador real (cubierta por las pruebas de interfaz con jsdom); A-16 y A-17 en Vercel.
+- **Al cierre:** `npm test` 224/224, `npm run build` correcto, `eslint` sin errores ni avisos.
+- **Prueba del usuario en local (2026-11-06):** 86,0, Excelente, 4 de 5 y 2 h, con recomendación; una fecha sin tareas muestra el mensaje y una tarea completada ya no tiene el botón "Completar". El usuario borró sus tareas de prueba.

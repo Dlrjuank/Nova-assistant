@@ -135,6 +135,7 @@ export {
   listarDocumentos,
 } from '@/lib/datos/documentos';
 export { completarTarea, crearTarea, eliminarTarea, listarTareas } from '@/lib/datos/tareas';
+export { calcularProductividad } from '@/lib/datos/productividad';
 export type {
   ConversacionActual,
   DatosTarea,
@@ -145,5 +146,6 @@ export type {
   MensajeGuardado,
   RespuestaAsistente,
   RespuestaConHistorial,
+  ResultadoProductividad,
   Tarea,
 } from '@/lib/datos/tipos';
