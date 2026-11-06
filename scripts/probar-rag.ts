@@ -173,7 +173,10 @@ async function main(): Promise<void> {
 
     const pendientes = await consultar('¿Qué tareas tengo pendientes?');
     marcar(
-      /pasaporte/i.test(pendientes.respuesta) && pendientes.fuentes.some((f) => f.tipo === 'tarea'),
+      // Solo la tarea: si aparecen fragmentos, el modelo no citó la etiqueta y armarFuentes devolvió todas.
+      /pasaporte/i.test(pendientes.respuesta) &&
+        pendientes.fuentes.length > 0 &&
+        pendientes.fuentes.every((f) => f.tipo === 'tarea'),
       'Paso 7: tareas pendientes',
       `${pendientes.respuesta} | fuentes: ${pendientes.fuentes.map((f) => f.etiqueta).join(', ')}`,
     );

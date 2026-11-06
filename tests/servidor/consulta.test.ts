@@ -16,10 +16,20 @@ vi.mock('@/lib/llm/gemini', () => ({
 }));
 
 import { armarFuentes, consultar } from '@/lib/datos/consulta';
+import { construirContexto } from '@/lib/llm/prompts';
 
 const F1 = { nombre_archivo: 'a.pdf', numero: 1, contenido: 'uno' };
 const F2 = { nombre_archivo: 'a.pdf', numero: 2, contenido: 'dos' };
 const T1 = { id: '1a2b3c4d-0000', texto: 'Pagar luz' };
+
+describe('construirContexto', () => {
+  it('encabeza cada fuente con su etiqueta citable, sin índices como [1] o [T1]', () => {
+    const contexto = construirContexto([F1], [T1]);
+    expect(contexto).toContain('[a.pdf · fragmento 1]\nuno');
+    expect(contexto).toContain('[Tarea 1a2b3c4d]\nPagar luz');
+    expect(contexto).not.toMatch(/\[T?\d+\]/);
+  });
+});
 
 describe('armarFuentes', () => {
   it('deja solo las fuentes citadas por el modelo', () => {
