@@ -136,6 +136,7 @@ export {
 } from '@/lib/datos/documentos';
 export { completarTarea, crearTarea, eliminarTarea, listarTareas } from '@/lib/datos/tareas';
 export { calcularProductividad } from '@/lib/datos/productividad';
+export { buscarEnWikipedia } from '@/lib/datos/wikipedia';
 export type {
   ConversacionActual,
   DatosTarea,
@@ -147,5 +148,6 @@ export type {
   RespuestaAsistente,
   RespuestaConHistorial,
   ResultadoProductividad,
+  ResultadoWeb,
   Tarea,
 } from '@/lib/datos/tipos';

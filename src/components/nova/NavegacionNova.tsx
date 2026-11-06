@@ -5,12 +5,12 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Boton } from '@/components/ui/Boton';
 
-// Web se agrega en P11.
 const ENLACES = [
   { href: '/nova', texto: 'Asistente' },
   { href: '/nova/tareas', texto: 'Tareas' },
   { href: '/nova/documentos', texto: 'Documentos' },
   { href: '/nova/productividad', texto: 'Productividad' },
+  { href: '/nova/web', texto: 'Web' },
 ];
 
 function esActivo(ruta: string, href: string): boolean {

@@ -665,7 +665,7 @@ crearConversacion(usuarioId: string): Promise<{ id: string }>                   
 
 // Opcionales
 calcularProductividad(fecha: string): Promise<ResultadoProductividad | { sinTareas: true }>  // F6
-buscarEnWikipedia(consulta: string, categoria: string): Promise<ResultadoWeb>                 // F4
+buscarEnWikipedia(consulta: string, categoria?: string): Promise<ResultadoWeb>                // F4; ResultadoWeb { resumen; url; guardada; categoria; articulos; fuentesEnCategoria }
 ```
 
 Tipos principales (`lib/datos/tipos.ts`): `Tarea`, `Documento`, `Fragmento`, `RespuestaAsistente { respuesta: string; fuentes: Fuente[] }`, `Fuente { tipo: 'pdf' | 'tarea'; etiqueta: string }` (p. ej. "factura.pdf · fragmento 3" o "Tarea abc123"), `ResultadoProductividad { fecha; totales; completadas; minutos; puntos: number; nivel: NivelProductividad; recomendacion: string; recomendacionDisponible: boolean }` (los conteos van para poder comprobar la fórmula a mano; si Gemini falla, el índice se entrega con un texto fijo y `recomendacionDisponible: false`), `RespuestaConHistorial` (`RespuestaAsistente` más `conversacionId` y `guardada`, que es `false` si la respuesta llegó pero no se pudo guardar), `ConversacionActual { id; mensajes: MensajeGuardado[] }`.
@@ -795,7 +795,7 @@ Los mensajes de la sección 5.1 aparecen textualmente (prioridad, PDF grande, PD
 | `esquemaIndexar` | urlBlob (URL válida del dominio de Blob), nombreArchivo (1 a 255), categoria opcional |
 | `esquemaCompletar` | minutos entero ≥ 0 (F5) |
 | `esquemaProductividad` | fecha opcional (por defecto hoy) (F6) |
-| `esquemaWeb` | consulta texto, categoria opcional (F4) |
+| `esquemaWeb` | consulta texto, máximo 300 caracteres; categoria opcional, máximo 80 (por defecto "General") (F4) |
 
 ---
 
@@ -810,7 +810,7 @@ Los mensajes de la sección 5.1 aparecen textualmente (prioridad, PDF grande, PD
 | `/nova/documentos` · Documentos | `TablaDocumentos`: nombre, categoría, número de fragmentos, fecha de indexación. Botón "Indexar PDF". Acción "Eliminar" con confirmación en cada documento (RN-22). `EstadoVacio` con guía si no hay documentos. |
 | `/nova/documentos/nuevo` · Indexar PDF | `SubidorPdf`: selector de archivo que valida el tamaño (≤ 15 MB) en el navegador, sube a Vercel Blob mostrando progreso, y luego llama a la indexación. Muestra el número de fragmentos indexados o el mensaje de error (`PDF_SIN_TEXTO`, `ARCHIVO_MUY_GRANDE`). Campo de categoría. |
 | `/nova/productividad` · Productividad (opcional) | `TarjetaProductividad`: fecha con la misma máscara AAAA-MM-DD (por defecto hoy en Bogotá, con botón "Hoy"); muestra puntos con un decimal, nivel con texto y color, tareas completadas de las del día, minutos, la fórmula y la recomendación, o el aviso "Sin tareas programadas para esta fecha". |
-| `/nova/web` · Web (opcional) | Campo de consulta y categoría; muestra el resumen y la fuente guardada; avisa si se alcanzó el límite de 20 por categoría. |
+| `/nova/web` · Web (opcional) | Campo de consulta (validación en vivo de RN-02) y categoría; muestra el resumen, los artículos usados con enlace y la fuente guardada con el conteo de la categoría; avisa si se alcanzó el límite de 20 por categoría o si Wikipedia no encontró artículos (en ese caso no guarda). |
 
 Si `app/page.tsx` es la plantilla de Next.js, se reemplaza por una redirección a `/nova`. Si tiene contenido propio, se agrega un enlace a `/nova`.
 
@@ -996,7 +996,7 @@ Se construyen solo con la fase 6 cerrada.
 |---|---|---|
 | P10 | F5 · Completar tarea | `lib/datos/tareas.ts` `completarTarea(id, minutos)`: si no existe, `TAREA_NO_ENCONTRADA`; si ya está completada, `TAREA_YA_COMPLETADA`; si no, estado `Completada`, guarda minutos (`esquemaCompletar`, entero ≥ 0) y `fecha_cierre = hoyBogota()` (RN-16). `POST /api/nova/tareas/[id]/completar`; acción "Completar" en la tabla de tareas |
 | P10 | F6 · Índice de productividad | `lib/reglas/productividad.ts` `calcularIndice` (pruebas T-24 a T-28); `lib/datos/productividad.ts` `calcularProductividad(fecha)`: cuenta las tareas del día (si 0, `{ sinTareas: true }` → "Sin tareas programadas para esta fecha", RN-18), las completadas y la suma de minutos (tope 120), aplica la fórmula y pide al LLM una recomendación breve. `POST /api/nova/productividad`; `/nova/productividad` con `TarjetaProductividad` |
-| P11 | F4 · Búsqueda en Wikipedia | `lib/datos/wikipedia.ts`: valida la consulta (RN-02); consulta la API de Wikipedia en español; toma los 3 primeros resultados; pide al LLM una síntesis; guarda url y extracto en `fuentes_web` con la categoría. RN-05: máximo 20 por categoría; la 21 responde `LIMITE_FUENTES`. `POST /api/nova/web`; `/nova/web` |
+| P11 | F4 · Búsqueda en Wikipedia | `lib/datos/wikipedia.ts`: valida la consulta (RN-02); consulta la API de Wikipedia en español; toma los 3 primeros resultados; pide al LLM una síntesis; guarda url y extracto en `fuentes_web` con la categoría. RN-05: máximo 20 por categoría; la 21 responde `LIMITE_FUENTES`. `POST /api/nova/web`; `/nova/web` | Implementación: una sola llamada a la API (`generator=search` con extractos e `inprop=url`, ordenada por `index`), con `User-Agent` propio y 10 s de tiempo máximo; el límite se revisa antes de llamar a Wikipedia y a Gemini, y el INSERT solo guarda si sigue habiendo cupo. Sin resultados, no se llama a Gemini ni se guarda.
 
 ---
 

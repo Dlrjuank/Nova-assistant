@@ -13,7 +13,8 @@ Producción: https://nova-assistantsm-kappa.vercel.app
 - **Asistente:** chat que responde con la información de los PDF y de las tareas pendientes y muestra las fuentes (PDF y fragmento, o tarea). Si el dato no está, responde "No encontré esto en tus documentos". Entiende preguntas de seguimiento como "¿y el segundo?" y guarda la conversación por usuario; "Conversación nueva" empieza otra.
 - **Acceso:** con el login de Supabase; solo entran los correos de la lista de administradores.
 
-Pendientes (opcionales): índice de productividad diaria (P10) y búsqueda en Wikipedia (P11).
+- **Productividad:** índice del día de 0 a 100 según las tareas completadas y los minutos dedicados, con nivel (Bajo, Aceptable, Excelente) y una recomendación breve.
+- **Web:** busca un tema en Wikipedia en español, resume los 3 primeros artículos y guarda la fuente por categoría (máximo 20 por categoría).
 
 ## Tecnologías
 
@@ -80,12 +81,12 @@ Next.js 15 (App Router) con TypeScript y Tailwind CSS 4 · Supabase (Auth y Post
 
 ```text
 src/
-  app/nova/            páginas: Asistente, Tareas, Documentos
+  app/nova/            páginas: Asistente, Tareas, Documentos, Productividad, Web
   app/api/nova/        rutas de la API (todas exigen sesión)
   components/nova/     chat, tablas, formularios y acciones
   components/ui/       componentes base (botón, campo, aviso...)
   lib/reglas/          reglas de negocio puras (sin red ni base de datos)
-  lib/datos/           servicios: tareas, documentos, consulta RAG, historial
+  lib/datos/           servicios: tareas, documentos, consulta RAG, historial, productividad, Wikipedia
   lib/llm/             cliente de Gemini y System Prompt (único lugar que conoce al proveedor)
   lib/db/              conexión a Postgres con la CA de Supabase
   lib/dataService.ts   fachada de datos que usan páginas y rutas
@@ -98,7 +99,7 @@ doc/                   plan, prompts, bitácora, aceptación y checkpoints
 
 ## Privacidad
 
-Cada pregunta, los fragmentos recuperados de tus PDF y tus tareas pendientes se envían a Gemini, el proveedor del modelo, para generar la respuesta. **No subas documentos con datos sensibles.** Los PDF se borran de Vercel Blob al terminar la indexación; su texto queda en la base como fragmentos hasta que eliminas el documento.
+Cada pregunta, los fragmentos recuperados de tus PDF y tus tareas pendientes se envían a Gemini, el proveedor del modelo, para generar la respuesta. Las búsquedas de la sección Web se envían a Wikipedia y, con los extractos, a Gemini. **No subas documentos con datos sensibles.** Los PDF se borran de Vercel Blob al terminar la indexación; su texto queda en la base como fragmentos hasta que eliminas el documento.
 
 ## Claves y seguridad
 

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { CONSULTA_MAX_CARACTERES } from '@/lib/config/nova';
+import { CONSULTA_MAX_CARACTERES, WEB_MAX_CARACTERES } from '@/lib/config/nova';
 
 // Solo validan forma y tipos; las reglas finas (prioridad 1..3, fecha real, 2 palabras/8 caracteres)
 // las aplica src/lib/reglas para devolver los mensajes exactos.
@@ -48,7 +48,7 @@ export const esquemaProductividad = z.object({
 export type DatosProductividad = z.infer<typeof esquemaProductividad>;
 
 export const esquemaWeb = z.object({
-  consulta: z.string().trim().min(1),
+  consulta: z.string().trim().min(1).max(WEB_MAX_CARACTERES),
   categoria: z.string().trim().max(80).optional(),
 });
 export type DatosWeb = z.infer<typeof esquemaWeb>;

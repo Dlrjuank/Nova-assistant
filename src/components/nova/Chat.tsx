@@ -7,9 +7,9 @@ import { Aviso } from '@/components/ui/Aviso';
 import { Boton } from '@/components/ui/Boton';
 import { CLASE_CONTROL } from '@/components/ui/Campo';
 import type { Fuente, MensajeGuardado, RespuestaConHistorial } from '@/lib/dataService';
-import { contarPalabrasYCaracteres, normalizarConsulta } from '@/lib/reglas/consulta';
+import { esConsultaValida as esValida, normalizarConsulta } from '@/lib/reglas/consulta';
 import { MENSAJES } from '@/lib/reglas/errores';
-import { CONSULTA_MAX_CARACTERES, CONSULTA_MIN_CARACTERES, CONSULTA_MIN_PALABRAS } from '@/lib/config/nova';
+import { CONSULTA_MAX_CARACTERES } from '@/lib/config/nova';
 
 interface Mensaje {
   id: number;
@@ -26,11 +26,6 @@ interface ErrorChat {
 
 // Reintentar no sirve para estos: repetir la misma pregunta daría el mismo error.
 const SIN_REINTENTO = ['CONSULTA_MUY_CORTA', 'CONVERSACION_NO_ENCONTRADA'];
-
-function esValida(texto: string): boolean {
-  const { palabras, caracteres } = contarPalabrasYCaracteres(texto);
-  return palabras >= CONSULTA_MIN_PALABRAS && caracteres >= CONSULTA_MIN_CARACTERES;
-}
 
 /**
  * RN-20: la conversación se guarda en la base por usuario y la página entrega la más reciente al cargar.

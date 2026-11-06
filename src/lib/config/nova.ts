@@ -11,6 +11,11 @@ export const PRIORIDAD_POR_DEFECTO = 2; // RN-04
 export const CATEGORIA_POR_DEFECTO = 'General';
 export const MINUTOS_TOPE_INDICE = 120; // RN-03
 export const MAX_FUENTES_WEB_POR_CATEGORIA = 20; // RN-05 (F4)
+export const WEB_MAX_CARACTERES = 300; // la búsqueda de Wikipedia no admite consultas mucho más largas
+export const WEB_RESULTADOS = 3; // artículos de Wikipedia que se resumen (F4)
+export const WIKIPEDIA_API = 'https://es.wikipedia.org/w/api.php';
+// Wikimedia pide identificar al cliente en el User-Agent.
+export const WIKIPEDIA_AGENTE = 'NovaAssistant/0.1 (proyecto universitario de Lógica y Programación)';
 export const ZONA_HORARIA = 'America/Bogota';
 export const LIMITE_LISTADO = 500;
 export const CONVERSACION_MAX_MENSAJES = 200; // RN-20: los que se muestran al volver al Asistente

@@ -15,11 +15,13 @@ export function contarPalabrasYCaracteres(texto: string): { palabras: number; ca
 }
 
 /** RN-02: al menos 2 palabras y al menos 8 caracteres, ambas condiciones. */
-export function validarConsulta(texto: string): void {
+export function esConsultaValida(texto: string): boolean {
   const { palabras, caracteres } = contarPalabrasYCaracteres(texto);
-  if (palabras < CONSULTA_MIN_PALABRAS || caracteres < CONSULTA_MIN_CARACTERES) {
-    throw new ErrorDeNegocio('CONSULTA_MUY_CORTA');
-  }
+  return palabras >= CONSULTA_MIN_PALABRAS && caracteres >= CONSULTA_MIN_CARACTERES;
+}
+
+export function validarConsulta(texto: string): void {
+  if (!esConsultaValida(texto)) throw new ErrorDeNegocio('CONSULTA_MUY_CORTA');
 }
 
 /**

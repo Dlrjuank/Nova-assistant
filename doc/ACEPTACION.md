@@ -81,11 +81,10 @@ No estaban en el plan funcional; se agregaron tras P08.
 
 ## Opcionales (A-16 a A-18)
 
-A-18 (buscar en Wikipedia y guardar la fuente) se agrega tras P11.
-
-La evidencia de A-16 y A-17 es de la verificación de P10 en local (servidor real, base real, Gemini real, por HTTP con una sesión real, 2026-11-06), no de Vercel. Las dos últimas columnas quedan para cuando el usuario las ejecute en producción.
+La evidencia de A-16 a A-18 es de la verificación de P10 y P11 en local (servidor real, base real, Gemini real, por HTTP con una sesión real, 2026-11-06), no de Vercel. Las dos últimas columnas quedan para cuando el usuario las ejecute en producción.
 
 | ID | Acción | Resultado esperado | Resultado en la verificación de P10 | Resultado en Vercel | Observación |
 |---|---|---|---|---|---|
 | A-16 | Completar una tarea con minutos; intentar completarla otra vez | Queda Completada con los minutos y la fecha de cierre; ya no muestra "Completar"; volver a completarla responde "La tarea ya está completada." | Pasa: 4 tareas completadas con 30 min cada una; repetir sobre una devolvió 409 `TAREA_YA_COMPLETADA` y sus minutos siguieron en 30 | | El botón "Completar" se verificó en el navegador en P07 |
 | A-17 | Ver el índice de un día con tareas y de un día sin tareas | Con tareas: puntos (un decimal), nivel y recomendación, y el número coincide con la fórmula. Sin tareas: "Sin tareas programadas para esta fecha" | Pasa: 4 de 5 y 120 min → 86,0 Excelente (a mano: 56 + 30); 3 de 5 y 30 min → 49,5 Bajo (a mano: 42 + 7,5); día sin tareas → aviso; recomendación de Gemini en 4,6 s | | |
+| A-18 | Buscar un tema en Wikipedia (por ejemplo "Sierra Nevada de Santa Marta") y guardar la fuente | Resumen breve con los artículos usados y la fuente guardada en la categoría; con 20 fuentes en la categoría, "Alcanzó el máximo de 20 fuentes en esta categoría; archive o elimine una." | Pasa: resumen de 4 frases con los artículos usados; la fila quedó en `fuentes_web` con la URL del primer artículo; con 18 fuentes de relleno, las búsquedas 19 y 20 se guardaron y la 21 respondió 409 `LIMITE_FUENTES` con el mensaje exacto | | Wikipedia y Gemini reales; el usuario probó P10 en local |

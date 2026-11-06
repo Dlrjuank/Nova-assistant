@@ -15,7 +15,7 @@
 | P08c Eliminar documento | completado | correcto | 209 pasan | 2026-11-05 |
 | P09 Aceptación del MVP | completado (aceptación en Vercel: todo pasa) | correcto | 210 pasan | 2026-11-06 |
 | P10 Opcionales: completar tarea e índice | completado | correcto | 224 pasan | 2026-11-06 |
-| P11 Opcional: búsqueda en Wikipedia | pendiente | | | |
+| P11 Opcional: búsqueda en Wikipedia | completado | correcto | 240 pasan | 2026-11-06 |
 
 ## Bitácora
 
@@ -273,3 +273,18 @@ Total de fallas: 0
 - **Sin verificar:** la tarjeta en un navegador real (cubierta por las pruebas de interfaz con jsdom); A-16 y A-17 en Vercel.
 - **Al cierre:** `npm test` 224/224, `npm run build` correcto, `eslint` sin errores ni avisos.
 - **Prueba del usuario en local (2026-11-06):** 86,0, Excelente, 4 de 5 y 2 h, con recomendación; una fecha sin tareas muestra el mensaje y una tarea completada ya no tiene el botón "Completar". El usuario borró sus tareas de prueba.
+
+### P11 Opcional: búsqueda en Wikipedia
+
+- **Archivos creados:** `src/app/api/nova/web/route.ts`, `src/components/nova/BuscadorWeb.tsx`, `src/app/nova/web/page.tsx`, `tests/servidor/wikipedia.test.ts`, `tests/interfaz/BuscadorWeb.test.tsx`, `doc/checkpoints/FASE_7_COMPLETADA.md`.
+- **Archivos modificados:** `src/lib/datos/wikipedia.ts` (deja de ser stub), `src/lib/datos/tipos.ts` (`ResultadoWeb` con `categoria`, `articulos` y `fuentesEnCategoria`), `src/lib/llm/prompts.ts` (`SYSTEM_PROMPT_WEB`), `src/lib/config/nova.ts` (`WEB_MAX_CARACTERES`, `WEB_RESULTADOS`, `WIKIPEDIA_API`, `WIKIPEDIA_AGENTE`), `src/lib/validacion/esquemas.ts`, `src/lib/reglas/consulta.ts` (`esConsultaValida`, ahora la usan el chat y la búsqueda), `src/components/nova/Chat.tsx`, `src/components/nova/NavegacionNova.tsx` (enlace "Web"), `src/lib/dataService.ts`, `doc/PLAN_NOVA.md`, `doc/ACEPTACION.md`.
+- **Decisiones:**
+  - Una sola llamada a la API de Wikipedia (`generator=search` con extractos de la introducción e `inprop=url`); las páginas llegan desordenadas y se ordenan por `index`. `User-Agent` propio (Wikimedia lo pide; sin el correo del usuario) y 10 s de tiempo máximo. Cada extracto se acota a 2.000 caracteres.
+  - El límite de 20 se revisa antes de llamar a Wikipedia y a Gemini, para no gastar cuota en una búsqueda que no se podría guardar. El INSERT es condicionado (`WHERE count < 20`): dos búsquedas simultáneas no pasan de 20.
+  - Sin resultados no se llama a Gemini ni se guarda (`guardada: false`). Si Gemini falla, `ERROR_LLM` y no se guarda nada.
+  - El System Prompt trata los extractos como datos, no como instrucciones.
+  - No se cambió `MAX_FUENTES_WEB_POR_CATEGORIA` para probar el límite: se llenó una categoría de prueba hasta 18 filas en la base.
+- **Error encontrado en la verificación real:** el INSERT condicionado fallaba con `42P08` "inconsistent types deduced for parameter $1" (text frente a varchar): Postgres deducía dos tipos para el mismo parámetro. Las pruebas unitarias no lo veían porque simulan la base. Se corrigió con casts explícitos (`$1::varchar`, etc.).
+- **Verificación por HTTP** (Edge seguía sin arrancar; `next dev` con sesión real, base, Wikipedia y Gemini reales; 13 de 13): resumen de "Sierra Nevada de Santa Marta" con 3 artículos en 2,8 s y la fila en `fuentes_web` con la URL del primero; "Colombia" → 422 con el mensaje exacto; una consulta sin resultados no guarda; fuentes 19 y 20 guardadas, la 21 → 409 `LIMITE_FUENTES` con el mensaje del plan y la categoría se queda en 20; otra categoría sigue aceptando; sin sesión 401. Fuentes y usuario temporales borrados.
+- **Sin verificar:** la pantalla Web en un navegador real (cubierta por pruebas de jsdom); A-18 en Vercel.
+- **Al cierre:** `npm test` 240/240, `npm run build` correcto, `eslint` sin errores ni avisos. Con P11 se cierra la fase 7 y quedan construidas todas las funcionalidades del plan.

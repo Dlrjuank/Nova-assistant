@@ -77,8 +77,16 @@ export interface ResultadoProductividad {
   recomendacion: string;
 }
 
+export interface ArticuloWeb {
+  titulo: string;
+  url: string;
+}
+
 export interface ResultadoWeb {
   resumen: string;
-  url: string;
-  guardada: boolean;
+  url: string; // la del primer resultado: es la que se guarda
+  guardada: boolean; // false si Wikipedia no encontró artículos
+  categoria: string;
+  articulos: ArticuloWeb[]; // los resultados que se usaron para el resumen
+  fuentesEnCategoria: number; // contando la recién guardada (RN-05: máximo 20)
 }
