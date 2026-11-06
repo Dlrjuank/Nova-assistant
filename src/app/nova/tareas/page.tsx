@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { TablaTareas } from '@/components/nova/TablaTareas';
 import { claseBoton } from '@/components/ui/Boton';
 import { EstadoVacio } from '@/components/ui/EstadoVacio';
-import { listarTareas, type EstadoTarea } from '@/lib/dataService';
+import { exigirSesion, listarTareas, type EstadoTarea } from '@/lib/dataService';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +18,9 @@ function estadoValido(valor: string | undefined): EstadoTarea | undefined {
 
 export default async function TareasPage({ searchParams }: { searchParams: Promise<{ estado?: string }> }) {
   const estado = estadoValido((await searchParams).estado);
-  const tareas = await listarTareas({ estado });
+  // El layout ya exige sesión con acceso; aquí hace falta el id para ver solo sus tareas (RB-01).
+  const { id } = await exigirSesion();
+  const tareas = await listarTareas(id, { estado });
 
   return (
     <>

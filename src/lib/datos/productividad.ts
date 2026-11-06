@@ -11,7 +11,10 @@ import type { ResultadoProductividad } from './tipos';
  * CU-05 (RN-03, RN-18). Cuenta las tareas cuya fecha límite es la fecha evaluada; sin tareas no calcula.
  * Si Gemini falla, el índice se entrega igual con un texto fijo: los números no dependen del modelo.
  */
-export async function calcularProductividad(fecha?: string): Promise<ResultadoProductividad | { sinTareas: true }> {
+export async function calcularProductividad(
+  usuarioId: string,
+  fecha?: string,
+): Promise<ResultadoProductividad | { sinTareas: true }> {
   const dia = fecha ?? hoyBogota();
   if (!esFechaISOValida(dia)) throw new ErrorDeNegocio('FECHA_INVALIDA');
 
@@ -21,8 +24,8 @@ export async function calcularProductividad(fecha?: string): Promise<ResultadoPr
        COUNT(*) FILTER (WHERE estado = 'Completada')::bigint AS completadas,
        COALESCE(SUM(minutos_invertidos) FILTER (WHERE estado = 'Completada'), 0)::bigint AS minutos
      FROM tareas_personales
-     WHERE fecha_limite = $1`,
-    [dia],
+     WHERE fecha_limite = $1 AND usuario_id = $2`,
+    [dia, usuarioId],
   );
   const { totales = 0, completadas = 0, minutos = 0 } = conteo ?? {};
   if (totales === 0) return { sinTareas: true }; // RN-18: nunca se divide por cero

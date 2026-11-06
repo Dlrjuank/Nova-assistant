@@ -79,7 +79,7 @@ export async function consultarYRegistrar(
   const id = await resolverConversacion(usuarioId, conversacionId);
   const previos = await ultimosMensajes(id, CONVERSACION_MENSAJES_CONTEXTO);
   const historial: TurnoConversacion[] = previos.map((m) => ({ autor: m.autor, texto: m.texto }));
-  const resultado = await consultar(pregunta, historial);
+  const resultado = await consultar(usuarioId, pregunta, historial);
   try {
     await conTransaccion(async (tx) => {
       const sql =

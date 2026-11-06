@@ -48,7 +48,7 @@ describe('buscarEnWikipedia (CU-06)', () => {
     base(4);
     m.responder.mockResolvedValue('La Sierra Nevada es una cordillera.');
 
-    const r = await buscarEnWikipedia('  Sierra   Nevada de Santa Marta ', 'Viajes');
+    const r = await buscarEnWikipedia('u1', '  Sierra   Nevada de Santa Marta ', 'Viajes');
     expect(r).toEqual({
       resumen: 'La Sierra Nevada es una cordillera.',
       url: 'https://es.wikipedia.org/wiki/Sierra_Nevada_de_Santa_Marta',
@@ -73,20 +73,20 @@ describe('buscarEnWikipedia (CU-06)', () => {
     expect(llamada.contexto.indexOf('Sierra Nevada')).toBeLessThan(llamada.contexto.indexOf('Ciénaga'));
 
     const insertar = m.consultarBd.mock.calls.find(([sql]) => String(sql).includes('INSERT'));
-    expect(insertar?.[1]).toEqual(['Viajes', PAGINAS[1]?.fullurl, 'La Sierra Nevada es una cordillera.', expect.any(String), 20]);
+    expect(insertar?.[1]).toEqual(['Viajes', PAGINAS[1]?.fullurl, 'La Sierra Nevada es una cordillera.', expect.any(String), 20, 'u1']);
   });
 
   it('sin categoría usa "General"', async () => {
     vi.stubGlobal('fetch', wikipedia(PAGINAS));
     base(0);
     m.responder.mockResolvedValue('Resumen.');
-    expect((await buscarEnWikipedia('Sierra Nevada')).categoria).toBe('General');
+    expect((await buscarEnWikipedia('u1', 'Sierra Nevada')).categoria).toBe('General');
   });
 
   it('RN-02: una consulta corta no llega a Wikipedia', async () => {
     const f = vi.fn();
     vi.stubGlobal('fetch', f);
-    await expect(buscarEnWikipedia('Colombia')).rejects.toMatchObject({ codigo: 'CONSULTA_MUY_CORTA' });
+    await expect(buscarEnWikipedia('u1', 'Colombia')).rejects.toMatchObject({ codigo: 'CONSULTA_MUY_CORTA' });
     expect(f).not.toHaveBeenCalled();
   });
 
@@ -94,7 +94,7 @@ describe('buscarEnWikipedia (CU-06)', () => {
     const f = vi.fn();
     vi.stubGlobal('fetch', f);
     base(20);
-    await expect(buscarEnWikipedia('Sierra Nevada', 'Viajes')).rejects.toMatchObject({ codigo: 'LIMITE_FUENTES' });
+    await expect(buscarEnWikipedia('u1', 'Sierra Nevada', 'Viajes')).rejects.toMatchObject({ codigo: 'LIMITE_FUENTES' });
     expect(f).not.toHaveBeenCalled();
     expect(m.responder).not.toHaveBeenCalled();
   });
@@ -103,13 +103,13 @@ describe('buscarEnWikipedia (CU-06)', () => {
     vi.stubGlobal('fetch', wikipedia(PAGINAS));
     base(19, false);
     m.responder.mockResolvedValue('Resumen.');
-    await expect(buscarEnWikipedia('Sierra Nevada', 'Viajes')).rejects.toMatchObject({ codigo: 'LIMITE_FUENTES' });
+    await expect(buscarEnWikipedia('u1', 'Sierra Nevada', 'Viajes')).rejects.toMatchObject({ codigo: 'LIMITE_FUENTES' });
   });
 
   it('sin resultados no llama a Gemini ni guarda', async () => {
     vi.stubGlobal('fetch', wikipedia(null));
     base(3);
-    const r = await buscarEnWikipedia('qwertyuiop asdfghjkl');
+    const r = await buscarEnWikipedia('u1', 'qwertyuiop asdfghjkl');
     expect(r).toMatchObject({ guardada: false, url: '', articulos: [], fuentesEnCategoria: 3 });
     expect(m.responder).not.toHaveBeenCalled();
     expect(m.consultarBd.mock.calls.some(([sql]) => String(sql).includes('INSERT'))).toBe(false);
@@ -120,7 +120,7 @@ describe('buscarEnWikipedia (CU-06)', () => {
     base(0);
     for (const f of [wikipedia([], 503), vi.fn().mockRejectedValue(new Error('timeout'))]) {
       vi.stubGlobal('fetch', f);
-      await expect(buscarEnWikipedia('Sierra Nevada')).rejects.toMatchObject({ codigo: 'ERROR_WIKIPEDIA' });
+      await expect(buscarEnWikipedia('u1', 'Sierra Nevada')).rejects.toMatchObject({ codigo: 'ERROR_WIKIPEDIA' });
     }
     expect(m.responder).not.toHaveBeenCalled();
   });
@@ -129,7 +129,7 @@ describe('buscarEnWikipedia (CU-06)', () => {
     vi.stubGlobal('fetch', wikipedia(PAGINAS));
     base(0);
     m.responder.mockRejectedValue(new ErrorDeNegocio('ERROR_LLM'));
-    await expect(buscarEnWikipedia('Sierra Nevada')).rejects.toMatchObject({ codigo: 'ERROR_LLM' });
+    await expect(buscarEnWikipedia('u1', 'Sierra Nevada')).rejects.toMatchObject({ codigo: 'ERROR_LLM' });
     expect(m.consultarBd.mock.calls.some(([sql]) => String(sql).includes('INSERT'))).toBe(false);
   });
 });
@@ -152,7 +152,7 @@ describe('POST /api/nova/web', () => {
   it('pasa consulta y categoría; una consulta vacía o muy larga es 400', async () => {
     m.buscarEnWikipedia.mockResolvedValue({ guardada: true });
     await webRuta.POST(post({ consulta: 'Sierra Nevada', categoria: 'Viajes' }));
-    expect(m.buscarEnWikipedia).toHaveBeenLastCalledWith('Sierra Nevada', 'Viajes');
+    expect(m.buscarEnWikipedia).toHaveBeenLastCalledWith('u1', 'Sierra Nevada', 'Viajes');
     expect((await webRuta.POST(post({ consulta: '' }))).status).toBe(400);
     expect((await webRuta.POST(post({ consulta: 'a'.repeat(301) }))).status).toBe(400);
     expect(m.buscarEnWikipedia).toHaveBeenCalledTimes(1);

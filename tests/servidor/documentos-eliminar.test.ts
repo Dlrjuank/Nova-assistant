@@ -34,7 +34,7 @@ describe('DELETE /api/nova/documentos/[id] (RN-22)', () => {
     m.eliminarDocumento.mockResolvedValue(undefined);
     const r = await documentoRuta.DELETE(borrar(), contexto());
     expect(await r.json()).toEqual({ ok: true, datos: { id: ID } });
-    expect(m.eliminarDocumento).toHaveBeenCalledWith(ID);
+    expect(m.eliminarDocumento).toHaveBeenCalledWith('u1', ID);
   });
 
   it('un id que no es UUID es 400 y no llega al servicio; uno inexistente es 404', async () => {
@@ -55,11 +55,11 @@ describe('eliminarDocumento', () => {
     const { eliminarDocumento } = await import('@/lib/datos/documentos');
 
     m.consultarBd.mockResolvedValueOnce([{ id: ID }]);
-    await expect(eliminarDocumento(ID)).resolves.toBeUndefined();
-    expect(m.consultarBd.mock.calls[0]?.[0]).toContain('DELETE FROM documentos WHERE id = $1');
-    expect(m.consultarBd.mock.calls[0]?.[1]).toEqual([ID]);
+    await expect(eliminarDocumento('u1', ID)).resolves.toBeUndefined();
+    expect(m.consultarBd.mock.calls[0]?.[0]).toContain('DELETE FROM documentos WHERE id = $1 AND usuario_id = $2');
+    expect(m.consultarBd.mock.calls[0]?.[1]).toEqual([ID, 'u1']);
 
     m.consultarBd.mockResolvedValueOnce([]);
-    await expect(eliminarDocumento(ID)).rejects.toMatchObject({ codigo: 'DOCUMENTO_NO_ENCONTRADO' });
+    await expect(eliminarDocumento('u1', ID)).rejects.toMatchObject({ codigo: 'DOCUMENTO_NO_ENCONTRADO' });
   });
 });

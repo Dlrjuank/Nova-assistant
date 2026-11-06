@@ -223,6 +223,7 @@ CREATE FUNCTION buscar_fragmentos_usuario(consulta vector(768), limite int, usua
 ```
 
 - La columna queda **nullable**: si faltara `nova_config`, las inserciones de `master` no fallan. El código nuevo siempre envía `usuario_id`.
+- `buscar_fragmentos_usuario` es plpgsql y fija `hnsw.iterative_scan = strict_order` con `set_config(..., true)` (solo dura la transacción) para que el filtro por dueño no devuelva menos filas de las pedidas. Supabase no permite ponerlo como cláusula `SET` de la función.
 - RLS ya está activo en esas tablas (M2); no se agregan políticas.
 - `fragmentos_pdf` no necesita columna: su dueño es el de su documento.
 - El correo del dueño por defecto se lee en E01 de `src/modules/auth/admin.ts`; la migración lo busca en `auth.users` y falla con un mensaje claro si no existe (sin dejar la base a medias, porque `db:migrar` usa una transacción).

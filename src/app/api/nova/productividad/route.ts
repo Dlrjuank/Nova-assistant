@@ -9,7 +9,7 @@ export const maxDuration = 60;
 
 /** CU-05: sin fecha, hoy en Bogotá. */
 export const POST = conManejoDeErrores(async (peticion: Request) => {
-  await exigirSesion();
+  const { id } = await exigirSesion();
   const { fecha } = await leerCuerpo(peticion, esquemaProductividad);
-  return responderOk(await calcularProductividad(fecha));
+  return responderOk(await calcularProductividad(id, fecha));
 });

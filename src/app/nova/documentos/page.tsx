@@ -2,12 +2,14 @@ import Link from 'next/link';
 import { TablaDocumentos } from '@/components/nova/TablaDocumentos';
 import { claseBoton } from '@/components/ui/Boton';
 import { EstadoVacio } from '@/components/ui/EstadoVacio';
-import { listarDocumentos } from '@/lib/dataService';
+import { exigirSesion, listarDocumentos } from '@/lib/dataService';
 
 export const dynamic = 'force-dynamic';
 
 export default async function DocumentosPage() {
-  const documentos = await listarDocumentos();
+  // El layout ya exige sesión con acceso; aquí hace falta el id para ver solo sus documentos (RB-01).
+  const { id } = await exigirSesion();
+  const documentos = await listarDocumentos(id);
 
   return (
     <>

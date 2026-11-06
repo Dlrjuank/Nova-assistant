@@ -51,35 +51,35 @@ describe('indexarDocumento', () => {
   it('RN-01: acepta exactamente el límite, repartido en trozos', async () => {
     const { respuesta } = respuestaEnTrozos([PDF_MAX_BYTES - 1, 1]);
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(respuesta));
-    await expect(indexarDocumento(DATOS)).resolves.toEqual({ documentoId: 'doc-1', numFragmentos: 1 });
+    await expect(indexarDocumento('u1', DATOS)).resolves.toEqual({ documentoId: 'doc-1', numFragmentos: 1 });
     expect((m.extraerTexto.mock.calls[0]?.[0] as Uint8Array).length).toBe(PDF_MAX_BYTES);
   });
 
   it('RN-01: un byte de más corta la descarga y no llega a Gemini', async () => {
     const { respuesta, estado } = respuestaEnTrozos([PDF_MAX_BYTES, 1, 1]);
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(respuesta));
-    await expect(indexarDocumento(DATOS)).rejects.toMatchObject({ codigo: 'ARCHIVO_MUY_GRANDE' });
+    await expect(indexarDocumento('u1', DATOS)).rejects.toMatchObject({ codigo: 'ARCHIVO_MUY_GRANDE' });
     expect(estado.cancelada).toBe(true);
     expect(m.generarEmbeddings).not.toHaveBeenCalled();
   });
 
   it('una descarga fallida es PDF_INVALIDO', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('no', { status: 404 })));
-    await expect(indexarDocumento(DATOS)).rejects.toMatchObject({ codigo: 'PDF_INVALIDO' });
+    await expect(indexarDocumento('u1', DATOS)).rejects.toMatchObject({ codigo: 'PDF_INVALIDO' });
   });
 
   it('RN-09: un PDF sin texto no llega a Gemini', async () => {
     m.extraerTexto.mockResolvedValue('  \n ');
     const { respuesta } = respuestaEnTrozos([10]);
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(respuesta));
-    await expect(indexarDocumento(DATOS)).rejects.toMatchObject({ codigo: 'PDF_SIN_TEXTO' });
+    await expect(indexarDocumento('u1', DATOS)).rejects.toMatchObject({ codigo: 'PDF_SIN_TEXTO' });
     expect(m.generarEmbeddings).not.toHaveBeenCalled();
   });
 
   it('borra el PDF del Blob al indexar', async () => {
     const { respuesta } = respuestaEnTrozos([10]);
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(respuesta));
-    await indexarDocumento(DATOS);
+    await indexarDocumento('u1', DATOS);
     expect(m.del).toHaveBeenCalledWith(DATOS.urlBlob);
   });
 
@@ -87,7 +87,7 @@ describe('indexarDocumento', () => {
     m.extraerTexto.mockResolvedValue('');
     const { respuesta } = respuestaEnTrozos([10]);
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(respuesta));
-    await expect(indexarDocumento(DATOS)).rejects.toMatchObject({ codigo: 'PDF_SIN_TEXTO' });
+    await expect(indexarDocumento('u1', DATOS)).rejects.toMatchObject({ codigo: 'PDF_SIN_TEXTO' });
     expect(m.del).toHaveBeenCalledWith(DATOS.urlBlob);
   });
 
@@ -96,7 +96,7 @@ describe('indexarDocumento', () => {
     m.del.mockRejectedValue(new Error('sin red'));
     const { respuesta } = respuestaEnTrozos([10]);
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(respuesta));
-    await expect(indexarDocumento(DATOS)).resolves.toMatchObject({ documentoId: 'doc-1' });
+    await expect(indexarDocumento('u1', DATOS)).resolves.toMatchObject({ documentoId: 'doc-1' });
     expect(consola).toHaveBeenCalled();
     consola.mockRestore();
   });
@@ -104,7 +104,7 @@ describe('indexarDocumento', () => {
   it('quita el carácter NUL, que Postgres rechaza', async () => {
     const { respuesta } = respuestaEnTrozos([10]);
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(respuesta));
-    await indexarDocumento(DATOS);
+    await indexarDocumento('u1', DATOS);
     expect(m.generarEmbeddings).toHaveBeenCalledWith(['hola mundo']);
   });
 });

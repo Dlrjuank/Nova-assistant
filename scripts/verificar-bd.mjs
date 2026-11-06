@@ -140,6 +140,84 @@ try {
   } else {
     console.log('     h-j) omitidas: no hay usuarios en auth.users');
   }
+
+  // M5 (ampliación, E01): dueño en tareas, documentos y fuentes web, sin romper el código de master.
+  console.log('== 6b. Dueño por usuario (M5)');
+  const conDueno = ['tareas_personales', 'documentos', 'fuentes_web'];
+  const cols = await c.query(
+    "SELECT table_name FROM information_schema.columns WHERE table_schema='public' AND column_name='usuario_id' AND table_name = ANY($1)",
+    [conDueno],
+  );
+  for (const t of conDueno) marcar(cols.rows.some((r) => r.table_name === t), `columna usuario_id en ${t}`);
+  // Sin M5 no se consulta nova_config: un error abortaría la transacción de las pruebas.
+  const hayConfig = (await c.query("SELECT to_regclass('public.nova_config') AS r")).rows[0].r !== null;
+  const dueno = hayConfig
+    ? (await c.query("SELECT valor FROM nova_config WHERE clave='dueno_por_defecto'")).rows[0]?.valor
+    : undefined;
+  marcar(Boolean(dueno), 'nova_config.dueno_por_defecto');
+  const rlsConfig = await c.query("SELECT relrowsecurity FROM pg_class WHERE oid = to_regclass('public.nova_config')");
+  marcar(rlsConfig.rows[0]?.relrowsecurity === true, 'RLS activo en nova_config');
+  const disp = await c.query(
+    "SELECT tgname FROM pg_trigger WHERE tgname IN ('tareas_dueno_por_defecto','documentos_dueno_por_defecto','fuentes_dueno_por_defecto') AND NOT tgisinternal",
+  );
+  marcar(disp.rowCount === 3, `disparadores de dueño por defecto (${disp.rowCount} de 3; temporales, se quitan al unir con master)`);
+  const idxDueno = await c.query(
+    "SELECT indexname FROM pg_indexes WHERE indexname IN ('idx_tareas_usuario','idx_documentos_usuario','idx_fuentes_usuario')",
+  );
+  marcar(idxDueno.rowCount === 3, `índices por usuario (${idxDueno.rowCount} de 3)`);
+  const fnUsuario = await c.query("SELECT 1 FROM pg_proc WHERE proname='buscar_fragmentos_usuario'");
+  marcar(fnUsuario.rowCount > 0, 'función buscar_fragmentos_usuario');
+  const sinDueno = await c.query(
+    `SELECT (SELECT COUNT(*) FROM tareas_personales WHERE usuario_id IS NULL)
+          + (SELECT COUNT(*) FROM documentos WHERE usuario_id IS NULL)
+          + (SELECT COUNT(*) FROM fuentes_web WHERE usuario_id IS NULL) AS n`,
+  );
+  marcar(Number(sinDueno.rows[0].n) === 0, `ninguna fila sin dueño (${sinDueno.rows[0].n})`);
+
+  if (dueno && docId) {
+    try {
+      // k) Como master: INSERT sin usuario_id → el disparador pone el dueño por defecto.
+      const docDueno = (await c.query('SELECT usuario_id FROM documentos WHERE id = $1', [docId])).rows[0]?.usuario_id;
+      const tareaMaster = (
+        await c.query(
+          "INSERT INTO tareas_personales (titulo, fecha_limite, fecha_creacion) VALUES ('Verificación', $1, $1) RETURNING usuario_id",
+          [hoy],
+        )
+      ).rows[0].usuario_id;
+      const fuenteMaster = (
+        await c.query(
+          "INSERT INTO fuentes_web (categoria, url, extracto, fecha_guardado) VALUES ('Verificación','u','e',$1) RETURNING usuario_id",
+          [hoy],
+        )
+      ).rows[0].usuario_id;
+      marcar(docDueno === dueno && tareaMaster === dueno && fuenteMaster === dueno, 'k) INSERT sin usuario_id (como master) queda con el dueño por defecto');
+
+      // l) Como el código nuevo: un usuario_id explícito se respeta.
+      const otro = (await c.query('SELECT id FROM auth.users WHERE id <> $1 LIMIT 1', [dueno])).rows[0]?.id;
+      if (otro) {
+        const tareaOtro = (
+          await c.query(
+            "INSERT INTO tareas_personales (titulo, fecha_limite, fecha_creacion, usuario_id) VALUES ('Verificación', $1, $1, $2) RETURNING usuario_id",
+            [hoy, otro],
+          )
+        ).rows[0].usuario_id;
+        marcar(tareaOtro === otro, 'l) INSERT con usuario_id explícito lo conserva');
+
+        // m) La búsqueda por usuario solo devuelve fragmentos de sus documentos.
+        const q = vec(0);
+        const delDueno = await c.query('SELECT documento_id FROM buscar_fragmentos_usuario($1::vector, 4, $2)', [q, dueno]);
+        const delOtro = await c.query('SELECT documento_id FROM buscar_fragmentos_usuario($1::vector, 4, $2)', [q, otro]);
+        marcar(
+          delDueno.rows.filter((f) => f.documento_id === docId).length === 2 && !delOtro.rows.some((f) => f.documento_id === docId),
+          `m) buscar_fragmentos_usuario: dueño ${delDueno.rows.filter((f) => f.documento_id === docId).length} de 2, otro usuario 0`,
+        );
+      } else {
+        console.log('     l-m) omitidas: solo hay un usuario en auth.users');
+      }
+    } catch (e) {
+      marcar(false, `k-m) dueño: ${e.message}`);
+    }
+  }
   await c.query('ROLLBACK');
 
   console.log(`== 7. Total de fallas: ${fallas}`);

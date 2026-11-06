@@ -60,10 +60,12 @@ async function buscarArticulos(consulta: string): Promise<Articulo[]> {
     }));
 }
 
-async function contarFuentes(categoria: string): Promise<number> {
-  const [fila] = await consultar<{ n: number }>('SELECT COUNT(*)::bigint AS n FROM fuentes_web WHERE categoria = $1', [
-    categoria,
-  ]);
+/** RN-05 por usuario: el máximo de 20 es por usuario y categoría. */
+async function contarFuentes(usuarioId: string, categoria: string): Promise<number> {
+  const [fila] = await consultar<{ n: number }>(
+    'SELECT COUNT(*)::bigint AS n FROM fuentes_web WHERE usuario_id = $1 AND categoria = $2',
+    [usuarioId, categoria],
+  );
   return fila?.n ?? 0;
 }
 
@@ -71,11 +73,15 @@ async function contarFuentes(categoria: string): Promise<number> {
  * CU-06 (RN-02, RN-05). El límite se revisa antes de llamar a Wikipedia y a Gemini, para no gastar cuota
  * en una búsqueda que no se podría guardar, y otra vez al guardar. Sin resultados no se guarda nada.
  */
-export async function buscarEnWikipedia(consulta: string, categoria?: string | undefined): Promise<ResultadoWeb> {
+export async function buscarEnWikipedia(
+  usuarioId: string,
+  consulta: string,
+  categoria?: string | undefined,
+): Promise<ResultadoWeb> {
   validarConsulta(consulta); // RN-02
   const texto = normalizarConsulta(consulta);
   const cat = categoria?.trim() || CATEGORIA_POR_DEFECTO;
-  if ((await contarFuentes(cat)) >= MAX_FUENTES_WEB_POR_CATEGORIA) throw new ErrorDeNegocio('LIMITE_FUENTES');
+  if ((await contarFuentes(usuarioId, cat)) >= MAX_FUENTES_WEB_POR_CATEGORIA) throw new ErrorDeNegocio('LIMITE_FUENTES');
 
   const articulos = await buscarArticulos(texto);
   const articulosWeb = articulos.map(({ titulo, url }) => ({ titulo, url }));
@@ -86,7 +92,7 @@ export async function buscarEnWikipedia(consulta: string, categoria?: string | u
       guardada: false,
       categoria: cat,
       articulos: [],
-      fuentesEnCategoria: await contarFuentes(cat),
+      fuentesEnCategoria: await contarFuentes(usuarioId, cat),
     };
   }
 
@@ -99,11 +105,11 @@ export async function buscarEnWikipedia(consulta: string, categoria?: string | u
   // Inserta solo si sigue habiendo cupo: dos búsquedas simultáneas no pueden pasar de 20.
   // Los casts son necesarios: sin ellos Postgres deduce text y varchar para $1 y rechaza la consulta (42P08).
   const guardadas = await consultar<{ id: string }>(
-    `INSERT INTO fuentes_web (categoria, url, extracto, fecha_guardado)
-     SELECT $1::varchar, $2::text, $3::text, $4::date
-     WHERE (SELECT COUNT(*) FROM fuentes_web WHERE categoria = $1::varchar) < $5::int
+    `INSERT INTO fuentes_web (categoria, url, extracto, fecha_guardado, usuario_id)
+     SELECT $1::varchar, $2::text, $3::text, $4::date, $6::uuid
+     WHERE (SELECT COUNT(*) FROM fuentes_web WHERE usuario_id = $6::uuid AND categoria = $1::varchar) < $5::int
      RETURNING id`,
-    [cat, articulos[0]?.url, resumen, hoyBogota(), MAX_FUENTES_WEB_POR_CATEGORIA],
+    [cat, articulos[0]?.url, resumen, hoyBogota(), MAX_FUENTES_WEB_POR_CATEGORIA, usuarioId],
   );
   if (guardadas.length === 0) throw new ErrorDeNegocio('LIMITE_FUENTES');
 
@@ -113,6 +119,6 @@ export async function buscarEnWikipedia(consulta: string, categoria?: string | u
     guardada: true,
     categoria: cat,
     articulos: articulosWeb,
-    fuentesEnCategoria: await contarFuentes(cat),
+    fuentesEnCategoria: await contarFuentes(usuarioId, cat),
   };
 }

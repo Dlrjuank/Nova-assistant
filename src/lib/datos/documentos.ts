@@ -64,6 +64,7 @@ async function descargarPdf(urlBlob: string): Promise<Uint8Array> {
  * Se exporta para scripts/probar-rag.ts, que indexa sin pasar por Blob; dataService no lo expone.
  */
 export async function indexarContenido(
+  usuarioId: string,
   contenido: Uint8Array,
   d: { nombreArchivo: string; categoria?: string | undefined },
 ): Promise<{ documentoId: string; numFragmentos: number }> {
@@ -78,9 +79,9 @@ export async function indexarContenido(
 
   const documentoId = await conTransaccion(async (tx) => {
     const { rows } = await tx.query<{ id: string }>(
-      `INSERT INTO documentos (nombre_archivo, categoria, num_fragmentos, fecha_guardado)
-       VALUES ($1, $2, $3, $4) RETURNING id`,
-      [d.nombreArchivo, d.categoria?.trim() || CATEGORIA_POR_DEFECTO, fragmentos.length, hoyBogota()],
+      `INSERT INTO documentos (nombre_archivo, categoria, num_fragmentos, fecha_guardado, usuario_id)
+       VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+      [d.nombreArchivo, d.categoria?.trim() || CATEGORIA_POR_DEFECTO, fragmentos.length, hoyBogota(), usuarioId],
     );
     const id = (rows[0] as { id: string }).id;
     await tx.query(
@@ -105,14 +106,14 @@ export async function indexarContenido(
  * El store es público, así que el PDF se borra al terminar, tanto si se indexó como si se rechazó:
  * lo que se consulta después son los fragmentos guardados en la base.
  */
-export async function indexarDocumento(d: {
+export async function indexarDocumento(usuarioId: string, d: {
   urlBlob: string;
   nombreArchivo: string;
   categoria?: string | undefined;
 }): Promise<{ documentoId: string; numFragmentos: number }> {
   try {
     const contenido = await descargarPdf(d.urlBlob);
-    return await indexarContenido(contenido, d);
+    return await indexarContenido(usuarioId, contenido, d);
   } finally {
     // Un fallo al borrar no invalida la indexación; queda en el registro para limpiarlo a mano.
     await del(d.urlBlob).catch((error: unknown) => {
@@ -121,7 +122,7 @@ export async function indexarDocumento(d: {
   }
 }
 
-export async function listarDocumentos(): Promise<Documento[]> {
+export async function listarDocumentos(usuarioId: string): Promise<Documento[]> {
   return consultar<Documento>(
     `SELECT id,
        nombre_archivo AS "nombreArchivo",
@@ -129,9 +130,10 @@ export async function listarDocumentos(): Promise<Documento[]> {
        num_fragmentos AS "numFragmentos",
        fecha_guardado AS "fechaGuardado"
      FROM documentos
+     WHERE usuario_id = $2
      ORDER BY created_at DESC
      LIMIT $1`,
-    [LIMITE_LISTADO],
+    [LIMITE_LISTADO, usuarioId],
   );
 }
 
@@ -139,14 +141,19 @@ export async function listarDocumentos(): Promise<Documento[]> {
  * RN-22: el borrado es definitivo; sus fragmentos caen por ON DELETE CASCADE y el PDF ya no está en Blob
  * (se borra al indexar). La interfaz pide confirmación antes de llamarlo.
  */
-export async function eliminarDocumento(id: string): Promise<void> {
-  const borrados = await consultar<{ id: string }>('DELETE FROM documentos WHERE id = $1 RETURNING id', [id]);
+export async function eliminarDocumento(usuarioId: string, id: string): Promise<void> {
+  const borrados = await consultar<{ id: string }>(
+    'DELETE FROM documentos WHERE id = $1 AND usuario_id = $2 RETURNING id',
+    [id, usuarioId],
+  );
   if (borrados.length === 0) throw new ErrorDeNegocio('DOCUMENTO_NO_ENCONTRADO');
 }
 
-export async function existenDocumentos(): Promise<boolean> {
+/** RN-15 por usuario: A-13 ("una cuenta sin PDF") ya se cumple por cuenta, no por base. */
+export async function existenDocumentos(usuarioId: string): Promise<boolean> {
   const [fila] = await consultar<{ existe: boolean }>(
-    'SELECT EXISTS (SELECT 1 FROM documentos WHERE num_fragmentos > 0) AS existe',
+    'SELECT EXISTS (SELECT 1 FROM documentos WHERE usuario_id = $1 AND num_fragmentos > 0) AS existe',
+    [usuarioId],
   );
   return fila?.existe ?? false;
 }

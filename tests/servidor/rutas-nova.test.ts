@@ -105,7 +105,7 @@ describe('rutas /api/nova', () => {
     it('GET pasa los filtros y rechaza un estado inválido', async () => {
       m.listarTareas.mockResolvedValue([]);
       await tareasRuta.GET(get('http://x/api/nova/tareas?estado=Pendiente&fecha=2026-03-10'));
-      expect(m.listarTareas).toHaveBeenCalledWith({ estado: 'Pendiente', fecha: '2026-03-10' });
+      expect(m.listarTareas).toHaveBeenCalledWith(USUARIO, { estado: 'Pendiente', fecha: '2026-03-10' });
       const r = await tareasRuta.GET(get('http://x/api/nova/tareas?estado=Inventado'));
       expect(r.status).toBe(400);
     });

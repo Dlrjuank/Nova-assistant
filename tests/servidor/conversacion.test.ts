@@ -66,6 +66,7 @@ describe('historial del chat (RN-20 y RN-21)', () => {
     const limite = m.consultarBd.mock.calls.find(([sql]) => String(sql).includes('LIMIT $2'))?.[1];
     expect(limite).toEqual([CONV, 6]);
     expect(m.consultar).toHaveBeenCalledWith(
+      USUARIO,
       '¿y el segundo?',
       previos.map(({ autor, texto }) => ({ autor, texto })),
     );
@@ -76,7 +77,7 @@ describe('historial del chat (RN-20 y RN-21)', () => {
     m.consultar.mockResolvedValue({ respuesta: 'Sí.', fuentes: [] });
     const r = await consultarYRegistrar(USUARIO, 'Mi agenda de hoy');
     expect(r.conversacionId).toBe('nueva');
-    expect(m.consultar).toHaveBeenCalledWith('Mi agenda de hoy', []);
+    expect(m.consultar).toHaveBeenCalledWith(USUARIO, 'Mi agenda de hoy', []);
   });
 
   it('una conversación de otro usuario (o inexistente) es CONVERSACION_NO_ENCONTRADA y no llega a Gemini', async () => {

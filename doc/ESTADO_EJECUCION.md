@@ -16,6 +16,8 @@
 | P09 Aceptación del MVP | completado (aceptación en Vercel: todo pasa) | correcto | 210 pasan | 2026-11-06 |
 | P10 Opcionales: completar tarea e índice | completado | correcto | 224 pasan | 2026-11-06 |
 | P11 Opcional: búsqueda en Wikipedia | completado | correcto | 240 pasan | 2026-11-06 |
+| E00 Ampliación: rama y vista previa | completado | no aplica (solo documentos) | 240 pasan | 2026-11-06 |
+| E01 Ampliación: dueño por usuario (M5) | completado | correcto | 247 pasan | 2026-11-06 |
 
 ## Bitácora
 
@@ -289,3 +291,19 @@ Total de fallas: 0
 - **Sin verificar:** la pantalla Web en un navegador real (cubierta por pruebas de jsdom); A-18 en Vercel.
 - **Al cierre:** `npm test` 240/240, `npm run build` correcto, `eslint` sin errores ni avisos. Con P11 se cierra la fase 7 y quedan construidas todas las funcionalidades del plan.
 - **Prueba del usuario en local (2026-11-06):** "Sierra Nevada de Santa Marta" mostró resumen, artículos con enlace y la fuente guardada en General; "Colombia" dejó el botón deshabilitado con el mensaje de instrucción corta; "xqzvw plmkj" dijo que no encontró artículos y no guardó. Con su confirmación se borró la única fuente que quedó (la de su prueba); `fuentes_web` quedó vacía.
+
+### E00 Ampliación: rama y vista previa
+
+- Rama `ampliacion` creada desde `master`; commit `docs: plan y prompts de la ampliación` (`doc/PLAN_AMPLIACION.md`, `doc/PROMPTS_AMPLIACION.md`, con la etapa E09 Editar tareas y la nota del disparador temporal pedidas por el usuario).
+- Vista previa estable: https://nova-assistant-git-ampliacion-dlrjuank.vercel.app. Tiene la protección de Vercel (pide iniciar sesión en Vercel); el usuario entró desde el teléfono y vio el Asistente.
+- Variables de Preview comprobadas por nombre: las mismas que usa producción.
+
+### E01 Ampliación: dueño por usuario (M5)
+
+- **Respaldo previo** (pedido del usuario): `scripts/respaldo.mjs` (`npm run db:respaldar`) exporta a CSV las 6 tablas de Nova en una sola instantánea, en `respaldos/` (ignorada por git: contiene el texto de los documentos). `scripts/restaurar-respaldo.mjs` (`npm run db:restaurar`) compara, restaura con `--confirmar` (solo agrega filas que falten, en una transacción) o hace un simulacro con `--probar`. Respaldo tomado: `respaldos/2026-11-06_191729` (0 tareas, 0 documentos, 0 fragmentos, 0 fuentes, 5 conversaciones, 20 mensajes); el simulacro restauró todo y se revirtió.
+- **Migración M5** `supabase/migrations/20261106100000_nova_dueno.sql`: `nova_config` con el dueño por defecto, `usuario_id` nullable en `tareas_personales`, `documentos` y `fuentes_web`, relleno, disparador temporal `asignar_dueno_por_defecto` (se quita al unir con master, E21), índices y `buscar_fragmentos_usuario`.
+- **Error al aplicarla:** la primera versión de `buscar_fragmentos_usuario` llevaba `SET hnsw.iterative_scan = strict_order` en la definición y Supabase respondió "permission denied to set parameter"; `db:migrar` revirtió la transacción. La prueba en seco no lo había detectado. Se cambió a plpgsql con `set_config('hnsw.iterative_scan', 'strict_order', true)`, que sí está permitido y solo dura la transacción.
+- **Compatibilidad con master** (plan, 11.3): `git worktree` de `master` (d175142) en una carpeta temporal; su `db:verificar` y su `probar:rag` contra la base migrada: 0 fallas cada uno. Worktree borrado.
+- **Código:** todos los servicios de tareas, documentos, fragmentos, consulta, productividad y Wikipedia reciben primero el id del usuario de la sesión y filtran por `usuario_id`; las rutas y páginas lo toman de `exigirSesion()`, nunca del cuerpo. Un registro de otro usuario responde como inexistente (`TAREA_NO_ENCONTRADA`, `DOCUMENTO_NO_ENCONTRADO`). RN-05 (20 fuentes) y RN-15 (sin documentos) pasan a ser por usuario.
+- **Pruebas:** `tests/servidor/aislamiento.test.ts` (6) y las existentes adaptadas; `db:verificar` amplió la sección 6b (columnas, `nova_config`, disparadores, índices, filas sin dueño, INSERT como master, INSERT explícito, búsqueda por usuario); `probar:rag` agregó el paso 10 con un usuario temporal de Supabase (se borra al final).
+- **Al cierre:** `npm test` 247/247, `npm run build` correcto, `eslint` sin errores (el único aviso es de `eslint.config.mjs`, sin cambios), `db:verificar` 0 fallas, `probar:rag` 0 fallas.

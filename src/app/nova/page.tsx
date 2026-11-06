@@ -1,14 +1,14 @@
 import Link from 'next/link';
 import { Chat } from '@/components/nova/Chat';
 import { Aviso } from '@/components/ui/Aviso';
-import { conversacionActual, existenDocumentos, obtenerSesion } from '@/lib/dataService';
+import { conversacionActual, exigirSesion, existenDocumentos } from '@/lib/dataService';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AsistentePage() {
-  // El layout ya exige sesión con acceso; aquí solo hace falta el id para leer el historial (RN-20).
-  const [hayDocumentos, sesion] = await Promise.all([existenDocumentos(), obtenerSesion()]);
-  const conversacion = sesion ? await conversacionActual(sesion.id) : null;
+  // El layout ya exige sesión con acceso; aquí hace falta el id para el historial (RN-20) y sus documentos (RB-01).
+  const { id } = await exigirSesion();
+  const [hayDocumentos, conversacion] = await Promise.all([existenDocumentos(id), conversacionActual(id)]);
 
   return (
     <>

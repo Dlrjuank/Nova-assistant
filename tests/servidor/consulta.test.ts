@@ -18,6 +18,7 @@ vi.mock('@/lib/llm/gemini', () => ({
 import { armarFuentes, consultar } from '@/lib/datos/consulta';
 import { construirContexto } from '@/lib/llm/prompts';
 
+const U = '33333333-3333-4333-8333-333333333333';
 const F1 = { nombre_archivo: 'a.pdf', numero: 1, contenido: 'uno' };
 const F2 = { nombre_archivo: 'a.pdf', numero: 2, contenido: 'dos' };
 const T1 = { id: '1a2b3c4d-0000', texto: 'Pagar luz' };
@@ -67,27 +68,35 @@ describe('consultar', () => {
   });
 
   it('una consulta corta no llega a Gemini', async () => {
-    await expect(consultar('Agenda')).rejects.toMatchObject({ codigo: 'CONSULTA_MUY_CORTA' });
+    await expect(consultar(U, 'Agenda')).rejects.toMatchObject({ codigo: 'CONSULTA_MUY_CORTA' });
     expect(m.generarEmbedding).not.toHaveBeenCalled();
   });
 
   it('sin documentos responde SIN_DOCUMENTOS y no llama a Gemini', async () => {
     m.existenDocumentos.mockResolvedValue(false);
-    await expect(consultar('Mi agenda de hoy')).rejects.toMatchObject({ codigo: 'SIN_DOCUMENTOS' });
+    await expect(consultar(U, 'Mi agenda de hoy')).rejects.toMatchObject({ codigo: 'SIN_DOCUMENTOS' });
     expect(m.generarEmbedding).not.toHaveBeenCalled();
   });
 
   it('recupera 4 fragmentos y no incluye tareas si la pregunta no las menciona', async () => {
     m.responder.mockResolvedValue('Dice uno [a.pdf · fragmento 1].');
-    const r = await consultar('¿Qué dice la factura?');
-    expect(m.recuperarFragmentos).toHaveBeenCalledWith([0.1], 4);
+    const r = await consultar(U, '¿Qué dice la factura?');
+    expect(m.recuperarFragmentos).toHaveBeenCalledWith(U, [0.1], 4);
     expect(m.tareasPendientesComoTexto).not.toHaveBeenCalled();
     expect(r.fuentes).toEqual([{ tipo: 'pdf', etiqueta: 'a.pdf · fragmento 1' }]);
   });
 
+  it('RB-01: documentos, fragmentos y tareas se buscan solo del usuario de la sesión', async () => {
+    m.responder.mockResolvedValue('Pagar luz [Tarea 1a2b3c4d].');
+    await consultar(U, '¿Qué tareas tengo pendientes?');
+    expect(m.existenDocumentos).toHaveBeenCalledWith(U);
+    expect(m.recuperarFragmentos.mock.calls[0]?.[0]).toBe(U);
+    expect(m.tareasPendientesComoTexto).toHaveBeenCalledWith(U);
+  });
+
   it('incluye las tareas pendientes si la pregunta las menciona', async () => {
     m.responder.mockResolvedValue('Pagar luz [Tarea 1a2b3c4d].');
-    const r = await consultar('¿Qué tareas tengo pendientes?');
+    const r = await consultar(U, '¿Qué tareas tengo pendientes?');
     expect(m.responder.mock.calls[0]?.[0].contexto).toContain('Pagar luz');
     expect(r.fuentes).toEqual([{ tipo: 'tarea', etiqueta: 'Tarea 1a2b3c4d' }]);
   });
@@ -98,7 +107,7 @@ describe('consultar', () => {
       { autor: 'usuario' as const, texto: '¿Cuáles son los pasos de limpieza del horno?' },
       { autor: 'asistente' as const, texto: 'Primero, retirar la bandeja; segundo, secarla [a.pdf · fragmento 1].' },
     ];
-    await consultar('¿y el segundo?', historial);
+    await consultar(U, '¿y el segundo?', historial);
     expect(m.generarEmbedding).toHaveBeenCalledWith('¿Cuáles son los pasos de limpieza del horno?\n¿y el segundo?');
     const llamada = m.responder.mock.calls[0]?.[0];
     expect(llamada.pregunta).toBe('¿y el segundo?');
@@ -107,7 +116,7 @@ describe('consultar', () => {
 
   it('RN-21: un seguimiento de una pregunta sobre tareas también recibe las tareas', async () => {
     m.responder.mockResolvedValue('Pagar luz [Tarea 1a2b3c4d].');
-    await consultar('¿y la más urgente?', [
+    await consultar(U, '¿y la más urgente?', [
       { autor: 'usuario', texto: '¿Qué tareas tengo pendientes?' },
       { autor: 'asistente', texto: 'Pagar luz.' },
     ]);
@@ -116,14 +125,14 @@ describe('consultar', () => {
 
   it('sin historial busca solo con la pregunta nueva', async () => {
     m.responder.mockResolvedValue('Dice uno [a.pdf · fragmento 1].');
-    await consultar('  ¿Qué dice   la factura? ');
+    await consultar(U, '  ¿Qué dice   la factura? ');
     expect(m.generarEmbedding).toHaveBeenCalledWith('¿Qué dice la factura?');
     expect(m.responder.mock.calls[0]?.[0].historial).toEqual([]);
   });
 
   it('sin respuesta en el contexto devuelve el mensaje exacto y ninguna fuente', async () => {
     m.responder.mockResolvedValue('No encontré esto en tus documentos.');
-    await expect(consultar('¿Cuál es la capital de Mongolia?')).resolves.toEqual({
+    await expect(consultar(U, '¿Cuál es la capital de Mongolia?')).resolves.toEqual({
       respuesta: 'No encontré esto en tus documentos',
       fuentes: [],
     });

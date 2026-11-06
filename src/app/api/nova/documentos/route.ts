@@ -9,12 +9,12 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
 export const GET = conManejoDeErrores(async () => {
-  await exigirSesion();
-  return responderOk(await listarDocumentos());
+  const { id } = await exigirSesion();
+  return responderOk(await listarDocumentos(id));
 });
 
 export const POST = conManejoDeErrores(async (peticion: Request) => {
-  await exigirSesion();
+  const { id } = await exigirSesion();
   const datos = await leerCuerpo(peticion, esquemaIndexar);
-  return responderOk(await indexarDocumento(datos), 201);
+  return responderOk(await indexarDocumento(id, datos), 201);
 });

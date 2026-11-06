@@ -17,6 +17,8 @@
     "test:ver": "vitest",
     "probar:reglas": "tsx scripts/probar-reglas.ts",
     "db:limpiar": "node scripts/limpiar-prueba.mjs",
+    "db:respaldar": "node scripts/respaldo.mjs",
+    "db:restaurar": "node scripts/restaurar-respaldo.mjs",
     "probar:rag": "tsx scripts/probar-rag.ts"
   },
   "dependencies": {

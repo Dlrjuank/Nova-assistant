@@ -21,7 +21,7 @@ const borrar = () => new Request('http://x', { method: 'DELETE' });
 describe('completar y eliminar tareas', () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    m.exigirSesion.mockResolvedValue({ email: 'dueno@ejemplo.com' });
+    m.exigirSesion.mockResolvedValue({ id: 'u1', email: 'dueno@ejemplo.com' });
   });
 
   it('sin sesión o fuera de la lista no tocan datos', async () => {
@@ -34,11 +34,11 @@ describe('completar y eliminar tareas', () => {
     expect(m.eliminarTarea).not.toHaveBeenCalled();
   });
 
-  it('completar: pasa el id y los minutos', async () => {
+  it('completar: pasa el usuario de la sesión, el id y los minutos', async () => {
     m.completarTarea.mockResolvedValue({ id: ID, estado: 'Completada' });
     const r = await completarRuta.POST(post({ minutos: 30 }), contexto());
     expect(r.status).toBe(200);
-    expect(m.completarTarea).toHaveBeenCalledWith(ID, 30);
+    expect(m.completarTarea).toHaveBeenCalledWith('u1', ID, 30);
   });
 
   it('completar: RN-17, minutos negativos, decimales o enormes son 400', async () => {
@@ -70,7 +70,7 @@ describe('completar y eliminar tareas', () => {
     m.eliminarTarea.mockResolvedValueOnce(undefined);
     const r = await tareaRuta.DELETE(borrar(), contexto());
     expect(r.status).toBe(200);
-    expect(m.eliminarTarea).toHaveBeenCalledWith(ID);
+    expect(m.eliminarTarea).toHaveBeenCalledWith('u1', ID);
 
     m.eliminarTarea.mockRejectedValueOnce(new ErrorDeNegocio('TAREA_NO_ENCONTRADA'));
     expect((await tareaRuta.DELETE(borrar(), contexto())).status).toBe(404);

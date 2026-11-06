@@ -9,7 +9,7 @@ export const maxDuration = 60;
 
 /** CU-06: categoría por defecto "General". */
 export const POST = conManejoDeErrores(async (peticion: Request) => {
-  await exigirSesion();
+  const { id } = await exigirSesion();
   const { consulta, categoria } = await leerCuerpo(peticion, esquemaWeb);
-  return responderOk(await buscarEnWikipedia(consulta, categoria));
+  return responderOk(await buscarEnWikipedia(id, consulta, categoria));
 });

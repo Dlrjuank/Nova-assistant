@@ -38,16 +38,20 @@ export function armarFuentes(
 }
 
 /** CU-03, secuencia de la sección 7.1. `historial`: los últimos mensajes de la conversación (RN-21). */
-export async function consultar(pregunta: string, historial: TurnoConversacion[] = []): Promise<RespuestaAsistente> {
+export async function consultar(
+  usuarioId: string,
+  pregunta: string,
+  historial: TurnoConversacion[] = [],
+): Promise<RespuestaAsistente> {
   validarConsulta(pregunta); // RN-02
-  if (!(await existenDocumentos())) throw new ErrorDeNegocio('SIN_DOCUMENTOS'); // RN-15
+  if (!(await existenDocumentos(usuarioId))) throw new ErrorDeNegocio('SIN_DOCUMENTOS'); // RN-15
 
   const preguntaNormal = normalizarConsulta(pregunta);
   const anterior = historial.findLast((m) => m.autor === 'usuario')?.texto;
   const busqueda = textoDeBusqueda(preguntaNormal, anterior); // RN-21
   const vector = await llm.generarEmbedding(busqueda);
-  const fragmentos = await recuperarFragmentos(vector, FRAGMENTOS_RECUPERADOS); // RN-12
-  const tareas = mencionaTareas(busqueda) ? await tareasPendientesComoTexto() : []; // RN-12
+  const fragmentos = await recuperarFragmentos(usuarioId, vector, FRAGMENTOS_RECUPERADOS); // RN-12
+  const tareas = mencionaTareas(busqueda) ? await tareasPendientesComoTexto(usuarioId) : []; // RN-12
 
   const respuesta = await llm.responder({
     sistema: SYSTEM_PROMPT,

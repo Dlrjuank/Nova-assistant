@@ -2,10 +2,18 @@
 // Importa de lib/datos y no de dataService, que usa 'server-only' y solo carga dentro de Next.
 // Para verificar y limpiar usa su propio cliente pg, como los demás scripts: solo lib/datos importa conexion.ts.
 import { head, put } from '@vercel/blob';
+import { createClient } from '@supabase/supabase-js';
 import pg from 'pg';
 import { consultar } from '@/lib/datos/consulta';
-import { emitirTokenSubida, existenDocumentos, indexarDocumento } from '@/lib/datos/documentos';
-import { crearTarea } from '@/lib/datos/tareas';
+import {
+  eliminarDocumento,
+  emitirTokenSubida,
+  existenDocumentos,
+  indexarDocumento,
+  listarDocumentos,
+} from '@/lib/datos/documentos';
+import { recuperarFragmentos } from '@/lib/datos/fragmentos';
+import { completarTarea, crearTarea, eliminarTarea, listarTareas } from '@/lib/datos/tareas';
 import { SIN_RESPUESTA } from '@/lib/llm/prompts';
 import { hoyBogota } from '@/lib/reglas/fechas';
 import { cargarEnv, opcionesConexion } from './cargar-env.mjs';
@@ -82,21 +90,46 @@ async function subirABlob(contenido: Uint8Array, nombre: string): Promise<string
   return blob.url;
 }
 
+/** Cliente de administración de Supabase, para crear y borrar el usuario temporal del paso 10. */
+function supabaseAdmin() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.NEXT_PUBLIC_NOVAASSISTANT_NOVAASSISTANTSUPABASE_URL;
+  const clave = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NOVAASSISTANT_SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !clave) throw new Error('Faltan la URL o la clave de servicio de Supabase');
+  return createClient(url, clave, { auth: { autoRefreshToken: false, persistSession: false } });
+}
+
 async function main(): Promise<void> {
   const sql = new pg.Client(opcionesConexion(process.env.NOVAASSISTANT_POSTGRES_URL_NON_POOLING as string));
   await sql.connect();
   const tareasCreadas: string[] = [];
   const documentosCreados: string[] = [];
 
+  // Todo se crea a nombre del dueño por defecto (M5), es decir, la cuenta del usuario.
+  const { rows: config } = await sql.query<{ valor: string }>(
+    "SELECT valor FROM nova_config WHERE clave = 'dueno_por_defecto'",
+  );
+  const DUENO = config[0]?.valor;
+  if (!DUENO) throw new Error('Falta nova_config.dueno_por_defecto: aplique la migración M5 (npm run db:migrar)');
+
+  // Paso 10 (RB-01): otro usuario, temporal, que no debe ver nada del dueño. Se borra al final.
+  const admin = supabaseAdmin();
+  const { data: creado, error: errorUsuario } = await admin.auth.admin.createUser({
+    email: `nova-prueba-aislamiento-${Date.now()}@example.com`,
+    password: `Prueba-${crypto.randomUUID()}`,
+    email_confirm: true,
+  });
+  if (errorUsuario || !creado.user) throw new Error(`No se pudo crear el usuario temporal: ${errorUsuario?.message}`);
+  const OTRO = creado.user.id;
+
   try {
-    if (await existenDocumentos()) {
+    if (await existenDocumentos(DUENO)) {
       console.log('OMITIDO paso 9: ya hay documentos en la base, no se puede probar SIN_DOCUMENTOS');
     } else {
-      const codigo = await codigoDe(() => consultar('¿Qué dice mi documento?'));
+      const codigo = await codigoDe(() => consultar(DUENO, '¿Qué dice mi documento?'));
       marcar(codigo === 'SIN_DOCUMENTOS', 'Paso 9: consulta sin documentos', codigo);
     }
 
-    const tarea = await crearTarea({
+    const tarea = await crearTarea(DUENO, {
       titulo: 'Prueba renovar pasaporte',
       prioridad: 3,
       fechaLimite: '2099-01-15',
@@ -109,11 +142,11 @@ async function main(): Promise<void> {
     );
 
     const prioridad = await codigoDe(() =>
-      crearTarea({ titulo: 'Prueba prioridad', prioridad: 7, fechaLimite: '2099-01-15' }),
+      crearTarea(DUENO, { titulo: 'Prueba prioridad', prioridad: 7, fechaLimite: '2099-01-15' }),
     );
     marcar(prioridad === 'PRIORIDAD_INVALIDA', 'Paso 2: prioridad 7', prioridad);
 
-    const fecha = await codigoDe(() => crearTarea({ titulo: 'Prueba fecha', fechaLimite: '2026-02-30' }));
+    const fecha = await codigoDe(() => crearTarea(DUENO, { titulo: 'Prueba fecha', fechaLimite: '2026-02-30' }));
     marcar(fecha === 'FECHA_INVALIDA', 'Paso 3: fecha 2026-02-30', fecha);
 
     const noPdf = await codigoDe(() =>
@@ -127,7 +160,7 @@ async function main(): Promise<void> {
     const urlBlob = await subirABlob(generarPdf(LINEAS_PDF), NOMBRE_PDF);
     marcar(urlBlob.includes('.blob.vercel-storage.com/'), 'Paso 4b: PDF subido a Vercel Blob con token de un solo uso');
 
-    const { documentoId, numFragmentos } = await indexarDocumento({ urlBlob, nombreArchivo: NOMBRE_PDF });
+    const { documentoId, numFragmentos } = await indexarDocumento(DUENO, { urlBlob, nombreArchivo: NOMBRE_PDF });
     documentosCreados.push(documentoId);
     marcar(numFragmentos > 1, 'Paso 4: PDF descargado de Blob e indexado', `${numFragmentos} fragmentos`);
 
@@ -148,10 +181,10 @@ async function main(): Promise<void> {
       `${guardados?.n} filas de ${guardados?.dims} dimensiones`,
     );
 
-    const corta = await codigoDe(() => consultar('info'));
+    const corta = await codigoDe(() => consultar(DUENO, 'info'));
     marcar(corta === 'CONSULTA_MUY_CORTA', 'Paso 5: consulta "info"', corta);
 
-    const dato = await consultar('¿Cuántos meses dura la garantía del purificador?');
+    const dato = await consultar(DUENO, '¿Cuántos meses dura la garantía del purificador?');
     marcar(
       dato.respuesta.includes('24') && dato.fuentes.some((f) => f.tipo === 'pdf' && f.etiqueta.includes(NOMBRE_PDF)),
       'Paso 6: dato presente en el PDF',
@@ -160,8 +193,8 @@ async function main(): Promise<void> {
 
     // RN-21: la pregunta de seguimiento solo se entiende con la anterior.
     const primera = '¿Cuáles son los pasos para cambiar el filtro?';
-    const pasos = await consultar(primera);
-    const seguimiento = await consultar('¿y el segundo?', [
+    const pasos = await consultar(DUENO, primera);
+    const seguimiento = await consultar(DUENO, '¿y el segundo?', [
       { autor: 'usuario', texto: primera },
       { autor: 'asistente', texto: pasos.respuesta },
     ]);
@@ -171,7 +204,7 @@ async function main(): Promise<void> {
       `${seguimiento.respuesta} | fuentes: ${seguimiento.fuentes.map((f) => f.etiqueta).join(', ')}`,
     );
 
-    const pendientes = await consultar('¿Qué tareas tengo pendientes?');
+    const pendientes = await consultar(DUENO, '¿Qué tareas tengo pendientes?');
     marcar(
       // Solo la tarea: si aparecen fragmentos, el modelo no citó la etiqueta y armarFuentes devolvió todas.
       /pasaporte/i.test(pendientes.respuesta) &&
@@ -181,7 +214,55 @@ async function main(): Promise<void> {
       `${pendientes.respuesta} | fuentes: ${pendientes.fuentes.map((f) => f.etiqueta).join(', ')}`,
     );
 
-    const ausente = await consultar('¿Cuál es la capital de Mongolia?');
+    // Paso 10 (RB-01): aislamiento en la base real. Nada de esto llama a Gemini.
+    const { rows: duenos } = await sql.query<{ tarea: string; documento: string }>(
+      `SELECT (SELECT usuario_id FROM tareas_personales WHERE id = $1)::text AS tarea,
+              (SELECT usuario_id FROM documentos WHERE id = $2)::text AS documento`,
+      [tarea.id, documentoId],
+    );
+    marcar(duenos[0]?.tarea === DUENO && duenos[0]?.documento === DUENO, 'Paso 10a: la tarea y el documento quedan con su dueño');
+    const tareasOtro = await listarTareas(OTRO);
+    const documentosOtro = await listarDocumentos(OTRO);
+    marcar(
+      !tareasOtro.some((t) => t.id === tarea.id) && !documentosOtro.some((d) => d.id === documentoId),
+      'Paso 10b: otro usuario no ve la tarea ni el documento',
+      `${tareasOtro.length} tareas, ${documentosOtro.length} documentos`,
+    );
+    const { rows: vectores } = await sql.query<{ v: string }>(
+      'SELECT vector::text AS v FROM fragmentos_pdf WHERE documento_id = $1 AND numero = 1',
+      [documentoId],
+    );
+    const vector = JSON.parse(vectores[0]?.v ?? '[]') as number[];
+    const [delDueno, delOtro] = await Promise.all([
+      recuperarFragmentos(DUENO, vector, 4),
+      recuperarFragmentos(OTRO, vector, 4),
+    ]);
+    marcar(
+      delDueno.some((f) => f.documento_id === documentoId) && delOtro.length === 0,
+      'Paso 10c: la búsqueda vectorial solo devuelve fragmentos del usuario',
+      `dueño ${delDueno.length}, otro ${delOtro.length}`,
+    );
+    const sinDocs = await codigoDe(() => consultar(OTRO, '¿Qué dice mi documento?'));
+    marcar(sinDocs === 'SIN_DOCUMENTOS', 'Paso 10d: otro usuario sin PDF propios -> SIN_DOCUMENTOS', sinDocs);
+    const ajenas = [
+      await codigoDe(() => completarTarea(OTRO, tarea.id, 10)),
+      await codigoDe(() => eliminarTarea(OTRO, tarea.id)),
+      await codigoDe(() => eliminarDocumento(OTRO, documentoId)),
+    ];
+    const { rows: siguen } = await sql.query<{ estado: string; doc: boolean }>(
+      `SELECT (SELECT estado FROM tareas_personales WHERE id = $1) AS estado,
+              EXISTS (SELECT 1 FROM documentos WHERE id = $2) AS doc`,
+      [tarea.id, documentoId],
+    );
+    marcar(
+      ajenas.join() === 'TAREA_NO_ENCONTRADA,TAREA_NO_ENCONTRADA,DOCUMENTO_NO_ENCONTRADO' &&
+        siguen[0]?.estado === 'Pendiente' &&
+        siguen[0]?.doc === true,
+      'Paso 10e: otro usuario no puede completar ni eliminar lo ajeno (como si no existiera)',
+      ajenas.join(', '),
+    );
+
+    const ausente = await consultar(DUENO, '¿Cuál es la capital de Mongolia?');
     marcar(
       ausente.respuesta === SIN_RESPUESTA && ausente.fuentes.length === 0,
       'Paso 8: dato ausente',
@@ -194,6 +275,9 @@ async function main(): Promise<void> {
     await sql.query('DELETE FROM tareas_personales WHERE id = ANY($1::uuid[])', [tareasCreadas]);
     await sql.query('DELETE FROM documentos WHERE id = ANY($1::uuid[])', [documentosCreados]);
     await sql.end();
+    const { error } = await admin.auth.admin.deleteUser(OTRO);
+    if (error) marcar(false, 'No se pudo borrar el usuario temporal', `${OTRO}: ${error.message}`);
+    else console.log('Usuario temporal del paso 10 borrado');
     console.log(`Limpieza: ${tareasCreadas.length} tarea(s) y ${documentosCreados.length} documento(s) borrados`);
   }
 

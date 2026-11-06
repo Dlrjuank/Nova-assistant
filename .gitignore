@@ -8,3 +8,6 @@ data/_backups/
 data/.auth-secret
 data/user.json
 coverage/
+
+# Respaldos de la base (contienen el texto de los documentos): nunca en git
+respaldos/
