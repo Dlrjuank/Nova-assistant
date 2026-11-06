@@ -14,7 +14,7 @@ import { aplicarMascaraFecha, esFechaISOValida } from '@/lib/reglas/fechas';
 import type { NivelProductividad } from '@/lib/reglas/productividad';
 
 // El nivel se dice con texto; el color solo lo refuerza.
-const TONO: Record<NivelProductividad, TonoInsignia> = { Bajo: 'alta', Aceptable: 'media', Excelente: 'completada' };
+const TONO: Record<NivelProductividad, TonoInsignia> = { Bajo: 'peligro', Aceptable: 'aviso', Excelente: 'exito' };
 const SIN_TAREAS = 'Sin tareas programadas para esta fecha'; // sección 5.1, RN-18
 
 const unDecimal = new Intl.NumberFormat('es-CO', { minimumFractionDigits: 1, maximumFractionDigits: 1 });

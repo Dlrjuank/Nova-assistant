@@ -152,7 +152,7 @@ export function Chat({
             Conversación nueva
           </Boton>
           {errorNueva && (
-            <p role="alert" className="text-xs font-medium text-prioridad-alta">
+            <p role="alert" className="text-xs font-medium text-peligro">
               {errorNueva}
             </p>
           )}
@@ -180,7 +180,7 @@ export function Chat({
       {error?.codigo === 'SIN_DOCUMENTOS' && (
         <Aviso tipo="advertencia">
           {error.mensaje}{' '}
-          <Link href="/nova/documentos/nuevo" className="font-semibold text-primario underline">
+          <Link href="/nova/documentos/nuevo" className="font-semibold text-acento underline">
             Indexar un PDF
           </Link>
         </Aviso>
@@ -215,10 +215,10 @@ export function Chat({
           onKeyDown={alPresionarTecla}
           aria-invalid={demasiadoCorta || undefined}
           aria-describedby={demasiadoCorta ? 'pregunta-error' : undefined}
-          className={`${CLASE_CONTROL} resize-y ${demasiadoCorta ? 'border-prioridad-alta' : 'border-borde'}`}
+          className={`${CLASE_CONTROL} resize-y ${demasiadoCorta ? 'border-peligro' : 'border-borde'}`}
         />
         {demasiadoCorta && (
-          <p id="pregunta-error" className="text-xs font-medium text-prioridad-alta">
+          <p id="pregunta-error" className="text-xs font-medium text-peligro">
             {MENSAJES.CONSULTA_MUY_CORTA}
           </p>
         )}

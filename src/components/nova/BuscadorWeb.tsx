@@ -111,7 +111,7 @@ function Resultado({ datos }: { datos: ResultadoWeb }) {
         <ul className="mt-1 flex flex-col gap-1 text-sm">
           {datos.articulos.map((a) => (
             <li key={a.url}>
-              <a href={a.url} target="_blank" rel="noopener noreferrer" className="break-all text-primario underline">
+              <a href={a.url} target="_blank" rel="noopener noreferrer" className="break-all text-acento underline">
                 {a.titulo}
               </a>
             </li>

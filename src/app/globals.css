@@ -1,21 +1,119 @@
 @import 'tailwindcss';
 
-/* Identidad visual de Nova Assistant (plan, sección 14). Genera utilidades como bg-primario o text-texto-suave. */
-@theme {
-  --color-primario: #5b3df5;
-  --color-primario-suave: #ece8fe;
-  --color-usuario: #e8eef4;
-  --color-prioridad-alta: #b83232;
-  --color-prioridad-media: #b7791f;
-  --color-prioridad-baja: #5b6770;
-  --color-completada: #2f7d4f;
-  --color-fondo: #f6f6fa;
-  --color-superficie: #ffffff;
-  --color-texto: #1f2933;
-  --color-texto-suave: #52606d;
-  --color-borde: #ddd9ec;
+/*
+ * Identidad visual de Nova (PLAN_AMPLIACION, sección 3.1). Un solo lugar para los colores:
+ * los componentes usan solo estas utilidades (bg-fondo, text-acento, border-borde...), nunca colores sueltos.
+ * Cada token apunta a una variable --nova-* que cambia con el tema; tests/reglas/contraste.test.ts
+ * comprueba ≥ 4,5:1 en cada par texto/fondo de los dos modos.
+ */
+@theme inline {
+  --color-fondo: var(--nova-fondo);
+  --color-superficie: var(--nova-superficie);
+  --color-superficie-2: var(--nova-superficie-2);
+  --color-borde: var(--nova-borde);
+  --color-texto: var(--nova-texto);
+  --color-texto-suave: var(--nova-texto-suave);
+  --color-acento: var(--nova-acento);
+  --color-acento-texto: var(--nova-acento-texto);
+  --color-acento-suave: var(--nova-acento-suave);
+  --color-exito: var(--nova-exito);
+  --color-aviso: var(--nova-aviso);
+  --color-peligro: var(--nova-peligro);
+
+  /* Paleta fija de categorías (8 colores; cada uno legible como texto sobre fondo y superficie). */
+  --color-cat-terracota: var(--nova-cat-terracota);
+  --color-cat-ambar: var(--nova-cat-ambar);
+  --color-cat-oliva: var(--nova-cat-oliva);
+  --color-cat-verde: var(--nova-cat-verde);
+  --color-cat-azul: var(--nova-cat-azul);
+  --color-cat-violeta: var(--nova-cat-violeta);
+  --color-cat-rosa: var(--nova-cat-rosa);
+  --color-cat-gris: var(--nova-cat-gris);
+
+  --shadow-suave: var(--nova-sombra);
 }
 
+/* Modo claro (por defecto). */
+:root {
+  color-scheme: light;
+  --nova-fondo: #faf6f0;
+  --nova-superficie: #ffffff;
+  --nova-superficie-2: #f3ece3;
+  --nova-borde: #e8ded2;
+  --nova-texto: #2b2420;
+  --nova-texto-suave: #6b5f56;
+  --nova-acento: #b4471f;
+  --nova-acento-texto: #ffffff;
+  --nova-acento-suave: #fbede5;
+  --nova-exito: #2f6b3a;
+  --nova-aviso: #8a5a00;
+  --nova-peligro: #b3261e;
+  --nova-cat-terracota: #b4471f;
+  --nova-cat-ambar: #8a5a00;
+  --nova-cat-oliva: #5e6b1f;
+  --nova-cat-verde: #2f6b3a;
+  --nova-cat-azul: #2b5c8a;
+  --nova-cat-violeta: #6b4a9e;
+  --nova-cat-rosa: #a8396a;
+  --nova-cat-gris: #5f5a55;
+  --nova-sombra: 0 1px 2px rgb(43 36 32 / 0.05), 0 4px 16px rgb(43 36 32 / 0.06);
+}
+
+/* Modo oscuro elegido por el usuario. Los mismos valores se repiten abajo para "automático". */
+:root[data-tema='oscuro'] {
+  color-scheme: dark;
+  --nova-fondo: #1a1613;
+  --nova-superficie: #24201c;
+  --nova-superficie-2: #2e2924;
+  --nova-borde: #3a332d;
+  --nova-texto: #f2ece6;
+  --nova-texto-suave: #b8ada3;
+  --nova-acento: #e07a52;
+  --nova-acento-texto: #1a1613;
+  --nova-acento-suave: #3d2a21;
+  --nova-exito: #7bc88a;
+  --nova-aviso: #e8b04a;
+  --nova-peligro: #f2867d;
+  --nova-cat-terracota: #e07a52;
+  --nova-cat-ambar: #e8b04a;
+  --nova-cat-oliva: #b5c46a;
+  --nova-cat-verde: #7bc88a;
+  --nova-cat-azul: #7fb0e0;
+  --nova-cat-violeta: #b79be6;
+  --nova-cat-rosa: #ee8fb7;
+  --nova-cat-gris: #b0a9a2;
+  --nova-sombra: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 16px rgb(0 0 0 / 0.25);
+}
+
+/* "Automático": sigue al sistema salvo que el usuario haya elegido claro. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema='claro']) {
+    color-scheme: dark;
+    --nova-fondo: #1a1613;
+    --nova-superficie: #24201c;
+    --nova-superficie-2: #2e2924;
+    --nova-borde: #3a332d;
+    --nova-texto: #f2ece6;
+    --nova-texto-suave: #b8ada3;
+    --nova-acento: #e07a52;
+    --nova-acento-texto: #1a1613;
+    --nova-acento-suave: #3d2a21;
+    --nova-exito: #7bc88a;
+    --nova-aviso: #e8b04a;
+    --nova-peligro: #f2867d;
+    --nova-cat-terracota: #e07a52;
+    --nova-cat-ambar: #e8b04a;
+    --nova-cat-oliva: #b5c46a;
+    --nova-cat-verde: #7bc88a;
+    --nova-cat-azul: #7fb0e0;
+    --nova-cat-violeta: #b79be6;
+    --nova-cat-rosa: #ee8fb7;
+    --nova-cat-gris: #b0a9a2;
+    --nova-sombra: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 16px rgb(0 0 0 / 0.25);
+  }
+}
+
+/* Login, registro y las demás páginas fuera de Nova conservan su estilo hasta E04. */
 :root {
   --background: #080b14;
   --foreground: #f8fafc;
@@ -34,4 +132,16 @@ body {
   margin: 0;
   background: var(--background);
   color: var(--foreground);
+}
+
+/* Transiciones cortas (150 a 200 ms) desactivadas si el usuario prefiere menos movimiento. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

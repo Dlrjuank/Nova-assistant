@@ -32,7 +32,7 @@ export function EliminarDocumento({ id, nombre }: { id: string; nombre: string }
   }
 
   const mensajeError = error && (
-    <p role="alert" className="text-xs font-medium text-prioridad-alta">
+    <p role="alert" className="text-xs font-medium text-peligro">
       {error}
     </p>
   );
@@ -59,7 +59,7 @@ export function EliminarDocumento({ id, nombre }: { id: string; nombre: string }
       variante="fantasma"
       aria-label={`Eliminar documento: ${nombre}`}
       onClick={() => setConfirmando(true)}
-      className="min-h-9 py-1.5 text-prioridad-alta hover:bg-prioridad-alta/10"
+      className="min-h-9 py-1.5 text-peligro hover:bg-peligro/10"
     >
       Eliminar
     </Boton>

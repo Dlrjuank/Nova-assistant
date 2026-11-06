@@ -20,7 +20,7 @@ export function Selector({ etiqueta, id, opciones, error, className = '', ...res
         {...resto}
         aria-invalid={error ? true : undefined}
         aria-describedby={idError}
-        className={`${CLASE_CONTROL} ${error ? 'border-prioridad-alta' : 'border-borde'} ${className}`}
+        className={`${CLASE_CONTROL} ${error ? 'border-peligro' : 'border-borde'} ${className}`}
       >
         {opciones.map((o) => (
           <option key={o.valor} value={o.valor}>
@@ -29,7 +29,7 @@ export function Selector({ etiqueta, id, opciones, error, className = '', ...res
         ))}
       </select>
       {error && (
-        <p id={idError} className="text-xs font-medium text-prioridad-alta">
+        <p id={idError} className="text-xs font-medium text-peligro">
           {error}
         </p>
       )}

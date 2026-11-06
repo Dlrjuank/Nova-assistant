@@ -12,7 +12,7 @@ export function TablaTareas({ tareas }: { tareas: Tarea[] }) {
     <>
       <div className="hidden overflow-x-auto rounded-xl border border-borde bg-superficie sm:block">
         <table className="w-full text-left text-sm">
-          <thead className="bg-primario-suave text-texto">
+          <thead className="bg-superficie-2 text-texto">
             <tr>
               {COLUMNAS.map((c) => (
                 <th key={c} scope="col" className="px-4 py-3 font-semibold">

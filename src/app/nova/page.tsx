@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Chat } from '@/components/nova/Chat';
 import { Aviso } from '@/components/ui/Aviso';
+import { EncabezadoPantalla } from '@/components/ui/EncabezadoPantalla';
 import { conversacionActual, exigirSesion, existenDocumentos } from '@/lib/dataService';
 
 export const dynamic = 'force-dynamic';
@@ -12,11 +13,11 @@ export default async function AsistentePage() {
 
   return (
     <>
-      <h1 className="text-2xl font-bold">Asistente</h1>
+      <EncabezadoPantalla titulo="Asistente" subtitulo="Pregunta sobre tus documentos y tus tareas pendientes; Nova cita de dónde sale cada dato." />
       {!hayDocumentos && (
         <Aviso tipo="advertencia">
           Aún no hay documentos indexados. Indexa un PDF antes de preguntar.{' '}
-          <Link href="/nova/documentos/nuevo" className="font-semibold text-primario underline">
+          <Link href="/nova/documentos/nuevo" className="font-semibold text-acento underline">
             Indexar un PDF
           </Link>
         </Aviso>

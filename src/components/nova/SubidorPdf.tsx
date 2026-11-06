@@ -126,7 +126,7 @@ export function SubidorPdf() {
           accept="application/pdf,.pdf"
           disabled={ocupado}
           onChange={(e) => elegir(e.target.files?.[0] ?? null)}
-          className="text-sm text-texto file:mr-3 file:min-h-10 file:cursor-pointer file:rounded-lg file:border file:border-borde file:bg-superficie file:px-4 file:py-2 file:text-sm file:font-semibold file:text-texto hover:file:bg-primario-suave focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primario"
+          className="text-sm text-texto file:mr-3 file:min-h-10 file:cursor-pointer file:rounded-lg file:border file:border-borde file:bg-superficie file:px-4 file:py-2 file:text-sm file:font-semibold file:text-texto hover:file:bg-acento-suave focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento"
         />
       </div>
 
@@ -145,7 +145,7 @@ export function SubidorPdf() {
           <label htmlFor="progreso" className="text-sm text-texto-suave">
             Subiendo: {progreso} %
           </label>
-          <progress id="progreso" value={progreso} max={100} className="h-2 w-full accent-primario" />
+          <progress id="progreso" value={progreso} max={100} className="h-2 w-full accent-acento" />
         </div>
       )}
       {etapa === 'indexando' && (

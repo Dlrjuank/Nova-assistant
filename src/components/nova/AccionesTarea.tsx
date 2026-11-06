@@ -58,7 +58,7 @@ export function AccionesTarea({
   }
 
   const mensajeError = error && (
-    <p role="alert" className="text-xs font-medium text-prioridad-alta">
+    <p role="alert" className="text-xs font-medium text-peligro">
       {error}
     </p>
   );
@@ -129,7 +129,7 @@ export function AccionesTarea({
         variante="fantasma"
         aria-label={`Eliminar tarea: ${titulo}`}
         onClick={() => setModo('eliminar')}
-        className="min-h-9 py-1.5 text-prioridad-alta hover:bg-prioridad-alta/10"
+        className="min-h-9 py-1.5 text-peligro hover:bg-peligro/10"
       >
         Eliminar
       </Boton>

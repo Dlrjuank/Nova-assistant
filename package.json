@@ -29,6 +29,7 @@
     "@vercel/connect": "^2.5.2",
     "framer-motion": "^12.23.12",
     "jose": "^6.2.15",
+    "lucide-react": "^0.468.0",
     "next": "^15.5.7",
     "pg": "^8.23.1",
     "react": "^19.1.0",

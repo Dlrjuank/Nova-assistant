@@ -18,6 +18,7 @@
 | P11 Opcional: búsqueda en Wikipedia | completado | correcto | 240 pasan | 2026-11-06 |
 | E00 Ampliación: rama y vista previa | completado | no aplica (solo documentos) | 240 pasan | 2026-11-06 |
 | E01 Ampliación: dueño por usuario (M5) | completado | correcto | 247 pasan | 2026-11-06 |
+| E02 Ampliación: diseño base | completado | correcto | 259 pasan | 2026-11-06 |
 
 ## Bitácora
 
@@ -307,3 +308,14 @@ Total de fallas: 0
 - **Código:** todos los servicios de tareas, documentos, fragmentos, consulta, productividad y Wikipedia reciben primero el id del usuario de la sesión y filtran por `usuario_id`; las rutas y páginas lo toman de `exigirSesion()`, nunca del cuerpo. Un registro de otro usuario responde como inexistente (`TAREA_NO_ENCONTRADA`, `DOCUMENTO_NO_ENCONTRADO`). RN-05 (20 fuentes) y RN-15 (sin documentos) pasan a ser por usuario.
 - **Pruebas:** `tests/servidor/aislamiento.test.ts` (6) y las existentes adaptadas; `db:verificar` amplió la sección 6b (columnas, `nova_config`, disparadores, índices, filas sin dueño, INSERT como master, INSERT explícito, búsqueda por usuario); `probar:rag` agregó el paso 10 con un usuario temporal de Supabase (se borra al final).
 - **Al cierre:** `npm test` 247/247, `npm run build` correcto, `eslint` sin errores (el único aviso es de `eslint.config.mjs`, sin cambios), `db:verificar` 0 fallas, `probar:rag` 0 fallas.
+- **Prueba del usuario en producción (2026-11-06):** A-02, A-05, A-06, A-10, A-12, A-15, A-16, A-17, A-18, A-21 y B-01 pasan. `db:verificar` confirmó que todo lo creado quedó con su dueño. Datos de prueba borrados con su confirmación (5 tareas "prueba 1" a "prueba 5" y la fuente de Sierra Nevada, en una transacción). Queda la fuente "Gripe" (General, 2026-11-06) pendiente de su decisión.
+
+### E02 Ampliación: diseño base
+
+- **Tokens** en `src/app/globals.css`: variables `--nova-*` para claro, oscuro (`data-tema='oscuro'`) y automático (`prefers-color-scheme`, salvo `data-tema='claro'`), expuestas a Tailwind con `@theme inline` (`bg-fondo`, `text-acento`, `bg-peligro/12`...), más los 8 colores de categoría y `shadow-suave`. El acento suave claro pasó de `#F6E3D9` a `#FBEDE5`: con el primero, acento sobre acento suave daba 4,38:1.
+- **Tema sin parpadeo:** `src/lib/tema.ts` con `SCRIPT_TEMA` en el `<head>` de `src/app/layout.tsx`; lee `nova-tema` del navegador (el selector llega en E11, Configuración).
+- **Componentes:** `lucide-react` 0.468; Aviso con ícono y rótulo, Boton (`CLASE_FOCO` compartida, foco con el acento), Campo, Selector, Insignia (tonos neutro, acento, peligro, aviso, exito), Tarjeta y EstadoVacio redondeados con sombra suave; nuevos `EncabezadoPantalla` y `Pestanas` (píldoras, pestaña en la URL). Las 7 pantallas de Nova usan `EncabezadoPantalla`; los filtros de Tareas usan `Pestanas`. La navegación actual se reestiló con tokens (E03 la reemplaza).
+- **Pruebas:** `tests/reglas/contraste.test.ts` (≥ 4,5:1 en claro, oscuro y automático para texto, acento, estados, insignias tintadas y categorías; automático igual a oscuro; ningún color de la paleta de Tailwind ni literal en `src/components/ui`, `src/components/nova` y `src/app/nova`) y `tests/interfaz/diseno.test.tsx` (script del tema, encabezado, pestañas, insignia).
+- **Navegador real** (Edge 157 ya arranca, con `puppeteer-core` en el scratchpad; `next start` con sesión real de un usuario temporal, borrado al final): las 7 pantallas en claro y oscuro, a 1280 y 390 px: 28 de 28 sin desborde horizontal, sin errores de página y con su encabezado; tema guardado "oscuro" con el sistema en claro se aplica antes de pintar; foco visible (contorno sólido de 2 px del acento).
+- **Fuera de Nova:** login, registro y el panel de administración conservan sus colores hasta E04.
+- **Al cierre:** `npm test` 259/259, `npm run build` correcto, `eslint` sin errores (el aviso de `eslint.config.mjs` sigue). `probar:rag` no se repitió: E02 no toca datos ni servicios (se corrió en E01).

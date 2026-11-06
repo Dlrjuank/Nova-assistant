@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { TablaDocumentos } from '@/components/nova/TablaDocumentos';
 import { claseBoton } from '@/components/ui/Boton';
+import { EncabezadoPantalla } from '@/components/ui/EncabezadoPantalla';
 import { EstadoVacio } from '@/components/ui/EstadoVacio';
 import { exigirSesion, listarDocumentos } from '@/lib/dataService';
 
@@ -13,12 +14,15 @@ export default async function DocumentosPage() {
 
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">Documentos</h1>
-        <Link href="/nova/documentos/nuevo" className={claseBoton('primario')}>
-          Indexar PDF
-        </Link>
-      </div>
+      <EncabezadoPantalla
+        titulo="Documentos"
+        subtitulo="Los PDF que el asistente usa para responder."
+        accion={
+          <Link href="/nova/documentos/nuevo" className={claseBoton('primario')}>
+            Indexar PDF
+          </Link>
+        }
+      />
 
       {documentos.length === 0 ? (
         <EstadoVacio

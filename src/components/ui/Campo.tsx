@@ -8,7 +8,7 @@ interface Props extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 export const CLASE_CONTROL =
-  'min-h-10 w-full rounded-lg border bg-superficie px-3 py-2 text-sm text-texto placeholder:text-texto-suave/70 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primario';
+  'min-h-10 w-full rounded-xl border bg-superficie px-3 py-2 text-sm text-texto transition-colors duration-150 placeholder:text-texto-suave focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-acento';
 
 export function Campo({ etiqueta, id, error, ayuda, className = '', ...resto }: Props) {
   const idAyuda = ayuda ? `${id}-ayuda` : undefined;
@@ -23,7 +23,7 @@ export function Campo({ etiqueta, id, error, ayuda, className = '', ...resto }: 
         {...resto}
         aria-invalid={error ? true : undefined}
         aria-describedby={[idAyuda, idError].filter(Boolean).join(' ') || undefined}
-        className={`${CLASE_CONTROL} ${error ? 'border-prioridad-alta' : 'border-borde'} ${className}`}
+        className={`${CLASE_CONTROL} ${error ? 'border-peligro' : 'border-borde'} ${className}`}
       />
       {ayuda && (
         <p id={idAyuda} className="text-xs text-texto-suave">
@@ -31,7 +31,7 @@ export function Campo({ etiqueta, id, error, ayuda, className = '', ...resto }: 
         </p>
       )}
       {error && (
-        <p id={idError} className="text-xs font-medium text-prioridad-alta">
+        <p id={idError} className="text-xs font-medium text-peligro">
           {error}
         </p>
       )}

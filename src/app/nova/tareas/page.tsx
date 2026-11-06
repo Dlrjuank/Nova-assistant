@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import { TablaTareas } from '@/components/nova/TablaTareas';
 import { claseBoton } from '@/components/ui/Boton';
+import { EncabezadoPantalla } from '@/components/ui/EncabezadoPantalla';
 import { EstadoVacio } from '@/components/ui/EstadoVacio';
+import { Pestanas } from '@/components/ui/Pestanas';
 import { exigirSesion, listarTareas, type EstadoTarea } from '@/lib/dataService';
 
 export const dynamic = 'force-dynamic';
@@ -24,28 +26,24 @@ export default async function TareasPage({ searchParams }: { searchParams: Promi
 
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">Tareas</h1>
-        <Link href="/nova/tareas/nueva" className={claseBoton('primario')}>
-          Registrar tarea
-        </Link>
-      </div>
+      <EncabezadoPantalla
+        titulo="Tareas"
+        subtitulo="Registra, completa y elimina tus tareas."
+        accion={
+          <Link href="/nova/tareas/nueva" className={claseBoton('primario')}>
+            Registrar tarea
+          </Link>
+        }
+      />
 
-      <nav aria-label="Filtrar por estado" className="flex flex-wrap gap-2">
-        {FILTROS.map(({ valor, texto }) => {
-          const activo = valor === estado;
-          return (
-            <Link
-              key={texto}
-              href={valor ? `/nova/tareas?estado=${encodeURIComponent(valor)}` : '/nova/tareas'}
-              aria-current={activo ? 'true' : undefined}
-              className={`rounded-full border px-3 py-1 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primario ${activo ? 'border-primario bg-primario text-white' : 'border-borde bg-superficie text-texto hover:bg-primario-suave'}`}
-            >
-              {texto}
-            </Link>
-          );
-        })}
-      </nav>
+      <Pestanas
+        etiqueta="Filtrar por estado"
+        pestanas={FILTROS.map(({ valor, texto }) => ({
+          href: valor ? `/nova/tareas?estado=${encodeURIComponent(valor)}` : '/nova/tareas',
+          texto,
+          activa: valor === estado,
+        }))}
+      />
 
       {tareas.length === 0 ? (
         <EstadoVacio
