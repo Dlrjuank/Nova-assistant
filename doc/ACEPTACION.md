@@ -34,6 +34,7 @@ Notas para ejecutarlos:
 - **A-04:** con la máscara se escribe `20260230`; al salir del campo aparece "La fecha debe tener formato AAAA-MM-DD y ser una fecha real."
 - **A-05:** el formulario arranca con prioridad 2. La API asigna 2 cuando el campo no se envía; lo cubren `tests/reglas/tarea.test.ts` y `npm run probar:rag`.
 - **A-13:** los documentos no tienen dueño (plan, sección 3.4): "una cuenta sin PDF" significa una base sin documentos. Se ejecuta antes de indexar, o después de eliminar todos los documentos.
+- **A-13 en la ampliación (rama `ampliacion`, RB-30, aprobado por el usuario el 2026-11-06):** el resultado esperado cambia. Pasa a ser: "En una cuenta sin PDF indexados **ni tareas pendientes**, preguntar → avisa que primero debe indexar un documento". Con tareas pendientes y sin documentos, el Asistente responde con las tareas (B-43). Desde E01 los documentos tienen dueño, así que "una cuenta sin PDF" ya es por cuenta. Producción (`master`) conserva el comportamiento anterior hasta unir la ampliación.
 
 ## A-14 · Criterio del plan
 

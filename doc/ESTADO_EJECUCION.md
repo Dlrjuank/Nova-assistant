@@ -19,6 +19,7 @@
 | E00 Ampliación: rama y vista previa | completado | no aplica (solo documentos) | 240 pasan | 2026-11-06 |
 | E01 Ampliación: dueño por usuario (M5) | completado | correcto | 247 pasan | 2026-11-06 |
 | E02 Ampliación: diseño base | completado | correcto | 259 pasan | 2026-11-06 |
+| E02b Ampliación: Asistente sin documentos (RB-30) | completado | correcto | 268 pasan | 2026-11-06 |
 
 ## Bitácora
 
@@ -319,3 +320,12 @@ Total de fallas: 0
 - **Navegador real** (Edge 157 ya arranca, con `puppeteer-core` en el scratchpad; `next start` con sesión real de un usuario temporal, borrado al final): las 7 pantallas en claro y oscuro, a 1280 y 390 px: 28 de 28 sin desborde horizontal, sin errores de página y con su encabezado; tema guardado "oscuro" con el sistema en claro se aplica antes de pintar; foco visible (contorno sólido de 2 px del acento).
 - **Fuera de Nova:** login, registro y el panel de administración conservan sus colores hasta E04.
 - **Al cierre:** `npm test` 259/259, `npm run build` correcto, `eslint` sin errores (el aviso de `eslint.config.mjs` sigue). `probar:rag` no se repitió: E02 no toca datos ni servicios (se corrió en E01).
+
+### E02b Ampliación: Asistente sin documentos (pedida por el usuario)
+
+- **Regla RB-30** (aprobada por el usuario; reemplaza a RN-15 en la ampliación y cambia A-13): con documentos, la consulta sigue igual; sin documentos pero con tareas pendientes, responde con las tareas (sin vector, sin filtro por palabras); sin ninguno, `SIN_DOCUMENTOS`. Mensajes exactos sin cambios. Al modelo van como máximo las 50 tareas pendientes de fecha límite más próxima (`TAREAS_CONTEXTO_MAX`, ajuste pedido por el usuario).
+- **Pantalla del Asistente:** `avisoAsistente(hayDocumentos, hayTareasPendientes)` decide entre el aviso de siempre y el informativo nuevo ("Aún no hay documentos indexados: por ahora el asistente responde solo sobre tus tareas pendientes.", con el enlace "Indexar un PDF").
+- **Archivos:** `src/lib/datos/consulta.ts`, `src/lib/datos/tareas.ts` (`hayTareasPendientes`, límite en `tareasPendientesComoTexto`), `src/lib/config/nova.ts`, `src/lib/reglas/consulta.ts`, `src/app/nova/page.tsx`, `src/lib/dataService.ts`, `scripts/probar-rag.ts`, pruebas en `tests/servidor/consulta.test.ts`, `tests/servidor/aislamiento.test.ts` y `tests/reglas/consulta.test.ts`; documentos `PLAN_AMPLIACION.md` (RB-30, B-43), `PROMPTS_AMPLIACION.md` (sección E02b) y `ACEPTACION.md` (nota de A-13).
+- **Interrupción:** el computador se apagó durante `probar:rag`. Esa ejecución dejó una tarea, un documento de prueba y un usuario temporal; se borraron (solo esas filas, creadas por el script) y `probar:rag` se repitió completo. Después, por pedido del usuario, se revisó el estado: rama `ampliacion` sin commits por subir, los 10 archivos modificados eran de E02b, sin cuentas de prueba ni filas de otras cuentas, `db:verificar` 0 fallas, `npm test` 268/268 y build correcto. El usuario decidió continuar.
+- **`probar:rag`** (0 fallas): el paso 9 se omite si la cuenta tiene documentos o tareas pendientes; paso 11a, un usuario temporal sin documentos y con una tarea pendiente recibe la tarea citada; paso 11b, una pregunta de PDF responde el mensaje exacto.
+- **Al cierre:** `npm test` 268/268, `npm run build` correcto, `eslint` sin errores (sigue el aviso de `eslint.config.mjs`). No se tocaron la tarea "Prueba" ni la fuente "Gripe" del usuario.

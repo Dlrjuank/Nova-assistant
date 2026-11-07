@@ -34,6 +34,18 @@ export function textoDeBusqueda(pregunta: string, preguntaAnterior?: string | un
 }
 
 /** RN-12: la pregunta pide tareas si contiene alguna palabra clave. */
+/** RB-30: aviso informativo del Asistente cuando no hay documentos pero sí tareas pendientes. */
+export const AVISO_SOLO_TAREAS = 'Aún no hay documentos indexados: por ahora el asistente responde solo sobre tus tareas pendientes.';
+
+/**
+ * RB-30: qué aviso muestra la pantalla del Asistente.
+ * 'sin-fuentes' = el aviso de siempre (indexar un PDF); 'solo-tareas' = AVISO_SOLO_TAREAS; null = ninguno.
+ */
+export function avisoAsistente(hayDocumentos: boolean, hayTareasPendientes: boolean): 'sin-fuentes' | 'solo-tareas' | null {
+  if (hayDocumentos) return null;
+  return hayTareasPendientes ? 'solo-tareas' : 'sin-fuentes';
+}
+
 export function mencionaTareas(texto: string): boolean {
   const minusculas = texto.toLowerCase();
   return NIVELES_PALABRAS_CLAVE_TAREAS.some((clave) => minusculas.includes(clave));

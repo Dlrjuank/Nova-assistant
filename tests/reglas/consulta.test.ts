@@ -1,7 +1,13 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { MENSAJES } from '@/lib/reglas/errores';
-import { contarPalabrasYCaracteres, mencionaTareas, validarConsulta } from '@/lib/reglas/consulta';
+import {
+  AVISO_SOLO_TAREAS,
+  avisoAsistente,
+  contarPalabrasYCaracteres,
+  mencionaTareas,
+  validarConsulta,
+} from '@/lib/reglas/consulta';
 import { esperarCodigo } from './ayudas';
 
 describe('consulta', () => {
@@ -27,5 +33,21 @@ describe('consulta', () => {
   });
   it('T-20 "¿Qué dice la factura de la luz?" no menciona tareas', () => {
     expect(mencionaTareas('¿Qué dice la factura de la luz?')).toBe(false);
+  });
+});
+
+describe('RB-30: aviso de la pantalla del Asistente', () => {
+  it('con documentos no hay aviso, haya o no tareas', () => {
+    expect(avisoAsistente(true, true)).toBeNull();
+    expect(avisoAsistente(true, false)).toBeNull();
+  });
+  it('sin documentos y con tareas pendientes: aviso informativo con el texto aprobado', () => {
+    expect(avisoAsistente(false, true)).toBe('solo-tareas');
+    expect(AVISO_SOLO_TAREAS).toBe(
+      'Aún no hay documentos indexados: por ahora el asistente responde solo sobre tus tareas pendientes.',
+    );
+  });
+  it('sin documentos ni tareas pendientes: el aviso de siempre (indexar un PDF)', () => {
+    expect(avisoAsistente(false, false)).toBe('sin-fuentes');
   });
 });

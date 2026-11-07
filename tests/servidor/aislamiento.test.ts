@@ -16,7 +16,14 @@ vi.mock('@vercel/blob', () => ({ del: vi.fn() }));
 import { eliminarDocumento, existenDocumentos, listarDocumentos } from '@/lib/datos/documentos';
 import { recuperarFragmentos } from '@/lib/datos/fragmentos';
 import { calcularProductividad } from '@/lib/datos/productividad';
-import { completarTarea, crearTarea, eliminarTarea, listarTareas, tareasPendientesComoTexto } from '@/lib/datos/tareas';
+import {
+  completarTarea,
+  crearTarea,
+  eliminarTarea,
+  hayTareasPendientes,
+  listarTareas,
+  tareasPendientesComoTexto,
+} from '@/lib/datos/tareas';
 
 const A = '11111111-1111-4111-8111-111111111111';
 const B = '22222222-2222-4222-8222-222222222222';
@@ -79,4 +86,29 @@ describe('aislamiento por usuario (RB-01)', () => {
     await expect(calcularProductividad(A, '2026-03-10')).resolves.toEqual({ sinTareas: true });
     todasFiltranPor(A);
   });
+
+  it('RB-30: al modelo van como máximo las 50 tareas pendientes de fecha límite más próxima', async () => {
+    const muchas = Array.from({ length: 50 }, (_, i) => ({
+      id: `${String(i).padStart(8, '0')}-0000`,
+      titulo: `Tarea ${i}`,
+      categoria: 'General',
+      prioridad: 2,
+      fechaLimite: '2099-01-01',
+    }));
+    m.consultarBd.mockResolvedValue(muchas);
+    const tareas = await tareasPendientesComoTexto(A);
+    const [sql, valores] = m.consultarBd.mock.calls[0] ?? [];
+    expect(sql).toMatch(/ORDER BY fecha_limite/);
+    expect(valores).toEqual([A, 'Pendiente', 50]);
+    expect(tareas).toHaveLength(50);
+  });
+
+  it('hayTareasPendientes solo mira las pendientes del usuario', async () => {
+    m.consultarBd.mockResolvedValue([{ existe: true }]);
+    await expect(hayTareasPendientes(A)).resolves.toBe(true);
+    const [sql, valores] = m.consultarBd.mock.calls[0] ?? [];
+    expect(sql).toContain("estado = 'Pendiente'");
+    expect(valores).toEqual([A]);
+  });
 });
+

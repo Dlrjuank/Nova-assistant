@@ -6,6 +6,7 @@ export const CONSULTA_MIN_PALABRAS = 2; // RN-02
 export const CONSULTA_MIN_CARACTERES = 8; // RN-02
 export const CONSULTA_MAX_CARACTERES = 1000; // evita gastar cuota de Gemini en textos enormes
 export const FRAGMENTOS_RECUPERADOS = 4; // RN-12
+export const TAREAS_CONTEXTO_MAX = 50; // RB-30: tareas pendientes que recibe el modelo, las de fecha límite más próxima
 export const EMBEDDING_DIMENSIONES = 768; // gemini-embedding-001 con outputDimensionality (sección 2.1)
 export const PRIORIDAD_POR_DEFECTO = 2; // RN-04
 export const CATEGORIA_POR_DEFECTO = 'General';

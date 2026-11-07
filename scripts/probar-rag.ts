@@ -13,7 +13,7 @@ import {
   listarDocumentos,
 } from '@/lib/datos/documentos';
 import { recuperarFragmentos } from '@/lib/datos/fragmentos';
-import { completarTarea, crearTarea, eliminarTarea, listarTareas } from '@/lib/datos/tareas';
+import { completarTarea, crearTarea, eliminarTarea, hayTareasPendientes, listarTareas } from '@/lib/datos/tareas';
 import { SIN_RESPUESTA } from '@/lib/llm/prompts';
 import { hoyBogota } from '@/lib/reglas/fechas';
 import { cargarEnv, opcionesConexion } from './cargar-env.mjs';
@@ -122,8 +122,9 @@ async function main(): Promise<void> {
   const OTRO = creado.user.id;
 
   try {
-    if (await existenDocumentos(DUENO)) {
-      console.log('OMITIDO paso 9: ya hay documentos en la base, no se puede probar SIN_DOCUMENTOS');
+    // RB-30: SIN_DOCUMENTOS solo si la cuenta no tiene documentos ni tareas pendientes.
+    if ((await existenDocumentos(DUENO)) || (await hayTareasPendientes(DUENO))) {
+      console.log('OMITIDO paso 9: la cuenta ya tiene documentos o tareas pendientes, no se puede probar SIN_DOCUMENTOS');
     } else {
       const codigo = await codigoDe(() => consultar(DUENO, '¿Qué dice mi documento?'));
       marcar(codigo === 'SIN_DOCUMENTOS', 'Paso 9: consulta sin documentos', codigo);
@@ -244,6 +245,22 @@ async function main(): Promise<void> {
     );
     const sinDocs = await codigoDe(() => consultar(OTRO, '¿Qué dice mi documento?'));
     marcar(sinDocs === 'SIN_DOCUMENTOS', 'Paso 10d: otro usuario sin PDF propios -> SIN_DOCUMENTOS', sinDocs);
+    // Paso 11 (RB-30): sin documentos pero con una tarea pendiente, el asistente responde con la tarea.
+    const tareaOtro = await crearTarea(OTRO, { titulo: 'Prueba pagar el recibo de la luz', prioridad: 3, fechaLimite: '2099-02-01' });
+    tareasCreadas.push(tareaOtro.id);
+    const soloTareas = await consultar(OTRO, '¿Qué tareas tengo pendientes?');
+    marcar(
+      /luz/i.test(soloTareas.respuesta) && soloTareas.fuentes.length > 0 && soloTareas.fuentes.every((f) => f.tipo === 'tarea'),
+      'Paso 11a: sin documentos y con una tarea pendiente, responde con la tarea',
+      `${soloTareas.respuesta} | fuentes: ${soloTareas.fuentes.map((f) => f.etiqueta).join(', ')}`,
+    );
+    const soloPdf = await consultar(OTRO, '¿Cuántos meses dura la garantía del purificador?');
+    marcar(
+      soloPdf.respuesta === SIN_RESPUESTA && soloPdf.fuentes.length === 0,
+      'Paso 11b: sin documentos, una pregunta de PDF -> mensaje exacto',
+      `${soloPdf.respuesta} | ${soloPdf.fuentes.length} fuentes`,
+    );
+
     const ajenas = [
       await codigoDe(() => completarTarea(OTRO, tarea.id, 10)),
       await codigoDe(() => eliminarTarea(OTRO, tarea.id)),

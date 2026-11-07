@@ -15,7 +15,7 @@ import { ErrorDeNegocio } from '@/lib/reglas/errores';
 import { existenDocumentos } from './documentos';
 import { recuperarFragmentos } from './fragmentos';
 import { tareasPendientesComoTexto } from './tareas';
-import type { Fuente, RespuestaAsistente } from './tipos';
+import type { Fragmento, Fuente, RespuestaAsistente } from './tipos';
 
 /**
  * RN-14: fuentes usadas. Se recuperan siempre 4 fragmentos, aunque no todos sirvan, así que se dejan
@@ -44,14 +44,22 @@ export async function consultar(
   historial: TurnoConversacion[] = [],
 ): Promise<RespuestaAsistente> {
   validarConsulta(pregunta); // RN-02
-  if (!(await existenDocumentos(usuarioId))) throw new ErrorDeNegocio('SIN_DOCUMENTOS'); // RN-15
-
   const preguntaNormal = normalizarConsulta(pregunta);
   const anterior = historial.findLast((m) => m.autor === 'usuario')?.texto;
   const busqueda = textoDeBusqueda(preguntaNormal, anterior); // RN-21
-  const vector = await llm.generarEmbedding(busqueda);
-  const fragmentos = await recuperarFragmentos(usuarioId, vector, FRAGMENTOS_RECUPERADOS); // RN-12
-  const tareas = mencionaTareas(busqueda) ? await tareasPendientesComoTexto(usuarioId) : []; // RN-12
+
+  let fragmentos: Fragmento[] = [];
+  let tareas: TareaContexto[];
+  if (await existenDocumentos(usuarioId)) {
+    const vector = await llm.generarEmbedding(busqueda);
+    fragmentos = await recuperarFragmentos(usuarioId, vector, FRAGMENTOS_RECUPERADOS); // RN-12
+    tareas = mencionaTareas(busqueda) ? await tareasPendientesComoTexto(usuarioId) : []; // RN-12
+  } else {
+    // RB-30 (reemplaza a RN-15 en la ampliación): sin documentos se responde con las tareas pendientes,
+    // siempre (sin filtro por palabras) y sin calcular el vector: no hay fragmentos en qué buscar.
+    tareas = await tareasPendientesComoTexto(usuarioId);
+    if (tareas.length === 0) throw new ErrorDeNegocio('SIN_DOCUMENTOS');
+  }
 
   const respuesta = await llm.responder({
     sistema: SYSTEM_PROMPT,

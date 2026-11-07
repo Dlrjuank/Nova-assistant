@@ -134,7 +134,7 @@ export {
   indexarDocumento,
   listarDocumentos,
 } from '@/lib/datos/documentos';
-export { completarTarea, crearTarea, eliminarTarea, listarTareas } from '@/lib/datos/tareas';
+export { completarTarea, crearTarea, eliminarTarea, hayTareasPendientes, listarTareas } from '@/lib/datos/tareas';
 export { calcularProductividad } from '@/lib/datos/productividad';
 export { buscarEnWikipedia } from '@/lib/datos/wikipedia';
 export type {

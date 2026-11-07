@@ -72,11 +72,6 @@ describe('consultar', () => {
     expect(m.generarEmbedding).not.toHaveBeenCalled();
   });
 
-  it('sin documentos responde SIN_DOCUMENTOS y no llama a Gemini', async () => {
-    m.existenDocumentos.mockResolvedValue(false);
-    await expect(consultar(U, 'Mi agenda de hoy')).rejects.toMatchObject({ codigo: 'SIN_DOCUMENTOS' });
-    expect(m.generarEmbedding).not.toHaveBeenCalled();
-  });
 
   it('recupera 4 fragmentos y no incluye tareas si la pregunta no las menciona', async () => {
     m.responder.mockResolvedValue('Dice uno [a.pdf · fragmento 1].');
@@ -136,5 +131,66 @@ describe('consultar', () => {
       respuesta: 'No encontré esto en tus documentos',
       fuentes: [],
     });
+  });
+});
+
+describe('RB-30: con documentos, solo tareas, solo documentos o ninguno', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    m.generarEmbedding.mockResolvedValue([0.1]);
+    m.recuperarFragmentos.mockResolvedValue([F1]);
+  });
+
+  it('con documentos y tareas: flujo normal (vector, fragmentos y tareas si la pregunta las menciona)', async () => {
+    m.existenDocumentos.mockResolvedValue(true);
+    m.tareasPendientesComoTexto.mockResolvedValue([T1]);
+    m.responder.mockResolvedValue('Pagar luz [Tarea 1a2b3c4d].');
+    const r = await consultar(U, '¿Qué tareas tengo pendientes?');
+    expect(m.generarEmbedding).toHaveBeenCalled();
+    expect(m.recuperarFragmentos).toHaveBeenCalled();
+    expect(m.responder.mock.calls[0]?.[0].contexto).toContain('[a.pdf · fragmento 1]');
+    expect(r.fuentes).toEqual([{ tipo: 'tarea', etiqueta: 'Tarea 1a2b3c4d' }]);
+  });
+
+  it('solo tareas: responde con las tareas aunque la pregunta no diga "tarea", sin vector ni fragmentos', async () => {
+    m.existenDocumentos.mockResolvedValue(false);
+    m.tareasPendientesComoTexto.mockResolvedValue([T1]);
+    m.responder.mockResolvedValue('Debes pagar la luz [Tarea 1a2b3c4d].');
+    const r = await consultar(U, '¿Cuándo debo pagar lo de la luz?');
+    expect(m.generarEmbedding).not.toHaveBeenCalled();
+    expect(m.recuperarFragmentos).not.toHaveBeenCalled();
+    expect(m.tareasPendientesComoTexto).toHaveBeenCalledWith(U);
+    const { contexto } = m.responder.mock.calls[0]?.[0];
+    expect(contexto).toContain('Pagar luz');
+    expect(contexto).not.toContain('fragmento');
+    expect(r).toEqual({ respuesta: 'Debes pagar la luz [Tarea 1a2b3c4d].', fuentes: [{ tipo: 'tarea', etiqueta: 'Tarea 1a2b3c4d' }] });
+  });
+
+  it('solo tareas: una pregunta de PDF responde el mensaje exacto, sin fuentes', async () => {
+    m.existenDocumentos.mockResolvedValue(false);
+    m.tareasPendientesComoTexto.mockResolvedValue([T1]);
+    m.responder.mockResolvedValue('No encontré esto en tus documentos.');
+    await expect(consultar(U, '¿Cuánto dura la garantía del purificador?')).resolves.toEqual({
+      respuesta: 'No encontré esto en tus documentos',
+      fuentes: [],
+    });
+  });
+
+  it('solo documentos: flujo normal; una pregunta de tareas no lleva tareas al contexto', async () => {
+    m.existenDocumentos.mockResolvedValue(true);
+    m.tareasPendientesComoTexto.mockResolvedValue([]);
+    m.responder.mockResolvedValue('No encontré esto en tus documentos.');
+    const r = await consultar(U, '¿Qué tareas tengo pendientes?');
+    expect(m.generarEmbedding).toHaveBeenCalled();
+    expect(m.responder.mock.calls[0]?.[0].contexto).not.toContain('Tarea ');
+    expect(r).toEqual({ respuesta: 'No encontré esto en tus documentos', fuentes: [] });
+  });
+
+  it('ni documentos ni tareas pendientes: SIN_DOCUMENTOS sin llamar a Gemini', async () => {
+    m.existenDocumentos.mockResolvedValue(false);
+    m.tareasPendientesComoTexto.mockResolvedValue([]);
+    await expect(consultar(U, 'Mi agenda de hoy')).rejects.toMatchObject({ codigo: 'SIN_DOCUMENTOS' });
+    expect(m.generarEmbedding).not.toHaveBeenCalled();
+    expect(m.responder).not.toHaveBeenCalled();
   });
 });

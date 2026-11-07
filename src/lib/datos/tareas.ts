@@ -1,4 +1,4 @@
-import { CATEGORIA_POR_DEFECTO, LIMITE_LISTADO } from '@/lib/config/nova';
+import { CATEGORIA_POR_DEFECTO, LIMITE_LISTADO, TAREAS_CONTEXTO_MAX } from '@/lib/config/nova';
 import { consultar } from '@/lib/db/conexion';
 import { hoyBogota } from '@/lib/reglas/fechas';
 import { formatearFecha, formatearPrioridad } from '@/lib/formato';
@@ -31,7 +31,7 @@ export async function crearTarea(usuarioId: string, d: DatosTarea): Promise<Tare
 
 export async function listarTareas(
   usuarioId: string,
-  f: { estado?: EstadoTarea | undefined; fecha?: string | undefined } = {},
+  f: { estado?: EstadoTarea | undefined; fecha?: string | undefined; limite?: number | undefined } = {},
 ): Promise<Tarea[]> {
   const valores: unknown[] = [usuarioId];
   const condiciones: string[] = ['usuario_id = $1'];
@@ -43,7 +43,7 @@ export async function listarTareas(
     valores.push(f.fecha);
     condiciones.push(`fecha_limite = $${valores.length}`);
   }
-  valores.push(LIMITE_LISTADO);
+  valores.push(f.limite ?? LIMITE_LISTADO);
   return consultar<Tarea>(
     `SELECT ${COLUMNAS} FROM tareas_personales WHERE ${condiciones.join(' AND ')}
      ORDER BY fecha_limite, created_at
@@ -52,9 +52,12 @@ export async function listarTareas(
   );
 }
 
-/** RN-12: las tareas pendientes como texto legible para el contexto del LLM. */
+/**
+ * RN-12: las tareas pendientes como texto legible para el contexto del LLM.
+ * RB-30: como máximo las 50 de fecha límite más próxima (las vencidas van primero), para acotar los tokens.
+ */
 export async function tareasPendientesComoTexto(usuarioId: string): Promise<TareaContexto[]> {
-  const tareas = await listarTareas(usuarioId, { estado: 'Pendiente' });
+  const tareas = await listarTareas(usuarioId, { estado: 'Pendiente', limite: TAREAS_CONTEXTO_MAX });
   return tareas.map((t) => ({
     id: t.id,
     texto: `${t.titulo} (categoría: ${t.categoria}; prioridad: ${formatearPrioridad(t.prioridad)}; fecha límite: ${formatearFecha(t.fechaLimite)})`,
@@ -86,4 +89,13 @@ export async function eliminarTarea(usuarioId: string, id: string): Promise<void
     [id, usuarioId],
   );
   if (borradas.length === 0) throw new ErrorDeNegocio('TAREA_NO_ENCONTRADA');
+}
+
+/** RB-30: ¿el usuario tiene al menos una tarea pendiente? (decide el aviso del Asistente). */
+export async function hayTareasPendientes(usuarioId: string): Promise<boolean> {
+  const [fila] = await consultar<{ existe: boolean }>(
+    "SELECT EXISTS (SELECT 1 FROM tareas_personales WHERE usuario_id = $1 AND estado = 'Pendiente') AS existe",
+    [usuarioId],
+  );
+  return fila?.existe ?? false;
 }

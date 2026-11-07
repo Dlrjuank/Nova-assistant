@@ -17,7 +17,7 @@ Los prompts de ejecución están en `doc/PROMPTS_AMPLIACION.md` (etapas E00 a E2
 9. [El asistente en Semestre](#9-el-asistente-en-semestre)
 10. [API](#10-api)
 11. [Pruebas](#11-pruebas)
-12. [Casos de aceptación B-01 a B-42](#12-casos-de-aceptación-b-01-a-b-42)
+12. [Casos de aceptación B-01 a B-43](#12-casos-de-aceptación-b-01-a-b-43)
 13. [Riesgos y decisiones](#13-riesgos-y-decisiones)
 
 ---
@@ -30,7 +30,7 @@ Los prompts de ejecución están en `doc/PROMPTS_AMPLIACION.md` (etapas E00 a E2
 | Vista previa | Cada push de `ampliacion` genera un despliegue de vista previa en Vercel; ahí se prueba en el teléfono. Producción (`master`) no cambia. |
 | Una sola base | Producción y la vista previa usan el **mismo** proyecto de Supabase. Toda migración es **aditiva** (tablas nuevas, columnas opcionales, funciones nuevas). Nunca se renombra, borra ni cambia el tipo de algo que use el código de `master`. |
 | Compatibilidad con `master` | Después de cada migración, el código de `master` debe seguir creando, completando y eliminando tareas, indexando y eliminando documentos, consultando, guardando historial, calculando el índice y buscando en Wikipedia igual que hoy. Se comprueba corriendo los scripts de `master` contra la base (sección 11.3). |
-| No romper la aceptación | A-01 a A-21 y sus mensajes exactos siguen valiendo. Si una ruta cambia de lugar, la vieja redirige a la nueva. |
+| No romper la aceptación | A-01 a A-21 y sus mensajes exactos siguen valiendo. Si una ruta cambia de lugar, la vieja redirige a la nueva. Única excepción aprobada por el usuario: A-13 cambia con RB-30 (E02b). |
 | Antes de cada commit | `npm test`, `npm run build` y `eslint` sin errores. Nunca `.env.local`, `.env.respaldo.local` ni `doc/CORREO RESEND VERCEL CONNECT (1).md`. |
 | Computador y teléfono | Toda pantalla funciona desde 360 px de ancho sin desplazamiento horizontal, y con teclado (foco visible). |
 | Sin botones muertos | Ningún botón, enlace ni ítem de navegación lleva a algo que no exista todavía. Cada sección entra al menú en la etapa en que se construye. |
@@ -45,6 +45,7 @@ Los prompts de ejecución están en `doc/PROMPTS_AMPLIACION.md` (etapas E00 a E2
 | ID | Funcionalidad | Etapa |
 |---|---|---|
 | X0 | Dueño en tareas, documentos y fuentes web (`usuario_id`) | E01 |
+| X0b | El Asistente responde con las tareas pendientes aunque no haya documentos (RB-30) | E02b |
 | X1 | Rediseño: paleta cálida, modo claro y oscuro, íconos, encabezados, login | E02, E04 |
 | X2 | Navegación: barra lateral (computador), barra inferior + "Más" + botón "+" (teléfono) | E03 |
 | X3 | Categorías de tareas con color | E05 |
@@ -156,7 +157,9 @@ Las rutas de la API (`/api/nova/...`) que ya existen no cambian de nombre ni de 
 
 ### 5.2 Asistente (`/nova/asistente`)
 
-El chat actual con su historial, sin cambios de comportamiento. Si llega con una pregunta desde Inicio, la envía al cargar (una sola vez).
+El chat actual con su historial. Si llega con una pregunta desde Inicio, la envía al cargar (una sola vez).
+
+Desde E02b (RB-30): sin documentos del usuario pero con al menos una tarea pendiente, el chat responde con las tareas y la pantalla muestra un aviso informativo con el enlace "Indexar un PDF": `Aún no hay documentos indexados: por ahora el asistente responde solo sobre tus tareas pendientes.`. Sin documentos ni tareas pendientes, se muestra el aviso de advertencia de siempre. El campo de pregunta nunca se bloquea.
 
 ### 5.3 Calendario (`/nova/calendario`)
 
@@ -396,6 +399,7 @@ Los mensajes se usan **textualmente** en la interfaz y en la API. Los de `PLAN_N
 | RB-26 | Nombre de perfil: recortado, 1 a 80 caracteres | `Escribe tu nombre.` |
 | RB-27 | Tema de apariencia: claro, oscuro o automático | — |
 | RB-28 | Cambiar contraseña: usa la ruta existente `/api/auth/password` y sus mensajes | (los de esa ruta) |
+| RB-30 | Reemplaza a RN-15 en la ampliación (E02b). Con documentos del usuario, la consulta funciona como siempre (vector, 4 fragmentos y tareas solo si la pregunta las menciona, RN-12). Sin documentos pero con al menos una tarea pendiente, responde con las tareas pendientes: sin calcular el vector, sin filtro por palabras y como máximo las 50 de fecha límite más próxima (las vencidas primero, `TAREAS_CONTEXTO_MAX`); si la pregunta es de algo que solo estaría en un PDF, responde el mensaje exacto de siempre. Sin documentos ni tareas pendientes, `SIN_DOCUMENTOS`. Las 50 más próximas también limitan lo que se envía cuando hay documentos | `No encontré esto en tus documentos` y `Aún no hay documentos indexados. Indexe un PDF antes de preguntar.` (sin cambios). Aviso informativo nuevo: `Aún no hay documentos indexados: por ahora el asistente responde solo sobre tus tareas pendientes.` |
 | RB-29 | Editar una tarea: solo pendientes y del usuario; título, categoría, prioridad y fecha límite con las mismas validaciones y mensajes que al crear; estado, minutos y fecha de cierre no se tocan | Los de crear (`PLAN_NOVA.md` 5.1). Tarea completada: `La tarea ya está completada.` (`TAREA_YA_COMPLETADA`, 409). De otro usuario o inexistente: `La tarea no existe.` (`TAREA_NO_ENCONTRADA`, 404) |
 
 Códigos de error nuevos (404 salvo indicación): `CATEGORIA_NO_ENCONTRADA`, `CATEGORIA_DUPLICADA` (409), `MATERIA_NO_ENCONTRADA`, `MATERIA_DUPLICADA` (409), `CORTE_NO_ENCONTRADO`, `ACTIVIDAD_NO_ENCONTRADA`, `PORCENTAJES_INVALIDOS` (422), `NOTA_INVALIDA` (422), `META_NO_ENCONTRADA`, `META_DUPLICADA` (409), `PLAN_SIN_TEMAS` (422), `PLAN_SIN_FECHA` (422), `SIN_SYLLABUS` (422), `PLAN_INVALIDO` (502), `PASO_YA_EN_TAREAS` (409).
@@ -470,6 +474,7 @@ Las rutas que llaman a Gemini declaran `maxDuration = 60`.
 - **Contraste**: una prueba lee los tokens de `globals.css` y comprueba ≥ 4,5:1 en cada par texto/fondo, en ambos modos, y para los 8 colores de categoría.
 - **Servidor**: cada ruta nueva prueba 401/403, aislamiento (un id de otro usuario responde como inexistente), validación y contrato.
 - **Editar tareas** (E09): cada validación de crear repetida al editar con su mensaje exacto, tarea completada → `TAREA_YA_COMPLETADA`, tarea de otro usuario → `TAREA_NO_ENCONTRADA`, y que estado, minutos y fecha de cierre no cambian.
+- **Asistente sin documentos** (E02b, RB-30): los cuatro casos de `consultar` (con documentos y tareas, solo tareas, solo documentos, ninguno), la pregunta de PDF sin documentos con el mensaje exacto, el límite de 50 tareas (`ORDER BY fecha_limite`, parámetro 50) y el aviso de la pantalla en sus combinaciones. `probar:rag` paso 11 con Gemini real.
 - **Interfaz**: navegación (ítem activo, hoja "Más" con Escape y foco, botón "+"), Inicio (completar abre el diálogo de minutos), pestañas de Tareas, formularios de Semestre con los mensajes exactos.
 
 ### 11.2 Scripts reales
@@ -486,7 +491,7 @@ Con un `git worktree` de `master` en una carpeta temporal: `npm run probar:rag` 
 
 En cada etapa con interfaz: navegador real a 1280 px y 390 px (sin desplazamiento horizontal, sin errores de página, foco visible) y prueba del usuario en la **vista previa de Vercel** desde su teléfono.
 
-## 12. Casos de aceptación B-01 a B-42
+## 12. Casos de aceptación B-01 a B-43
 
 Se ejecutan en la vista previa de Vercel de `ampliacion`, en computador y en teléfono, y se registran en `doc/ACEPTACION.md` (sección nueva). Antes, se repiten A-01 a A-21 en la vista previa.
 
@@ -532,6 +537,7 @@ Se ejecutan en la vista previa de Vercel de `ampliacion`, en computador y en tel
 | B-38 | Editar el plan y restaurar una versión anterior | Cada acción crea una versión nueva; la anterior se puede ver |
 | B-39 | Pasar un paso a Tareas, dos veces | La primera pide confirmación y crea la tarea; la segunda responde RB-24 |
 | B-40 | Estadísticas | Evolución por corte, comparación entre materias y materias en riesgo (por nota o por fallas), con tabla equivalente para lectores de pantalla |
+| B-43 | En una cuenta sin documentos y con una tarea pendiente: abrir el Asistente, preguntar "¿Qué tareas tengo pendientes?" y luego algo que solo estaría en un PDF | La pantalla muestra el aviso informativo (RB-30); la primera respuesta incluye la tarea y la cita; la segunda responde "No encontré esto en tus documentos". Sin tareas pendientes ni documentos, vuelve el aviso de indexar un PDF (A-13) |
 | B-41 | Editar una tarea pendiente desde Tareas, Inicio y Calendario (título, categoría, prioridad y fecha) | El formulario abre lleno; al guardar, el cambio se ve en las tres pantallas y en su día del Calendario; "Cancelar" no cambia nada |
 | B-42 | Al editar, poner fecha "2026-02-30" y luego prioridad 5 por la API; intentar editar una tarea completada | Mismos mensajes que al crear (A-03, A-04); la completada responde "La tarea ya está completada." y no muestra "Editar" |
 
