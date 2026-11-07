@@ -478,49 +478,54 @@ VERIFICACIÓN: B-40.
 
 ---
 
-## E20b · Diseño final: darle vida a Nova (pedida por el usuario el 2026-11-07)
+## E20b · Diseño final: darle vida a Nova (pedida por el usuario; versión completa del 2026-11-07)
 
 **Cuándo:** al terminar todas las etapas de funciones (después de E20) y antes de la aceptación (E21), para que la aceptación final se haga con el diseño nuevo. **Requisito:** E20.
 
-Texto del usuario, tal como lo pidió:
+Texto del usuario, tal como lo pidió (reemplaza a la primera versión):
 
 ```text
-Etapa de diseño final: darle vida a Nova
+Etapa E20b: diseño final, darle vida a Nova
 
-Hazla cuando terminemos todas las etapas de funciones.
+Objetivo: hoy la app funciona bien, pero se ve simple y plana. Quiero que se sienta viva, moderna y agradable de usar. Toma el estilo de las referencias, no sus colores: mantén la identidad de Nova (crema y terracota en claro, su modo oscuro).
 
-Objetivo: hoy la app funciona bien, pero se ve simple y plana. Quiero que se sienta viva, moderna y agradable de usar, inspirada en un video de ejemplo que te pasaré (panel con tarjetas tipo mosaico). Toma el estilo, no los colores: mantén la identidad de Nova (crema y terracota en claro, su modo oscuro).
+Referencias:
 
-Prioridad 1, que se sienta viva:
+El video de ejemplo que te paso ("Dashboard V22"): panel con tarjetas tipo mosaico, barra lateral de íconos, números grandes y animaciones suaves al pasar el mouse.
+La cuenta de Instagram @code.xr (React + Framer Motion): sobre todo los menús con indicador animado ("Glassy Navigation Tabs"), los paneles con gráficos ("Dashboard V21/V22") y el login animado ("Lamp Toggle Login Form"). Si no puedes ver los videos, te paso los que me interesen.
+La imagen del planificador de tareas que te paso (Mi semana, Progreso semanal, Prioridades de hoy y Mis tareas por categoría).
 
-Animaciones de entrada suaves: las tarjetas aparecen escalonadas al abrir cada pantalla.
-Al pasar el mouse, las tarjetas suben un poco y ganan sombra. En el teléfono, una respuesta sutil al tocar.
-Los números cuentan hasta su valor y el anillo de progreso se llena al aparecer.
-Al completar una tarea, una pequeña celebración (check animado, quizá un destello) sin exagerar.
-Transiciones suaves al cambiar de semana, de pestaña o de filtro, y al abrir menús y hojas.
-Estados vacíos con ilustración o ícono y un texto amable, en vez de "Sin tareas" plano.
-Un saludo según la hora en Inicio ("Buenas tardes") con un resumen corto del día.
+Prioridad 1: que se sienta viva
+Navegación animada: en la barra inferior del teléfono, en la barra lateral del computador y en pestañas como Todas, Pendientes y Completadas, la opción activa tiene una píldora que se desliza al cambiar.
+Entrada de pantallas: las tarjetas aparecen escalonadas y suaves al abrir cada pantalla.
+Respuesta al usuario: al pasar el mouse, las tarjetas suben un poco y ganan sombra; en el teléfono, una respuesta sutil al tocar botones y tarjetas.
+Números y progreso: los números cuentan hasta su valor y el anillo de progreso se llena al aparecer.
+Completar una tarea: una pequeña celebración (check animado, un destello) sin exagerar.
+Transiciones: suaves al cambiar de semana, de filtro o de categoría, y al abrir menús, hojas y diálogos.
+Estados vacíos: con ícono o ilustración y un texto amable, en vez de "Sin tareas" plano.
+Saludo en Inicio: según la hora ("Buenos días", "Buenas tardes") con un resumen corto del día.
+Login con personalidad: una entrada animada inspirada en el "Lamp Toggle Login Form", adaptada a los colores de Nova.
 
-Prioridad 2, el diseño:
-
+Prioridad 2: el diseño
 Inicio en mosaico ("bento"): bloques de distintos tamaños bien alineados (Pregúntale a Nova, Mi semana, Progreso, Prioridades y, si aporta, horas dedicadas en la semana con los minutos registrados).
 Números grandes como protagonistas, con texto pequeño de apoyo.
+Gráficos más vistosos en Productividad (líneas, barras y anillos animados).
 Bordes más redondeados, sombras suaves, más espacio entre bloques y degradados sutiles con los colores de Nova.
-Íconos con fondo de color en los encabezados de las tarjetas, y que los colores de las categorías tengan más presencia.
-En el computador, barra lateral más pulida (puede ser plegable a solo íconos). En el teléfono se mantiene la barra inferior.
+Íconos con fondo de color en los encabezados de las tarjetas, y más presencia de los colores de las categorías.
+Efecto vidrio (fondo translúcido con desenfoque) solo en pocos lugares, como la barra inferior o los menús flotantes, cuidando el contraste y el rendimiento.
+Barra lateral del computador más pulida, que se pueda plegar a solo íconos. En el teléfono se mantiene la barra inferior.
 
-Reglas que no se negocian:
-
+Reglas que no se negocian
 Igual de bien en claro y oscuro, a 390 px y a 1280 px, sin desborde.
 Con "reducir movimiento" activado, nada se anima: todo aparece directo.
-Rendimiento: debe sentirse fluido en un teléfono normal. Nada de animaciones pesadas ni librerías grandes sin necesidad. Si propones una (por ejemplo framer-motion), justifícala.
-Accesibilidad: buen contraste, foco visible y campos de al menos 16 px.
+Rendimiento: debe sentirse fluido en un teléfono normal. Nada de animaciones pesadas ni librerías grandes sin necesidad. Si propones una (por ejemplo framer-motion), justifícala y dime cuánto pesa.
+Accesibilidad: buen contraste, foco visible, campos de al menos 16 px y botones fáciles de tocar.
 Solo cambia la presentación: lógica, rutas, datos y pruebas existentes siguen igual.
+No toques master hasta que yo lo apruebe.
 
-Cómo trabajar:
-
-Primero una propuesta sin tocar el código: cómo quedaría Inicio (captura o maqueta en claro y oscuro, teléfono y computador) y la lista de animaciones. Espera mi aprobación.
-Después aplícalo pantalla por pantalla (Inicio, Tareas, Calendario, Asistente, Documentos, Productividad, Web, Configuración y login), un commit por pantalla, con vista previa y una lista corta de qué probar en el teléfono.
+Cómo trabajar
+Propuesta primero, sin tocar el código: cómo quedaría Inicio (captura o maqueta en claro y oscuro, teléfono y computador), la lista de animaciones y la librería que usarías. Espera mi aprobación.
+Pantalla por pantalla: Inicio, Tareas, Calendario, Asistente, Documentos, Productividad, Web, Configuración y login. Un commit por pantalla, con vista previa y una lista corta de qué probar en el teléfono.
 Anota en el plan lo que decidas y avísame antes de pasar a la siguiente pantalla.
 ```
 

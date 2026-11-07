@@ -48,7 +48,7 @@ Los prompts de ejecución están en `doc/PROMPTS_AMPLIACION.md` (etapas E00 a E2
 | X0b | El Asistente responde con las tareas pendientes aunque no haya documentos (RB-30) | E02b |
 | X0c | El Asistente conoce la fecha de hoy y responde preguntas por fechas sobre las tareas (RB-31) | E02c |
 | X0d | Horario opcional de las tareas (hora de inicio y de fin), en 24 horas (RB-34) | E06b |
-| X17b | Diseño final "darle vida a Nova": animaciones suaves, Inicio en mosaico, estados vacíos amables, saludo según la hora; solo presentación, con reducir movimiento respetado (texto completo del usuario en `PROMPTS_AMPLIACION.md`, E20b) | E20b |
+| X17b | Diseño final "darle vida a Nova" (versión completa): navegación con píldora animada, entrada escalonada, números y anillos animados, celebración al completar, estados vacíos amables, saludo según la hora, login animado, Inicio en mosaico, gráficos vistosos en Productividad, vidrio solo en pocos lugares, barra lateral plegable; solo presentación, con reducir movimiento respetado y librería justificada con su peso (texto completo del usuario en `PROMPTS_AMPLIACION.md`, E20b) | E20b |
 | X1 | Rediseño: paleta cálida, modo claro y oscuro, íconos, encabezados, login | E02, E04 |
 | X2 | Navegación: barra lateral (computador), barra inferior + "Más" + botón "+" (teléfono) | E03 |
 | X3 | Categorías de tareas con color | E05 |
