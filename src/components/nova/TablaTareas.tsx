@@ -1,13 +1,23 @@
 import { AccionesTarea } from '@/components/nova/AccionesTarea';
+import { InsigniaCategoria } from '@/components/nova/InsigniaCategoria';
 import { InsigniaEstadoTarea } from '@/components/nova/InsigniaEstadoTarea';
 import { InsigniaPrioridad } from '@/components/nova/InsigniaPrioridad';
 import type { Tarea } from '@/lib/dataService';
 import { formatearFecha, formatearMinutos } from '@/lib/formato';
+import { colorDeCategoria } from '@/lib/reglas/categorias';
 
 const COLUMNAS = ['Título', 'Categoría', 'Prioridad', 'Estado', 'Fecha límite', 'Creada', 'Acciones'];
 
 /** Tabla desde 640 px; por debajo, tarjetas apiladas. */
-export function TablaTareas({ tareas }: { tareas: Tarea[] }) {
+export function TablaTareas({
+  tareas,
+  categorias = [],
+}: {
+  tareas: Tarea[];
+  /** E05: para el color de cada categoría; una sin registrar se muestra en gris. */
+  categorias?: ReadonlyArray<{ nombre: string; color: string }>;
+}) {
+  const insignia = (t: Tarea) => <InsigniaCategoria nombre={t.categoria} color={colorDeCategoria(t.categoria, categorias)} />;
   return (
     <>
       <div className="hidden overflow-x-auto rounded-xl border border-borde bg-superficie sm:block">
@@ -27,7 +37,7 @@ export function TablaTareas({ tareas }: { tareas: Tarea[] }) {
                 <th scope="row" className="px-4 py-3 font-medium text-texto">
                   {t.titulo}
                 </th>
-                <td className="px-4 py-3 text-texto-suave">{t.categoria}</td>
+                <td className="px-4 py-3">{insignia(t)}</td>
                 <td className="px-4 py-3">
                   <InsigniaPrioridad prioridad={t.prioridad} />
                 </td>
@@ -60,7 +70,7 @@ export function TablaTareas({ tareas }: { tareas: Tarea[] }) {
             </div>
             <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
               <dt className="text-texto-suave">Categoría</dt>
-              <dd>{t.categoria}</dd>
+              <dd>{insignia(t)}</dd>
               <dt className="text-texto-suave">Fecha límite</dt>
               <dd>{formatearFecha(t.fechaLimite)}</dd>
               <dt className="text-texto-suave">Creada</dt>

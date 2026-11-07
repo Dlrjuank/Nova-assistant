@@ -90,3 +90,11 @@ export interface ResultadoWeb {
   articulos: ArticuloWeb[]; // los resultados que se usaron para el resumen
   fuentesEnCategoria: number; // contando la recién guardada (RN-05: máximo 20)
 }
+
+/** E05: categoría de tareas con color de la paleta fija; `tareas` = cuántas tareas del usuario la usan. */
+export interface Categoria {
+  id: string;
+  nombre: string;
+  color: string;
+  tareas: number;
+}

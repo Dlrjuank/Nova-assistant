@@ -243,7 +243,8 @@ CREATE FUNCTION buscar_fragmentos_usuario(consulta vector(768), limite int, usua
 | `categorias` | `id` UUID, `usuario_id`, `nombre` VARCHAR(80), `color` TEXT, `creada_en` | `UNIQUE (usuario_id, lower(nombre))` (índice único), `color` en la paleta fija (CHECK), nombre recortado no vacío |
 
 - Las tareas conservan `tareas_personales.categoria` como texto; el color se busca por nombre (sin distinguir mayúsculas). Una categoría usada en tareas pero no registrada se muestra en gris.
-- La migración siembra, por cada usuario con tareas, una categoría por cada nombre distinto ya usado, con colores de la paleta en orden; "General" siempre existe.
+- La migración siembra, por cada usuario con tareas, una categoría por cada nombre distinto ya usado (escrito como la primera vez), con colores de la paleta en orden sin gris; "General" siempre existe, es gris y se crea sola la primera vez que se necesita.
+- General no se renombra ni se elimina; sí se le cambia el color. Una categoría nueva sin color toma el siguiente libre de la paleta (sin gris; si se usaron todos, vuelve a empezar).
 - Renombrar una categoría actualiza también `categoria` en las tareas de ese usuario, en la misma transacción. Eliminarla pide confirmación y pasa sus tareas a "General".
 
 ### 6.3 M7 · Preferencias (E11)
@@ -378,7 +379,8 @@ Los mensajes se usan **textualmente** en la interfaz y en la API. Los de `PLAN_N
 | RB-01 | Toda lectura y escritura se limita al usuario de la sesión | (404 genérico del recurso si no es suyo) |
 | RB-02 | Nombre de categoría: recortado, 1 a 80 caracteres, único por usuario sin distinguir mayúsculas | `Ya existe una categoría con ese nombre.` |
 | RB-03 | Color de categoría: uno de la paleta fija | `Elige un color de la lista.` |
-| RB-04 | Eliminar categoría: sus tareas pasan a "General"; "General" no se elimina | `La categoría General no se puede eliminar.` |
+| RB-04 | Eliminar categoría: sus tareas pasan a "General"; "General" no se elimina ni se renombra | `La categoría General no se puede eliminar.` / `La categoría General no se puede renombrar.` |
+| RB-02b | (E05) Nombre de categoría vacío o de más de 80 caracteres | `Escribe un nombre de 1 a 80 caracteres.` (`NOMBRE_CATEGORIA_INVALIDO`, 422) |
 | RB-05 | Nombre de materia único por usuario | `Ya existe una materia con ese nombre.` |
 | RB-06 | Créditos enteros de 1 a 10 | `Los créditos deben ser un número entero entre 1 y 10.` |
 | RB-07 | Los cortes de una materia suman exactamente 100 % | `Los porcentajes de los cortes deben sumar 100 %. Ahora suman {n} %.` |

@@ -52,3 +52,17 @@ export const esquemaWeb = z.object({
   categoria: z.string().trim().max(80).optional(),
 });
 export type DatosWeb = z.infer<typeof esquemaWeb>;
+
+// E05: categorías. El color se valida en src/lib/reglas/categorias.ts para devolver el mensaje exacto (RB-03).
+export const esquemaCategoria = z.object({
+  nombre: z.string().max(200),
+  color: z.string().max(20).optional(),
+});
+export type DatosCategoria = z.infer<typeof esquemaCategoria>;
+
+export const esquemaActualizarCategoria = z
+  .object({ nombre: z.string().max(200).optional(), color: z.string().max(20).optional() })
+  .refine((d) => d.nombre !== undefined || d.color !== undefined, { message: 'Nada que cambiar' });
+export type DatosActualizarCategoria = z.infer<typeof esquemaActualizarCategoria>;
+
+export const esquemaIdCategoria = z.uuid();

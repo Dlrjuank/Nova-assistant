@@ -4,7 +4,7 @@ import { claseBoton } from '@/components/ui/Boton';
 import { EncabezadoPantalla } from '@/components/ui/EncabezadoPantalla';
 import { EstadoVacio } from '@/components/ui/EstadoVacio';
 import { Pestanas } from '@/components/ui/Pestanas';
-import { exigirSesion, listarTareas, type EstadoTarea } from '@/lib/dataService';
+import { exigirSesion, listarCategorias, listarTareas, type EstadoTarea } from '@/lib/dataService';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,7 +22,7 @@ export default async function TareasPage({ searchParams }: { searchParams: Promi
   const estado = estadoValido((await searchParams).estado);
   // El layout ya exige sesión con acceso; aquí hace falta el id para ver solo sus tareas (RB-01).
   const { id } = await exigirSesion();
-  const tareas = await listarTareas(id, { estado });
+  const [tareas, categorias] = await Promise.all([listarTareas(id, { estado }), listarCategorias(id)]);
 
   return (
     <>
@@ -56,7 +56,7 @@ export default async function TareasPage({ searchParams }: { searchParams: Promi
           }
         />
       ) : (
-        <TablaTareas tareas={tareas} />
+        <TablaTareas tareas={tareas} categorias={categorias} />
       )}
     </>
   );

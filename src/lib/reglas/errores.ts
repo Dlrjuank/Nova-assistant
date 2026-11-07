@@ -16,6 +16,11 @@ export type CodigoError =
   | 'DOCUMENTO_NO_ENCONTRADO'
   | 'LIMITE_FUENTES'
   | 'ERROR_WIKIPEDIA'
+  | 'CATEGORIA_NO_ENCONTRADA'
+  | 'CATEGORIA_DUPLICADA'
+  | 'COLOR_INVALIDO'
+  | 'NOMBRE_CATEGORIA_INVALIDO'
+  | 'CATEGORIA_GENERAL'
   | 'ERROR_INTERNO';
 
 // Textos de la sección 12.2; los de la sección 5.1 se usan literalmente.
@@ -37,6 +42,12 @@ export const MENSAJES: Record<CodigoError, string> = {
   DOCUMENTO_NO_ENCONTRADO: 'El documento no existe.',
   LIMITE_FUENTES: 'Alcanzó el máximo de 20 fuentes en esta categoría; archive o elimine una.',
   ERROR_WIKIPEDIA: 'No se pudo consultar Wikipedia. Intente de nuevo.',
+  // PLAN_AMPLIACION sección 8 (RB-02 a RB-04), en tuteo como el resto de la app.
+  CATEGORIA_NO_ENCONTRADA: 'La categoría no existe.',
+  CATEGORIA_DUPLICADA: 'Ya existe una categoría con ese nombre.',
+  COLOR_INVALIDO: 'Elige un color de la lista.',
+  NOMBRE_CATEGORIA_INVALIDO: 'Escribe un nombre de 1 a 80 caracteres.',
+  CATEGORIA_GENERAL: 'La categoría General no se puede eliminar.',
   ERROR_INTERNO: 'Ocurrió un error inesperado. Intente de nuevo.',
 };
 
@@ -58,6 +69,11 @@ export const ESTADO_HTTP: Record<CodigoError, number> = {
   DOCUMENTO_NO_ENCONTRADO: 404,
   LIMITE_FUENTES: 409,
   ERROR_WIKIPEDIA: 502,
+  CATEGORIA_NO_ENCONTRADA: 404,
+  CATEGORIA_DUPLICADA: 409,
+  COLOR_INVALIDO: 422,
+  NOMBRE_CATEGORIA_INVALIDO: 422,
+  CATEGORIA_GENERAL: 409,
   ERROR_INTERNO: 500,
 };
 

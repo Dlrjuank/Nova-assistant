@@ -218,6 +218,22 @@ try {
       marcar(false, `k-m) dueño: ${e.message}`);
     }
   }
+  // M6 (ampliación, E05): categorías por usuario con color de la paleta fija.
+  console.log('== 6c. Categorías (M6)');
+  const hayCategorias = (await c.query("SELECT to_regclass('public.categorias') AS r")).rows[0].r !== null;
+  marcar(hayCategorias, 'tabla categorias');
+  if (hayCategorias) {
+    const rlsCat = await c.query("SELECT relrowsecurity FROM pg_class WHERE oid = to_regclass('public.categorias')");
+    marcar(rlsCat.rows[0]?.relrowsecurity === true, 'RLS activo en categorias');
+    const idxCat = await c.query("SELECT 1 FROM pg_indexes WHERE indexname = 'categorias_nombre_unico'");
+    marcar(idxCat.rowCount === 1, 'índice único (usuario, nombre sin distinguir mayúsculas)');
+    if (dueno) {
+      await c.query("INSERT INTO categorias (usuario_id, nombre, color) VALUES ($1, 'Verificación Cat', 'azul') ON CONFLICT DO NOTHING", [dueno]);
+      await esperaFalla('n) categoría repetida con otras mayúsculas', '23505', "INSERT INTO categorias (usuario_id, nombre, color) VALUES ($1, 'VERIFICACIÓN CAT', 'rosa')", [dueno]);
+      await esperaFalla('o) color fuera de la paleta', '23514', "INSERT INTO categorias (usuario_id, nombre, color) VALUES ($1, 'Otra verificación', 'negro')", [dueno]);
+      await esperaFalla('p) nombre con espacios alrededor', '23514', "INSERT INTO categorias (usuario_id, nombre, color) VALUES ($1, ' Otra ', 'azul')", [dueno]);
+    }
+  }
   await c.query('ROLLBACK');
 
   console.log(`== 7. Total de fallas: ${fallas}`);

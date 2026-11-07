@@ -1,9 +1,9 @@
-import { ChartColumn, FileText, Globe, House, ListChecks, MessageCircle, type LucideIcon } from 'lucide-react';
+import { ChartColumn, FileText, Globe, House, ListChecks, MessageCircle, Settings, type LucideIcon } from 'lucide-react';
 
 /**
  * Secciones de Nova (PLAN_AMPLIACION 4.1). Solo las que ya existen: una sección entra al menú en la etapa
  * en que se construye (regla "sin botones muertos"). Calendario (E07), Fuentes (E10, reemplaza a
- * Documentos y Web), Semestre (E12) y Configuración (E05) se agregan en sus etapas.
+ * Documentos y Web) y Semestre (E12) se agregan en sus etapas. Configuración entró en E05.
  */
 export interface Seccion {
   href: string;
@@ -18,6 +18,7 @@ export const SECCIONES = {
   documentos: { href: '/nova/documentos', texto: 'Documentos', icono: FileText },
   web: { href: '/nova/web', texto: 'Web', icono: Globe },
   productividad: { href: '/nova/productividad', texto: 'Productividad', icono: ChartColumn },
+  configuracion: { href: '/nova/configuracion', texto: 'Configuración', icono: Settings },
 } satisfies Record<string, Seccion>;
 
 /** Barra lateral (computador): todas las secciones disponibles, en el orden del plan. */
@@ -28,6 +29,7 @@ export const MENU_LATERAL: Seccion[] = [
   SECCIONES.documentos,
   SECCIONES.web,
   SECCIONES.productividad,
+  SECCIONES.configuracion,
 ];
 
 /**
@@ -41,7 +43,7 @@ export const BARRA_INFERIOR: { izquierda: Seccion[]; centro: Seccion; derecha: S
 };
 
 /** Hoja "Más": las secciones que no caben en la barra inferior. */
-export const MENU_MAS: Seccion[] = [SECCIONES.web, SECCIONES.productividad];
+export const MENU_MAS: Seccion[] = [SECCIONES.web, SECCIONES.productividad, SECCIONES.configuracion];
 
 /** Inicio solo está activo en /nova exacto; las demás, también en sus subrutas (/nova/tareas/nueva). */
 export function esActivo(ruta: string, href: string): boolean {
