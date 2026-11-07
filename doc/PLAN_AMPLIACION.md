@@ -17,7 +17,7 @@ Los prompts de ejecución están en `doc/PROMPTS_AMPLIACION.md` (etapas E00 a E2
 9. [El asistente en Semestre](#9-el-asistente-en-semestre)
 10. [API](#10-api)
 11. [Pruebas](#11-pruebas)
-12. [Casos de aceptación B-01 a B-47](#12-casos-de-aceptación-b-01-a-b-47)
+12. [Casos de aceptación B-01 a B-59](#12-casos-de-aceptación-b-01-a-b-59)
 13. [Riesgos y decisiones](#13-riesgos-y-decisiones)
 
 ---
@@ -66,6 +66,12 @@ Los prompts de ejecución están en `doc/PROMPTS_AMPLIACION.md` (etapas E00 a E2
 | X14 | Semestre · Plan de estudio con el asistente, editable y con versiones | E18 |
 | X15 | Semestre · Pasar pasos del plan a Tareas | E19 |
 | X16 | Semestre · Estadísticas | E20 |
+| X18 | Libros en PDF: páginas en cada fragmento y en cada cita, capítulos (índice interno o encabezados), indexación por partes para libros largos (pedido del usuario, 2026-11-07) | E10b |
+| X19 | Libros en el Asistente: preguntar por página o por capítulo y "Explicar de otra manera" (Más simple, Con un ejemplo, Paso a paso, Resumen corto, Con una analogía) | E10c |
+| X20 | Plan de lectura por capítulos que pasa a Tareas | E10d |
+| X21 | App instalable (PWA): ícono, pantalla completa, nombre "Nova" y guía para agregarla a inicio | E11b |
+| X22 | Recordatorios de tareas con notificaciones push (a la hora, 15 min, 1 hora o 1 día antes; sin horario, a una hora fija) | E11c |
+| X23 | Respaldo por correo (Resend), resumen diario opcional y "Agregar a mi calendario" (.ics) | E11d |
 
 ### 2.2 Fuera de alcance
 
@@ -75,7 +81,12 @@ Los prompts de ejecución están en `doc/PROMPTS_AMPLIACION.md` (etapas E00 a E2
 - Que las fuentes web alimenten al chat.
 - Lista de conversaciones anteriores (la base ya lo permite desde M4; la pantalla no).
 - Arrastrar y soltar tareas entre días.
-- Notificaciones y recordatorios.
+- Notificaciones y recordatorios. *(Desde el 2026-11-07 entran en el alcance: E11b a E11d.)*
+- Leer PDF escaneados (sin texto, haría falta OCR).
+- Que un evento agregado con "Agregar a mi calendario" se actualice solo: es una copia (RB-46).
+- **Ideas para más adelante, solo anotadas, sin planear** (pedido del usuario, 2026-11-07):
+  - Publicar Nova en Google Play y en la App Store con Capacitor. Google cobra 25 USD una vez; Apple, 99 USD al año, y exige un Mac o compilar en la nube.
+  - Recordatorios por mensaje de WhatsApp con la API de WhatsApp Business, que cobra por mensaje.
 - Un segundo proyecto de Supabase.
 
 ## 3. Diseño
@@ -237,6 +248,43 @@ Pestañas **Materias y notas**, **Objetivos y plan**, **Estadísticas** (cada un
 
 Bloques: **Perfil** (nombre editable, correo de solo lectura, cambiar contraseña), **Apariencia** (claro, oscuro, automático; formato de hora de 24 o 12 horas, 24 por defecto, pedido del usuario en E06b), **Académico** (escala 0,0 a 5,0 de solo lectura, nota para aprobar, redondeo truncar/redondear, cortes por defecto), **Asistente** (borrar todo el historial, aviso de Gemini) y **Cerrar sesión**.
 
+### 5.9 Libros en PDF (E10b a E10d, pedido del usuario del 2026-11-07)
+
+- **Páginas (E10b):** al indexar, el texto se extrae página por página. Cada fragmento guarda su página o su rango (por ejemplo 45–46) y toda cita lo muestra: `libro.pdf · p. 45` o `libro.pdf · pp. 45–46` (RB-36). Se usa el número impreso en el libro (las etiquetas de página del PDF) cuando existe; si no, el número de página del PDF.
+- **Capítulos (E10b):** se toman del índice interno del PDF. Si no tiene índice, de los encabezados al comienzo de una página ("Capítulo 3", "Unidad 2", "Tema 4", "Chapter 5"). En Fuentes, cada documento con capítulos tiene "Ver capítulos": la lista con su título y sus páginas (RB-37).
+- **Libros largos (E10b):** la indexación se hace por partes y se puede reanudar. El documento se ve "Indexando… 40 %" y, si se cierra la pantalla, sigue al volver. Hasta 15 MB (RN-01 no cambia) y 800 páginas (RB-38).
+- **Preguntar por página o capítulo (E10c):** en el Asistente, "¿Qué dice la página 45?", "Resume el capítulo 3" o "Explícame el capítulo de fotosíntesis". Se responde con el texto de esa página o de ese capítulo, no con una búsqueda, y siempre se cita la página (RB-39, RB-40). Un selector "Buscar en" encima del campo permite elegir un documento o "Todos".
+- **Explicar de otra manera (E10c):** debajo de cada respuesta que cita documentos, las opciones **Más simple**, **Con un ejemplo**, **Paso a paso**, **Resumen corto** y **Con una analogía**. Usan los mismos fragmentos de esa respuesta, sin buscar otra vez, y conservan las citas (RB-41).
+- **Plan de lectura (E10d):** desde "Ver capítulos", elegir capítulos, fecha de inicio y fecha final (o capítulos por semana). Se reparten en los días disponibles y se ve la lista "Leer cap. 3: Título (pp. 45–67)" con su fecha antes de confirmar. Al confirmar, se crea una tarea por capítulo (categoría elegida, RB-33; prioridad 2). Un capítulo que ya está en Tareas se marca y no se repite (RB-42).
+
+### 5.10 Recordatorios y app instalable (E11b a E11d, pedido del usuario del 2026-11-07)
+
+- **App instalable (E11b):**
+  - Manifiesto con nombre "Nova", ícono y pantalla completa sin la barra del navegador (`display: standalone`), y un service worker solo para notificaciones. No guarda datos privados sin conexión.
+  - En Configuración → "Instalar Nova", una guía sencilla:
+    - iPhone: Safari › Compartir › Agregar a inicio.
+    - Android: menú › Instalar app, o el botón "Instalar" cuando Chrome lo ofrece.
+  - La guía aparece también donde haga falta, por ejemplo al activar notificaciones en un iPhone que aún no la instaló.
+  - En el iPhone, la app instalada tiene su propia sesión: la primera vez hay que iniciar sesión dentro de ella.
+- **Recordatorio de una tarea (E11c):** campo "Recordatorio" en el formulario de crear y editar (RB-43).
+  - Con horario: "A la hora", "15 min antes", "1 hora antes" y "1 día antes" (de la hora de inicio).
+  - Sin horario: "El mismo día" y "El día anterior", a la hora fija de Configuración (8:00 por defecto).
+  - Las completadas no avisan.
+- **Notificación (E11c):**
+  - Título "Nova" y texto como `En 15 min: Clase (10:00 – 11:00)` (RB-44). Se ve en la pantalla de bloqueo, como banner y en el centro de notificaciones, como las de cualquier app.
+  - El numerito del ícono cuenta las notificaciones sin abrir (Badging API).
+  - El sonido es el del sistema: la web no puede elegir un sonido propio. En el iPhone, que suene depende de iOS y de sus ajustes, y se comprueba en el teléfono del usuario en E11c.
+  - Al tocarla, abre Nova en Tareas con esa tarea resaltada (`/nova/tareas?tarea=<id>`).
+- **Permiso (E11c):** nunca al abrir la app. Se pide al tocar "Activar notificaciones", que aparece al elegir el primer recordatorio y en Configuración → Notificaciones (RB-45). Configuración → Notificaciones tiene, además:
+  - "Enviar una de prueba";
+  - la hora fija para tareas sin horario;
+  - el resumen diario;
+  - el respaldo por correo.
+- **Respaldo y extras (E11d):**
+  - Por correo con Resend, solo si el usuario no tiene notificaciones activas en ningún dispositivo y no apagó el respaldo.
+  - Resumen diario opcional por la mañana: "Hoy: 3 tareas · 1 vencida" (RB-46).
+  - Botón "Agregar a mi calendario" en cada tarea pendiente, que descarga un `.ics` con la alarma del recordatorio para que la ponga el propio teléfono (RB-47).
+
 ## 6. Modelo de datos
 
 Migraciones nuevas M5 a M13 en `supabase/migrations/`, numeradas después de `20261003136000`. Todas aditivas.
@@ -353,6 +401,32 @@ La versión vigente es la de mayor `numero`. Nunca se modifica una versión: edi
 
 Columnas nuevas en `tareas_personales`: `hora_inicio TIME NULL` y `hora_fin TIME NULL`, con `CHECK (hora_fin IS NULL OR (hora_inicio IS NOT NULL AND hora_fin > hora_inicio))` (`tareas_horario_valido`). Solo aditiva: los INSERT del código de `master` las dejan en NULL.
 
+### 6.11 M15 · Libros (E10b)
+
+| Tabla | Columnas | Restricciones |
+|---|---|---|
+| `documentos` (columnas nuevas) | `paginas` SMALLINT NULL, `progreso` SMALLINT NULL (0 a 100 mientras se indexa por partes), `por_indexar` JSONB NULL (las partes que faltan, para reanudar) | `paginas` 1 a 800 |
+| `fragmentos_pdf` (columnas nuevas) | `pagina_inicio` SMALLINT NULL, `pagina_fin` SMALLINT NULL, `etiqueta_paginas` TEXT NULL (lo que se muestra: "45" o "45–46", con el número impreso si existe) | `pagina_fin >= pagina_inicio` |
+| `capitulos` | `id`, `documento_id`, `usuario_id`, `orden` SMALLINT, `nivel` SMALLINT (1 capítulo, 2 sección), `titulo` VARCHAR(200), `pagina_inicio`, `pagina_fin`, `etiqueta_paginas` TEXT, `tarea_id` UUID NULL | FK compuesta al dueño, `ON DELETE CASCADE` con el documento; `tarea_id` → `tareas_personales` `ON DELETE SET NULL` (RB-42); `UNIQUE (documento_id, orden)` |
+
+- Solo aditiva: los documentos ya indexados (y los que indexe `master`) quedan con páginas en NULL. La pantalla dice `Vuelve a indexar este documento para ver páginas y capítulos.`
+- `buscar_fragmentos_usuario` devuelve también `etiqueta_paginas` (nueva función si cambiar la firma afectara algo; nunca se toca `buscar_fragmentos`).
+
+### 6.12 M16 · Recordatorios (E11c, E11d)
+
+| Tabla | Columnas | Restricciones |
+|---|---|---|
+| `tareas_personales` (columnas nuevas) | `recordatorio` TEXT NULL (`a_la_hora`, `15_min`, `1_hora`, `1_dia`; sin horario solo `a_la_hora` = el mismo día y `1_dia`), `recordatorio_en` TIMESTAMPTZ NULL (calculado en el servidor), `recordatorio_estado` TEXT NULL (`pendiente`, `enviado`, `omitido`) | CHECK de los valores; índice parcial sobre `recordatorio_en` donde `recordatorio_estado = 'pendiente'` |
+| `suscripciones_push` | `id`, `usuario_id`, `endpoint` TEXT, `p256dh` TEXT, `auth` TEXT, `dispositivo` TEXT, `creada_en`, `ultimo_error` TEXT NULL | `UNIQUE (endpoint)`; RLS por dueño |
+| `preferencias_usuario` (columnas nuevas, M7) | `hora_recordatorio` TIME default 08:00, `resumen_diario` BOOLEAN default false, `hora_resumen` TIME default 07:00, `correo_respaldo` BOOLEAN default true | — |
+| `envios` | `id`, `usuario_id`, `tarea_id` NULL, `tipo` (`recordatorio`/`resumen`/`prueba`), `canal` (`push`/`correo`), `fecha` DATE, `resultado` TEXT, `creado_en` | `UNIQUE (usuario_id, tipo, fecha)` solo para `resumen` (índice parcial): un resumen por día |
+
+- **Programación de los envíos:**
+  - `pg_cron` y `pg_net` de Supabase llaman cada minuto a `POST /api/nova/recordatorios/tick`, con un secreto guardado en Supabase Vault (`RECORDATORIOS_SECRETO` en Vercel).
+  - Se eligió así porque Vercel Hobby solo permite tareas programadas una vez al día y con hasta una hora de imprecisión. Cada minuto exige Vercel Pro (20 USD al mes).
+  - Hasta E21, la llamada va a la vista previa con el encabezado de omisión de la protección de Vercel (`x-vercel-protection-bypass`). En E21 pasa a producción.
+- Solo aditiva: los INSERT de `master` dejan `recordatorio` en NULL.
+
 ## 7. Reglas de cálculo
 
 Todas en funciones puras de `src/lib/reglas/` (sin red, sin base, sin reloj salvo `fechas.ts`), probadas con Vitest. Notas en centésimas (0 a 500), porcentajes en centésimas de punto (0 a 10000). Los productos se calculan con enteros; la división final y el redondeo, con aritmética exacta sobre esos enteros.
@@ -437,6 +511,22 @@ Nota: el índice diario usa la **fecha límite**; las metas usan la **fecha de c
 
 Con la regla 7.5 y la meta como objetivo: "Alcanzable: necesitas {x} en lo que falta", "Ya la aseguraste" o "No alcanzable: lo máximo posible es {y}". Para una meta de corte se usa el peso pendiente del corte.
 
+### 7.10 Hora de un recordatorio (E11c)
+
+En la zona `America/Bogota`, con la fecha límite `F`, la hora de inicio `H` (si hay) y la hora fija `R` de Configuración (8:00 por defecto):
+
+| Recordatorio | Con horario | Sin horario |
+|---|---|---|
+| `a_la_hora` | F + H | F + R ("El mismo día") |
+| `15_min` | F + H − 15 min | — |
+| `1_hora` | F + H − 1 h | — |
+| `1_dia` | F + H − 1 día | F − 1 día + R ("El día anterior") |
+
+- Cruza bien la medianoche, el fin de mes y el fin de año (por ejemplo, 15 min antes de las 00:10 es 23:55 del día anterior).
+- Se recalcula al crear, al editar (E09) y al cambiar la hora fija. Al completar o eliminar la tarea, se cancela.
+- Si al guardar la hora ya pasó, la tarea se guarda con el aviso de RB-43 y queda `omitido`.
+- **Envío** (cada minuto): se toman los `pendiente` con `recordatorio_en` entre ahora − 30 min y ahora, con `FOR UPDATE SKIP LOCKED`, y se marcan `enviado` en la misma transacción. Así una tarea nunca avisa dos veces. Los que se atrasaron más de 30 minutos (por ejemplo, si la base estuvo pausada) pasan a `omitido`.
+
 ## 8. Reglas de negocio y mensajes exactos
 
 Los mensajes se usan **textualmente** en la interfaz y en la API. Los de `PLAN_NOVA.md` (sección 5.1 y 12.2) no cambian.
@@ -478,6 +568,18 @@ Los mensajes se usan **textualmente** en la interfaz y en la API. Los de `PLAN_N
 | RB-33 | (E05b, pedido del usuario) La categoría de una tarea se resuelve en el servidor (`resolverCategoria`, dentro de la transacción de quien crea la tarea: formulario, E19 y cualquier forma futura, como el chat si se agregara): se recortan y unen los espacios y se compara sin mayúsculas; si existe, se usa su nombre guardado (" universidad " → "Universidad"); si no, se crea con el siguiente color libre; vacía → General. Nombres de 1 a 80 caracteres (aprobado por el usuario) | `Escribe un nombre de 1 a 80 caracteres.` |
 | RB-34 | (E06b, pedido del usuario) Horario opcional de una tarea: hora de inicio y de fin en 24 horas (`HH:MM`). Puede haber solo inicio, nunca solo fin; el fin es posterior al inicio dentro del mismo día; no se valida que dos tareas se crucen. Se muestra como "8:00 – 9:30" (o "8:00") en Mi semana, Prioridades de hoy, Tareas y Calendario. En cada día, primero las tareas con hora (por hora de inicio) y después las demás (por prioridad y título); Prioridades de hoy mantiene su orden por prioridad. El Asistente recibe el horario de cada tarea. El formulario usa el selector de hora del navegador (su apariencia depende del teléfono; lo guardado y lo mostrado en la app es de 24 horas). E11 agregará la opción de ver 12 horas | `La hora debe tener formato HH:MM de 24 horas.` · `La hora de fin necesita una hora de inicio.` · `La hora de fin debe ser después de la de inicio.` (`HORA_INVALIDA`, `HORA_FIN_SIN_INICIO`, `HORA_FIN_ANTES`, 422) |
 | RB-35 | (E12) Quitar los cortes de una materia solo se permite cuando queda uno (sección 6.4) | `Para quitar los cortes, deja solo uno.` |
+| RB-36 | (E10b) Cada fragmento de un documento indexado desde E10b guarda su página o rango, y toda cita lo muestra. Número impreso si el PDF lo tiene; si no, el del PDF | Cita: `libro.pdf · p. 45` o `libro.pdf · pp. 45–46`. Documento anterior: `Vuelve a indexar este documento para ver páginas y capítulos.` |
+| RB-37 | (E10b) Capítulos del índice interno del PDF; si no tiene, de encabezados al comienzo de página; si no hay ninguno, no se inventan | `No encontré capítulos en este PDF. Puedes preguntar por página.` |
+| RB-38 | (E10b) Libro de hasta 800 páginas (y 15 MB, RN-01); se indexa por partes y se puede reanudar; mientras tanto no entra en las búsquedas | `El PDF tiene {n} páginas; el máximo es 800.` · Estado: `Indexando… {p} %` |
+| RB-39 | (E10c) Pregunta por página ("página 45", "pág. 45", "p. 45"): se responde con los fragmentos de esa página, sin búsqueda vectorial, y se cita la página. Con varios documentos con páginas y ninguno elegido en "Buscar en", se pregunta cuál | `Ese documento tiene {n} páginas.` · `¿En qué documento? Elígelo en "Buscar en".` |
+| RB-40 | (E10c) Pregunta por capítulo (por número o por título): todos los fragmentos del capítulo, hasta 60 (unas 30.000 palabras) por respuesta; si es más largo, se resume por partes a pedido del usuario | `El capítulo es largo: resumí las páginas {a}–{b}. Escribe "sigue" para el resto.` · Sin ese capítulo: `No encontré el capítulo {x} en este documento.` |
+| RB-41 | (E10c) "Explicar de otra manera": 5 modos; solo bajo respuestas que citan documentos; usa exactamente los fragmentos de esa respuesta (sin buscar otra vez) y conserva sus citas; cada modo es una llamada a Gemini y queda en el historial | Mensaje del usuario en el historial: `Explícalo: {modo}` |
+| RB-42 | (E10d) Plan de lectura: capítulos elegidos entre fecha de inicio y fecha final (o N capítulos por semana), repartidos en orden; vista previa antes de crear; un capítulo ya en Tareas no se repite | `La fecha final debe ser igual o posterior a la de inicio.` · `Este capítulo ya está en Tareas.` |
+| RB-43 | (E11c) Recordatorio opcional de una tarea pendiente (regla 7.10); con horario, 4 opciones; sin horario, 2 a la hora fija | `Ese momento ya pasó: no se enviará el recordatorio.` (aviso; la tarea se guarda) |
+| RB-44 | (E11c) Texto exacto de la notificación (título "Nova") | `Ahora: {t} ({h})` · `En 15 min: {t} ({h})` · `En 1 hora: {t} ({h})` · `Mañana: {t} ({h})` · sin horario: `Hoy: {t}` · `Mañana: {t}` |
+| RB-45 | (E11c) El permiso de notificaciones se pide solo después de tocar "Activar notificaciones"; en un iPhone sin la app instalada se muestra la guía de E11b; si el permiso está negado, se explica y se usa el correo | `Para recibir avisos en el iPhone, primero agrega Nova a inicio.` · `Las notificaciones están bloqueadas. Actívalas en los ajustes del teléfono para Nova.` |
+| RB-46 | (E11d) Resumen diario opcional a la hora elegida (7:00 por defecto), uno por día, solo si hay tareas de hoy o vencidas; respaldo por correo solo sin notificaciones activas | `Hoy: {n} tareas · {v} vencidas` (en singular cuando corresponde) |
+| RB-47 | (E11d) "Agregar a mi calendario": `.ics` con el evento (con horario, o de todo el día) y una alarma por el recordatorio | `Es una copia: si cambias la tarea en Nova, vuelve a agregarla.` |
 | RB-29 | Editar una tarea: solo pendientes y del usuario; título, categoría, prioridad y fecha límite con las mismas validaciones y mensajes que al crear; estado, minutos y fecha de cierre no se tocan | Los de crear (`PLAN_NOVA.md` 5.1). Tarea completada: `La tarea ya está completada.` (`TAREA_YA_COMPLETADA`, 409). De otro usuario o inexistente: `La tarea no existe.` (`TAREA_NO_ENCONTRADA`, 404) |
 
 Códigos de error nuevos (404 salvo indicación): `CATEGORIA_NO_ENCONTRADA`, `CATEGORIA_DUPLICADA` (409), `MATERIA_NO_ENCONTRADA`, `MATERIA_DUPLICADA` (409), `CORTE_NO_ENCONTRADO`, `COMPONENTE_NO_ENCONTRADO`, `NOTA_NO_ENCONTRADA`, `PORCENTAJES_INVALIDOS` (422, solo RB-10 y los cortes por defecto de Configuración), `CORTES_NO_SE_QUITAN` (422, RB-35), `NOTA_INVALIDA` (422), `META_NO_ENCONTRADA`, `META_DUPLICADA` (409), `PLAN_SIN_TEMAS` (422), `PLAN_SIN_FECHA` (422), `SIN_SYLLABUS` (422), `PLAN_INVALIDO` (502), `PASO_YA_EN_TAREAS` (409).
@@ -537,6 +639,14 @@ Todas con `exigirSesion()` como primera instrucción y el id del usuario de la s
 | `GET /api/nova/cortes/[id]/plan`, `POST .../plan/generar`, `POST .../plan/versiones` (manual), `POST .../plan/restaurar` | Plan y versiones | E18 |
 | `POST /api/nova/planes/[id]/pasos/[pasoId]/tarea` | Pasar a Tareas | E19 |
 | `GET /api/nova/estadisticas` | Datos de Estadísticas | E20 |
+| `POST /api/nova/documentos/[id]/continuar` | Indexar la parte siguiente de un libro (RB-38) | E10b |
+| `GET /api/nova/documentos/[id]/capitulos` | Capítulos con sus páginas | E10b |
+| `POST /api/nova/consultar` (campos nuevos) | `documentoId` ("Buscar en"), y `explicar: { mensajeId, modo }` (RB-41) | E10c |
+| `POST /api/nova/documentos/[id]/plan-lectura` (vista previa) y `.../plan-lectura/confirmar` | Plan de lectura (RB-42) | E10d |
+| `POST/DELETE /api/nova/notificaciones/suscripcion`, `POST /api/nova/notificaciones/prueba` | Suscripción push del dispositivo y aviso de prueba | E11c |
+| `POST /api/nova/recordatorios/tick` | Envío cada minuto; sin sesión, con `RECORDATORIOS_SECRETO` | E11c |
+| `GET /api/nova/tareas/[id]/ics` | "Agregar a mi calendario" (RB-47) | E11d |
+| `src/app/manifest.ts`, `public/sw.js` | Manifiesto e service worker; públicos (el middleware no los protege) | E11b |
 
 Las rutas que llaman a Gemini declaran `maxDuration = 60`.
 
@@ -549,6 +659,12 @@ Las rutas que llaman a Gemini declaran `maxDuration = 60`.
   - S-07 a S-12 (componentes y cortes): componente con 2 de 5 notas calificadas (lo que falta no cuenta como 0); componente sin notas (pendiente completo); materia sin notas (RB-13); materia completa (definitiva); materia con cortes (nota de cada corte); el ejemplo de 7.4 (3,7 actual, 2,5 asegurado) con un peso no exacto (20 % / 3) sin error de coma flotante. S-12b: porcentajes que no suman 100 % dan la nota actual con el aviso, sin estado ni "¿Cuánto necesito?".
   - S-13 a S-18 ("¿Cuánto necesito?"): ya asegurado; el ejemplo de 7.5 (1,4 para 3,0; 4,5 para la meta 4,0); imposible con máximo alcanzable (meta 4,5 → 4,1); W = 0; truncar frente a redondear con el mismo dato (el umbral cambia en 0,05); resultado redondeado hacia arriba.
   - S-19 a S-21 (promedio por créditos), S-22 a S-24 (fallas), S-25 a S-28 (metas semanales, semana de Bogotá en el borde del domingo a medianoche).
+  - S-33 a S-36 (libros, E10b): fragmentos por página con su rango, etiquetas con número impreso, índice anidado a capítulos con página final, encabezados como respaldo y ningún capítulo inventado.
+  - S-37 a S-39 (E10c): detectar "página 45", "pág. 45", "p. 45", "capítulo 3" y "capítulo de X" (sin confundir "3 páginas" o "el capítulo anterior"); página fuera de rango.
+  - S-40 y S-41 (E10d): reparto de capítulos entre dos fechas y por semana; capítulo ya en Tareas.
+  - S-42 a S-47 (E11c, regla 7.10): las 4 opciones con horario, las 2 sin horario, cruce de medianoche, de mes y de año en Bogotá, hora ya pasada.
+  - S-48 y S-49 (E11c): ventana de 30 min sin envíos dobles; texto exacto de RB-44.
+  - S-50 (E11d): `.ics` válido (zona horaria, todo el día y alarma).
   - S-29 a S-32 (validación del plan: tema no confirmado, fuente inventada, fecha fuera de rango, plan válido).
 - **Contraste**: una prueba lee los tokens de `globals.css` y comprueba ≥ 4,5:1 en cada par texto/fondo, en ambos modos, y para los 8 colores de categoría.
 - **Servidor**: cada ruta nueva prueba 401/403, aislamiento (un id de otro usuario responde como inexistente), validación y contrato.
@@ -562,6 +678,8 @@ Las rutas que llaman a Gemini declaran `maxDuration = 60`.
 
 - `npm run probar:rag` y `npm run db:verificar` en cada etapa que toque datos (este último se amplía con las tablas nuevas, su RLS y sus restricciones).
 - `npm run probar:semestre` (nuevo, E13): crea una materia de prueba completa en la base real, comprueba los cálculos contra valores hechos a mano y borra lo que creó.
+- `npm run probar:libro` (nuevo, E10b y E10c): con un PDF de prueba de unas 40 páginas con índice, comprueba capítulos y páginas, una pregunta por página con su cita, un capítulo y "Más simple" con Gemini real; borra lo que creó.
+- `npm run probar:recordatorios` (nuevo, E11c): crea tareas con recordatorio, llama al tick con un reloj fijo en modo de prueba (sin enviar) y comprueba qué se enviaría y que no se repite; borra lo que creó.
 - `npm run probar:plan` (nuevo, E18): con Gemini real, propone temas desde un PDF de prueba y genera un plan; comprueba que pasa la validación y borra lo que creó.
 
 ### 11.3 Compatibilidad con `master` (después de cada migración)
@@ -572,7 +690,7 @@ Con un `git worktree` de `master` en una carpeta temporal: `npm run probar:rag` 
 
 En cada etapa con interfaz: navegador real a 1280 px y 390 px (sin desplazamiento horizontal, sin errores de página, foco visible) y prueba del usuario en la **vista previa de Vercel** desde su teléfono.
 
-## 12. Casos de aceptación B-01 a B-47
+## 12. Casos de aceptación B-01 a B-59
 
 Se ejecutan en la vista previa de Vercel de `ampliacion`, en computador y en teléfono, y se registran en `doc/ACEPTACION.md` (sección nueva). Antes, se repiten A-01 a A-21 en la vista previa.
 
@@ -625,6 +743,16 @@ Se ejecutan en la vista previa de Vercel de `ampliacion`, en computador y en tel
 | B-47 | Crear tareas de hoy con horario (8:00 – 9:30, solo 20:00) y sin horario; probar "Hasta" sin "Desde" y "Hasta" antes de "Desde"; preguntar al Asistente por una hora | Los mensajes exactos de RB-34; en Mi semana el día muestra primero las de hora en orden y luego las demás por prioridad, con su horario; Tareas y Prioridades de hoy muestran el horario; el Asistente responde con la tarea de esa hora |
 | B-48 | (E08) Registrar tarea: tocar el campo de categoría, escribir parte de un nombre, escribir " universidad " (existente) y luego un nombre nuevo; guardar con ‘Crear “X”’ y otra tarea escribiendo el mismo nombre en minúsculas sin elegir | Lista con los colores; se filtra; " universidad " no ofrece crear; el nombre nuevo muestra ‘Crear “X”’ y el aviso; al guardar se crea una sola categoría con el siguiente color libre y las dos tareas la usan |
 | B-49 | (E08) Con una tarea vencida: en Inicio, tocar "1 tarea vencida"; en Mi semana y en Tareas, ver la tarea | Abre Tareas en "Vencidas" (píldora activa) con solo las pendientes vencidas; la insignia "Vencida" aparece en Mi semana y en Tareas, no en las completadas ni en las de hoy |
+| B-50 | (E10b) Indexar un libro de más de 300 páginas con índice | Avanza "Indexando… %" y se puede cerrar y volver; al terminar, "Ver capítulos" lista sus capítulos con páginas |
+| B-51 | (E10c) "¿Qué dice la página 45?" con el libro elegido en "Buscar en"; y con dos libros sin elegir | Responde con esa página citando `p. 45`; sin elegir, pregunta en qué documento (RB-39) |
+| B-52 | (E10c) "Resume el capítulo 3" | Resumen del capítulo citando sus páginas; si es muy largo, el aviso de RB-40 |
+| B-53 | (E10c) Bajo una respuesta con citas, tocar "Más simple" y "Con un ejemplo" | Respuestas nuevas con las mismas citas, sin buscar otra vez |
+| B-54 | (E10d) Plan de lectura de 4 capítulos en dos semanas; repetirlo | 4 tareas con fechas repartidas y páginas en el título; la segunda vez, esos capítulos dicen "Este capítulo ya está en Tareas." |
+| B-55 | (E11b) En el iPhone: agregar Nova a inicio desde la guía; en Android, "Instalar" | Ícono "Nova", abre a pantalla completa sin barra del navegador; inicia sesión dentro de la app |
+| B-56 | (E11c) Activar notificaciones desde el primer recordatorio y "Enviar una de prueba" | El permiso se pide solo al tocar el botón; la de prueba llega a la pantalla de bloqueo y al centro de notificaciones |
+| B-57 | (E11c) Tarea de hoy con horario dentro de 20 min y recordatorio "15 min antes"; otra sin horario con "El mismo día" | Llega `En 15 min: {título} ({horario})` una sola vez; al tocarla abre la tarea resaltada; el ícono muestra el numerito; la otra avisa a la hora fija |
+| B-58 | (E11d) Con las notificaciones desactivadas en todos los dispositivos y el respaldo por correo encendido | El recordatorio llega por correo |
+| B-59 | (E11d) "Agregar a mi calendario" en el iPhone y en Android | Se abre el calendario del teléfono con el evento y su alarma |
 | B-41 | Editar una tarea pendiente desde Tareas, Inicio y Calendario (título, categoría, prioridad y fecha) | El formulario abre lleno; al guardar, el cambio se ve en las tres pantallas y en su día del Calendario; "Cancelar" no cambia nada |
 | B-42 | Al editar, poner fecha "2026-02-30" y luego prioridad 5 por la API; intentar editar una tarea completada | Mismos mensajes que al crear (A-03, A-04); la completada responde "La tarea ya está completada." y no muestra "Editar" |
 
@@ -641,4 +769,11 @@ Se ejecutan en la vista previa de Vercel de `ampliacion`, en computador y en tel
 | Vista previa protegida por Vercel | Si pide iniciar sesión en Vercel en el teléfono, el usuario entra con su cuenta de Vercel o desactiva la protección de vista previa; se comprueba en E00 |
 | Variables de entorno en vista previa | `GEMINI_API_KEY` y `BLOB_READ_WRITE_TOKEN` ya están en Preview; las de Supabase y Postgres se comprueban por nombre en E00 |
 | Navegador para pruebas | Edge con `puppeteer-core`; si una actualización pendiente lo impide, se verifica por HTTP y se avisa (como en P10 y P11) |
-| Tamaño de la ampliación | 22 etapas pequeñas, cada una con su commit y su prueba; se puede parar en cualquier etapa con todo funcionando |
+| Tareas programadas en Vercel Hobby (una vez al día, imprecisas) | Los recordatorios usan `pg_cron` + `pg_net` de Supabase cada minuto (gratis); `pg_net` está en beta y no reintenta: el tick es idempotente y `db:verificar` revisa `net._http_response` |
+| Supabase gratis pausa proyectos inactivos | Con uso diario no pasa; si se pausara, los avisos atrasados más de 30 min se omiten (7.10), no llegan tarde en tropel |
+| Sonido de las notificaciones en el iPhone | La web no elige el sonido; iOS decide según sus ajustes. Se comprueba en el iPhone del usuario en E11c y se documenta lo que se ve |
+| Cuota gratuita de Gemini con libros largos | Embeddings gratis: unos 30.000 tokens por minuto y unas 1.000 peticiones al día (cifras de la documentación de Google, a confirmar en AI Studio). Un libro de 400 páginas (unos 210.000 tokens) tarda unos 8 a 10 minutos: por eso se indexa por partes (RB-38). Caben 1 o 2 libros grandes por día y comparten la cuota con las preguntas. Resumir un capítulo es una sola llamada de hasta unas 40.000 palabras; "Explicar de otra manera" es una llamada por toque |
+| Espacio en Supabase gratis (500 MB) | Un libro de 400 páginas ocupa unos 2 a 3 MB (texto, vectores e índice); los PDF se borran de Blob al terminar |
+| Remitente de Resend | Gratis: 100 correos al día y 3.000 al mes. `RESEND_FROM` debe ser un dominio verificado: con el remitente de prueba de Resend solo llegan correos al dueño de la cuenta. Se comprueba en E11d |
+| Sesión dentro de la app instalada en el iPhone | Es distinta de la de Safari: se inicia sesión una vez dentro de la app; la guía lo dice |
+| Tamaño de la ampliación | 22 etapas pequeñas (más las agregadas después), cada una con su commit y su prueba; se puede parar en cualquier etapa con todo funcionando |

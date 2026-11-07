@@ -305,6 +305,62 @@ VERIFICACIÓN: B-19 y B-20; A-06 a A-08, A-18 y A-21.
 
 ---
 
+## E10b · Libros: páginas y capítulos (pedida por el usuario, 2026-11-07)
+
+**Plan:** 5.9, 6.11, RB-36 a RB-38. **Requisito:** E10.
+
+```text
+OBJETIVO: que cada fragmento sepa su página, detectar los capítulos y aguantar libros largos.
+
+TAREA 1. Respaldo y migración M15 (documentos.paginas/progreso/por_indexar, fragmentos_pdf.pagina_inicio/pagina_fin/etiqueta_paginas, capitulos). Compatibilidad con master (11.3).
+TAREA 2. Extraer por página con unpdf (sin mergePages) y las etiquetas de página; fragmentar por palabras (RN-10) guardando el rango de páginas de cada fragmento. Pruebas S-33 a S-36.
+TAREA 3. Capítulos: índice interno del PDF (con la página final de cada uno) y, si no hay, encabezados al comienzo de página; nunca inventar (RB-37).
+TAREA 4. Indexación por partes que se puede reanudar (POST .../continuar), "Indexando… %" en Fuentes y límite de 800 páginas (RB-38). Las citas muestran la página en todo el Asistente (RB-36).
+TAREA 5. Fuentes: "Ver capítulos" con títulos y páginas. Script probar:libro (parte de páginas y capítulos).
+
+VERIFICACIÓN: B-50; A-06 a A-12 y A-21 siguen pasando.
+```
+
+**Commit:** `feat(fuentes): páginas y capítulos de los libros`
+
+---
+
+## E10c · Libros en el Asistente (pedida por el usuario, 2026-11-07)
+
+**Plan:** 5.9, RB-39 a RB-41. **Requisito:** E10b.
+
+```text
+OBJETIVO: preguntar por página o capítulo y pedir otra explicación.
+
+TAREA 1. Selector "Buscar en" (Todos o un documento) encima del campo del Asistente.
+TAREA 2. Reglas puras para reconocer página y capítulo (S-37 a S-39); consulta directa por página o capítulo, sin vector, con citas de página (RB-39, RB-40). Las reglas de RB-30 a RB-32 no cambian.
+TAREA 3. "Explicar de otra manera" bajo las respuestas con citas: 5 modos, mismos fragmentos, mismas citas, historial (RB-41).
+TAREA 4. probar:rag y probar:libro con Gemini real (pregunta por página, capítulo y "Más simple").
+
+VERIFICACIÓN: B-51 a B-53; B-43 a B-45 siguen pasando.
+```
+
+**Commit:** `feat(asistente): preguntas por página y capítulo y explicar de otra manera`
+
+---
+
+## E10d · Plan de lectura por capítulos (pedida por el usuario, 2026-11-07)
+
+**Plan:** 5.9, RB-42. **Requisito:** E10b.
+
+```text
+OBJETIVO: convertir capítulos en tareas con fecha.
+
+TAREA 1. Regla pura del reparto (entre dos fechas o N por semana), con pruebas S-40 y S-41.
+TAREA 2. En "Ver capítulos": elegir capítulos y fechas, vista previa con "Leer cap. N: Título (pp. a–b)" y su fecha, confirmar; crea las tareas en una transacción (categoría con RB-33, prioridad 2) y marca capitulos.tarea_id. Un capítulo ya en Tareas no se repite.
+
+VERIFICACIÓN: B-54; las tareas aparecen en Inicio, Calendario y Tareas.
+```
+
+**Commit:** `feat(fuentes): plan de lectura por capítulos`
+
+---
+
 ## E11 · Configuración completa
 
 **Plan:** 5.8, 6.3, RB-11, RB-25 a RB-28. **Requisito:** E05.
@@ -323,6 +379,63 @@ VERIFICACIÓN: B-03, B-22 y B-23.
 ```
 
 **Commit:** `feat(configuracion): perfil, apariencia, académico y asistente`
+
+---
+
+## E11b · App instalable (PWA) (pedida por el usuario, 2026-11-07)
+
+**Plan:** 5.10, 10. **Requisito:** E11.
+
+```text
+OBJETIVO: que Nova se pueda agregar a inicio como una app, antes de los recordatorios (en el iPhone, las notificaciones solo funcionan así, iOS 16.4 o más reciente).
+
+TAREA 1. src/app/manifest.ts (nombre "Nova", display standalone, start_url /nova, colores de los tokens), íconos 192, 512, maskable y apple-touch-icon (provisionales; los finales en E20b), metadatos de Apple en el layout. El middleware deja públicos el manifiesto, los íconos y el service worker.
+TAREA 2. public/sw.js mínimo, registrado solo dentro de /nova; sin caché de datos privados.
+TAREA 3. Configuración → "Instalar Nova" con la guía para iPhone (Safari › Compartir › Agregar a inicio) y Android (Instalar app o el botón cuando Chrome lo ofrece); si ya está instalada, lo dice.
+
+VERIFICACIÓN: B-55; Lighthouse sin errores de instalabilidad.
+```
+
+**Commit:** `feat(app): Nova instalable`
+
+---
+
+## E11c · Recordatorios con notificaciones push (pedida por el usuario, 2026-11-07)
+
+**Plan:** 5.10, 6.12, 7.10, RB-43 a RB-45. **Requisito:** E11b y E09.
+
+```text
+OBJETIVO: avisos como los de cualquier app, a la hora elegida.
+
+TAREA 1. Respaldo y migración M16; claves VAPID en Vercel (Production y Preview) y en .env.local; librería web-push. Compatibilidad con master (11.3).
+TAREA 2. Regla pura de la hora del recordatorio (7.10) y del texto (RB-44), pruebas S-42 a S-49.
+TAREA 3. Campo "Recordatorio" en crear y editar (opciones según haya horario); recalcular al editar, cancelar al completar o eliminar.
+TAREA 4. Suscripción: "Activar notificaciones" solo por acción del usuario (RB-45), guía de E11b en el iPhone sin instalar, "Enviar una de prueba"; Configuración → Notificaciones con la hora fija.
+TAREA 5. Tick cada minuto (pg_cron + pg_net + Vault) con la ventana de 30 min sin envíos dobles; borrar suscripciones vencidas (404/410). Service worker: mostrar, numerito (setAppBadge), abrir /nova/tareas?tarea=<id> y resaltarla.
+TAREA 6. probar:recordatorios; prueba real en el iPhone y en Android del usuario (pantalla de bloqueo, banner, centro de notificaciones, numerito y sonido: se anota lo que hace iOS).
+
+VERIFICACIÓN: B-56 y B-57.
+```
+
+**Commit:** `feat(recordatorios): notificaciones push de las tareas`
+
+---
+
+## E11d · Correo, resumen diario y "Agregar a mi calendario" (pedida por el usuario, 2026-11-07)
+
+**Plan:** 5.10, RB-46, RB-47. **Requisito:** E11c.
+
+```text
+OBJETIVO: que el aviso llegue aunque no haya notificaciones y que el teléfono pueda poner su propia alarma.
+
+TAREA 1. Respaldo por correo con Resend (src/lib/correo.ts) solo si no hay notificaciones activas y el respaldo está encendido; comprobar que RESEND_FROM es un dominio verificado.
+TAREA 2. Resumen diario opcional (hora en Configuración), uno por día, por notificación o por correo.
+TAREA 3. GET /api/nova/tareas/[id]/ics y botón "Agregar a mi calendario", con la alarma del recordatorio (S-50).
+
+VERIFICACIÓN: B-58 y B-59.
+```
+
+**Commit:** `feat(recordatorios): correo, resumen diario y calendario del teléfono`
 
 ---
 
@@ -538,11 +651,12 @@ Anota en el plan lo que decidas y avísame antes de pasar a la siguiente pantall
 **Plan:** 12. **Requisito:** E20b.
 
 ```text
-TAREA 1. Agregar a doc/ACEPTACION.md la tabla B-01 a B-47 (columnas como A-01 a A-15) y la nota de repetir A-01 a A-21 en la vista previa.
+TAREA 1. Agregar a doc/ACEPTACION.md la tabla B-01 a B-59 (columnas como A-01 a A-15) y la nota de repetir A-01 a A-21 en la vista previa.
 TAREA 2. Revisión final: sin botones muertos (recorrido de todas las pantallas), sin colores fuera de los tokens, sin textos en inglés, todas las rutas nuevas con exigirSesion y filtro por usuario, ninguna clave en el repositorio.
 TAREA 3. Actualizar README (funciones, pantallas, scripts nuevos) y crear doc/checkpoints/AMPLIACION_COMPLETADA.md.
 TAREA 4. Preparar (sin aplicar) la migración que quita el disparador de dueño por defecto (plan, 6.1): comprueba que no quedan filas sin usuario_id, borra el disparador y asignar_dueno_por_defecto (y nova_config si nada más la usa) y pasa usuario_id a NOT NULL. Se aplica solo al unir ampliacion con master, después de que master tenga el código nuevo; nunca antes, porque rompería el código de master en producción.
-TAREA 5. Recordarle al usuario ejecutar B-01 a B-47 y A-01 a A-21 en la vista previa, en computador y teléfono. La unión de ampliacion con master solo se hace si el usuario la pide, e incluye revisar y aplicar la migración de la TAREA 4.
+TAREA 5. Recordarle al usuario ejecutar B-01 a B-59 y A-01 a A-21 en la vista previa, en computador y teléfono. La unión de ampliacion con master solo se hace si el usuario la pide, e incluye revisar y aplicar la migración de la TAREA 4.
+TAREA 6. (Recordatorios, E11c) Al unir con master: el trabajo de pg_cron pasa a llamar a la URL de producción, se quita el encabezado de omisión de la protección de la vista previa y se comprueba que las claves VAPID y RECORDATORIOS_SECRETO están en Production.
 ```
 
 **Commit:** `docs: aceptación de la ampliación`
