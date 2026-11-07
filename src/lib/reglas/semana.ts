@@ -68,18 +68,23 @@ export function prioridadesDeHoy<T extends TareaSemana>(tareas: readonly T[], ho
 }
 
 /**
- * Agrupa las tareas por día de la semana (por fecha límite). En cada día, primero las que tienen hora
- * (por hora de inicio) y después las demás, por prioridad y título (RB-34).
+ * Agrupa las tareas por día de la semana (por fecha límite). En cada día, las pendientes primero y las
+ * completadas al final (pedido del usuario); dentro de cada grupo, primero las que tienen hora (por hora de
+ * inicio) y después las demás, por prioridad y título (RB-34).
  */
-export function tareasPorDia<T extends Pick<TareaSemana, 'fechaLimite' | 'prioridad' | 'titulo'> & { horaInicio?: string | null; horaFin?: string | null }>(
+export function tareasPorDia<T extends Pick<TareaSemana, 'fechaLimite' | 'prioridad' | 'titulo' | 'estado'> & { horaInicio?: string | null; horaFin?: string | null }>(
   tareas: readonly T[],
   dias: readonly string[],
 ): Record<string, T[]> {
   const grupos: Record<string, T[]> = Object.fromEntries(dias.map((d) => [d, [] as T[]]));
   for (const t of tareas) grupos[t.fechaLimite.slice(0, 10)]?.push(t);
-  for (const lista of Object.values(grupos)) lista.sort(compararPorHorario);
+  const completada = (t: T) => (t.estado === 'Completada' ? 1 : 0);
+  for (const lista of Object.values(grupos)) lista.sort((a, b) => completada(a) - completada(b) || compararPorHorario(a, b));
   return grupos;
 }
+
+/** Mi semana en el computador: tareas visibles por columna antes de "+N más" (pedido del usuario). */
+export const MAX_TAREAS_COLUMNA = 4;
 
 /** "1 tarea vencida" / "3 tareas vencidas". */
 export function textoVencidas(n: number): string {

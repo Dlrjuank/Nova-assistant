@@ -102,6 +102,24 @@ describe('MiSemana', () => {
     expect(within(screen.getByRole('listitem', { name: 'lunes 2 de nov.' })).getByText('Sin tareas')).toBeTruthy();
   });
 
+  it('computador: como máximo 4 tareas por columna; "+N más" abre el día completo y "Ver menos" lo cierra', () => {
+    const seis = Array.from({ length: 6 }, (_, i) => tarea(String(i + 1)));
+    render(<MiSemana {...props} porDia={{ ...props.porDia, '2026-11-04': seis }} actual={null} />);
+    const miercoles = screen.getByRole('listitem', { name: 'miércoles 4 de nov.' });
+    expect(within(miercoles).getAllByRole('checkbox')).toHaveLength(4);
+    const mas = within(miercoles).getByRole('button', { name: 'Ver 2 tareas más del miércoles 4 de nov.' });
+    expect(mas.textContent).toBe('+2 más');
+    expect(mas.getAttribute('aria-expanded')).toBe('false');
+    fireEvent.click(mas);
+    expect(within(miercoles).getAllByRole('checkbox')).toHaveLength(6);
+    const menos = within(miercoles).getByRole('button', { name: 'Ver menos tareas del miércoles 4 de nov.' });
+    expect(menos.getAttribute('aria-expanded')).toBe('true');
+    fireEvent.click(menos);
+    expect(within(miercoles).getAllByRole('checkbox')).toHaveLength(4);
+    // En el teléfono (lista del día elegido) no hay tope.
+    expect(within(screen.getByRole('heading', { level: 3 }).parentElement as HTMLElement).getAllByRole('checkbox')).toHaveLength(6);
+  });
+
   it('teléfono: 7 días para elegir; empieza en hoy y al elegir otro muestra sus tareas', () => {
     render(<MiSemana {...props} actual={null} />);
     const grupo = screen.getByRole('group', { name: 'Elegir día' });

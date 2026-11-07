@@ -48,4 +48,12 @@ describe('RB-34: horario', () => {
       'mañana corta', 'mañana larga', 'tarde', 'sin hora alta', 'sin hora baja',
     ]);
   });
+
+  it('en cada día, las completadas van al final (también con hora)', () => {
+    const t = (titulo: string, estado: string, horaInicio: string | null = null) => ({
+      titulo, estado, horaInicio, horaFin: null, prioridad: 2, fechaLimite: '2026-11-07', id: titulo,
+    });
+    const dia = tareasPorDia([t('hecha temprano', 'Completada', '07:00'), t('pendiente sin hora', 'Pendiente'), t('pendiente 9', 'Pendiente', '09:00')], ['2026-11-07']);
+    expect(dia['2026-11-07']?.map((x) => x.titulo)).toEqual(['pendiente 9', 'pendiente sin hora', 'hecha temprano']);
+  });
 });

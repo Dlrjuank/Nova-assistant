@@ -30,6 +30,7 @@
 | E06 Ampliación: Inicio | completado | correcto | 389 pasan | 2026-11-07 |
 | Ajustes de E06 (columnas, prioridad, botón "+") | completado | correcto | 391 pasan | 2026-11-07 |
 | E06b Ampliación: horario de las tareas (M14) | completado | correcto | 404 pasan | 2026-11-07 |
+| Ajuste: tope de 4 tareas por columna y completadas al final | completado | correcto | 406 pasan | 2026-11-07 |
 
 ## Bitácora
 
@@ -461,3 +462,12 @@ Total de fallas: 0
 - **`probar:rag`** (Gemini real, 0 fallas): paso 14 nuevo, "¿Qué tengo mañana a las 3 de la tarde?" responde con la tarea de 15:00 a 16:00.
 - **Navegador real** (Edge, usuario temporal borrado al final; 0 fallas en 16): en el teléfono, el formulario (letra de 16 px) avisa "La hora de fin necesita una hora de inicio." y guarda 08:00 – 09:30; Tareas muestra "· 8:00 – 9:30"; Mi semana a 1280 ordena hoy "8:00 – 9:30", "20:00", luego sin hora Alta y Baja; Prioridades de hoy sigue por prioridad con el horario; Inicio, Tareas y el formulario en claro y oscuro, 1280 y 390, sin desborde. El selector de hora del navegador se ve según la configuración del dispositivo (en la prueba, "08:00 a. m."): lo guardado y lo mostrado por la app es de 24 horas.
 - **Al cierre:** `npm test` 404/404, `npm run build` correcto, `eslint` sin errores.
+- **Prueba del usuario (teléfono y PC):** el formulario con la rueda del iPhone, los dos mensajes, el orden por horario, Prioridades de hoy, el horario en Tareas y el Asistente funcionan. E06b confirmado.
+
+#### Ajuste: tope de 4 tareas por columna (2026-11-07, pedido del usuario)
+
+- Se hizo ahora (no en E08) porque solo toca Mi semana. `tareasPorDia` pone las completadas al final de cada día (en el computador y en el teléfono). En las columnas del computador se ven como máximo `MAX_TAREAS_COLUMNA` (4) y "+N más" abre el día completo en su misma columna, con "Ver menos" (`aria-expanded`, `aria-controls`). Se eligió abrir en la columna y no en un diálogo para no anidar diálogos: cada casilla ya abre el diálogo de minutos.
+- **Pruebas:** 2 nuevas (orden con completadas al final; tope, "+N más" y "Ver menos", sin tope en el teléfono).
+- **Navegador real** (Edge, usuario temporal con 6 tareas hoy, una completada a las 7:00; 0 fallas en 4): la columna muestra A 9:00, B 10:00, C y D con "+2 más"; al abrirla, 6 tareas con la completada al final; "Ver menos" vuelve a 4; el teléfono muestra las 6 con la completada al final.
+- **Diseño final anotado:** etapa E20b "Diseño final: darle vida a Nova", con el texto del usuario tal cual en `PROMPTS_AMPLIACION.md`, entre E20 y E21.
+- **Al cierre:** `npm test` 406/406, `npm run build` correcto, `eslint` sin errores.

@@ -48,6 +48,7 @@ Los prompts de ejecución están en `doc/PROMPTS_AMPLIACION.md` (etapas E00 a E2
 | X0b | El Asistente responde con las tareas pendientes aunque no haya documentos (RB-30) | E02b |
 | X0c | El Asistente conoce la fecha de hoy y responde preguntas por fechas sobre las tareas (RB-31) | E02c |
 | X0d | Horario opcional de las tareas (hora de inicio y de fin), en 24 horas (RB-34) | E06b |
+| X17b | Diseño final "darle vida a Nova": animaciones suaves, Inicio en mosaico, estados vacíos amables, saludo según la hora; solo presentación, con reducir movimiento respetado (texto completo del usuario en `PROMPTS_AMPLIACION.md`, E20b) | E20b |
 | X1 | Rediseño: paleta cálida, modo claro y oscuro, íconos, encabezados, login | E02, E04 |
 | X2 | Navegación: barra lateral (computador), barra inferior + "Más" + botón "+" (teléfono) | E03 |
 | X3 | Categorías de tareas con color | E05 |
@@ -152,7 +153,7 @@ Las rutas de la API (`/api/nova/...`) que ya existen no cambian de nombre ni de 
 ### 5.1 Inicio (`/nova`)
 
 1. **"Pregúntale a Nova"**: bloque destacado arriba, con un campo de una línea y botón "Preguntar". Al enviar, lleva a `/nova/asistente` con la pregunta enviada (no solo prellenada). Valida RN-02 en vivo, igual que el chat.
-2. **Mi semana**: lunes a domingo de la semana actual (Bogotá), con flechas para la semana anterior y siguiente y el rango ("3 – 9 de nov."). Desde 1280 px, 7 columnas (por debajo cada columna no alcanza para las insignias); en teléfono, tableta y laptops pequeñas, una fila de 7 días para elegir y la lista del día elegido. En las columnas, las insignias van en su propia línea y un nombre de categoría largo se corta con "…" (completo en `title`). Cada tarea muestra casilla, título, insignia de categoría y prioridad. Las tareas se ubican por **fecha límite**.
+2. **Mi semana** (desde 1280 px, como máximo 4 tareas por columna y "+N más" abre el día completo en su columna, con "Ver menos"; en cada día, las completadas van al final; pedido del usuario): lunes a domingo de la semana actual (Bogotá), con flechas para la semana anterior y siguiente y el rango ("3 – 9 de nov."). Desde 1280 px, 7 columnas (por debajo cada columna no alcanza para las insignias); en teléfono, tableta y laptops pequeñas, una fila de 7 días para elegir y la lista del día elegido. En las columnas, las insignias van en su propia línea y un nombre de categoría largo se corta con "…" (completo en `title`). Cada tarea muestra casilla, título, insignia de categoría y prioridad. Las tareas se ubican por **fecha límite**.
 3. Marcar la casilla de una tarea pendiente abre **el mismo diálogo de minutos** que en Tareas (componente `AccionesTarea`), porque el índice y las metas dependen de esos minutos. Cancelar no cambia nada. Una tarea completada no se puede desmarcar (como hoy).
 4. **Progreso semanal**: anillo con el porcentaje de tareas completadas de la semana mostrada, y contadores de completadas, pendientes y total (sección 7.1).
 5. **Prioridades de hoy**: tareas pendientes con fecha límite hoy, ordenadas por prioridad (Alta primero) y luego por título; debajo, "N tareas vencidas" con enlace a Tareas (pendientes) si hay pendientes con fecha pasada. Botón "Agregar" → `/nova/tareas/nueva?fecha=<hoy>`.

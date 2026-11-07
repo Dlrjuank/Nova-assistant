@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { CLASE_FOCO } from '@/components/ui/Boton';
 import { colorDeCategoria } from '@/lib/reglas/categorias';
-import { DIAS_CORTOS, nombreDia } from '@/lib/reglas/semana';
+import { DIAS_CORTOS, MAX_TAREAS_COLUMNA, nombreDia } from '@/lib/reglas/semana';
 import { CasillaTarea, type TareaCasilla } from './CasillaTarea';
 
 const numeroDia = (fecha: string) => Number(fecha.slice(8, 10));
@@ -36,19 +36,46 @@ export function MiSemana({
   actual: string | null;
 }) {
   const [elegido, setElegido] = useState(() => (dias.includes(hoy) ? hoy : (dias[0] as string)));
+  // Columnas del computador con más de MAX_TAREAS_COLUMNA tareas que el usuario abrió con "+N más".
+  const [abiertos, setAbiertos] = useState<ReadonlySet<string>>(new Set());
+  const alternar = (fecha: string) =>
+    setAbiertos((previos) => {
+      const nuevos = new Set(previos);
+      if (nuevos.has(fecha)) nuevos.delete(fecha);
+      else nuevos.add(fecha);
+      return nuevos;
+    });
   const color = (t: TareaCasilla) => colorDeCategoria(t.categoria, categorias);
   const lista = (fecha: string, prefijo: string, compacta: boolean) => {
     const tareas = porDia[fecha] ?? [];
-    return tareas.length === 0 ? (
-      <p className="px-2 py-1 text-xs text-texto-suave">Sin tareas</p>
-    ) : (
-      <ul className="flex flex-col gap-1">
-        {tareas.map((t) => (
-          <li key={t.id}>
-            <CasillaTarea tarea={t} color={color(t)} prefijo={prefijo} compacta={compacta} />
-          </li>
-        ))}
-      </ul>
+    if (tareas.length === 0) return <p className="px-2 py-1 text-xs text-texto-suave">Sin tareas</p>;
+    // Solo en las columnas: como máximo MAX_TAREAS_COLUMNA y "+N más" abre el día completo en su columna.
+    const conTope = compacta && tareas.length > MAX_TAREAS_COLUMNA;
+    const abierto = abiertos.has(fecha);
+    const visibles = conTope && !abierto ? tareas.slice(0, MAX_TAREAS_COLUMNA) : tareas;
+    const ocultas = tareas.length - MAX_TAREAS_COLUMNA;
+    return (
+      <>
+        <ul id={`${prefijo}-${fecha}`} className="flex flex-col gap-1">
+          {visibles.map((t) => (
+            <li key={t.id}>
+              <CasillaTarea tarea={t} color={color(t)} prefijo={prefijo} compacta={compacta} />
+            </li>
+          ))}
+        </ul>
+        {conTope && (
+          <button
+            type="button"
+            aria-expanded={abierto}
+            aria-controls={`${prefijo}-${fecha}`}
+            aria-label={abierto ? `Ver menos tareas del ${nombreDia(fecha)}` : `Ver ${ocultas} ${ocultas === 1 ? 'tarea más' : 'tareas más'} del ${nombreDia(fecha)}`}
+            onClick={() => alternar(fecha)}
+            className={`self-start rounded-full px-2 py-1 text-xs font-semibold text-acento hover:bg-acento-suave ${CLASE_FOCO}`}
+          >
+            {abierto ? 'Ver menos' : `+${ocultas} más`}
+          </button>
+        )}
+      </>
     );
   };
   const flecha = `inline-flex size-9 items-center justify-center rounded-full border border-borde bg-superficie text-texto hover:bg-superficie-2 ${CLASE_FOCO}`;
