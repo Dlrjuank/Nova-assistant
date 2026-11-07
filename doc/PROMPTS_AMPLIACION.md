@@ -315,7 +315,7 @@ OBJETIVO: el resto de Configuración.
 TAREA 1. Migración M7 (preferencias_usuario) y GET/PATCH /api/nova/configuracion.
 TAREA 2. Perfil: nombre (public.users.full_name), correo de solo lectura, cambiar contraseña con la ruta existente /api/auth/password y sus mensajes.
 TAREA 3. Apariencia: claro, oscuro, automático; se guarda en la base y en el navegador (el script del <head> de E02 la usa). Formato de hora: 24 horas (por defecto) o 12 horas (pedido del usuario en E06b); formatearHorario lo respeta en toda la app.
-TAREA 4. Académico: escala 0,0 a 5,0 solo lectura; nota para aprobar; redondeo truncar/redondear (truncar por defecto); cortes por defecto (deben sumar 100 %, RB-07).
+TAREA 4. Académico: escala 0,0 a 5,0 solo lectura; nota para aprobar; redondeo truncar/redondear (truncar por defecto); cortes por defecto: la plantilla que se usa al dividir una materia en cortes (aquí sí deben sumar 100 % para guardar).
 TAREA 5. Asistente: aviso de que las preguntas y los fragmentos se envían a Gemini; "Borrar historial" con confirmación (RB-25) → DELETE /api/nova/conversaciones.
 TAREA 6. Cerrar sesión.
 
@@ -326,42 +326,42 @@ VERIFICACIÓN: B-03, B-22 y B-23.
 
 ---
 
-## E12 · Semestre: materias, cortes y actividades
+## E12 · Semestre: materias, componentes y notas
 
-**Plan:** 6.4, 7.2 a 7.4, RB-05 a RB-10, RB-13. **Requisito:** E11.
+**Plan:** 5.7, 6.4, 7.2 a 7.4, RB-05 a RB-10, RB-13, RB-35. **Requisito:** E11.
 
 ```text
-OBJETIVO: el modelo de Semestre y sus cálculos puros, con una pantalla para registrar datos.
+OBJETIVO: el modelo de la calculadora de notas y sus cálculos puros, con una pantalla para registrar datos.
 
-TAREA 1. Migración M8 (materias, cortes con fecha, actividades, documentos.materia_id). Al crear una materia: cortes por defecto de Configuración y categoría con su nombre.
-TAREA 2. Reglas puras en src/lib/reglas/notas.ts con enteros en centésimas: mostrar (truncar/redondear), aprueba (con el valor mostrado), nota de corte, acumulada, peso pendiente, proyectada, estado. Pruebas S-01 a S-12 (plan, 11.1).
-TAREA 3. Servicios y API de materias, cortes (en bloque, RB-07) y actividades (RB-08 a RB-10), con aislamiento por usuario.
-TAREA 4. /nova/semestre (entra al menú) con la pestaña "Materias y notas": crear, editar y eliminar (con confirmación) materias, cortes y actividades.
+TAREA 1. Migración M8 (materias con usa_cortes, cortes con fecha, componentes, notas, documentos.materia_id). Una materia sin cortes tiene un corte único oculto de 100 %. Al crear una materia: su corte único y una categoría con su nombre.
+TAREA 2. Reglas puras en src/lib/reglas/notas.ts, con enteros en centésimas y fracciones exactas: mostrar (truncar/redondear), aprueba (con el valor mostrado), peso de cada nota (p / N), nota actual (lo que falta no cuenta como 0), asegurado, peso pendiente, definitiva, estado y avisos de suma. Pruebas S-01 a S-12b (plan, 11.1), con el ejemplo de 7.4.
+TAREA 3. Servicios y API de materias (dividir en cortes y quitarlos, RB-35), cortes (en bloque; aviso RB-07), componentes (aviso RB-08, RB-10) y notas (RB-09; nota vacía = "sin nota"), con aislamiento por usuario.
+TAREA 4. /nova/semestre (entra al menú) con la pestaña "Materias y notas": crear, editar y eliminar (con confirmación) materias, cortes, componentes y notas; agregar varias notas a un componente, también "sin nota"; avisos de suma visibles.
 
 VERIFICACIÓN: B-24 a B-27.
 ```
 
-**Commit:** `feat(semestre): materias, cortes y actividades`
+**Commit:** `feat(semestre): materias, componentes y notas`
 
 ---
 
-## E13 · Semestre: cálculos en pantalla
+## E13 · Semestre: calculadora de notas
 
-**Plan:** 5.7, 7.5, 7.6, RB-12. **Requisito:** E12.
+**Plan:** 5.7, 7.4 a 7.6, RB-12, RB-18. **Requisito:** E12.
 
 ```text
-OBJETIVO: mostrar notas, "¿Cuánto necesito?" y promedio; llevar las fechas al Calendario y las materias a Fuentes.
+OBJETIVO: la calculadora de notas en pantalla ("nota actual" y "¿Cuánto necesito?") y el promedio; llevar las fechas al Calendario y las materias a Fuentes.
 
-TAREA 1. Reglas puras de "¿Cuánto necesito?" y promedio por créditos. Pruebas S-13 a S-21.
-TAREA 2. Tarjetas de materia con acumulada, proyectada y estado; detalle con la nota de cada corte y "¿Cuánto necesito?" para aprobar; promedio del semestre arriba.
-TAREA 3. Calendario: cortes y actividades con fecha como eventos (ícono propio, enlace a la materia).
+TAREA 1. Reglas puras de "¿Cuánto necesito?" (con lo asegurado y el peso pendiente, 7.5) y promedio por créditos. Pruebas S-13 a S-21, con el ejemplo de 7.5.
+TAREA 2. Tarjetas de materia con nota actual y estado. Detalle con la nota de cada corte (si hay cortes), la nota actual, lo asegurado y la calculadora: campo "Nota meta" (por defecto la nota para aprobar, RB-18, no se guarda) y los mensajes de RB-12 (necesitas x, ya asegurado, o imposible con el máximo). Con sumas que no son 100 %, solo la nota actual y el aviso. Promedio del semestre arriba.
+TAREA 3. Calendario: cortes y notas con fecha como eventos (ícono propio, enlace a la materia).
 TAREA 4. Fuentes: al subir un PDF se puede elegir una materia como categoría (documentos.materia_id); la lista la muestra.
-TAREA 5. Script npm run probar:semestre (plan, 11.2) con un caso hecho a mano.
+TAREA 5. Script npm run probar:semestre (plan, 11.2) con el ejemplo hecho a mano de 7.4 y 7.5.
 
 VERIFICACIÓN: B-15, B-21 y B-28 a B-31.
 ```
 
-**Commit:** `feat(semestre): notas acumuladas, proyectadas y cuánto necesito`
+**Commit:** `feat(semestre): calculadora de notas`
 
 ---
 
@@ -403,7 +403,7 @@ VERIFICACIÓN: B-33; A-17 sigue pasando.
 
 ```text
 TAREA 1. Migración M11 (metas_nota).
-TAREA 2. Pestaña "Objetivos y plan" en Semestre: por materia y corte, meta de nota con la fecha del corte, y "¿Es alcanzable?" (regla 7.9). También en el detalle de la materia, junto a "¿Cuánto necesito?".
+TAREA 2. Pestaña "Objetivos y plan" en Semestre: por materia y corte, meta de nota con la fecha del corte, y "¿Es alcanzable?" (regla 7.9). Metas de corte solo en materias con cortes; en una sin cortes, la meta es de la materia. La meta guardada es el valor inicial del campo "Nota meta" de la calculadora (E13).
 
 VERIFICACIÓN: B-34.
 ```
@@ -468,7 +468,7 @@ VERIFICACIÓN: B-39; la tarea aparece en Inicio, Calendario y Tareas.
 **Plan:** 5.7, 7.4, 7.7. **Requisito:** E14.
 
 ```text
-TAREA 1. GET /api/nova/estadisticas (notas por corte de cada materia, proyectadas, riesgo por nota o por fallas).
+TAREA 1. GET /api/nova/estadisticas (notas por corte de cada materia, nota actual, riesgo por nota o por fallas).
 TAREA 2. Pestaña Estadísticas: evolución por corte, comparación entre materias y lista de materias en riesgo, con gráficos SVG propios accesibles (título, descripción y tabla equivalente), en claro y oscuro y a 390 px.
 
 VERIFICACIÓN: B-40.

@@ -58,7 +58,7 @@ Los prompts de ejecución están en `doc/PROMPTS_AMPLIACION.md` (etapas E00 a E2
 | X17 | Editar tareas ya creadas: título, categoría, prioridad y fecha límite | E09 |
 | X7 | Fuentes: Documentos y Web en una sección | E10 |
 | X8 | Configuración: perfil, apariencia, académico, categorías, asistente, cerrar sesión | E05, E11 |
-| X9 | Semestre · Materias y notas: cortes, actividades, cálculos, "¿Cuánto necesito?" | E12, E13 |
+| X9 | Semestre · Materias y notas: calculadora de notas con componentes de evaluación (porcentaje y varias notas que se promedian), cortes opcionales, nota actual y "¿Cuánto necesito?" para aprobar o para una meta | E12, E13 |
 | X10 | Semestre · Fallas | E14 |
 | X11 | Productividad · Metas semanales | E15 |
 | X12 | Semestre · Objetivos y "¿es alcanzable?" | E16 |
@@ -169,7 +169,7 @@ Desde E02b (RB-30): sin documentos del usuario pero con al menos una tarea pendi
 
 ### 5.3 Calendario (`/nova/calendario`)
 
-- Vista mensual (lunes primero), con flechas de mes y botón "Hoy". Cada día muestra puntos del color de la categoría de sus tareas (máximo 3 puntos y "+N"), y un ícono distinto para fechas de Semestre (cortes y actividades) a partir de E13. Leyenda debajo.
+- Vista mensual (lunes primero), con flechas de mes y botón "Hoy". Cada día muestra puntos del color de la categoría de sus tareas (máximo 3 puntos y "+N"), y un ícono distinto para fechas de Semestre (cortes y notas con fecha, por ejemplo un parcial) a partir de E13. Leyenda debajo.
 - Tocar un día muestra debajo (teléfono) o al lado (computador) la lista de ese día: tareas (con completar, mismo diálogo) y eventos de Semestre (enlazan a la materia), y el botón **"Agregar tarea"** → `/nova/tareas/nueva?fecha=<día>`.
 - El formulario de tarea acepta `?fecha=YYYY-MM-DD` válida y la pone en el campo (con la máscara); una fecha inválida se ignora.
 - **Decisiones del usuario (E07, 2026-11-07):**
@@ -207,9 +207,17 @@ El índice diario actual sin cambios, y debajo **Metas semanales**: lista de met
 
 Pestañas **Materias y notas**, **Objetivos y plan**, **Estadísticas** (cada una aparece en su etapa).
 
-- **Materias y notas**: lista de materias en tarjetas (nombre, créditos, nota acumulada y proyectada con insignia Aprueba / En riesgo / No aprueba, fallas). Arriba, el **promedio del semestre** ponderado por créditos. Al abrir una materia: sus cortes con porcentaje y fecha, las actividades de cada corte con nota, porcentaje y fecha, la nota de cada corte y el bloque **"¿Cuánto necesito?"** (para aprobar y para la meta, si hay).
+- **Materias y notas** (calculadora de notas; definida por el usuario el 2026-11-07): lista de materias en tarjetas (nombre, créditos, **nota actual** con insignia Aprueba / En riesgo / No alcanza, fallas). Arriba, el **promedio del semestre** ponderado por créditos. Al abrir una materia:
+  - **Componentes de evaluación** con su porcentaje, definidos por el usuario (por ejemplo, Parcial 40 %, Talleres 20 %, Quizzes 20 %, Actividades 20 %). Deben sumar 100 %; si no, se ve el aviso RB-08, que no impide guardar.
+  - En cada componente, sus **notas** (nombre y fecha opcionales; nota o "sin nota"), que **se promedian por igual**. Por ejemplo, 5 quizzes valen juntos el 20 % (4 % cada uno). Una nota registrada "sin nota" cuenta como pendiente. Ayuda en pantalla: `Agrega también las notas que aún no tienes (sin nota) para que cuenten como pendientes.`
+  - **Cortes (opcional):** "Dividir en cortes" reparte la materia en cortes con porcentaje (por ejemplo 30 % + 30 % + 40 %) y fecha opcional. Cada corte tiene sus propios componentes. Sin cortes, los componentes son de la materia.
+  - **Calculadora:**
+    - La **nota actual**, solo con lo calificado (lo que falta no cuenta como 0).
+    - Lo **asegurado** (lo que ya se ganó aunque lo que falta saliera 0).
+    - Con cortes, la nota de cada corte.
+    - **"¿Cuánto necesito?"** en lo que falta, para aprobar o para una **nota meta** que el usuario escribe ahí mismo (RB-18; no se guarda). Por defecto se usa la nota para aprobar, o la meta guardada de E16 si existe. Dice si ya es imposible (con la nota máxima alcanzable) o si ya está asegurado (RB-12).
 - **Objetivos y plan**: por materia y corte, la meta, si es alcanzable, los temas del corte y el plan de estudio con sus versiones.
-- **Estadísticas**: evolución de notas por corte, comparación entre materias y materias en riesgo.
+- **Estadísticas**: evolución de notas por corte (una materia sin cortes muestra solo su nota actual), comparación entre materias y materias en riesgo.
 
 ### 5.8 Configuración (`/nova/configuracion`)
 
@@ -270,20 +278,25 @@ CREATE FUNCTION buscar_fragmentos_usuario(consulta vector(768), limite int, usua
 |---|---|---|
 | `preferencias_usuario` | `usuario_id` (PK), `tema` (`claro`/`oscuro`/`automatico`), `nota_aprobar` NUMERIC(3,2) default 3.00, `redondeo` (`truncar`/`redondear`) default `truncar`, `cortes_defecto` INTEGER[] default `{3000,3000,4000}` (centésimas de punto porcentual), `actualizado_en` | `nota_aprobar` entre 0 y 5; cada corte > 0 y suma 10000 |
 
-Sin fila, se usan los valores por defecto. El nombre del perfil vive en `public.users.full_name` (ya existe).
+Sin fila, se usan los valores por defecto. El nombre del perfil vive en `public.users.full_name` (ya existe). `nota_aprobar` es la nota mínima para aprobar de todas las materias (3,0 por defecto). `cortes_defecto` es solo la plantilla que se propone cuando una materia se divide en cortes (desde 2026-11-07 los cortes son opcionales).
 
 ### 6.4 M8 · Semestre (E12)
 
+Modelo de la calculadora de notas (definido por el usuario el 2026-11-07): materia → cortes (opcionales) → componentes de evaluación → notas.
+
 | Tabla | Columnas | Restricciones |
 |---|---|---|
-| `materias` | `id`, `usuario_id`, `nombre` VARCHAR(80), `creditos` SMALLINT, `docente` VARCHAR(120) NULL, `creada_en` | `UNIQUE (usuario_id, lower(nombre))`; créditos 1 a 10; `UNIQUE (id, usuario_id)` |
+| `materias` | `id`, `usuario_id`, `nombre` VARCHAR(80), `creditos` SMALLINT, `docente` VARCHAR(120) NULL, `usa_cortes` BOOLEAN NOT NULL DEFAULT false, `creada_en` | `UNIQUE (usuario_id, lower(nombre))`; créditos 1 a 10; `UNIQUE (id, usuario_id)` |
 | `cortes` | `id`, `materia_id`, `usuario_id`, `orden` SMALLINT, `nombre` VARCHAR(40), `porcentaje` INTEGER (centésimas: 3000 = 30 %), `fecha` DATE NULL | FK compuesta `(materia_id, usuario_id)` → `materias`, `ON DELETE CASCADE`; porcentaje 1 a 10000; `UNIQUE (materia_id, orden)`; `UNIQUE (id, usuario_id)` |
-| `actividades` | `id`, `corte_id`, `usuario_id`, `nombre` VARCHAR(120), `nota` SMALLINT NULL (centésimas: 375 = 3,75), `porcentaje` INTEGER (centésimas, dentro del corte), `fecha` DATE NULL | FK compuesta `(corte_id, usuario_id)` → `cortes`, `ON DELETE CASCADE`; nota 0 a 500 o NULL (sin calificar); porcentaje 1 a 10000 |
+| `componentes` | `id`, `corte_id`, `usuario_id`, `orden` SMALLINT, `nombre` VARCHAR(80), `porcentaje` INTEGER (centésimas, dentro de su corte) | FK compuesta `(corte_id, usuario_id)` → `cortes`, `ON DELETE CASCADE`; porcentaje 1 a 10000; `UNIQUE (corte_id, lower(nombre))`; `UNIQUE (id, usuario_id)` |
+| `notas` | `id`, `componente_id`, `usuario_id`, `orden` SMALLINT, `nombre` VARCHAR(120) NULL, `nota` SMALLINT NULL (centésimas: 375 = 3,75), `fecha` DATE NULL | FK compuesta `(componente_id, usuario_id)` → `componentes`, `ON DELETE CASCADE`; nota 0 a 500 o NULL ("sin nota", pendiente) |
 | `documentos` (columna nueva) | `materia_id` UUID NULL | FK → `materias (id)` `ON DELETE SET NULL` |
 
 - Notas y porcentajes se guardan como **enteros en centésimas** para calcular sin errores de coma flotante (sección 7).
-- Al crear una materia se crean sus cortes con los porcentajes por defecto de Configuración ("Corte 1", "Corte 2", "Corte 3") y una categoría de tareas con el mismo nombre, si no existe.
-- La suma de porcentajes de los cortes (= 100 %) y de las actividades de un corte (≤ 100 %) se valida en el servidor dentro de una transacción, no con CHECK (involucra varias filas).
+- **Materia sin cortes** (`usa_cortes = false`, el valor por defecto): tiene internamente **un único corte de 100 %** que la pantalla no muestra. Sus componentes cuelgan de ese corte. Así, metas, temas y plan de estudio (E16 a E19) funcionan igual con cortes o sin ellos. La fecha de ese corte se muestra como "Fecha final de la materia".
+- **Dividir en cortes:** el corte único pasa a ser el Corte 1, conserva sus componentes y toma el primer porcentaje de `cortes_defecto`. Se agregan los demás cortes de la plantilla ("Corte 2", "Corte 3"), sin componentes. **Quitar los cortes** solo se permite con un único corte (RB-35); ese corte vuelve a 100 % y queda oculto.
+- Al crear una materia se crea su corte único y una categoría de tareas con el mismo nombre, si no existe.
+- Las sumas de porcentajes (cortes de una materia; componentes de un corte) **no impiden guardar**: si no son 100 %, la pantalla muestra el aviso (RB-07, RB-08) y la calculadora no da estado ni "¿Cuánto necesito?" (sección 7.4). Por eso no hay CHECK de suma.
 - `buscar_fragmentos_usuario` gana un parámetro opcional `materia UUID DEFAULT NULL` (nueva función con otro nombre si cambiar la firma afectara algo; nunca se toca `buscar_fragmentos`).
 
 ### 6.5 M9 · Fallas (E14)
@@ -343,35 +356,54 @@ Todas en funciones puras de `src/lib/reglas/` (sin red, sin base, sin reloj salv
 
 **Aprobar se decide con el valor mostrado**: aprueba si `mostrar(nota) ≥ nota_aprobar`. Nunca puede verse "3,0" y decir que no aprueba. Esta misma regla se usa en "¿Cuánto necesito?", metas, estadísticas y riesgo.
 
-### 7.3 Nota de un corte
+### 7.3 Peso de cada nota
 
-Con las actividades del corte (porcentaje `p_i` dentro del corte, nota `n_i` o sin calificar):
+Un componente de porcentaje `p` (dentro de su corte) con `N` notas registradas (calificadas o "sin nota"):
 
-- **Aporte acumulado del corte** = Σ (n_i × p_i) / 100 % sobre las actividades calificadas. Es la nota del corte si lo que falta sacara 0.
-- **Nota del corte (parcial)** = Σ (n_i × p_i) / Σ p_i sobre las calificadas: el promedio de lo ya calificado. Sin actividades calificadas: "Sin notas".
-- **Peso pendiente del corte** = 100 % − Σ p_i de las calificadas (incluye actividades sin nota y porcentaje aún no asignado a actividades).
+- Cada nota pesa `p / N` dentro del corte. En la materia pesa `P × p / N`, con `P` el porcentaje del corte; sin cortes, `P` = 100 %.
+- Un componente **sin notas registradas** queda pendiente completo.
+- Los pesos `p / N` no siempre son exactos (20 % / 3). Se calculan como **fracciones de enteros** (numerador y denominador), sin decimales intermedios; solo el resultado final se redondea.
 
-### 7.4 Nota de una materia
+Ejemplo: Quizzes 20 % con 5 notas registradas, cada una de 4 %. Con 2 calificadas, hay 8 % calificado y 12 % pendiente.
 
-Con cortes de porcentaje `P_c` (suman 100 %):
+### 7.4 Nota actual, asegurado y estado (de la materia o de un corte)
 
-- **Acumulada** = Σ_c (aporte acumulado del corte c × P_c / 100 %). Es lo ya asegurado.
-- **Peso pendiente de la materia** `W` = Σ_c (peso pendiente del corte c × P_c / 100 %), en %.
-- **Proyectada** = acumulada / (100 % − W) × 100 %, es decir, el promedio ponderado de todo lo calificado, suponiendo que lo que falta sigue igual. Sin nada calificado: "Sin notas". Si W = 0, proyectada = acumulada = **definitiva**.
-- **Estado**: con W = 0, "Aprobada" o "Reprobada" según `mostrar(definitiva)`; con W > 0, "Aprueba", "En riesgo" (la proyectada no aprueba pero aprobar aún es posible) o "No alcanza" (aprobar ya no es posible).
+Con `w_j` el peso de cada nota calificada `n_j`:
+
+- **Nota actual** = Σ (n_j × w_j) / Σ w_j: el promedio ponderado de lo calificado. Lo que falta **no cuenta como 0**. Sin nada calificado: RB-13.
+- **Asegurado** `A` = Σ (n_j × w_j) / 100 %: lo que ya se ganó aunque lo que falta saliera 0. Se muestra como "Asegurado: 2,5 de 5,0".
+- **Peso pendiente** `W` = 100 % − Σ w_j: todo lo no calificado, incluidos los componentes sin notas.
+- Si `W` = 0, la nota actual es la **definitiva**.
+- **Nota de cada corte:** la nota actual de ese corte, con sus componentes.
+- **Estado:**
+  - Con `W` = 0: "Aprobada" o "Reprobada", según `mostrar(definitiva)`.
+  - Con `W` > 0: "Aprueba" (la nota actual aprueba), "En riesgo" (no aprueba, pero aprobar aún es posible) o "No alcanza" (aprobar ya no es posible, sección 7.5).
+- **Porcentajes que no suman 100 %** (los cortes, o los componentes de algún corte): se muestra la nota actual con el aviso RB-07 o RB-08, pero no el estado ni "¿Cuánto necesito?", porque lo pendiente no está bien definido.
+
+**Ejemplo hecho a mano** (S-12, B-28 y `probar:semestre`; truncar; aprobar con 3,0):
+
+- Materia sin cortes: Parcial 40 % (3,5), Talleres 20 % (4,0 y 4,4), Quizzes 20 % (5 registrados: 3,0, 5,0 y 3 sin nota) y Actividades 20 % (sin notas).
+- Pesos calificados: 40 + 20 + 8 = 68 %, así que `W` = 32 %.
+- Puntos: 3,5 × 40 + 4,2 × 20 + 3,0 × 4 + 5,0 × 4 = 256.
+- Nota actual = 256 / 68 = 3,76…, se muestra **3,7**.
+- Asegurado = 2,56, se muestra **2,5**.
 
 ### 7.5 "¿Cuánto necesito?"
 
-Para un objetivo `O` (la nota para aprobar o una meta), con la acumulada `A` y el peso pendiente `W` de la materia (o del corte, para metas de corte):
+Para un objetivo `O` (la nota para aprobar de Configuración, la nota meta escrita en la calculadora o una meta guardada de E16), con lo asegurado `A` y el peso pendiente `W` de la materia (o del corte, para metas de corte). La nota `x` es la misma en cada nota pendiente:
 
 - Se busca la nota uniforme `x` en todo lo pendiente tal que `mostrar(A + x × W / 100 %) ≥ O`. Como `mostrar` trunca o redondea, el umbral exacto es `O` (truncar) u `O − 0,05` (redondear).
 - `x = (umbral − A) × 100 % / W`, **redondeada hacia arriba a la centésima** y mostrada con un decimal **hacia arriba** (para que alcanzarla garantice el objetivo).
 - Si `x ≤ 0`: "Ya aseguraste {O}." Si `x > 5,0`: no es posible; se muestra la **nota máxima alcanzable** = `mostrar(A + 5,0 × W / 100 %)`. Si W = 0, no hay nada pendiente: se informa la definitiva.
+- **Con el ejemplo de 7.4:**
+  - Para 3,0: x = (3,00 − 2,56) / 0,32 = 1,375, se muestra **1,4**.
+  - Para la meta 4,0: x = 4,5.
+  - Para la meta 4,5: no es posible; lo máximo es 2,56 + 5,0 × 0,32 = 4,16, se muestra **4,1**.
 
 ### 7.6 Promedio del semestre
 
-- **Promedio proyectado** = Σ (proyectada × créditos) / Σ créditos, sobre las materias con al menos una nota.
-- **Promedio acumulado** = Σ (acumulada × créditos) / Σ créditos, sobre todas las materias con cortes.
+- **Promedio actual** = Σ (nota actual × créditos) / Σ créditos, sobre las materias con al menos una nota.
+- **Promedio asegurado** = Σ (asegurado × créditos) / Σ créditos, sobre todas las materias.
 - Ambos con precisión completa y mostrados con `mostrar`.
 
 ### 7.7 Fallas
@@ -404,8 +436,8 @@ Los mensajes se usan **textualmente** en la interfaz y en la API. Los de `PLAN_N
 | RB-02b | (E05) Nombre de categoría vacío o de más de 80 caracteres | `Escribe un nombre de 1 a 80 caracteres.` (`NOMBRE_CATEGORIA_INVALIDO`, 422) |
 | RB-05 | Nombre de materia único por usuario | `Ya existe una materia con ese nombre.` |
 | RB-06 | Créditos enteros de 1 a 10 | `Los créditos deben ser un número entero entre 1 y 10.` |
-| RB-07 | Los cortes de una materia suman exactamente 100 % | `Los porcentajes de los cortes deben sumar 100 %. Ahora suman {n} %.` |
-| RB-08 | Las actividades de un corte no pasan de 100 % | `Los porcentajes de las actividades de un corte no pueden pasar de 100 %. Ahora suman {n} %.` |
+| RB-07 | Los cortes de una materia deben sumar 100 %. Si no, es un aviso que no impide guardar (decisión del usuario, 2026-11-07; sección 7.4) | `Los porcentajes de los cortes suman {n} %; deben sumar 100 %.` |
+| RB-08 | Los componentes de un corte (o de la materia sin cortes) deben sumar 100 %. Si no, es un aviso que no impide guardar | `Los porcentajes de los componentes suman {n} %; deben sumar 100 %.` (con cortes: `Los porcentajes de los componentes de {corte} suman {n} %; deben sumar 100 %.`) |
 | RB-09 | Nota entre 0,0 y 5,0, con hasta dos decimales | `La nota debe estar entre 0,0 y 5,0.` |
 | RB-10 | Porcentaje mayor que 0 y hasta 100, con hasta dos decimales | `El porcentaje debe ser mayor que 0 y como máximo 100.` |
 | RB-11 | Nota para aprobar entre 0,0 y 5,0 | `La nota para aprobar debe estar entre 0,0 y 5,0.` |
@@ -431,9 +463,10 @@ Los mensajes se usan **textualmente** en la interfaz y en la API. Los de `PLAN_N
 | RB-32 | (Ajuste pedido por el usuario el 2026-11-07; reemplaza a RN-15 y al último caso de RB-30.) La pregunta nunca se bloquea por falta de documentos. El contexto lleva `DOCUMENTOS: el usuario aún no tiene documentos indexados.` cuando no hay documentos y `TAREAS PENDIENTES: ninguna.` cuando se consultaron las tareas y no hay pendientes. Pregunta sobre tareas sin pendientes → respuesta exacta; pregunta que necesita documentos sin tenerlos → respuesta exacta que lo explica (el servidor impone ambos textos y no muestra fuentes). Con documentos, "No encontré esto en tus documentos" sigue igual. La pantalla solo muestra avisos informativos (ninguno bloquea) | `No tienes tareas pendientes.` · `Aún no tienes documentos indexados, así que no puedo responder sobre documentos. Indexa un PDF para preguntar sobre él.` · Aviso sin documentos ni tareas: `Aún no tienes documentos indexados ni tareas pendientes. Puedes preguntar igual; para que el asistente responda sobre tus documentos, indexa un PDF.` |
 | RB-33 | (E05b, pedido del usuario) La categoría de una tarea se resuelve en el servidor (`resolverCategoria`, dentro de la transacción de quien crea la tarea: formulario, E19 y cualquier forma futura, como el chat si se agregara): se recortan y unen los espacios y se compara sin mayúsculas; si existe, se usa su nombre guardado (" universidad " → "Universidad"); si no, se crea con el siguiente color libre; vacía → General. Nombres de 1 a 80 caracteres (aprobado por el usuario) | `Escribe un nombre de 1 a 80 caracteres.` |
 | RB-34 | (E06b, pedido del usuario) Horario opcional de una tarea: hora de inicio y de fin en 24 horas (`HH:MM`). Puede haber solo inicio, nunca solo fin; el fin es posterior al inicio dentro del mismo día; no se valida que dos tareas se crucen. Se muestra como "8:00 – 9:30" (o "8:00") en Mi semana, Prioridades de hoy, Tareas y Calendario. En cada día, primero las tareas con hora (por hora de inicio) y después las demás (por prioridad y título); Prioridades de hoy mantiene su orden por prioridad. El Asistente recibe el horario de cada tarea. El formulario usa el selector de hora del navegador (su apariencia depende del teléfono; lo guardado y lo mostrado en la app es de 24 horas). E11 agregará la opción de ver 12 horas | `La hora debe tener formato HH:MM de 24 horas.` · `La hora de fin necesita una hora de inicio.` · `La hora de fin debe ser después de la de inicio.` (`HORA_INVALIDA`, `HORA_FIN_SIN_INICIO`, `HORA_FIN_ANTES`, 422) |
+| RB-35 | (E12) Quitar los cortes de una materia solo se permite cuando queda uno (sección 6.4) | `Para quitar los cortes, deja solo uno.` |
 | RB-29 | Editar una tarea: solo pendientes y del usuario; título, categoría, prioridad y fecha límite con las mismas validaciones y mensajes que al crear; estado, minutos y fecha de cierre no se tocan | Los de crear (`PLAN_NOVA.md` 5.1). Tarea completada: `La tarea ya está completada.` (`TAREA_YA_COMPLETADA`, 409). De otro usuario o inexistente: `La tarea no existe.` (`TAREA_NO_ENCONTRADA`, 404) |
 
-Códigos de error nuevos (404 salvo indicación): `CATEGORIA_NO_ENCONTRADA`, `CATEGORIA_DUPLICADA` (409), `MATERIA_NO_ENCONTRADA`, `MATERIA_DUPLICADA` (409), `CORTE_NO_ENCONTRADO`, `ACTIVIDAD_NO_ENCONTRADA`, `PORCENTAJES_INVALIDOS` (422), `NOTA_INVALIDA` (422), `META_NO_ENCONTRADA`, `META_DUPLICADA` (409), `PLAN_SIN_TEMAS` (422), `PLAN_SIN_FECHA` (422), `SIN_SYLLABUS` (422), `PLAN_INVALIDO` (502), `PASO_YA_EN_TAREAS` (409).
+Códigos de error nuevos (404 salvo indicación): `CATEGORIA_NO_ENCONTRADA`, `CATEGORIA_DUPLICADA` (409), `MATERIA_NO_ENCONTRADA`, `MATERIA_DUPLICADA` (409), `CORTE_NO_ENCONTRADO`, `COMPONENTE_NO_ENCONTRADO`, `NOTA_NO_ENCONTRADA`, `PORCENTAJES_INVALIDOS` (422, solo RB-10 y los cortes por defecto de Configuración), `CORTES_NO_SE_QUITAN` (422, RB-35), `NOTA_INVALIDA` (422), `META_NO_ENCONTRADA`, `META_DUPLICADA` (409), `PLAN_SIN_TEMAS` (422), `PLAN_SIN_FECHA` (422), `SIN_SYLLABUS` (422), `PLAN_INVALIDO` (502), `PASO_YA_EN_TAREAS` (409).
 
 ## 9. El asistente en Semestre
 
@@ -461,7 +494,7 @@ El servidor rechaza el plan entero si: algún `tema_id` no es un tema confirmado
 
 ### 9.4 Versiones y huella (RB-23)
 
-Cada versión guarda su `huella`: `{ meta, temas: [id+nombre confirmados], notas: [actividad+nota del corte y de la materia], documentos: [ids de PDF de la materia] }`. La pantalla compara la huella de la versión vigente con la actual y, si difieren, muestra RB-23 con la lista de lo que cambió ("un PDF nuevo", "notas nuevas", "temas cambiados", "meta cambiada") y el botón "Actualizar plan". Actualizar genera una versión nueva; nunca se reemplaza sola. "Editar" permite cambiar título, fecha y minutos de cada paso, borrar pasos y agregar pasos manuales (con un tema confirmado); guardar crea una versión `manual`. "Restaurar" copia una versión anterior como versión nueva.
+Cada versión guarda su `huella`: `{ meta, temas: [id+nombre confirmados], notas: [nota+componente del corte y de la materia], documentos: [ids de PDF de la materia] }`. La pantalla compara la huella de la versión vigente con la actual y, si difieren, muestra RB-23 con la lista de lo que cambió ("un PDF nuevo", "notas nuevas", "temas cambiados", "meta cambiada") y el botón "Actualizar plan". Actualizar genera una versión nueva; nunca se reemplaza sola. "Editar" permite cambiar título, fecha y minutos de cada paso, borrar pasos y agregar pasos manuales (con un tema confirmado); guardar crea una versión `manual`. "Restaurar" copia una versión anterior como versión nueva.
 
 ### 9.5 Pasar a Tareas (E19, RB-24)
 
@@ -480,9 +513,10 @@ Todas con `exigirSesion()` como primera instrucción y el id del usuario de la s
 | `GET /api/nova/calendario?mes=YYYY-MM` | Días con tareas y eventos de Semestre | E07, E13 |
 | `GET/PATCH /api/nova/configuracion` | Preferencias y perfil | E11 |
 | `DELETE /api/nova/conversaciones` | Borrar todo el historial (RB-25) | E11 |
-| `GET/POST /api/nova/materias`, `GET/PATCH/DELETE /api/nova/materias/[id]` | Materias (con cortes y actividades) | E12 |
-| `PUT /api/nova/materias/[id]/cortes` | Cortes (en bloque, para validar la suma) | E12 |
-| `POST /api/nova/cortes/[id]/actividades`, `PATCH/DELETE /api/nova/actividades/[id]` | Actividades | E12 |
+| `GET/POST /api/nova/materias`, `GET/PATCH/DELETE /api/nova/materias/[id]` | Materias (con cortes, componentes y notas); `PATCH` activa o quita los cortes (RB-35) | E12 |
+| `PUT /api/nova/materias/[id]/cortes` | Cortes en bloque (responde con el aviso RB-07 si la suma no es 100 %) | E12 |
+| `POST /api/nova/cortes/[id]/componentes`, `PATCH/DELETE /api/nova/componentes/[id]` | Componentes de evaluación (aviso RB-08) | E12 |
+| `POST /api/nova/componentes/[id]/notas`, `PATCH/DELETE /api/nova/notas/[id]` | Notas de un componente (RB-09; nota vacía = "sin nota") | E12 |
 | `GET/POST /api/nova/metas`, `DELETE /api/nova/metas/[id]` | Metas semanales | E15 |
 | `PUT/DELETE /api/nova/metas-nota` | Metas de nota | E16 |
 | `GET/POST /api/nova/cortes/[id]/temas`, `POST /api/nova/cortes/[id]/temas/proponer`, `PATCH/DELETE /api/nova/temas/[id]` | Temas | E17 |
@@ -498,8 +532,8 @@ Las rutas que llaman a Gemini declaran `maxDuration = 60`.
 
 - **Reglas puras**: casos S-01 en adelante en cada etapa. Mínimos obligatorios:
   - S-01 a S-06 (redondeo y aprobar): 2,96 truncar → 2,9, no aprueba con 3,0; 2,95 redondear → 3,0, aprueba; 3,04 truncar → 3,0, aprueba; 2,94 redondear → 2,9; 5,0 → 5,0; 0 → 0,0.
-  - S-07 a S-12 (cortes y materia): corte con 2 de 3 actividades calificadas; materia sin notas; materia completa (definitiva); proyectada con pesos distintos; acumulada exacta sin error de coma flotante (por ejemplo 0,1 + 0,2).
-  - S-13 a S-18 ("¿Cuánto necesito?"): ya asegurado; necesario 3,4; imposible con máximo alcanzable; W = 0; truncar frente a redondear con el mismo dato (el umbral cambia en 0,05); resultado redondeado hacia arriba.
+  - S-07 a S-12 (componentes y cortes): componente con 2 de 5 notas calificadas (lo que falta no cuenta como 0); componente sin notas (pendiente completo); materia sin notas (RB-13); materia completa (definitiva); materia con cortes (nota de cada corte); el ejemplo de 7.4 (3,7 actual, 2,5 asegurado) con un peso no exacto (20 % / 3) sin error de coma flotante. S-12b: porcentajes que no suman 100 % dan la nota actual con el aviso, sin estado ni "¿Cuánto necesito?".
+  - S-13 a S-18 ("¿Cuánto necesito?"): ya asegurado; el ejemplo de 7.5 (1,4 para 3,0; 4,5 para la meta 4,0); imposible con máximo alcanzable (meta 4,5 → 4,1); W = 0; truncar frente a redondear con el mismo dato (el umbral cambia en 0,05); resultado redondeado hacia arriba.
   - S-19 a S-21 (promedio por créditos), S-22 a S-24 (fallas), S-25 a S-28 (metas semanales, semana de Bogotá en el borde del domingo a medianoche).
   - S-29 a S-32 (validación del plan: tema no confirmado, fuente inventada, fecha fuera de rango, plan válido).
 - **Contraste**: una prueba lee los tokens de `globals.css` y comprueba ≥ 4,5:1 en cada par texto/fondo, en ambos modos, y para los 8 colores de categoría.
@@ -544,7 +578,7 @@ Se ejecutan en la vista previa de Vercel de `ampliacion`, en computador y en tel
 | B-12 | Inicio: prioridades de hoy | Pendientes de hoy por prioridad; "Agregar" abre el formulario con la fecha de hoy |
 | B-13 | Calendario: mes con tareas de varias categorías | Puntos del color de cada categoría; leyenda |
 | B-14 | Calendario: tocar un día y "Agregar tarea" | Lista del día; el formulario abre con esa fecha puesta |
-| B-15 | Calendario: con un corte y una actividad con fecha | Aparecen en su día con su ícono y enlazan a la materia |
+| B-15 | Calendario: con un corte y una nota con fecha | Aparecen en su día con su ícono y enlazan a la materia |
 | B-16 | Tareas: pestañas Todas, Hoy, Importantes, Completadas | Cada una filtra como dice; la pestaña queda en la URL |
 | B-17 | Tareas: agrupación | Grupos por categoría con color y contador completadas/total |
 | B-18 | En Tareas: crear una categoría con "+ Nueva", filtrar por ella, renombrarla y cambiarle el color desde "⋯" o dejándola presionada, y eliminarla; abrir el menú de General | Sin salir de Tareas; nombre repetido → RB-02; renombrar cambia las tareas y mantiene el filtro; eliminar pide confirmación y pasa sus tareas a General; General dice "Por defecto" y solo cambia de color. Se refleja en Inicio y Calendario cuando existan (E06, E07) |
@@ -553,11 +587,11 @@ Se ejecutan en la vista previa de Vercel de `ampliacion`, en computador y en tel
 | B-21 | Subir un PDF con una materia como categoría | La lista muestra la materia |
 | B-22 | Configuración: cambiar el nombre y la contraseña | Se guarda; la contraseña nueva sirve para entrar |
 | B-23 | Configuración: borrar el historial del asistente | Pide confirmación (RB-25) y el chat queda vacío |
-| B-24 | Crear una materia | Nace con Corte 1 30 %, Corte 2 30 %, Corte 3 40 % (o los cortes por defecto configurados) y su categoría |
-| B-25 | Cortes que suman 90 % | Rechazo con RB-07 |
-| B-26 | Actividades de un corte que pasan de 100 % | Rechazo con RB-08 |
+| B-24 | Crear una materia; luego "Dividir en cortes" y "Quitar cortes" | Nace sin cortes y con su categoría; al dividir, Corte 1 30 % (con los componentes que ya tenía), Corte 2 30 % y Corte 3 40 % (o los configurados); quitar con más de un corte → RB-35 |
+| B-25 | Componentes que suman 90 % | Se guardan, se ve el aviso RB-08 y la calculadora muestra la nota actual sin estado ni "¿Cuánto necesito?" |
+| B-26 | Cortes que suman 90 % | Igual que B-25, con el aviso RB-07 |
 | B-27 | Nota 5,5 | Rechazo con RB-09 |
-| B-28 | Materia con notas parciales (caso hecho a mano) | Nota de cada corte, acumulada y proyectada coinciden con el cálculo a mano |
+| B-28 | Materia del ejemplo de 7.4 (5 quizzes con 2 calificados y Actividades sin notas) | Nota actual 3,7 y asegurado 2,5 (lo que falta no cuenta como 0); "¿Cuánto necesito?": 1,4 para aprobar, 4,5 para la meta 4,0, y para la meta 4,5 "no es posible" con máximo 4,1 |
 | B-29 | Truncar frente a redondear con una nota exacta de 2,96 | Truncar: "2,9" y no aprueba; redondear: "3,0" y aprueba; nunca "3,0" con "no aprueba" |
 | B-30 | "¿Cuánto necesito?" en un caso posible y uno imposible | Mensajes RB-12 con la nota necesaria o la máxima alcanzable |
 | B-31 | Promedio del semestre con 2 materias de créditos distintos | Ponderado por créditos, coincide a mano |
