@@ -38,13 +38,14 @@ function validar(v: Valores): Partial<Record<Campos, string>> {
   return errores;
 }
 
-export function FormularioTarea() {
+/** `fechaInicial`: la que trae `?fecha=` desde Inicio o el Calendario (ya validada por la página). */
+export function FormularioTarea({ fechaInicial = '' }: { fechaInicial?: string } = {}) {
   const router = useRouter();
   const [valores, setValores] = useState<Valores>({
     titulo: '',
     categoria: CATEGORIA_POR_DEFECTO,
     prioridad: String(PRIORIDAD_POR_DEFECTO),
-    fechaLimite: '',
+    fechaLimite: fechaInicial,
   });
   const [tocados, setTocados] = useState<Partial<Record<Campos, boolean>>>({});
   const [enviando, setEnviando] = useState(false);

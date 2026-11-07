@@ -155,7 +155,8 @@ Las rutas de la API (`/api/nova/...`) que ya existen no cambian de nombre ni de 
 2. **Mi semana**: lunes a domingo de la semana actual (Bogotá), con flechas para la semana anterior y siguiente y el rango ("3 – 9 de nov."). En computador, 7 columnas; en teléfono, una fila de 7 días para elegir y la lista del día elegido. Cada tarea muestra casilla, título, insignia de categoría y prioridad. Las tareas se ubican por **fecha límite**.
 3. Marcar la casilla de una tarea pendiente abre **el mismo diálogo de minutos** que en Tareas (componente `AccionesTarea`), porque el índice y las metas dependen de esos minutos. Cancelar no cambia nada. Una tarea completada no se puede desmarcar (como hoy).
 4. **Progreso semanal**: anillo con el porcentaje de tareas completadas de la semana mostrada, y contadores de completadas, pendientes y total (sección 7.1).
-5. **Prioridades de hoy**: tareas pendientes con fecha límite hoy, ordenadas por prioridad (Alta primero) y luego por título; debajo, "N tareas vencidas" con enlace a Tareas si hay pendientes con fecha pasada. Botón "Agregar" → `/nova/tareas/nueva?fecha=<hoy>`.
+5. **Prioridades de hoy**: tareas pendientes con fecha límite hoy, ordenadas por prioridad (Alta primero) y luego por título; debajo, "N tareas vencidas" con enlace a Tareas (pendientes) si hay pendientes con fecha pasada. Botón "Agregar" → `/nova/tareas/nueva?fecha=<hoy>`.
+6. (E06) La semana mostrada va en la URL (`/nova?semana=YYYY-MM-DD`, cualquier día de esa semana); "Esta semana" aparece al ver otra. El formulario de tarea acepta `?fecha=` válida (se adelantó de E07). Completar desde la casilla usa `FormularioMinutos`, el mismo formulario que Tareas (extraído de `AccionesTarea`), dentro de un `Dialogo`.
 
 ### 5.2 Asistente (`/nova/asistente`)
 

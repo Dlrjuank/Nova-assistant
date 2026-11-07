@@ -39,6 +39,9 @@ export async function listarTareas(
     fecha?: string | undefined;
     /** E05b: filtro de la fila de categorías, sin distinguir mayúsculas. */
     categoria?: string | undefined;
+    /** E06: rango de fecha límite (incluidos los extremos), para la semana de Inicio. */
+    desde?: string | undefined;
+    hasta?: string | undefined;
     limite?: number | undefined;
   } = {},
 ): Promise<Tarea[]> {
@@ -51,6 +54,14 @@ export async function listarTareas(
   if (f.fecha) {
     valores.push(f.fecha);
     condiciones.push(`fecha_limite = $${valores.length}`);
+  }
+  if (f.desde) {
+    valores.push(f.desde);
+    condiciones.push(`fecha_limite >= $${valores.length}`);
+  }
+  if (f.hasta) {
+    valores.push(f.hasta);
+    condiciones.push(`fecha_limite <= $${valores.length}`);
   }
   if (f.categoria?.trim()) {
     valores.push(f.categoria.trim());

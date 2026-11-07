@@ -27,6 +27,7 @@
 | Ajuste: el chat baja al último mensaje | completado | correcto | 324 pasan | 2026-11-07 |
 | E05 Ampliación: categorías (M6) | completado | correcto | 351 pasan | 2026-11-07 |
 | E05b Ampliación: categorías dentro de Tareas | completado | correcto | 366 pasan | 2026-11-07 |
+| E06 Ampliación: Inicio | completado | correcto | 389 pasan | 2026-11-07 |
 
 ## Bitácora
 
@@ -423,3 +424,14 @@ Total de fallas: 0
 - **Pruebas:** `tests/interfaz/filaCategorias.test.tsx` (20: enlaces y filtro, "+ Nueva" con repetida, menú de General, renombrar con filtro, color, eliminar con confirmación, Escape y foco, foco al escribir, presión larga y deslizar, fondo tras presión larga, clic derecho, selector, insignia, tabla, aviso del proveedor); RB-33 en `tests/servidor/categorias.test.ts`; `aislamiento.test.ts` ajustada a la transacción; se borró `tests/interfaz/categorias.test.tsx` con su componente.
 - **Navegador real** (Edge, `next start` con la conexión directa, usuario temporal borrado al final; 0 fallas en 16): Configuración fuera del menú y `/nova/configuracion` → 404; crear "Universidad" y repetida; RB-33 con tareas reales (" universidad " → "Universidad"; "Gimnasio" creada con ámbar); filtrar; renombrar a "U" con azul (la tarea cambia y el filtro sigue); eliminar con confirmación (la tarea pasa a General y el filtro vuelve a Todas); menú de General por clic derecho; presión larga táctil a 390 px abre el menú sin filtrar; aviso del proveedor solo en Asistente e Inicio; claro y oscuro a 1280 y 390, sin desborde, fila de 40 px que se desliza en el teléfono.
 - **Al cierre:** `npm test` 366/366, `npm run build` correcto, `eslint` sin errores.
+- **Prueba del usuario (iPhone, Safari):** los 10 pasos de E05b salieron bien. E05 y E05b confirmados.
+
+### E06 Ampliación: Inicio
+
+- **Reglas puras** `src/lib/reglas/semana.ts`: días de la semana (lunes a domingo, sobre `semanaDe` en Bogotá), rango ("2 – 8 de nov.", con cambio de mes y de año), nombre del día, progreso semanal (7.1: truncado y sin dividir por cero), prioridades de hoy (pendientes de hoy, Alta primero y luego por título), agrupación por día y texto de vencidas.
+- **Datos:** `src/lib/datos/semana.ts` (`semanaDeTareas`: tareas de la semana por fecha límite, pendientes de hoy y número de vencidas, solo del usuario); `listarTareas` acepta `desde`/`hasta`; `GET /api/nova/semana?inicio=` (fecha inválida → `FECHA_INVALIDA` 422).
+- **Interfaz:** `/nova` con "Pregúntale a Nova", `MiSemana` (7 columnas desde 1024 px; en el teléfono, 7 días para elegir con un punto si hay tareas y la lista del día elegido; flechas de semana y "Esta semana"; la semana va en `?semana=`), `ProgresoSemanal` (anillo SVG decorativo con el porcentaje también en texto y los contadores), `PrioridadesHoy` ("Agregar" con `?fecha=` de hoy, vencidas con enlace a Tareas pendientes) y `CasillaTarea` (casilla nativa controlada: marcarla abre el diálogo de minutos; completada, marcada y deshabilitada).
+- **Reutilización:** el formulario de minutos se extrajo de `AccionesTarea` a `FormularioMinutos`; Tareas lo usa en línea y la casilla de Inicio dentro de un `Dialogo`. `FormularioTarea` acepta `fechaInicial` y `/nova/tareas/nueva` lee `?fecha=` (válida; inválida se ignora).
+- **Pruebas:** `tests/reglas/semana.test.ts` (8, incluido domingo 22:30 en Bogotá), `tests/servidor/semana.test.ts` (4: servicio con base simulada y ruta), `tests/interfaz/inicio.test.tsx` (11: casilla con cancelar y confirmar, completada, semana en computador y teléfono, flechas, progreso, prioridades, `?fecha=`). Las de `AccionesTarea` pasan sin cambios con el formulario extraído.
+- **Navegador real** (Edge, `next start` con la conexión directa, usuario temporal con 5 tareas, todo borrado al final; 0 fallas en 13): columnas por fecha límite; progreso 33 % (1 de 3); prioridades en orden y "1 tarea vencida"; la casilla abre el diálogo con el foco en los minutos, cancelar no cambia nada y confirmar 30 min completa en la base, el anillo pasa a 66 % y la tarea sale de prioridades; semana siguiente y "Esta semana"; "Agregar" con la fecha de hoy; teléfono con selector de días; claro y oscuro a 1280 y 390 sin desborde.
+- **Al cierre:** `npm test` 389/389, `npm run build` correcto, `eslint` sin errores.
