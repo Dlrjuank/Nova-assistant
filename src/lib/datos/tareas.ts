@@ -1,10 +1,11 @@
-import { CATEGORIA_POR_DEFECTO, LIMITE_LISTADO, TAREAS_CONTEXTO_MAX } from '@/lib/config/nova';
-import { consultar } from '@/lib/db/conexion';
+import { LIMITE_LISTADO, TAREAS_CONTEXTO_MAX } from '@/lib/config/nova';
+import { conTransaccion, consultar } from '@/lib/db/conexion';
 import { hoyBogota } from '@/lib/reglas/fechas';
 import { formatearFecha, formatearPrioridad } from '@/lib/formato';
 import type { TareaContexto } from '@/lib/llm/prompts';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
 import { validarTarea } from '@/lib/reglas/tarea';
+import { resolverCategoria } from './categorias';
 import type { DatosTarea, EstadoTarea, Tarea } from './tipos';
 
 const COLUMNAS = `id, titulo, categoria, prioridad, estado,
@@ -16,22 +17,30 @@ const COLUMNAS = `id, titulo, categoria, prioridad, estado,
 // RB-01 (ampliación): toda función recibe el id del usuario de la sesión y solo ve sus tareas.
 // Una tarea de otro usuario se comporta como inexistente.
 
-/** RN-04, RN-06, RN-07 y RN-08. */
+/** RN-04, RN-06, RN-07 y RN-08. RB-33: la categoría se resuelve (o se crea) en la misma transacción. */
 export async function crearTarea(usuarioId: string, d: DatosTarea): Promise<Tarea> {
   const { titulo, prioridad } = validarTarea(d);
-  const categoria = d.categoria?.trim() || CATEGORIA_POR_DEFECTO;
-  const [tarea] = await consultar<Tarea>(
-    `INSERT INTO tareas_personales (titulo, categoria, prioridad, estado, fecha_limite, fecha_creacion, usuario_id)
-     VALUES ($1, $2, $3, 'Pendiente', $4, $5, $6)
-     RETURNING ${COLUMNAS}`,
-    [titulo, categoria, prioridad, d.fechaLimite, hoyBogota(), usuarioId],
-  );
-  return tarea as Tarea;
+  return conTransaccion(async (tx) => {
+    const categoria = await resolverCategoria(tx, usuarioId, d.categoria);
+    const { rows } = await tx.query<Tarea>(
+      `INSERT INTO tareas_personales (titulo, categoria, prioridad, estado, fecha_limite, fecha_creacion, usuario_id)
+       VALUES ($1, $2, $3, 'Pendiente', $4, $5, $6)
+       RETURNING ${COLUMNAS}`,
+      [titulo, categoria, prioridad, d.fechaLimite, hoyBogota(), usuarioId],
+    );
+    return rows[0] as Tarea;
+  });
 }
 
 export async function listarTareas(
   usuarioId: string,
-  f: { estado?: EstadoTarea | undefined; fecha?: string | undefined; limite?: number | undefined } = {},
+  f: {
+    estado?: EstadoTarea | undefined;
+    fecha?: string | undefined;
+    /** E05b: filtro de la fila de categorías, sin distinguir mayúsculas. */
+    categoria?: string | undefined;
+    limite?: number | undefined;
+  } = {},
 ): Promise<Tarea[]> {
   const valores: unknown[] = [usuarioId];
   const condiciones: string[] = ['usuario_id = $1'];
@@ -42,6 +51,10 @@ export async function listarTareas(
   if (f.fecha) {
     valores.push(f.fecha);
     condiciones.push(`fecha_limite = $${valores.length}`);
+  }
+  if (f.categoria?.trim()) {
+    valores.push(f.categoria.trim());
+    condiciones.push(`lower(btrim(categoria)) = lower($${valores.length})`);
   }
   valores.push(f.limite ?? LIMITE_LISTADO);
   return consultar<Tarea>(

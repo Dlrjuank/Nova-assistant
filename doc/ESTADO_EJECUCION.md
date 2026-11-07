@@ -26,6 +26,7 @@
 | RB-32 Ajuste: el Asistente nunca se bloquea sin documentos | completado | correcto | 312 pasan | 2026-11-07 |
 | Ajuste: el chat baja al último mensaje | completado | correcto | 324 pasan | 2026-11-07 |
 | E05 Ampliación: categorías (M6) | completado | correcto | 351 pasan | 2026-11-07 |
+| E05b Ampliación: categorías dentro de Tareas | completado | correcto | 366 pasan | 2026-11-07 |
 
 ## Bitácora
 
@@ -406,3 +407,19 @@ Total de fallas: 0
 - **Pruebas:** `tests/reglas/categorias.test.ts` (6), `tests/servidor/categorias.test.ts` (12: servicio con base simulada y rutas: 401/403, 201, 409 con mensaje exacto, 400, General), `tests/interfaz/categorias.test.tsx` (9); `navegacion.test.tsx` con Configuración; `db:verificar` sección 6c (tabla, RLS, índice, repetida, color y espacios).
 - **Navegador real** (Edge, `next start` con la conexión directa, usuario temporal con 2 tareas "casa", todo borrado al final; 0 fallas en 17): General aparece sola; "casa" sin registrar se ve gris; crear "Casa" cuenta sus 2 tareas y "CASA" responde el mensaje exacto; renombrar a "Hogar" con azul cambia las tareas en la base y en Tareas; General sin "Eliminar" ni nombre editable; eliminar con confirmación pasa las tareas a General; Configuración y Tareas en claro y oscuro, 1280 y 390, sin desborde y con el ítem activo correcto.
 - **Al cierre:** `npm test` 351/351, `npm run build` correcto, `eslint` sin errores.
+- **Prueba del usuario:** crear "Universidad" y el aviso de nombre repetido funcionan. Pidió mover las categorías a Tareas (E05b).
+
+### E05b Ampliación: categorías dentro de Tareas (pedida por el usuario)
+
+- **Interfaz:** `FilaCategorias` (fila con "Todas", General, las del usuario y "+ Nueva"; filtro `?categoria=` combinable con el estado vía `src/lib/rutasTareas.ts`; "⋯" en la elegida, presión larga de 500 ms que se cancela si el dedo se desliza, clic derecho; anuncios con `role="status"`), `Dialogo` (nuevo componente de `src/components/ui`: hoja inferior en el teléfono, centrado desde 640 px, foco atrapado, Escape, "Cerrar" y tocar fuera). La página de Tareas filtra por categoría sin distinguir mayúsculas y muestra el nombre guardado. Se borraron `/nova/configuracion` y `CategoriasConfig`; Configuración sale del menú hasta E11.
+- **Servidor (RB-33):** `resolverCategoria(tx, usuario, texto)` en `src/lib/datos/categorias.ts`; `crearTarea` la usa dentro de una transacción; `listarTareas` acepta `categoria`.
+- **Aviso del proveedor (B-46):** fuera del layout; completo arriba del Asistente (`AVISO_PROVEEDOR`) y una línea corta bajo "Pregúntale a Nova" (`AVISO_PROVEEDOR_CORTO`); Web conserva su subtítulo; nada en Productividad.
+- **Errores encontrados al verificar en el navegador** (las pruebas de jsdom no los veían):
+  1. La página de Tareas (servidor) llamaba a `hrefTareas`, exportada desde un archivo `'use client'`: Next lo prohíbe y la página fallaba. Se movió a `src/lib/rutasTareas.ts`.
+  2. Al escribir el nombre en el diálogo solo quedaba la primera letra: `useFocoAtrapado` dependía de `cerrar`, una función nueva en cada render, así que con cada tecla el efecto se reiniciaba y devolvía el foco al botón de origen. Ahora guarda `cerrar` en una referencia (arregla también la hoja "Más"), y el foco entra al primer campo del diálogo. Prueba de regresión que falla con el código anterior.
+  3. Tras la presión larga, el clic de soltar el dedo caía sobre el fondo recién abierto y cerraba el menú. El fondo ahora solo cierra si el toque empezó en él. Con prueba.
+  4. "Eliminar" del menú no se veía en rojo (ganaba el color del botón secundario): `text-peligro!`.
+  5. Redacción: con una tarea, "Su tarea pasará a General." (antes "Sus 1 tarea pasarán").
+- **Pruebas:** `tests/interfaz/filaCategorias.test.tsx` (20: enlaces y filtro, "+ Nueva" con repetida, menú de General, renombrar con filtro, color, eliminar con confirmación, Escape y foco, foco al escribir, presión larga y deslizar, fondo tras presión larga, clic derecho, selector, insignia, tabla, aviso del proveedor); RB-33 en `tests/servidor/categorias.test.ts`; `aislamiento.test.ts` ajustada a la transacción; se borró `tests/interfaz/categorias.test.tsx` con su componente.
+- **Navegador real** (Edge, `next start` con la conexión directa, usuario temporal borrado al final; 0 fallas en 16): Configuración fuera del menú y `/nova/configuracion` → 404; crear "Universidad" y repetida; RB-33 con tareas reales (" universidad " → "Universidad"; "Gimnasio" creada con ámbar); filtrar; renombrar a "U" con azul (la tarea cambia y el filtro sigue); eliminar con confirmación (la tarea pasa a General y el filtro vuelve a Todas); menú de General por clic derecho; presión larga táctil a 390 px abre el menú sin filtrar; aviso del proveedor solo en Asistente e Inicio; claro y oscuro a 1280 y 390, sin desborde, fila de 40 px que se desliza en el teléfono.
+- **Al cierre:** `npm test` 366/366, `npm run build` correcto, `eslint` sin errores.

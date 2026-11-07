@@ -17,7 +17,7 @@ Los prompts de ejecución están en `doc/PROMPTS_AMPLIACION.md` (etapas E00 a E2
 9. [El asistente en Semestre](#9-el-asistente-en-semestre)
 10. [API](#10-api)
 11. [Pruebas](#11-pruebas)
-12. [Casos de aceptación B-01 a B-45](#12-casos-de-aceptación-b-01-a-b-45)
+12. [Casos de aceptación B-01 a B-46](#12-casos-de-aceptación-b-01-a-b-46)
 13. [Riesgos y decisiones](#13-riesgos-y-decisiones)
 
 ---
@@ -123,7 +123,7 @@ Las categorías no usan colores libres: se elige de una **paleta fija de 8 color
 | Fuentes | `/nova/fuentes` | `FileText` | E10 (antes, "Documentos" y "Web" siguen como hoy) |
 | Productividad | `/nova/productividad` | `ChartColumn` | E03 |
 | Semestre | `/nova/semestre` | `GraduationCap` | E12 |
-| Configuración | `/nova/configuracion` | `Settings` | E05 |
+| Configuración | `/nova/configuracion` | `Settings` | E11 (E05 la creó con Categorías; E05b movió las categorías a Tareas y la sacó del menú hasta E11) |
 
 ### 4.2 Computador (≥ 1024 px)
 
@@ -173,9 +173,10 @@ Desde E02b (RB-30): sin documentos del usuario pero con al menos una tarea pendi
 
 ### 5.4 Tareas (`/nova/tareas`)
 
+- **Categorías dentro de Tareas (E05b, pedido del usuario):** arriba, una fila de categorías con su punto de color: "Todas", "General", las del usuario en orden alfabético y "+ Nueva". En el teléfono se desliza de lado en una sola fila (40 px de alto); desde 1024 px se acomoda en varias líneas si hace falta. Tocar una categoría filtra las tareas (`?categoria=`, sin distinguir mayúsculas, combinable con el estado). "+ Nueva" abre un diálogo (hoja inferior en el teléfono, recuadro centrado en el computador) con nombre y color, sin salir de Tareas. El menú de una categoría se abre con "⋯" (en la categoría elegida), dejándola presionada medio segundo o con clic derecho: "Renombrar", "Cambiar color" y "Eliminar" (con confirmación: sus tareas pasan a General). General dice "Por defecto" y solo ofrece "Cambiar color". Al renombrar la categoría filtrada, el filtro sigue con el nombre nuevo; al eliminarla, vuelve a "Todas".
 - Pestañas en píldora: **Todas**, **Hoy** (fecha límite hoy), **Importantes** (prioridad Alta y pendientes), **Completadas**. La pestaña va en la URL (`?vista=hoy`).
 - Agrupación por categoría: encabezado con punto de color, nombre y contador **completadas/total** del grupo dentro de la pestaña (por ejemplo "4/6"); dentro, las tareas con casilla, título, fecha, prioridad y acciones (completar, eliminar) como hoy.
-- Botón principal "Nueva tarea". El formulario ofrece las categorías existentes (selector) y permite escribir una nueva, que se crea con el siguiente color libre de la paleta.
+- Botón principal "Nueva tarea". En E08 el campo de categoría (también al editar, E09) es una lista con las categorías del usuario y su color, que se filtra al escribir y ofrece `Crear "X"` si no existe; la categoría nueva se crea al guardar la tarea (RB-33), no al escribir.
 - **Editar** (E09): cada tarea pendiente tiene la acción "Editar" en Tareas, en Inicio y en la lista del día del Calendario. Lleva a `/nova/tareas/[id]/editar`, con el mismo formulario de crear (componente `FormularioTarea`) ya lleno con título, categoría, prioridad y fecha límite. Mismas validaciones y mensajes que al crear (RN-01, RN-03, RN-04, RN-07 y la máscara AAAA-MM-DD, con el aviso de fecha pasada). "Guardar cambios" vuelve a la pantalla de origen; "Cancelar" no cambia nada. Las tareas completadas no se editan (RB-29).
 
 ### 5.5 Fuentes (`/nova/fuentes`)
@@ -196,7 +197,7 @@ Pestañas **Materias y notas**, **Objetivos y plan**, **Estadísticas** (cada un
 
 ### 5.8 Configuración (`/nova/configuracion`)
 
-Bloques: **Perfil** (nombre editable, correo de solo lectura, cambiar contraseña), **Apariencia** (claro, oscuro, automático), **Académico** (escala 0,0 a 5,0 de solo lectura, nota para aprobar, redondeo truncar/redondear, cortes por defecto), **Categorías** (crear, renombrar, cambiar color, eliminar), **Asistente** (borrar todo el historial, aviso de Gemini) y **Cerrar sesión**.
+Bloques: **Perfil** (nombre editable, correo de solo lectura, cambiar contraseña), **Apariencia** (claro, oscuro, automático), **Académico** (escala 0,0 a 5,0 de solo lectura, nota para aprobar, redondeo truncar/redondear, cortes por defecto), **Asistente** (borrar todo el historial, aviso de Gemini) y **Cerrar sesión**.
 
 ## 6. Modelo de datos
 
@@ -408,6 +409,7 @@ Los mensajes se usan **textualmente** en la interfaz y en la API. Los de `PLAN_N
 | RB-30 | Reemplaza a RN-15 en la ampliación (E02b). Con documentos del usuario, la consulta funciona como siempre (vector, 4 fragmentos y tareas solo si la pregunta las menciona, RN-12). Sin documentos pero con al menos una tarea pendiente, responde con las tareas pendientes: sin calcular el vector, sin filtro por palabras y como máximo las 50 de fecha límite más próxima (las vencidas primero, `TAREAS_CONTEXTO_MAX`); si la pregunta es de algo que solo estaría en un PDF, responde el mensaje exacto de siempre. Sin documentos ni tareas pendientes, `SIN_DOCUMENTOS`. Las 50 más próximas también limitan lo que se envía cuando hay documentos | `No encontré esto en tus documentos` y `Aún no hay documentos indexados. Indexe un PDF antes de preguntar.` (sin cambios). Aviso informativo nuevo: `Aún no hay documentos indexados: por ahora el asistente responde solo sobre tus tareas pendientes.` |
 | RB-31 | (E02c) El contexto del Asistente empieza con la línea HOY: fecha de hoy, mañana y la semana actual (lunes a domingo), calculadas con la zona `America/Bogota` explícita, nunca con la hora del servidor (`lineaHoy`). Cada tarea lleva su fecha límite también como AAAA-MM-DD. Las preguntas de fechas sobre tareas (hoy, mañana, esta semana, qué vence primero) se responden con las tareas; si hay pendientes pero ninguna cae en el periodo, el modelo responde "No tienes tareas para {periodo}." y menciona la pendiente más próxima (y las vencidas, si hay). Las palabras semana, mañana (y manana), hoy y vencid se suman a las de RN-12 | `No tienes tareas para {periodo}.` (lo escribe el modelo siguiendo el System Prompt, no el servidor; se verifica con `probar:rag`, paso 12). Los mensajes exactos existentes no cambian |
 | RB-32 | (Ajuste pedido por el usuario el 2026-11-07; reemplaza a RN-15 y al último caso de RB-30.) La pregunta nunca se bloquea por falta de documentos. El contexto lleva `DOCUMENTOS: el usuario aún no tiene documentos indexados.` cuando no hay documentos y `TAREAS PENDIENTES: ninguna.` cuando se consultaron las tareas y no hay pendientes. Pregunta sobre tareas sin pendientes → respuesta exacta; pregunta que necesita documentos sin tenerlos → respuesta exacta que lo explica (el servidor impone ambos textos y no muestra fuentes). Con documentos, "No encontré esto en tus documentos" sigue igual. La pantalla solo muestra avisos informativos (ninguno bloquea) | `No tienes tareas pendientes.` · `Aún no tienes documentos indexados, así que no puedo responder sobre documentos. Indexa un PDF para preguntar sobre él.` · Aviso sin documentos ni tareas: `Aún no tienes documentos indexados ni tareas pendientes. Puedes preguntar igual; para que el asistente responda sobre tus documentos, indexa un PDF.` |
+| RB-33 | (E05b, pedido del usuario) La categoría de una tarea se resuelve en el servidor (`resolverCategoria`, dentro de la transacción de quien crea la tarea: formulario, E19 y cualquier forma futura, como el chat si se agregara): se recortan y unen los espacios y se compara sin mayúsculas; si existe, se usa su nombre guardado (" universidad " → "Universidad"); si no, se crea con el siguiente color libre; vacía → General. Nombres de 1 a 80 caracteres (aprobado por el usuario) | `Escribe un nombre de 1 a 80 caracteres.` |
 | RB-29 | Editar una tarea: solo pendientes y del usuario; título, categoría, prioridad y fecha límite con las mismas validaciones y mensajes que al crear; estado, minutos y fecha de cierre no se tocan | Los de crear (`PLAN_NOVA.md` 5.1). Tarea completada: `La tarea ya está completada.` (`TAREA_YA_COMPLETADA`, 409). De otro usuario o inexistente: `La tarea no existe.` (`TAREA_NO_ENCONTRADA`, 404) |
 
 Códigos de error nuevos (404 salvo indicación): `CATEGORIA_NO_ENCONTRADA`, `CATEGORIA_DUPLICADA` (409), `MATERIA_NO_ENCONTRADA`, `MATERIA_DUPLICADA` (409), `CORTE_NO_ENCONTRADO`, `ACTIVIDAD_NO_ENCONTRADA`, `PORCENTAJES_INVALIDOS` (422), `NOTA_INVALIDA` (422), `META_NO_ENCONTRADA`, `META_DUPLICADA` (409), `PLAN_SIN_TEMAS` (422), `PLAN_SIN_FECHA` (422), `SIN_SYLLABUS` (422), `PLAN_INVALIDO` (502), `PASO_YA_EN_TAREAS` (409).
@@ -501,7 +503,7 @@ Con un `git worktree` de `master` en una carpeta temporal: `npm run probar:rag` 
 
 En cada etapa con interfaz: navegador real a 1280 px y 390 px (sin desplazamiento horizontal, sin errores de página, foco visible) y prueba del usuario en la **vista previa de Vercel** desde su teléfono.
 
-## 12. Casos de aceptación B-01 a B-45
+## 12. Casos de aceptación B-01 a B-46
 
 Se ejecutan en la vista previa de Vercel de `ampliacion`, en computador y en teléfono, y se registran en `doc/ACEPTACION.md` (sección nueva). Antes, se repiten A-01 a A-21 en la vista previa.
 
@@ -524,7 +526,7 @@ Se ejecutan en la vista previa de Vercel de `ampliacion`, en computador y en tel
 | B-15 | Calendario: con un corte y una actividad con fecha | Aparecen en su día con su ícono y enlazan a la materia |
 | B-16 | Tareas: pestañas Todas, Hoy, Importantes, Completadas | Cada una filtra como dice; la pestaña queda en la URL |
 | B-17 | Tareas: agrupación | Grupos por categoría con color y contador completadas/total |
-| B-18 | Configuración: crear, renombrar, recolorear y eliminar una categoría | Se refleja en Tareas, Inicio y Calendario; eliminar pasa sus tareas a General; nombre repetido → RB-02 |
+| B-18 | En Tareas: crear una categoría con "+ Nueva", filtrar por ella, renombrarla y cambiarle el color desde "⋯" o dejándola presionada, y eliminarla; abrir el menú de General | Sin salir de Tareas; nombre repetido → RB-02; renombrar cambia las tareas y mantiene el filtro; eliminar pide confirmación y pasa sus tareas a General; General dice "Por defecto" y solo cambia de color. Se refleja en Inicio y Calendario cuando existan (E06, E07) |
 | B-19 | Fuentes: las dos pestañas | Subir PDF e índice funcionan como A-06 a A-08 y A-21; Buscar en la web como A-18 |
 | B-20 | Abrir `/nova/documentos` y `/nova/web` | Redirigen a Fuentes en la pestaña correcta |
 | B-21 | Subir un PDF con una materia como categoría | La lista muestra la materia |
@@ -550,6 +552,7 @@ Se ejecutan en la vista previa de Vercel de `ampliacion`, en computador y en tel
 | B-43 | En una cuenta sin documentos y con una tarea pendiente: abrir el Asistente, preguntar "¿Qué tareas tengo pendientes?" y luego algo que solo estaría en un PDF | La pantalla muestra el aviso informativo (RB-30); la primera respuesta incluye la tarea y la cita; la segunda responde "No encontré esto en tus documentos". Sin tareas pendientes ni documentos, vuelve el aviso de indexar un PDF (A-13) |
 | B-44 | Preguntas por fechas, con y sin documentos: "¿Qué tengo para hacer esta semana?" con una tarea esta semana y con tareas solo en fechas lejanas; "¿Qué tengo para mañana?"; "¿Qué vence primero?" | Con tareas en el periodo, las lista y las cita; sin tareas en el periodo, "No tienes tareas para esta semana." (o "para mañana") y la tarea pendiente más próxima con su fecha y su cita; "qué vence primero" responde la de fecha límite más próxima. Nunca "No encontré esto en tus documentos" si hay tareas pendientes |
 | B-45 | Sin documentos y sin tareas; sin documentos y con tareas; con documentos y sin tareas: preguntar "¿Tengo alguna tarea?" y algo de un documento | Sin tareas: "No tienes tareas pendientes."; con tareas: las lista y las cita; sin documentos, la pregunta de documento explica que no hay documentos (en tuteo); con documentos, "No encontré esto en tus documentos" si el dato no está. Nunca se bloquea la pregunta; el aviso de arriba es informativo y no se repite como respuesta |
+| B-46 | Recorrer Inicio, Asistente, Tareas, Productividad y Web | El aviso del proveedor está completo solo en el Asistente y como línea corta bajo "Pregúntale a Nova" en Inicio; Web conserva su subtítulo; no aparece en Tareas ni en Productividad |
 | B-41 | Editar una tarea pendiente desde Tareas, Inicio y Calendario (título, categoría, prioridad y fecha) | El formulario abre lleno; al guardar, el cambio se ve en las tres pantallas y en su día del Calendario; "Cancelar" no cambia nada |
 | B-42 | Al editar, poner fecha "2026-02-30" y luego prioridad 5 por la API; intentar editar una tarea completada | Mismos mensajes que al crear (A-03, A-04); la completada responde "La tarea ya está completada." y no muestra "Editar" |
 

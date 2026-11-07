@@ -1,3 +1,4 @@
+import type { PoolClient } from 'pg';
 import { CATEGORIA_POR_DEFECTO } from '@/lib/config/nova';
 import { conTransaccion, consultar } from '@/lib/db/conexion';
 import {
@@ -131,4 +132,32 @@ export async function eliminarCategoria(usuarioId: string, id: string): Promise<
     await tx.query('DELETE FROM categorias WHERE id = $1 AND usuario_id = $2', [id, usuarioId]);
     return { id, tareasMovidas: movidas.rowCount ?? 0 };
   });
+}
+
+/**
+ * RB-33: convierte el texto de categoría de una tarea en una categoría guardada del usuario, sin duplicar.
+ * Recorta y une espacios, compara sin mayúsculas: si existe, devuelve su nombre tal como está guardado
+ * (" universidad " → "Universidad"); si no, la crea con el siguiente color libre. Vacío → "General".
+ * Va dentro de la transacción de quien crea la tarea (formulario, E19 y cualquier forma futura).
+ */
+export async function resolverCategoria(tx: PoolClient, usuarioId: string, texto?: string | null): Promise<string> {
+  const nombre = texto?.trim() ? validarNombreCategoria(texto) : CATEGORIA_POR_DEFECTO;
+  const buscar = async () =>
+    (
+      await tx.query<{ nombre: string }>('SELECT nombre FROM categorias WHERE usuario_id = $1 AND lower(nombre) = lower($2)', [
+        usuarioId,
+        nombre,
+      ])
+    ).rows[0]?.nombre;
+  const existente = await buscar();
+  if (existente) return existente;
+  const { rows } = await tx.query<{ color: string }>('SELECT color FROM categorias WHERE usuario_id = $1', [usuarioId]);
+  const color = esGeneral(nombre) ? COLOR_SIN_CATEGORIA : siguienteColorLibre(rows.map((r) => r.color));
+  // ON CONFLICT: si otra petición la creó al mismo tiempo, se usa esa.
+  await tx.query('INSERT INTO categorias (usuario_id, nombre, color) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING', [
+    usuarioId,
+    nombre,
+    color,
+  ]);
+  return (await buscar()) ?? nombre;
 }

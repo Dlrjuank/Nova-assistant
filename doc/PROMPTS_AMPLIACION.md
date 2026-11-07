@@ -1,6 +1,6 @@
 # Prompts de la ampliación · Nova Assistant
 
-Etapas E00 a E21 (más E02b y E02c, pedidas por el usuario) para ejecutar `doc/PLAN_AMPLIACION.md`, en orden de dependencias. Cada etapa es pequeña, se puede probar sola y termina en un commit en la rama `ampliacion`. Se ejecuta una etapa por vez y se espera la confirmación del usuario antes de la siguiente.
+Etapas E00 a E21 (más E02b, E02c y E05b, pedidas por el usuario) para ejecutar `doc/PLAN_AMPLIACION.md`, en orden de dependencias. Cada etapa es pequeña, se puede probar sola y termina en un commit en la rama `ampliacion`. Se ejecuta una etapa por vez y se espera la confirmación del usuario antes de la siguiente.
 
 ## Reglas de todas las etapas
 
@@ -167,6 +167,26 @@ VERIFICACIÓN: B-18.
 ```
 
 **Commit:** `feat(categorias): categorías de tareas con color`
+
+---
+
+## E05b · Categorías dentro de Tareas (pedida por el usuario)
+
+**Plan:** 5.4, RB-33, B-18, B-46. **Requisito:** E05.
+
+```text
+OBJETIVO: manejar las categorías sin salir de Tareas, sin pantallas nuevas.
+
+TAREA 1. Fila de categorías arriba de Tareas ("Todas", "General", las del usuario, "+ Nueva"), deslizable en el teléfono; filtra por ?categoria= conservando el estado.
+TAREA 2. "+ Nueva" y el menú de cada categoría ("⋯", presión larga, clic derecho) en un diálogo: renombrar, cambiar color, eliminar con confirmación; General "Por defecto", solo color. Usa la API de E05.
+TAREA 3. RB-33 en el servidor (resolverCategoria) y crearTarea en una transacción.
+TAREA 4. Quitar Categorías de Configuración y Configuración del menú hasta E11.
+TAREA 5. Aviso del proveedor solo en el Asistente (completo) y bajo "Pregúntale a Nova" (línea corta).
+
+VERIFICACIÓN: B-18 y B-46; las pruebas pendientes de E05 (tarea con categoría, renombrar con otro color, eliminar y pasar a General, General sin "Eliminar").
+```
+
+**Commit:** `feat(categorias): categorías dentro de Tareas`
 
 ---
 
@@ -442,11 +462,11 @@ VERIFICACIÓN: B-40.
 **Plan:** 12. **Requisito:** E20.
 
 ```text
-TAREA 1. Agregar a doc/ACEPTACION.md la tabla B-01 a B-45 (columnas como A-01 a A-15) y la nota de repetir A-01 a A-21 en la vista previa.
+TAREA 1. Agregar a doc/ACEPTACION.md la tabla B-01 a B-46 (columnas como A-01 a A-15) y la nota de repetir A-01 a A-21 en la vista previa.
 TAREA 2. Revisión final: sin botones muertos (recorrido de todas las pantallas), sin colores fuera de los tokens, sin textos en inglés, todas las rutas nuevas con exigirSesion y filtro por usuario, ninguna clave en el repositorio.
 TAREA 3. Actualizar README (funciones, pantallas, scripts nuevos) y crear doc/checkpoints/AMPLIACION_COMPLETADA.md.
 TAREA 4. Preparar (sin aplicar) la migración que quita el disparador de dueño por defecto (plan, 6.1): comprueba que no quedan filas sin usuario_id, borra el disparador y asignar_dueno_por_defecto (y nova_config si nada más la usa) y pasa usuario_id a NOT NULL. Se aplica solo al unir ampliacion con master, después de que master tenga el código nuevo; nunca antes, porque rompería el código de master en producción.
-TAREA 5. Recordarle al usuario ejecutar B-01 a B-45 y A-01 a A-21 en la vista previa, en computador y teléfono. La unión de ampliacion con master solo se hace si el usuario la pide, e incluye revisar y aplicar la migración de la TAREA 4.
+TAREA 5. Recordarle al usuario ejecutar B-01 a B-46 y A-01 a A-21 en la vista previa, en computador y teléfono. La unión de ampliacion con master solo se hace si el usuario la pide, e incluye revisar y aplicar la migración de la TAREA 4.
 ```
 
 **Commit:** `docs: aceptación de la ampliación`

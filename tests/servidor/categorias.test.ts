@@ -14,7 +14,14 @@ vi.mock('@/lib/dataService', async () => import('@/lib/datos/categorias'));
 
 import * as rutaCategoria from '@/app/api/nova/categorias/[id]/route';
 import * as rutaCategorias from '@/app/api/nova/categorias/route';
-import { actualizarCategoria, crearCategoria, eliminarCategoria, listarCategorias } from '@/lib/datos/categorias';
+import {
+  actualizarCategoria,
+  crearCategoria,
+  eliminarCategoria,
+  listarCategorias,
+  resolverCategoria,
+} from '@/lib/datos/categorias';
+import { crearTarea } from '@/lib/datos/tareas';
 
 const U = '11111111-1111-4111-8111-111111111111';
 const ID = '55555555-5555-4555-8555-555555555555';
@@ -146,5 +153,50 @@ describe('rutas /api/nova/categorias', () => {
     const r = await rutaCategoria.DELETE(new Request('http://x', { method: 'DELETE' }), contexto());
     expect(r.status).toBe(409);
     expect((await r.json()).error.mensaje).toBe('La categoría General no se puede eliminar.');
+  });
+});
+
+describe('RB-33: la categoría de una tarea se resuelve sin duplicar', () => {
+  const tx = () => ({ query: m.txQuery }) as unknown as Parameters<typeof resolverCategoria>[0];
+
+  it('si existe (sin distinguir mayúsculas ni espacios), usa el nombre guardado y no crea nada', async () => {
+    m.txQuery.mockResolvedValueOnce({ rows: [{ nombre: 'Universidad' }] });
+    await expect(resolverCategoria(tx(), U, '  universidad   ')).resolves.toBe('Universidad');
+    expect(m.txQuery).toHaveBeenCalledTimes(1);
+    expect(m.txQuery.mock.calls[0]?.[1]).toEqual([U, 'universidad']);
+    expect(String(m.txQuery.mock.calls[0]?.[0])).toContain('lower(nombre) = lower($2)');
+  });
+
+  it('une espacios repetidos antes de comparar', async () => {
+    m.txQuery.mockResolvedValueOnce({ rows: [{ nombre: 'Mi casa' }] });
+    await expect(resolverCategoria(tx(), U, 'mi    casa')).resolves.toBe('Mi casa');
+    expect(m.txQuery.mock.calls[0]?.[1]).toEqual([U, 'mi casa']);
+  });
+
+  it('si no existe, la crea con el siguiente color libre', async () => {
+    m.txQuery
+      .mockResolvedValueOnce({ rows: [] }) // no existe
+      .mockResolvedValueOnce({ rows: [{ color: 'gris' }, { color: 'terracota' }] }) // colores usados
+      .mockResolvedValueOnce({ rows: [] }) // INSERT
+      .mockResolvedValueOnce({ rows: [{ nombre: 'Gimnasio' }] }); // ya creada
+    await expect(resolverCategoria(tx(), U, 'Gimnasio')).resolves.toBe('Gimnasio');
+    expect(String(m.txQuery.mock.calls[2]?.[0])).toContain('ON CONFLICT DO NOTHING');
+    expect(m.txQuery.mock.calls[2]?.[1]).toEqual([U, 'Gimnasio', 'ambar']);
+  });
+
+  it('vacía o solo espacios → General (gris); de más de 80 caracteres se rechaza', async () => {
+    m.txQuery.mockResolvedValueOnce({ rows: [{ nombre: 'General' }] });
+    await expect(resolverCategoria(tx(), U, '   ')).resolves.toBe('General');
+    expect(m.txQuery.mock.calls[0]?.[1]).toEqual([U, 'General']);
+    await expect(resolverCategoria(tx(), U, 'x'.repeat(81))).rejects.toMatchObject({ codigo: 'NOMBRE_CATEGORIA_INVALIDO' });
+  });
+
+  it('crearTarea guarda la tarea con el nombre guardado de la categoría, en la misma transacción', async () => {
+    m.txQuery.mockImplementation(async (sql: string) =>
+      String(sql).startsWith('SELECT nombre FROM categorias') ? { rows: [{ nombre: 'Universidad' }] } : { rows: [{ id: ID }] },
+    );
+    await crearTarea(U, { titulo: 'Estudiar', categoria: ' UNIVERSIDAD ', fechaLimite: '2099-01-01' });
+    const insertar = m.txQuery.mock.calls.find(([sql]) => String(sql).includes('INSERT INTO tareas_personales'));
+    expect(insertar?.[1]?.[1]).toBe('Universidad');
   });
 });

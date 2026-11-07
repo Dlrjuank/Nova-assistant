@@ -44,12 +44,16 @@ describe('aislamiento por usuario (RB-01)', () => {
     m.consultarBd.mockResolvedValue([]);
   });
 
-  it('crearTarea guarda el dueño', async () => {
-    m.consultarBd.mockResolvedValue([{ id: ID }]);
+  it('crearTarea guarda el dueño y resuelve la categoría solo entre las del usuario (RB-33)', async () => {
+    m.txQuery.mockImplementation(async (sql: string) =>
+      String(sql).startsWith('SELECT nombre FROM categorias') ? { rows: [{ nombre: 'General' }] } : { rows: [{ id: ID }] },
+    );
     await crearTarea(A, { titulo: 'Pagar luz', fechaLimite: '2099-01-01' });
-    const [sql, valores] = m.consultarBd.mock.calls[0] ?? [];
-    expect(sql).toContain('usuario_id');
-    expect(valores).toContain(A);
+    for (const [sql, valores] of m.txQuery.mock.calls) {
+      expect(String(sql)).toContain('usuario_id');
+      expect(valores).toContain(A);
+    }
+    expect(String(m.txQuery.mock.calls.at(-1)?.[0])).toContain('INSERT INTO tareas_personales');
   });
 
   it('listarTareas y tareasPendientesComoTexto solo leen las del usuario', async () => {

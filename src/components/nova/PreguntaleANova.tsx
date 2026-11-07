@@ -6,7 +6,7 @@ import { useState, type FormEvent } from 'react';
 import { Boton } from '@/components/ui/Boton';
 import { CLASE_CONTROL } from '@/components/ui/Campo';
 import { CONSULTA_MAX_CARACTERES } from '@/lib/config/nova';
-import { esConsultaValida, normalizarConsulta } from '@/lib/reglas/consulta';
+import { AVISO_PROVEEDOR_CORTO, esConsultaValida, normalizarConsulta } from '@/lib/reglas/consulta';
 import { MENSAJES } from '@/lib/reglas/errores';
 
 /**
@@ -62,6 +62,7 @@ export function PreguntaleANova() {
           Preguntar
         </Boton>
       </form>
+      <p className="text-xs text-texto-suave">{AVISO_PROVEEDOR_CORTO}</p>
     </section>
   );
 }

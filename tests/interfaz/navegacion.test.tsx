@@ -28,7 +28,7 @@ afterEach(() => {
 
 describe('secciones (sin botones muertos)', () => {
   it('solo enlazan a rutas que existen hoy', () => {
-    const existentes = ['/nova', '/nova/asistente', '/nova/tareas', '/nova/documentos', '/nova/web', '/nova/productividad', '/nova/configuracion'];
+    const existentes = ['/nova', '/nova/asistente', '/nova/tareas', '/nova/documentos', '/nova/web', '/nova/productividad'];
     const todas = [...MENU_LATERAL, ...BARRA_INFERIOR.izquierda, BARRA_INFERIOR.centro, ...BARRA_INFERIOR.derecha, ...MENU_MAS];
     expect(todas.every((s) => existentes.includes(s.href))).toBe(true);
     expect(MENU_LATERAL.map((s) => s.href)).toEqual(existentes);
@@ -60,7 +60,6 @@ describe('BarraLateral (computador)', () => {
       'Documentos',
       'Web',
       'Productividad',
-      'Configuración',
     ]);
     expect(within(menu).getByRole('link', { name: 'Tareas' }).getAttribute('aria-current')).toBe('page');
     expect(within(menu).getByRole('link', { name: 'Inicio' }).getAttribute('aria-current')).toBeNull();
@@ -107,7 +106,7 @@ describe('BarraInferior y hoja "Más" (teléfono)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Más' }));
     const hoja = screen.getByRole('dialog', { name: 'Más secciones' });
     expect(hoja.getAttribute('aria-modal')).toBe('true');
-    expect(within(hoja).getAllByRole('link').map((a) => a.textContent)).toEqual(['Web', 'Productividad', 'Configuración']);
+    expect(within(hoja).getAllByRole('link').map((a) => a.textContent)).toEqual(['Web', 'Productividad']);
     expect(within(hoja).getByText('yo@ejemplo.com')).toBeTruthy();
     expect(within(hoja).getByRole('button', { name: 'Cerrar sesión' })).toBeTruthy();
     expect(hoja.contains(document.activeElement)).toBe(true);

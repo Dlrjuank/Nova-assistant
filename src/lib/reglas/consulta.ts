@@ -34,6 +34,11 @@ export function textoDeBusqueda(pregunta: string, preguntaAnterior?: string | un
 }
 
 /** RN-12: la pregunta pide tareas si contiene alguna palabra clave. */
+/** B-46: solo donde se le pregunta a Nova (completo en el Asistente; una línea corta en Inicio). */
+export const AVISO_PROVEEDOR =
+  'Tus preguntas y los fragmentos recuperados se envían al proveedor del asistente. No subas documentos con datos sensibles.';
+export const AVISO_PROVEEDOR_CORTO = 'Tu pregunta se envía al proveedor del asistente.';
+
 /** RB-30: aviso informativo del Asistente cuando no hay documentos pero sí tareas pendientes. */
 export const AVISO_SOLO_TAREAS = 'Aún no hay documentos indexados: por ahora el asistente responde solo sobre tus tareas pendientes.';
 

@@ -3,7 +3,7 @@ import { Chat } from '@/components/nova/Chat';
 import { Aviso } from '@/components/ui/Aviso';
 import { EncabezadoPantalla } from '@/components/ui/EncabezadoPantalla';
 import { conversacionActual, exigirSesion, existenDocumentos, hayTareasPendientes } from '@/lib/dataService';
-import { AVISO_SIN_FUENTES, AVISO_SOLO_TAREAS, avisoAsistente } from '@/lib/reglas/consulta';
+import { AVISO_PROVEEDOR, AVISO_SIN_FUENTES, AVISO_SOLO_TAREAS, avisoAsistente } from '@/lib/reglas/consulta';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,6 +27,8 @@ export default async function AsistentePage({ searchParams }: { searchParams: Pr
 
   return (
     <>
+      {/* B-46: el aviso del proveedor va solo donde se le pregunta a Nova. */}
+      <Aviso tipo="info">{AVISO_PROVEEDOR}</Aviso>
       <EncabezadoPantalla titulo="Asistente" subtitulo="Pregunta sobre tus documentos y tus tareas pendientes; Nova cita de dónde sale cada dato." />
       {aviso === 'sin-fuentes' && (
         <Aviso tipo="info">
