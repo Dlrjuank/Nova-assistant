@@ -21,6 +21,7 @@
 | E02 Ampliación: diseño base | completado | correcto | 259 pasan | 2026-11-06 |
 | E02b Ampliación: Asistente sin documentos (RB-30) | completado | correcto | 268 pasan | 2026-11-06 |
 | E02c Ampliación: fecha de hoy y preguntas por fechas (RB-31) | completado | correcto | 278 pasan | 2026-11-06 |
+| E03 Ampliación: navegación | completado | correcto | 295 pasan | 2026-11-06 |
 
 ## Bitácora
 
@@ -339,3 +340,14 @@ Total de fallas: 0
 - **Pruebas:** 10 nuevas (semana y bordes, `sumarDias`, `fechaLarga`, domingo 22:30 en Bogotá con UTC ya en lunes, cambio exacto a la medianoche de Bogotá, línea HOY primero con y sin documentos, AAAA-MM-DD en las tareas, regla en el System Prompt, palabras clave y "primer paso" excluido).
 - **`probar:rag` paso 12 con Gemini real** (0 fallas en total): "¿Qué tengo para hacer esta semana?" con una sola tarea en 2099 respondió "No tienes tareas para esta semana. La tarea pendiente más próxima es: Prueba pagar el recibo de la luz (2099-02-01)" con su cita; "¿Qué tengo para mañana?" respondió solo la tarea de mañana, citada; "¿Qué vence primero?" respondió esa misma tarea. Los pasos 1 a 11 (incluido B-43) siguen pasando.
 - **Al cierre:** `npm test` 278/278, `npm run build` correcto, `eslint` sin errores. No se tocaron la fuente "Gripe" ni las tareas de prueba del usuario.
+- **Prueba del usuario en la vista previa:** "esta semana" sin tareas en el periodo, "mañana", "esta semana" con tareas, "qué vence primero" y las preguntas sin fecha funcionan.
+
+### E03 Ampliación: navegación
+
+- **Rutas:** el chat pasó a `/nova/asistente` (`git mv` de la página; acepta `?pregunta=`). `/nova` es Inicio en versión mínima: solo "Pregúntale a Nova" (`PreguntaleANova`, RN-02 en vivo), que lleva al Asistente con la pregunta; `Chat` la envía al cargar una sola vez (guarda con `useRef`) y quita `?pregunta=` con `history.replaceState`, así recargar no la reenvía; si no fuera válida, queda en el campo. A-01 sigue (sin sesión, `/nova` lleva al login) y el login sigue llevando a `/nova`, que ahora es Inicio.
+- **Navegación** (`src/components/nova/navegacion/`): `secciones.ts` (solo secciones que existen: Inicio, Asistente, Tareas, Documentos, Web, Productividad; `esActivo`); `BarraLateral` (≥ 1024 px, con correo y "Cerrar sesión"); `BarraInferior` (< 1024 px: Inicio, Documentos en el lugar de Calendario, Asistente al centro destacado, Tareas y "Más"; respeta `safe-area-inset-bottom`); hoja "Más" como diálogo modal (Web, Productividad, correo y "Cerrar sesión"; Escape, "Cerrar" y tocar fuera la cierran; foco atrapado con `useFocoAtrapado` y devuelto a "Más"; la página de fondo no se desplaza); `BotonAgregar` ("+" con "Nueva tarea" y "Subir documento", oculto en el Asistente, se cierra con Escape o tocando fuera); `useCerrarSesion` compartido. `NavegacionNova` las reúne; cuál se ve lo decide el CSS (`lg:`).
+- **Hallazgo en el navegador:** en el teléfono, con Web o Productividad abiertas no había ningún elemento con `aria-current` visible (están dentro de "Más"). Se agregó `aria-current="true"` al botón "Más" en ese caso, con prueba.
+- **`db:limpiar`:** el filtro pasa a `ILIKE 'prueba%'` (sin distinguir mayúsculas) porque no encontraba las tareas "prueba 2" y "prueba 3" del usuario. El borrado con `--confirmar` lo bloqueó el clasificador de permisos: queda para que el usuario lo confirme o lo ejecute.
+- **Pruebas:** `tests/interfaz/navegacion.test.tsx` (21: secciones sin botones muertos, `esActivo`, barra lateral, barra inferior, hoja "Más" con Escape, "Cerrar", tocar fuera, foco atrapado y devuelto, "+", oculto en el Asistente, "Pregúntale a Nova" y la pregunta inicial del chat enviada una sola vez). Las pruebas del menú anterior se quitaron de `componentes.test.tsx`.
+- **Navegador real** (Edge, `next start` con un usuario temporal sin datos, borrado al final; 0 fallas): A-01; las 8 pantallas en claro y oscuro, a 1280 y 390 px, sin desborde, sin errores, con la barra lateral solo en 1280, la inferior y el "+" solo en 390 (sin "+" en el Asistente) y un ítem activo; hoja "Más" (foco, Escape con foco devuelto, tocar fuera, navegar y cerrar); "+" a Nueva tarea y Subir documento; Inicio lleva al Asistente con la pregunta enviada (sin documentos ni tareas: `SIN_DOCUMENTOS`, sin llamar a Gemini) en 1280 y 390, y recargar no la reenvía.
+- **Al cierre:** `npm test` 295/295, `npm run build` correcto, `eslint` sin errores (solo el aviso de `eslint.config.mjs`).

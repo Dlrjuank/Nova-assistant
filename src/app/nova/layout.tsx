@@ -13,10 +13,12 @@ export default async function NovaLayout({ children }: Readonly<{ children: Reac
   if (!sesion) redirect('/login');
   if (!tieneAccesoNova(sesion.email)) redirect('/home');
 
+  // Computador: espacio a la izquierda para la barra lateral (w-64).
+  // Teléfono: espacio abajo para la barra inferior y el botón "+".
   return (
-    <div className="min-h-screen bg-fondo text-texto">
+    <div className="min-h-screen bg-fondo text-texto lg:pl-64">
       <NavegacionNova email={sesion.email} />
-      <main className="mx-auto flex max-w-[1000px] flex-col gap-6 px-4 py-6">
+      <main className="mx-auto flex max-w-[1000px] flex-col gap-6 px-4 pt-6 pb-36 lg:px-8 lg:pb-10">
         <Aviso tipo="info">
           Tus preguntas y los fragmentos recuperados se envían al proveedor del asistente. No subas documentos con
           datos sensibles.

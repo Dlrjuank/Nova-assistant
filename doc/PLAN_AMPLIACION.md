@@ -134,7 +134,8 @@ Barra lateral fija a la izquierda con la marca "Nova", las secciones disponibles
 - Barra inferior fija con 5 botones: **Inicio, Calendario, Asistente (al centro, destacado con el color de acento), Tareas, Más**. Respeta `env(safe-area-inset-bottom)`.
 - **Más** abre una hoja inferior con el resto de secciones (Fuentes, Productividad, Semestre, Configuración) y "Cerrar sesión". Se cierra con Escape, con el botón "Cerrar" o tocando fuera; el foco queda atrapado mientras está abierta.
 - Botón flotante **"+"** sobre la barra inferior (no en la pantalla del Asistente, para no tapar el campo de pregunta). Abre un menú con **"Nueva tarea"** (`/nova/tareas/nueva`) y **"Subir documento"** (Fuentes, pestaña Subir PDF).
-- Mientras Calendario o Semestre no existan, su lugar en la barra inferior lo ocupa otra sección existente (regla "sin botones muertos").
+- Mientras Calendario o Semestre no existan, su lugar en la barra inferior lo ocupa otra sección existente (regla "sin botones muertos"). En E03 el lugar de Calendario lo ocupa Documentos y la hoja "Más" tiene Web y Productividad.
+- Si la sección actual está dentro de "Más", el botón "Más" se resalta y lleva `aria-current="true"` (no solo color).
 
 ### 4.4 Rutas que cambian
 

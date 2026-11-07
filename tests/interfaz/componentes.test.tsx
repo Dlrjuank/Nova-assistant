@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const ruta = vi.hoisted(() => ({ actual: '/nova/tareas' }));
@@ -9,7 +9,6 @@ vi.mock('next/navigation', () => ({
 
 import { InsigniaEstadoTarea } from '@/components/nova/InsigniaEstadoTarea';
 import { InsigniaPrioridad } from '@/components/nova/InsigniaPrioridad';
-import { NavegacionNova } from '@/components/nova/NavegacionNova';
 import { TablaTareas } from '@/components/nova/TablaTareas';
 import { Aviso } from '@/components/ui/Aviso';
 import { Boton } from '@/components/ui/Boton';
@@ -62,32 +61,6 @@ describe('TablaTareas', () => {
     const { container } = render(<TablaTareas tareas={[TAREA]} />);
     expect(container.querySelector('ul.sm\\:hidden li')).toBeTruthy();
     expect(container.querySelector('div.sm\\:block table')).toBeTruthy();
-  });
-});
-
-describe('NavegacionNova', () => {
-  it('marca la sección actual y muestra el correo', () => {
-    ruta.actual = '/nova/tareas/nueva';
-    render(<NavegacionNova email="yo@ejemplo.com" />);
-    expect(screen.getByText('yo@ejemplo.com')).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Tareas' }).getAttribute('aria-current')).toBe('page');
-    expect(screen.getByRole('link', { name: 'Asistente' }).getAttribute('aria-current')).toBeNull();
-  });
-
-  it('el menú móvil se abre y se cierra, y lo comunica con aria-expanded', () => {
-    render(<NavegacionNova email="yo@ejemplo.com" />);
-    const boton = screen.getByRole('button', { name: 'Menú' });
-    expect(boton.getAttribute('aria-expanded')).toBe('false');
-    fireEvent.click(boton);
-    expect(screen.getByRole('button', { name: 'Cerrar menú' }).getAttribute('aria-expanded')).toBe('true');
-  });
-
-  it('un fallo al cerrar sesión se muestra', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{}', { status: 500 })));
-    render(<NavegacionNova email="yo@ejemplo.com" />);
-    fireEvent.click(screen.getByRole('button', { name: 'Cerrar sesión' }));
-    expect(await screen.findByText('No se pudo cerrar la sesión.')).toBeTruthy();
-    vi.unstubAllGlobals();
   });
 });
 

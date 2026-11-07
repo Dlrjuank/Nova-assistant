@@ -1,4 +1,4 @@
-// Datos de prueba: tareas cuyo título empieza por 'Prueba' y documentos cuyo nombre empieza por 'prueba'.
+// Datos de prueba: tareas cuyo título empieza por 'prueba' y documentos cuyo nombre empieza por 'prueba' (sin distinguir mayúsculas).
 // El filtro también alcanzaría datos reales con ese prefijo, así que por defecto solo los lista.
 // Para borrar: npm run db:limpiar -- --confirmar (los fragmentos caen por ON DELETE CASCADE).
 import pg from 'pg';
@@ -11,8 +11,8 @@ if (!url) {
   process.exit(1);
 }
 
-const FILTRO_TAREAS = "titulo LIKE 'Prueba%'";
-const FILTRO_DOCUMENTOS = "nombre_archivo LIKE 'prueba%'";
+const FILTRO_TAREAS = "titulo ILIKE 'prueba%'"; // sin distinguir mayúsculas: "Prueba…" y "prueba…"
+const FILTRO_DOCUMENTOS = "nombre_archivo ILIKE 'prueba%'";
 const confirmar = process.argv.includes('--confirmar');
 
 const c = new pg.Client(opcionesConexion(url));

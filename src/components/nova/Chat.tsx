@@ -34,9 +34,12 @@ const SIN_REINTENTO = ['CONSULTA_MUY_CORTA', 'CONVERSACION_NO_ENCONTRADA'];
 export function Chat({
   conversacionId: idInicial = null,
   historial = [],
+  preguntaInicial,
 }: {
   conversacionId?: string | null;
   historial?: MensajeGuardado[];
+  /** E03: pregunta escrita en "Pregúntale a Nova" (Inicio); se envía al cargar, una sola vez. */
+  preguntaInicial?: string;
 }) {
   const [mensajes, setMensajes] = useState<Mensaje[]>(() =>
     historial.map((m, i) => ({ id: i, autor: m.autor, texto: m.texto, fuentes: m.fuentes })),
@@ -54,6 +57,23 @@ export function Chat({
   useEffect(() => {
     fin.current?.scrollIntoView?.({ block: 'nearest' });
   }, [mensajes, pensando, error]);
+
+  // Una sola vez aunque React monte el efecto dos veces en desarrollo. Después se quita ?pregunta= de la URL
+  // para que recargar la página no la vuelva a enviar. Si no fuera válida, queda en el campo para corregirla.
+  const inicialEnviada = useRef(false);
+  useEffect(() => {
+    if (!preguntaInicial || inicialEnviada.current) return;
+    inicialEnviada.current = true;
+    window.history.replaceState(null, '', window.location.pathname);
+    if (esValida(preguntaInicial)) {
+      const pregunta = normalizarConsulta(preguntaInicial);
+      agregar('usuario', pregunta);
+      void preguntar(pregunta);
+    } else {
+      setTexto(preguntaInicial);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar
+  }, [preguntaInicial]);
 
   const agregar = (autor: AutorMensaje, contenido: string, fuentes?: Fuente[]) => {
     const id = siguienteId.current++;
