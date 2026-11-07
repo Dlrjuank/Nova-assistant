@@ -6,6 +6,7 @@ import { Aviso } from '@/components/ui/Aviso';
 import { Boton } from '@/components/ui/Boton';
 import { Campo } from '@/components/ui/Campo';
 import { Selector } from '@/components/ui/Selector';
+import { SelectorCategoria } from '@/components/nova/SelectorCategoria';
 import { CATEGORIA_POR_DEFECTO, PRIORIDAD_POR_DEFECTO } from '@/lib/config/nova';
 import { ErrorDeNegocio, MENSAJES } from '@/lib/reglas/errores';
 import { aplicarMascaraFecha, esFechaISOValida, esFechaPasada, hoyBogota } from '@/lib/reglas/fechas';
@@ -60,8 +61,14 @@ function validar(v: Valores): Partial<Record<Campos, string>> {
   return errores;
 }
 
-/** `fechaInicial`: la que trae `?fecha=` desde Inicio o el Calendario (ya validada por la página). */
-export function FormularioTarea({ fechaInicial = '' }: { fechaInicial?: string } = {}) {
+/**
+ * `fechaInicial`: la que trae `?fecha=` desde Inicio o el Calendario (ya validada por la página).
+ * `categorias`: las del usuario, para la lista del campo de categoría (E08).
+ */
+export function FormularioTarea({
+  fechaInicial = '',
+  categorias = [],
+}: { fechaInicial?: string; categorias?: ReadonlyArray<{ nombre: string; color: string }> } = {}) {
   const router = useRouter();
   const [valores, setValores] = useState<Valores>({
     titulo: '',
@@ -130,13 +137,12 @@ export function FormularioTarea({ fechaInicial = '' }: { fechaInicial?: string }
         required
       />
       <div className="grid gap-5 sm:grid-cols-2">
-        <Campo
+        <SelectorCategoria
           id="categoria"
           etiqueta="Categoría"
-          value={valores.categoria}
-          onChange={cambiar('categoria')}
-          maxLength={80}
-          autoComplete="off"
+          valor={valores.categoria}
+          onCambio={(categoria) => setValores((previo) => ({ ...previo, categoria }))}
+          categorias={categorias}
         />
         <Selector
           id="prioridad"

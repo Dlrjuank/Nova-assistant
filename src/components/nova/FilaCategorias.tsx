@@ -49,15 +49,15 @@ const chipActivo = (activo: boolean) =>
 export function FilaCategorias({
   categorias,
   activa,
-  estado,
+  vista,
 }: {
   categorias: Categoria[];
   /** Nombre de la categoría filtrada, o null para "Todas". */
   activa: string | null;
-  /** Filtro de estado que se conserva al cambiar de categoría. */
-  estado?: string | undefined;
+  /** E08: pestaña (vista) que se conserva al cambiar de categoría. */
+  vista?: string | undefined;
 }) {
-  const href = (categoria: string | null) => hrefTareas(estado, categoria);
+  const href = (categoria: string | null) => hrefTareas(vista, categoria);
   const router = useRouter();
   const [panel, setPanel] = useState<Panel | null>(null);
   const [nombre, setNombre] = useState('');

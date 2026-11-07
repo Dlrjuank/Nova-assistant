@@ -523,3 +523,36 @@ Total de fallas: 0
   - La lista, antes cortada en 889 px, sube a 643–1053 y se ve entera, con y sin "reducir movimiento"; no puede subir más porque ahí termina la página.
   - En una ventana donde ya se ve, la página no se mueve.
 - **Al cierre:** `npm test` 419/419, `npm run build` correcto, `eslint` sin errores.
+
+### E08 Ampliación: Tareas con pestañas y categorías
+
+- **Limpieza previa** (con el OK del usuario): sus 4 tareas de prueba de E07 ("prueba" a "prueba 4") se borraron en una transacción. Antes se comprobó con `created_at` que todas eran de las 16:02 a las 16:04 del 2026-11-07, posteriores a la limpieza anterior (cuenta en 0 antes de las 15:29). Quedan 0 tareas y las categorías General y Universidad.
+- **Decisión del usuario:** "N tareas vencidas" de Inicio lleva a la vista "Vencidas" (`?vista=vencidas`). Su píldora solo aparece mientras se está en ella.
+- **Reglas** (`src/lib/reglas/vistasTareas.ts`):
+  - `vistaDeParametros`: `?vista=`; los enlaces viejos `?estado=Pendiente` van a "vencidas" y `?estado=Completada` a "completadas".
+  - `filtroDeVista`: Hoy = fecha límite hoy; Importantes = Alta y no completada; Completadas; Vencidas = no completada y fecha límite hasta ayer.
+  - `textoVacio` para cada vista.
+  - `agruparPorCategoria`: sin distinguir mayúsculas ni espacios; General primero y luego alfabético; contador completadas/total; completadas al final.
+- **Servicio:** `listarTareas` acepta `soloPendientes` y `prioridad`. `hrefTareas(vista, categoria)` reemplaza al filtro de estado y `FilaCategorias` conserva la vista.
+- **Interfaz:**
+  - `/nova/tareas` con las 4 pestañas (más "Vencidas" solo en esa vista) y `GruposTareas` (encabezado con color, nombre y "1/3", y `TablaTareas` sin la columna Categoría).
+  - En `TablaTareas`, la insignia "Vencida"; desde 1280 px, anchos fijos para que las columnas queden alineadas entre grupos, y el título largo pasa de línea.
+  - `Pestanas` en una sola fila: en el teléfono se desliza de lado y al cargar deja la activa a la vista.
+  - En Mi semana, la insignia "Vencida".
+  - `SelectorCategoria`: combobox con la lista de categorías y sus colores, filtro al escribir, ‘Crear “X”’ y el aviso. `/nova/tareas/nueva` le pasa las categorías del usuario.
+- **Pruebas:**
+  - `tests/reglas/vistasTareas.test.ts` (5).
+  - `tests/servidor/vistasTareas.test.ts` (4: SQL de cada vista, solo del usuario).
+  - `tests/interfaz/tareasE08.test.tsx` (6: grupos y contador, "Vencida" en Tareas y en Mi semana, combobox con clic, filtro, sin duplicar y teclado).
+  - Actualizadas `filaCategorias` (vista en la URL) e `inicio` (enlace a "Vencidas").
+- **Navegador real:** Edge, usuario temporal borrado al final; 0 fallas en 32.
+  - Pestañas y grupos a 390 y 1280 px: Todas, Hoy (Universidad 1/2), Importantes, Completadas.
+  - Importantes + Universidad conserva las dos cosas en la URL.
+  - "Vencida" en Tareas y en Mi semana.
+  - Inicio → "1 tarea vencida" → "Vencidas" activa.
+  - 4 pestañas en una fila a 390 px; con "Vencidas", la activa entera a la vista.
+  - Columnas alineadas entre grupos, con un título largo sin desborde y las acciones en una línea.
+  - Combobox en el teléfono: letra de 16 px y lista encima de todo. " universidad " no ofrece crear; ‘Crear “Viaje”’ crea una sola categoría con color al guardar, y "  viaje  " sin elegir usa la misma.
+  - Claro y oscuro a 1280 y 390 px, sin desborde ni errores y sin transiciones con "reducir movimiento".
+- **Al cierre:** `npm test` 434/434, `npm run build` correcto, `eslint` sin errores.
+

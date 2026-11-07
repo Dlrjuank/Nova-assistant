@@ -1,45 +1,38 @@
 import Link from 'next/link';
 import { FilaCategorias } from '@/components/nova/FilaCategorias';
-import { TablaTareas } from '@/components/nova/TablaTareas';
+import { GruposTareas } from '@/components/nova/GruposTareas';
 import { claseBoton } from '@/components/ui/Boton';
 import { EncabezadoPantalla } from '@/components/ui/EncabezadoPantalla';
 import { EstadoVacio } from '@/components/ui/EstadoVacio';
 import { Pestanas } from '@/components/ui/Pestanas';
-import { exigirSesion, listarCategorias, listarTareas, type EstadoTarea } from '@/lib/dataService';
+import { exigirSesion, listarCategorias, listarTareas } from '@/lib/dataService';
+import { hoyBogota } from '@/lib/reglas/fechas';
+import { filtroDeVista, PESTANAS_TAREAS, TEXTO_VISTA, textoVacio, vistaDeParametros, type Vista } from '@/lib/reglas/vistasTareas';
 import { hrefTareas } from '@/lib/rutasTareas';
 
 export const dynamic = 'force-dynamic';
 
-const FILTROS: Array<{ valor: EstadoTarea | undefined; texto: string }> = [
-  { valor: undefined, texto: 'Todas' },
-  { valor: 'Pendiente', texto: 'Pendientes' },
-  { valor: 'Completada', texto: 'Completadas' },
-];
-
-function estadoValido(valor: string | undefined): EstadoTarea | undefined {
-  return valor === 'Pendiente' || valor === 'En Progreso' || valor === 'Completada' ? valor : undefined;
-}
+const uno = (v: string | string[] | undefined) => (typeof v === 'string' ? v : undefined);
 
 export default async function TareasPage({
   searchParams,
 }: {
-  searchParams: Promise<{ estado?: string; categoria?: string | string[] }>;
+  searchParams: Promise<{ vista?: string | string[]; estado?: string | string[]; categoria?: string | string[] }>;
 }) {
   const parametros = await searchParams;
-  const estado = estadoValido(parametros.estado);
+  // E08: pestaña en ?vista=; los enlaces viejos con ?estado= siguen funcionando (vistaDeParametros).
+  const vista = vistaDeParametros(uno(parametros.vista), uno(parametros.estado));
+  const hoy = hoyBogota();
   // El layout ya exige sesión con acceso; aquí hace falta el id para ver solo sus tareas (RB-01).
   const { id } = await exigirSesion();
   const categorias = await listarCategorias(id);
   // E05b: filtro por categoría (sin distinguir mayúsculas); se muestra con el nombre guardado.
-  const pedida = typeof parametros.categoria === 'string' ? parametros.categoria.trim() : '';
+  const pedida = uno(parametros.categoria)?.trim() ?? '';
   const categoria = pedida ? (categorias.find((c) => c.nombre.toLowerCase() === pedida.toLowerCase())?.nombre ?? pedida) : null;
-  const tareas = await listarTareas(id, { estado, categoria: categoria ?? undefined });
+  const tareas = await listarTareas(id, { ...filtroDeVista(vista, hoy), categoria: categoria ?? undefined });
 
-  const vacio = (() => {
-    const deEstado = estado ? ` ${estado === 'Pendiente' ? 'pendientes' : estado.toLowerCase() + 's'}` : '';
-    if (categoria) return `No hay tareas${deEstado} en «${categoria}»`;
-    return estado ? `No hay tareas${deEstado}` : 'Aún no tienes tareas';
-  })();
+  // "Vencidas" solo aparece como píldora mientras se está en esa vista (llega desde Inicio).
+  const pestanas: Vista[] = vista === 'vencidas' ? [...PESTANAS_TAREAS, 'vencidas'] : [...PESTANAS_TAREAS];
 
   return (
     <>
@@ -53,21 +46,17 @@ export default async function TareasPage({
         }
       />
 
-      <FilaCategorias categorias={categorias} activa={categoria} estado={estado} />
+      <FilaCategorias categorias={categorias} activa={categoria} vista={vista} />
 
       <Pestanas
-        etiqueta="Filtrar por estado"
-        pestanas={FILTROS.map(({ valor, texto }) => ({
-          href: hrefTareas(valor, categoria),
-          texto,
-          activa: valor === estado,
-        }))}
+        etiqueta="Vistas de tareas"
+        pestanas={pestanas.map((v) => ({ href: hrefTareas(v, categoria), texto: TEXTO_VISTA[v], activa: v === vista }))}
       />
 
       {tareas.length === 0 ? (
         <EstadoVacio
-          titulo={vacio}
-          descripcion="Registra una tarea y aparecerá aquí."
+          titulo={textoVacio(vista, categoria)}
+          descripcion={vista === 'vencidas' ? 'Vas al día con tus fechas límite.' : 'Registra una tarea y aparecerá aquí.'}
           accion={
             <Link href="/nova/tareas/nueva" className={claseBoton('primario')}>
               Registrar tarea
@@ -75,7 +64,7 @@ export default async function TareasPage({
           }
         />
       ) : (
-        <TablaTareas tareas={tareas} categorias={categorias} />
+        <GruposTareas tareas={tareas} categorias={categorias} hoy={hoy} />
       )}
     </>
   );

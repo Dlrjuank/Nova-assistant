@@ -71,7 +71,7 @@ describe('CalendarioMes', () => {
   });
 
   it('al elegir un día, lleva su lista arriba de la pantalla ya dibujada; si se ve entera no la mueve', () => {
-    const pedidos: Array<{ block?: string; behavior?: string; tareas: number }> = [];
+    const pedidos: Array<{ block: string | undefined; behavior: string | undefined; tareas: number }> = [];
     let rect = { top: 900, bottom: 1400 }; // la lista empieza debajo del borde inferior
     const proto = HTMLElement.prototype as unknown as Record<string, unknown>;
     const scrollOriginal = proto.scrollIntoView;

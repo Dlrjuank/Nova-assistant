@@ -150,7 +150,7 @@ describe('ProgresoSemanal y PrioridadesHoy', () => {
     render(<PrioridadesHoy tareas={[tarea('1', 'Pendiente', 'Pagar luz', 3)]} hoy="2026-11-07" vencidas={1} categorias={CATEGORIAS} />);
     expect(screen.getByRole('link', { name: 'Agregar' }).getAttribute('href')).toBe('/nova/tareas/nueva?fecha=2026-11-07');
     expect(screen.getByRole('checkbox', { name: 'Completar «Pagar luz»' })).toBeTruthy();
-    expect(screen.getByRole('link', { name: '1 tarea vencida' }).getAttribute('href')).toBe('/nova/tareas?estado=Pendiente');
+    expect(screen.getByRole('link', { name: '1 tarea vencida' }).getAttribute('href')).toBe('/nova/tareas?vista=vencidas');
   });
 
   it('sin tareas para hoy ni vencidas', () => {

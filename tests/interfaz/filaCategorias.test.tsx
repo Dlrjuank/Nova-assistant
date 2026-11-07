@@ -32,20 +32,21 @@ afterEach(() => {
 });
 
 describe('hrefTareas', () => {
-  it('combina el estado y la categoría en la URL', () => {
+  it('combina la vista (E08) y la categoría en la URL; "todas" no va en la URL', () => {
     expect(hrefTareas(undefined, null)).toBe('/nova/tareas');
-    expect(hrefTareas('Pendiente', null)).toBe('/nova/tareas?estado=Pendiente');
-    expect(hrefTareas('Pendiente', 'Mi casa')).toBe('/nova/tareas?estado=Pendiente&categoria=Mi+casa');
+    expect(hrefTareas('todas', null)).toBe('/nova/tareas');
+    expect(hrefTareas('hoy', null)).toBe('/nova/tareas?vista=hoy');
+    expect(hrefTareas('importantes', 'Mi casa')).toBe('/nova/tareas?vista=importantes&categoria=Mi+casa');
   });
 });
 
 describe('FilaCategorias', () => {
-  it('"Todas", General, las del usuario y "+ Nueva"; cada una filtra conservando el estado', () => {
-    render(<FilaCategorias categorias={CATEGORIAS} activa={null} estado="Pendiente" />);
+  it('"Todas", General, las del usuario y "+ Nueva"; cada una filtra conservando la vista', () => {
+    render(<FilaCategorias categorias={CATEGORIAS} activa={null} vista="hoy" />);
     const enlaces = within(fila()).getAllByRole('link');
     expect(enlaces.map((a) => a.textContent)).toEqual(['Todas', 'General', 'Casa']);
     expect(enlaces[0]?.getAttribute('aria-current')).toBe('page');
-    expect(enlaces[2]?.getAttribute('href')).toBe('/nova/tareas?estado=Pendiente&categoria=Casa');
+    expect(enlaces[2]?.getAttribute('href')).toBe('/nova/tareas?vista=hoy&categoria=Casa');
     expect(within(fila()).getByRole('button', { name: 'Nueva' })).toBeTruthy();
     expect(within(fila()).queryByRole('button', { name: /Opciones/ })).toBeNull(); // "⋯" solo en la elegida
   });
@@ -101,13 +102,13 @@ describe('FilaCategorias', () => {
   it('renombrar la categoría elegida actualiza el filtro con el nombre nuevo', async () => {
     const f = vi.fn().mockResolvedValue(json({ ok: true, datos: { id: 'c', nombre: 'Hogar', color: 'terracota', tareas: 2 } }));
     vi.stubGlobal('fetch', f);
-    render(<FilaCategorias categorias={CATEGORIAS} activa="Casa" estado="Pendiente" />);
+    render(<FilaCategorias categorias={CATEGORIAS} activa="Casa" vista="hoy" />);
     fireEvent.click(screen.getByRole('button', { name: 'Opciones de la categoría Casa' }));
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Renombrar' }));
     const dialogo = screen.getByRole('dialog', { name: 'Renombrar «Casa»' });
     fireEvent.change(within(dialogo).getByLabelText('Nombre'), { target: { value: 'Hogar' } });
     fireEvent.click(within(dialogo).getByRole('button', { name: 'Guardar' }));
-    await waitFor(() => expect(nav.replace).toHaveBeenCalledWith('/nova/tareas?estado=Pendiente&categoria=Hogar'));
+    await waitFor(() => expect(nav.replace).toHaveBeenCalledWith('/nova/tareas?vista=hoy&categoria=Hogar'));
     expect(f.mock.calls[0]?.[0]).toBe('/api/nova/categorias/c');
     expect(JSON.parse(f.mock.calls[0]?.[1].body)).toEqual({ nombre: 'Hogar' });
   });

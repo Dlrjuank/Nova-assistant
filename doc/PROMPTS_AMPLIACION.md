@@ -259,9 +259,9 @@ TAREA 1. Filtros en el servicio (por URL ?vista=) con pruebas.
 TAREA 2. Agrupación por categoría con punto de color y contador completadas/total dentro de la pestaña.
 TAREA 3. Formulario: selector de categorías existentes y opción de escribir una nueva (se crea con el siguiente color libre).
 TAREA 4. Conservar completar y eliminar con sus mensajes (A-16, CU-07).
-TAREA 5. (Idea del usuario, a decidir aquí o en el diseño final) Marca sutil "Vencida" (rojo suave) en las tareas pendientes con fecha pasada, en Mi semana y en Tareas.
+TAREA 5. (Decidido en E08) Marca sutil "Vencida" (rojo suave) en las tareas pendientes con fecha pasada, en Mi semana y en Tareas. "N tareas vencidas" de Inicio lleva a la vista "Vencidas" de Tareas.
 
-VERIFICACIÓN: B-16 y B-17; A-02 a A-05 siguen pasando.
+VERIFICACIÓN: B-16, B-17, B-48 y B-49; A-02 a A-05 siguen pasando.
 ```
 
 **Commit:** `feat(tareas): pestañas y agrupación por categoría`

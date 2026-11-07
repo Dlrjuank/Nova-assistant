@@ -47,6 +47,9 @@ export async function listarTareas(
     /** E06: rango de fecha límite (incluidos los extremos), para la semana de Inicio. */
     desde?: string | undefined;
     hasta?: string | undefined;
+    /** E08: "Importantes" y "Vencidas" piden solo lo que no está completado; "Importantes", prioridad Alta. */
+    soloPendientes?: boolean | undefined;
+    prioridad?: number | undefined;
     limite?: number | undefined;
   } = {},
 ): Promise<Tarea[]> {
@@ -67,6 +70,11 @@ export async function listarTareas(
   if (f.hasta) {
     valores.push(f.hasta);
     condiciones.push(`fecha_limite <= $${valores.length}`);
+  }
+  if (f.soloPendientes) condiciones.push(`estado <> 'Completada'`);
+  if (f.prioridad !== undefined) {
+    valores.push(f.prioridad);
+    condiciones.push(`prioridad = $${valores.length}`);
   }
   if (f.categoria?.trim()) {
     valores.push(f.categoria.trim());

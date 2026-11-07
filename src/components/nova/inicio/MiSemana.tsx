@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { CLASE_FOCO } from '@/components/ui/Boton';
 import { colorDeCategoria } from '@/lib/reglas/categorias';
 import { DIAS_CORTOS, MAX_TAREAS_COLUMNA, nombreDia } from '@/lib/reglas/semana';
+import { estaVencida } from '@/lib/reglas/calendario';
 import { CasillaTarea, type TareaCasilla } from './CasillaTarea';
 
 const numeroDia = (fecha: string) => Number(fecha.slice(8, 10));
@@ -59,7 +60,13 @@ export function MiSemana({
         <ul id={`${prefijo}-${fecha}`} className="flex flex-col gap-1">
           {visibles.map((t) => (
             <li key={t.id}>
-              <CasillaTarea tarea={t} color={color(t)} prefijo={prefijo} compacta={compacta} />
+              <CasillaTarea
+                tarea={t}
+                color={color(t)}
+                prefijo={prefijo}
+                compacta={compacta}
+                vencida={estaVencida({ estado: t.estado, fechaLimite: fecha }, hoy)}
+              />
             </li>
           ))}
         </ul>

@@ -43,7 +43,7 @@ export function PrioridadesHoy({
         </ul>
       )}
       {vencidas > 0 && (
-        <Link href="/nova/tareas?estado=Pendiente" className={`self-start rounded text-sm font-medium text-peligro underline-offset-2 hover:underline ${CLASE_FOCO}`}>
+        <Link href="/nova/tareas?vista=vencidas" className={`self-start rounded text-sm font-medium text-peligro underline-offset-2 hover:underline ${CLASE_FOCO}`}>
           {textoVencidas(vencidas)}
         </Link>
       )}
