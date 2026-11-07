@@ -37,9 +37,13 @@ export function textoDeBusqueda(pregunta: string, preguntaAnterior?: string | un
 /** RB-30: aviso informativo del Asistente cuando no hay documentos pero sí tareas pendientes. */
 export const AVISO_SOLO_TAREAS = 'Aún no hay documentos indexados: por ahora el asistente responde solo sobre tus tareas pendientes.';
 
+/** RB-32: sin documentos ni tareas pendientes. Informa, no bloquea: se puede preguntar igual. */
+export const AVISO_SIN_FUENTES =
+  'Aún no tienes documentos indexados ni tareas pendientes. Puedes preguntar igual; para que el asistente responda sobre tus documentos, indexa un PDF.';
+
 /**
- * RB-30: qué aviso muestra la pantalla del Asistente.
- * 'sin-fuentes' = el aviso de siempre (indexar un PDF); 'solo-tareas' = AVISO_SOLO_TAREAS; null = ninguno.
+ * RB-30 y RB-32: qué aviso informativo muestra la pantalla del Asistente (ninguno bloquea la pregunta).
+ * 'sin-fuentes' = AVISO_SIN_FUENTES; 'solo-tareas' = AVISO_SOLO_TAREAS; null = ninguno.
  */
 export function avisoAsistente(hayDocumentos: boolean, hayTareasPendientes: boolean): 'sin-fuentes' | 'solo-tareas' | null {
   if (hayDocumentos) return null;

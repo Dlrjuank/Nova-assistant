@@ -23,6 +23,7 @@
 | E02c Ampliación: fecha de hoy y preguntas por fechas (RB-31) | completado | correcto | 278 pasan | 2026-11-06 |
 | E03 Ampliación: navegación | completado | correcto | 295 pasan | 2026-11-06 |
 | E04 Ampliación: login con el estilo de Nova | completado | correcto | 304 pasan | 2026-11-07 |
+| RB-32 Ajuste: el Asistente nunca se bloquea sin documentos | completado | correcto | 312 pasan | 2026-11-07 |
 
 ## Bitácora
 
@@ -371,3 +372,12 @@ Total de fallas: 0
 - **Navegador real** (0 fallas): a 390 px, los 8 campos de las 4 pantallas de acceso miden 16 px en reposo y con foco, con escala 1, también con la letra base del navegador reducida a 12 px; los campos de Nova (Inicio, Asistente, nueva tarea, productividad, web) miden 16 px; a 1280 px sin pantalla táctil conservan 14 px. No se pudo probar en Safari de iPhone ni en Samsung Internet reales desde esta máquina.
 - **Hallazgo aparte:** durante la medición, el pooler de Supabase (`*.pooler.supabase.com:6543`, `NOVAASSISTANT_POSTGRES_URL`, el que usa la app) respondía `ECONNRESET` tras unos 19 s a cualquier consulta desde esta máquina, también fuera de la app; la conexión directa funcionaba. Para terminar la medición, solo el servidor local de prueba se arrancó con la conexión directa (variable del proceso, sin cambiar archivos). No se cambió ninguna configuración.
 - **Al cierre:** `npm test` 306/306, `npm run build` correcto, `eslint` sin errores.
+
+#### Ajuste RB-32: el Asistente nunca se bloquea sin documentos (2026-11-07, pedido del usuario)
+
+- **Problema informado** (con captura, en producción y en el PC): sin documentos, cualquier pregunta, incluso "¿Tengo alguna tarea?", respondía "Aún no hay documentos indexados. Indexe un PDF antes de preguntar." y el mismo aviso salía arriba con otro trato ("Indexa").
+- **Causa:** producción y el PC corren `master`, que tiene la regla original RN-15 (bloquea sin documentos). En `ampliacion`, RB-30 ya respondía con las tareas, pero sin documentos ni tareas seguía bloqueando; con documentos y sin tareas, "¿Tengo alguna tarea?" respondía "No encontré esto en tus documentos"; y "Indexa"/"Indexe" se repetían arriba y en la respuesta.
+- **Arreglo (RB-32, solo en `ampliacion`):** `consultar` ya no lanza `SIN_DOCUMENTOS`. El contexto lleva `DOCUMENTOS: el usuario aún no tiene documentos indexados.` sin documentos y `TAREAS PENDIENTES: ninguna.` cuando se consultaron las tareas y no hay; el System Prompt pide dos respuestas exactas y el servidor las impone (sin fuentes): "No tienes tareas pendientes." y "Aún no tienes documentos indexados, así que no puedo responder sobre documentos. Indexa un PDF para preguntar sobre él." La pantalla muestra solo avisos informativos en tuteo (el de sin documentos ni tareas es nuevo y dice "Puedes preguntar igual"). El código `SIN_DOCUMENTOS` y su mensaje siguen existiendo para la API de `master`, pero el Asistente nuevo ya no los produce.
+- **Pruebas:** 7 nuevas o ajustadas en `tests/servidor/consulta.test.ts` (los tres casos pedidos, la línea de contexto correcta en cada uno, las respuestas exactas impuestas aunque el modelo las redacte distinto, el System Prompt) y en `tests/reglas/consulta.test.ts` (aviso en tuteo, sin "Indexe" ni "antes de preguntar").
+- **`probar:rag` con Gemini real** (0 fallas): paso 10d sin documentos ni tareas, pregunta de documento → la explicación exacta; 10e "¿Tengo alguna tarea?" → "No tienes tareas pendientes."; 11b sin documentos y con tareas, pregunta de PDF → la explicación; 13 nuevo, con documentos y sin tareas, "¿Tengo alguna tarea?" → "No tienes tareas pendientes.". Los demás pasos siguen pasando. Se corrió con la conexión directa (variable del proceso) porque el pooler seguía con `ECONNRESET` desde esta máquina.
+- **Al cierre:** `npm test` 312/312, `npm run build` correcto, `eslint` sin errores.

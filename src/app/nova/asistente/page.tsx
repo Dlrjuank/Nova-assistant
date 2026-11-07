@@ -3,7 +3,7 @@ import { Chat } from '@/components/nova/Chat';
 import { Aviso } from '@/components/ui/Aviso';
 import { EncabezadoPantalla } from '@/components/ui/EncabezadoPantalla';
 import { conversacionActual, exigirSesion, existenDocumentos, hayTareasPendientes } from '@/lib/dataService';
-import { AVISO_SOLO_TAREAS, avisoAsistente } from '@/lib/reglas/consulta';
+import { AVISO_SIN_FUENTES, AVISO_SOLO_TAREAS, avisoAsistente } from '@/lib/reglas/consulta';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,8 +29,8 @@ export default async function AsistentePage({ searchParams }: { searchParams: Pr
     <>
       <EncabezadoPantalla titulo="Asistente" subtitulo="Pregunta sobre tus documentos y tus tareas pendientes; Nova cita de dónde sale cada dato." />
       {aviso === 'sin-fuentes' && (
-        <Aviso tipo="advertencia">
-          Aún no hay documentos indexados. Indexa un PDF antes de preguntar. {enlaceIndexar}
+        <Aviso tipo="info">
+          {AVISO_SIN_FUENTES} {enlaceIndexar}
         </Aviso>
       )}
       {aviso === 'solo-tareas' && (

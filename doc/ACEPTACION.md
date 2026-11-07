@@ -35,6 +35,7 @@ Notas para ejecutarlos:
 - **A-05:** el formulario arranca con prioridad 2. La API asigna 2 cuando el campo no se envía; lo cubren `tests/reglas/tarea.test.ts` y `npm run probar:rag`.
 - **A-13:** los documentos no tienen dueño (plan, sección 3.4): "una cuenta sin PDF" significa una base sin documentos. Se ejecuta antes de indexar, o después de eliminar todos los documentos.
 - **A-13 en la ampliación (rama `ampliacion`, RB-30, aprobado por el usuario el 2026-11-06):** el resultado esperado cambia. Pasa a ser: "En una cuenta sin PDF indexados **ni tareas pendientes**, preguntar → avisa que primero debe indexar un documento". Con tareas pendientes y sin documentos, el Asistente responde con las tareas (B-43). Desde E01 los documentos tienen dueño, así que "una cuenta sin PDF" ya es por cuenta. Producción (`master`) conserva el comportamiento anterior hasta unir la ampliación.
+- **A-13 tras RB-32 (2026-11-07, pedido del usuario):** la pregunta ya no se bloquea nunca. En una cuenta sin PDF ni tareas pendientes: "¿Tengo alguna tarea?" responde "No tienes tareas pendientes." y una pregunta de documentos responde "Aún no tienes documentos indexados, así que no puedo responder sobre documentos. Indexa un PDF para preguntar sobre él."; arriba se ve solo un aviso informativo (sin repetirse como respuesta). Ver B-45.
 
 ## A-14 · Criterio del plan
 

@@ -16,7 +16,14 @@ vi.mock('@/lib/llm/gemini', () => ({
 }));
 
 import { armarFuentes, consultar } from '@/lib/datos/consulta';
-import { construirContexto, SYSTEM_PROMPT } from '@/lib/llm/prompts';
+import {
+  construirContexto,
+  LINEA_SIN_DOCUMENTOS,
+  LINEA_SIN_TAREAS,
+  SIN_DOCUMENTOS_RESPUESTA,
+  SIN_TAREAS_PENDIENTES,
+  SYSTEM_PROMPT,
+} from '@/lib/llm/prompts';
 import { hoyBogota } from '@/lib/reglas/fechas';
 
 const U = '33333333-3333-4333-8333-333333333333';
@@ -167,12 +174,12 @@ describe('RB-30: con documentos, solo tareas, solo documentos o ninguno', () => 
     expect(r).toEqual({ respuesta: 'Debes pagar la luz [Tarea 1a2b3c4d].', fuentes: [{ tipo: 'tarea', etiqueta: 'Tarea 1a2b3c4d' }] });
   });
 
-  it('solo tareas: una pregunta de PDF responde el mensaje exacto, sin fuentes', async () => {
+  it('solo tareas: una pregunta de PDF explica que no hay documentos (RB-32), sin fuentes', async () => {
     m.existenDocumentos.mockResolvedValue(false);
     m.tareasPendientesComoTexto.mockResolvedValue([T1]);
     m.responder.mockResolvedValue('No encontré esto en tus documentos.');
     await expect(consultar(U, '¿Cuánto dura la garantía del purificador?')).resolves.toEqual({
-      respuesta: 'No encontré esto en tus documentos',
+      respuesta: SIN_DOCUMENTOS_RESPUESTA,
       fuentes: [],
     });
   });
@@ -187,12 +194,15 @@ describe('RB-30: con documentos, solo tareas, solo documentos o ninguno', () => 
     expect(r).toEqual({ respuesta: 'No encontré esto en tus documentos', fuentes: [] });
   });
 
-  it('ni documentos ni tareas pendientes: SIN_DOCUMENTOS sin llamar a Gemini', async () => {
+  it('ni documentos ni tareas pendientes: ya no bloquea (RB-32); el modelo sabe que no hay ninguno', async () => {
     m.existenDocumentos.mockResolvedValue(false);
     m.tareasPendientesComoTexto.mockResolvedValue([]);
-    await expect(consultar(U, 'Mi agenda de hoy')).rejects.toMatchObject({ codigo: 'SIN_DOCUMENTOS' });
+    m.responder.mockResolvedValue('No tienes tareas pendientes.');
+    await expect(consultar(U, 'Mi agenda de hoy')).resolves.toBeTruthy();
     expect(m.generarEmbedding).not.toHaveBeenCalled();
-    expect(m.responder).not.toHaveBeenCalled();
+    const { contexto } = m.responder.mock.calls[0]?.[0];
+    expect(contexto).toContain(LINEA_SIN_DOCUMENTOS);
+    expect(contexto).toContain(LINEA_SIN_TAREAS);
   });
 });
 
@@ -229,5 +239,84 @@ describe('RB-31: la fecha de hoy va en el contexto', () => {
     expect(SYSTEM_PROMPT).toContain('"No tienes tareas para esta semana."');
     expect(SYSTEM_PROMPT).toContain('menciona la tarea pendiente más próxima');
     expect(SYSTEM_PROMPT).toContain('Si el contexto no contiene la respuesta, responde exactamente: "No encontré esto en tus documentos".');
+  });
+});
+
+describe('RB-32: la pregunta nunca se bloquea; tareas y documentos que faltan se explican en la respuesta', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    m.generarEmbedding.mockResolvedValue([0.1]);
+    m.recuperarFragmentos.mockResolvedValue([F1]);
+  });
+
+  describe('sin documentos y sin tareas', () => {
+    beforeEach(() => {
+      m.existenDocumentos.mockResolvedValue(false);
+      m.tareasPendientesComoTexto.mockResolvedValue([]);
+    });
+
+    it('"¿Tengo alguna tarea?" responde exactamente "No tienes tareas pendientes.", sin fuentes', async () => {
+      m.responder.mockResolvedValue('No tienes tareas pendientes en este momento.');
+      await expect(consultar(U, '¿Tengo alguna tarea?')).resolves.toEqual({ respuesta: SIN_TAREAS_PENDIENTES, fuentes: [] });
+      expect(m.generarEmbedding).not.toHaveBeenCalled();
+    });
+
+    it('una pregunta de documentos explica que no hay documentos (en tuteo), sin fuentes', async () => {
+      for (const delModelo of ['No encontré esto en tus documentos.', SIN_DOCUMENTOS_RESPUESTA]) {
+        m.responder.mockResolvedValue(delModelo);
+        await expect(consultar(U, '¿Qué dice el contrato de arriendo?')).resolves.toEqual({
+          respuesta: SIN_DOCUMENTOS_RESPUESTA,
+          fuentes: [],
+        });
+      }
+      expect(SIN_DOCUMENTOS_RESPUESTA).toContain('Indexa un PDF');
+      expect(SIN_DOCUMENTOS_RESPUESTA).not.toContain('Indexe');
+    });
+  });
+
+  describe('sin documentos y con tareas', () => {
+    it('"¿Tengo alguna tarea?" responde con la tarea y la cita; el contexto avisa que no hay documentos', async () => {
+      m.existenDocumentos.mockResolvedValue(false);
+      m.tareasPendientesComoTexto.mockResolvedValue([T1]);
+      m.responder.mockResolvedValue('Sí: Pagar luz [Tarea 1a2b3c4d].');
+      const r = await consultar(U, '¿Tengo alguna tarea?');
+      expect(r).toEqual({ respuesta: 'Sí: Pagar luz [Tarea 1a2b3c4d].', fuentes: [{ tipo: 'tarea', etiqueta: 'Tarea 1a2b3c4d' }] });
+      const { contexto } = m.responder.mock.calls[0]?.[0];
+      expect(contexto).toContain(LINEA_SIN_DOCUMENTOS);
+      expect(contexto).not.toContain(LINEA_SIN_TAREAS);
+    });
+  });
+
+  describe('con documentos y sin tareas', () => {
+    beforeEach(() => {
+      m.existenDocumentos.mockResolvedValue(true);
+      m.tareasPendientesComoTexto.mockResolvedValue([]);
+    });
+
+    it('"¿Tengo alguna tarea?" responde exactamente "No tienes tareas pendientes.", sin fuentes de PDF', async () => {
+      m.responder.mockResolvedValue('No tienes tareas pendientes.');
+      await expect(consultar(U, '¿Tengo alguna tarea?')).resolves.toEqual({ respuesta: SIN_TAREAS_PENDIENTES, fuentes: [] });
+      const { contexto } = m.responder.mock.calls[0]?.[0];
+      expect(contexto).toContain(LINEA_SIN_TAREAS);
+      expect(contexto).not.toContain(LINEA_SIN_DOCUMENTOS);
+    });
+
+    it('una pregunta solo de documentos no lleva la línea de tareas y conserva "No encontré esto en tus documentos"', async () => {
+      m.responder.mockResolvedValue('No encontré esto en tus documentos.');
+      await expect(consultar(U, '¿Qué dice la factura?')).resolves.toEqual({
+        respuesta: 'No encontré esto en tus documentos',
+        fuentes: [],
+      });
+      const { contexto } = m.responder.mock.calls[0]?.[0];
+      expect(contexto).not.toContain(LINEA_SIN_TAREAS);
+      expect(m.tareasPendientesComoTexto).not.toHaveBeenCalled();
+    });
+  });
+
+  it('el System Prompt explica las dos líneas y las respuestas exactas', () => {
+    expect(SYSTEM_PROMPT).toContain(`Si el contexto dice "${LINEA_SIN_TAREAS}"`);
+    expect(SYSTEM_PROMPT).toContain(`responde exactamente: "${SIN_TAREAS_PENDIENTES}"`);
+    expect(SYSTEM_PROMPT).toContain(`Si el contexto dice "${LINEA_SIN_DOCUMENTOS}"`);
+    expect(SYSTEM_PROMPT).toContain(`responde exactamente: "${SIN_DOCUMENTOS_RESPUESTA}"`);
   });
 });

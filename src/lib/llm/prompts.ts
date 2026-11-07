@@ -1,5 +1,14 @@
 export const SIN_RESPUESTA = 'No encontré esto en tus documentos';
 
+/** RB-32: respuestas fijas (en tuteo, como el resto de la app). El servidor las impone aunque el modelo las redacte distinto. */
+export const SIN_TAREAS_PENDIENTES = 'No tienes tareas pendientes.';
+export const SIN_DOCUMENTOS_RESPUESTA =
+  'Aún no tienes documentos indexados, así que no puedo responder sobre documentos. Indexa un PDF para preguntar sobre él.';
+
+/** RB-32: líneas del contexto que el System Prompt sabe leer. */
+export const LINEA_SIN_TAREAS = 'TAREAS PENDIENTES: ninguna.';
+export const LINEA_SIN_DOCUMENTOS = 'DOCUMENTOS: el usuario aún no tiene documentos indexados.';
+
 export const SYSTEM_PROMPT = `Eres Nova, un asistente personal. Respondes en español.
 Responde ÚNICAMENTE con la información del contexto entregado (fragmentos de documentos PDF del usuario y sus tareas pendientes).
 Si el contexto no contiene la respuesta, responde exactamente: "${SIN_RESPUESTA}".
@@ -11,7 +20,9 @@ Cita las fuentes que uses copiando exactamente la etiqueta que encabeza cada una
 La primera línea del contexto (HOY) da la fecha de hoy en Bogotá, la de mañana y la semana actual (lunes a domingo); cada tarea trae su fecha límite como AAAA-MM-DD.
 Para preguntas sobre tareas por fechas (hoy, mañana, esta semana, qué vence primero), compara esas fechas límite con la línea HOY y responde con las tareas pendientes que correspondan, citándolas.
 Si hay tareas pendientes pero ninguna cae en el periodo preguntado, no respondas "${SIN_RESPUESTA}": responde "No tienes tareas para {periodo}." (por ejemplo, "No tienes tareas para esta semana." o "No tienes tareas para mañana.") y menciona la tarea pendiente más próxima desde hoy con su fecha límite y su etiqueta; si hay tareas vencidas, menciónalas también.
-Para "¿qué vence primero?", responde la tarea pendiente con la fecha límite más próxima.`;
+Para "¿qué vence primero?", responde la tarea pendiente con la fecha límite más próxima.
+Si el contexto dice "${LINEA_SIN_TAREAS}" y la pregunta es sobre tareas, responde exactamente: "${SIN_TAREAS_PENDIENTES}"
+Si el contexto dice "${LINEA_SIN_DOCUMENTOS}" y la pregunta necesita información de documentos, responde exactamente: "${SIN_DOCUMENTOS_RESPUESTA}"`;
 
 /** F6: recomendación breve a partir del índice; solo con los números entregados. */
 export const SYSTEM_PROMPT_PRODUCTIVIDAD = `Eres Nova, un asistente personal. Respondes en español.
@@ -59,9 +70,16 @@ export function etiquetaTarea(id: string): string {
  * Encabeza cada fuente con su etiqueta entre corchetes, igual que debe citarla el modelo (sección 11).
  * Sin índices como [1] o [T1]: el modelo los citaba en lugar de la etiqueta y armarFuentes no los reconocía.
  */
-export function construirContexto(fragmentos: FragmentoContexto[], tareas: TareaContexto[], hoy?: string): string {
+export function construirContexto(
+  fragmentos: FragmentoContexto[],
+  tareas: TareaContexto[],
+  hoy?: string,
+  estado: { tareasConsultadas?: boolean; hayDocumentos?: boolean } = {},
+): string {
   const partes: string[] = [];
   if (hoy) partes.push(hoy); // RB-31: línea HOY (fechas en Bogotá), siempre primero
+  if (estado.hayDocumentos === false) partes.push(LINEA_SIN_DOCUMENTOS); // RB-32
+  if (estado.tareasConsultadas && tareas.length === 0) partes.push(LINEA_SIN_TAREAS); // RB-32
   if (fragmentos.length > 0) {
     partes.push('FRAGMENTOS DE DOCUMENTOS:', ...fragmentos.map((f) => `[${etiquetaFragmento(f)}]\n${f.contenido}`));
   }

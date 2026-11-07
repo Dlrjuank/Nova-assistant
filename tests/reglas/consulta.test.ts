@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { MENSAJES } from '@/lib/reglas/errores';
 import {
+  AVISO_SIN_FUENTES,
   AVISO_SOLO_TAREAS,
   avisoAsistente,
   contarPalabrasYCaracteres,
@@ -47,8 +48,11 @@ describe('RB-30: aviso de la pantalla del Asistente', () => {
       'Aún no hay documentos indexados: por ahora el asistente responde solo sobre tus tareas pendientes.',
     );
   });
-  it('sin documentos ni tareas pendientes: el aviso de siempre (indexar un PDF)', () => {
+  it('sin documentos ni tareas pendientes: aviso informativo que no bloquea (RB-32), en tuteo', () => {
     expect(avisoAsistente(false, false)).toBe('sin-fuentes');
+    expect(AVISO_SIN_FUENTES).toContain('Puedes preguntar igual');
+    expect(AVISO_SIN_FUENTES).toContain('indexa un PDF');
+    expect(AVISO_SIN_FUENTES).not.toMatch(/Indexe|antes de preguntar/);
   });
 });
 

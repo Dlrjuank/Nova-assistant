@@ -9,12 +9,13 @@ import {
   eliminarDocumento,
   emitirTokenSubida,
   existenDocumentos,
+  indexarContenido,
   indexarDocumento,
   listarDocumentos,
 } from '@/lib/datos/documentos';
 import { recuperarFragmentos } from '@/lib/datos/fragmentos';
 import { completarTarea, crearTarea, eliminarTarea, hayTareasPendientes, listarTareas } from '@/lib/datos/tareas';
-import { SIN_RESPUESTA } from '@/lib/llm/prompts';
+import { SIN_DOCUMENTOS_RESPUESTA, SIN_RESPUESTA, SIN_TAREAS_PENDIENTES } from '@/lib/llm/prompts';
 import { hoyBogota, sumarDias } from '@/lib/reglas/fechas';
 import { cargarEnv, opcionesConexion } from './cargar-env.mjs';
 
@@ -122,12 +123,12 @@ async function main(): Promise<void> {
   const OTRO = creado.user.id;
 
   try {
-    // RB-30: SIN_DOCUMENTOS solo si la cuenta no tiene documentos ni tareas pendientes.
+    // RB-32: sin documentos la consulta ya no se bloquea; se explica en la respuesta (lo cubre el paso 10d).
     if ((await existenDocumentos(DUENO)) || (await hayTareasPendientes(DUENO))) {
-      console.log('OMITIDO paso 9: la cuenta ya tiene documentos o tareas pendientes, no se puede probar SIN_DOCUMENTOS');
+      console.log('OMITIDO paso 9: la cuenta ya tiene documentos o tareas pendientes (el paso 10d prueba ese caso)');
     } else {
-      const codigo = await codigoDe(() => consultar(DUENO, '¿Qué dice mi documento?'));
-      marcar(codigo === 'SIN_DOCUMENTOS', 'Paso 9: consulta sin documentos', codigo);
+      const sinNada = await consultar(DUENO, '¿Qué dice mi documento?');
+      marcar(sinNada.respuesta === SIN_DOCUMENTOS_RESPUESTA, 'Paso 9: sin documentos ni tareas, pregunta de documento', sinNada.respuesta);
     }
 
     const tarea = await crearTarea(DUENO, {
@@ -243,8 +244,19 @@ async function main(): Promise<void> {
       'Paso 10c: la búsqueda vectorial solo devuelve fragmentos del usuario',
       `dueño ${delDueno.length}, otro ${delOtro.length}`,
     );
-    const sinDocs = await codigoDe(() => consultar(OTRO, '¿Qué dice mi documento?'));
-    marcar(sinDocs === 'SIN_DOCUMENTOS', 'Paso 10d: otro usuario sin PDF propios -> SIN_DOCUMENTOS', sinDocs);
+    // Paso 10d (RB-32): sin documentos y sin tareas, la pregunta no se bloquea.
+    const sinDocs = await consultar(OTRO, '¿Qué dice mi documento?');
+    marcar(
+      sinDocs.respuesta === SIN_DOCUMENTOS_RESPUESTA && sinDocs.fuentes.length === 0,
+      'Paso 10d: sin documentos ni tareas, pregunta de documento -> explica que no hay documentos',
+      sinDocs.respuesta,
+    );
+    const sinTareas = await consultar(OTRO, '¿Tengo alguna tarea?');
+    marcar(
+      sinTareas.respuesta === SIN_TAREAS_PENDIENTES && sinTareas.fuentes.length === 0,
+      'Paso 10e: sin documentos ni tareas, "¿Tengo alguna tarea?" -> "No tienes tareas pendientes."',
+      sinTareas.respuesta,
+    );
     // Paso 11 (RB-30): sin documentos pero con una tarea pendiente, el asistente responde con la tarea.
     const tareaOtro = await crearTarea(OTRO, { titulo: 'Prueba pagar el recibo de la luz', prioridad: 3, fechaLimite: '2099-02-01' });
     tareasCreadas.push(tareaOtro.id);
@@ -256,8 +268,8 @@ async function main(): Promise<void> {
     );
     const soloPdf = await consultar(OTRO, '¿Cuántos meses dura la garantía del purificador?');
     marcar(
-      soloPdf.respuesta === SIN_RESPUESTA && soloPdf.fuentes.length === 0,
-      'Paso 11b: sin documentos, una pregunta de PDF -> mensaje exacto',
+      soloPdf.respuesta === SIN_DOCUMENTOS_RESPUESTA && soloPdf.fuentes.length === 0,
+      'Paso 11b: sin documentos y con tareas, una pregunta de PDF -> explica que no hay documentos',
       `${soloPdf.respuesta} | ${soloPdf.fuentes.length} fuentes`,
     );
 
@@ -286,6 +298,19 @@ async function main(): Promise<void> {
       `${primero.respuesta} | fuentes: ${primero.fuentes.map((f) => f.etiqueta).join(', ')}`,
     );
 
+    // Paso 13 (RB-32): con documentos y sin tareas pendientes. Se completan las tareas del usuario temporal
+    // y se le indexa el PDF de prueba (un lote de embeddings).
+    await completarTarea(OTRO, tareaOtro.id, 10);
+    await completarTarea(OTRO, tareaManana.id, 10);
+    const conDocs = await indexarContenido(OTRO, generarPdf(LINEAS_PDF), { nombreArchivo: NOMBRE_PDF });
+    documentosCreados.push(conDocs.documentoId);
+    const docsSinTareas = await consultar(OTRO, '¿Tengo alguna tarea?');
+    marcar(
+      docsSinTareas.respuesta === SIN_TAREAS_PENDIENTES && docsSinTareas.fuentes.length === 0,
+      'Paso 13: con documentos y sin tareas, "¿Tengo alguna tarea?" -> "No tienes tareas pendientes."',
+      docsSinTareas.respuesta,
+    );
+
     const ajenas = [
       await codigoDe(() => completarTarea(OTRO, tarea.id, 10)),
       await codigoDe(() => eliminarTarea(OTRO, tarea.id)),
@@ -300,7 +325,7 @@ async function main(): Promise<void> {
       ajenas.join() === 'TAREA_NO_ENCONTRADA,TAREA_NO_ENCONTRADA,DOCUMENTO_NO_ENCONTRADO' &&
         siguen[0]?.estado === 'Pendiente' &&
         siguen[0]?.doc === true,
-      'Paso 10e: otro usuario no puede completar ni eliminar lo ajeno (como si no existiera)',
+      'Paso 10f: otro usuario no puede completar ni eliminar lo ajeno (como si no existiera)',
       ajenas.join(', '),
     );
 
