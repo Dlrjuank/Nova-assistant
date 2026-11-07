@@ -29,6 +29,8 @@ Asistente RAG (Next.js 15 + Supabase/pgvector + Vercel Blob + Gemini), desplegad
 - El middleware vive en `src/middleware.ts`: con carpeta `src/`, Next ignora el de la raíz.
 - `db:limpiar` busca títulos con `ILIKE 'prueba%'`. Borrar con `-- --confirmar` lo puede bloquear el clasificador de permisos: en ese caso, pedirle al usuario que lo ejecute o lo autorice.
 - Al detener `next start` con TaskStop puede quedar vivo el proceso `node` en el puerto: comprobar con `netstat` y cerrarlo con `taskkill` (solo el que se inició).
+- Teléfono: en `globals.css`, fuera de `@layer`, todo campo usa `max(16px, 1rem)` en pantallas angostas o táctiles (evita el zoom al tocar un campo en iPhone). Nunca bloquear el zoom con dos dedos (sin `maximum-scale` ni `user-scalable`; lo vigila `contraste.test.ts`).
+- Si el pooler (6543) responde `ECONNRESET` desde esta máquina, para pruebas locales se puede arrancar `next start` con `NOVAASSISTANT_POSTGRES_URL` igual a la conexión directa, solo como variable del proceso (pasó el 2026-11-07).
 - Navegador para verificar: Edge 157 ya arranca con `puppeteer-core` (instalado en el scratchpad, no en el proyecto); sesión con un usuario temporal `nova-prueba-ui@example.com` y `SUPABASE_ADMIN_EMAILS` en el servidor de prueba (`next start -p 3100`), borrado al final.
 - `npm run dev` ejecuta `scripts/tokenVercel.mjs`, que reescribe `.env.local`; para pruebas automáticas usar `npx next dev`. `next build` reescribe `.next` y rompe un `next dev` que esté corriendo: detenerlo antes y reiniciarlo después.
 - Índice vectorial: HNSW (M3), no ivfflat (devolvía menos filas de las pedidas con pocos datos).

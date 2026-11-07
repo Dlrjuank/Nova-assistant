@@ -134,6 +134,26 @@ body {
   color: var(--foreground);
 }
 
+/*
+ * Sin zoom al tocar un campo en el teléfono (Safari en iPhone hace zoom si la letra del campo baja de 16 px;
+ * otros navegadores pueden cambiar el valor de 1rem). En pantallas angostas o táctiles, todo campo de texto
+ * tiene al menos 16 px. Va fuera de @layer a propósito: así le gana a cualquier utilidad de Tailwind
+ * (text-sm, text-xs...) y a los estilos del navegador. El zoom con dos dedos NO se bloquea: el viewport
+ * sigue siendo "width=device-width, initial-scale=1", sin límite de escala ni zoom desactivado.
+ */
+@media (max-width: 1023.98px), (pointer: coarse) {
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='color']),
+  select,
+  textarea {
+    font-size: max(16px, 1rem);
+  }
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 /* Transiciones cortas (150 a 200 ms) desactivadas si el usuario prefiere menos movimiento. */
 @media (prefers-reduced-motion: reduce) {
   *,

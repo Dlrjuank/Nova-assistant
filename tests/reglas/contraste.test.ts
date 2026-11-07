@@ -70,6 +70,32 @@ describe('sin colores sueltos en Nova', () => {
   });
 });
 
+describe('sin zoom al tocar un campo en el teléfono, sin bloquear el zoom con dos dedos', () => {
+  it('en pantallas angostas o táctiles los campos tienen al menos 16 px, fuera de @layer', () => {
+    const inicio = css.indexOf('@media (max-width: 1023.98px), (pointer: coarse) {');
+    expect(inicio).toBeGreaterThan(-1);
+    const bloqueCampos = css.slice(inicio, css.indexOf('}', css.indexOf('{', inicio) + 1) + 1);
+    expect(bloqueCampos).toMatch(/input:not\(\[type='checkbox'\]\)/);
+    expect(bloqueCampos).toContain('select,');
+    expect(bloqueCampos).toContain('textarea {');
+    expect(bloqueCampos).toContain('font-size: max(16px, 1rem);');
+    // Fuera de cualquier @layer: así le gana a las utilidades de Tailwind como text-sm.
+    const antes = css.slice(0, inicio);
+    const abiertos = (antes.match(/@layer[^{;]*\{/g) ?? []).length;
+    expect(abiertos).toBe(0);
+  });
+
+  it('nada en el código bloquea el zoom (maximum-scale, user-scalable)', () => {
+    const archivos = (readdirSync(join(process.cwd(), 'src'), { recursive: true }) as string[])
+      .filter((f) => /\.(tsx?|css)$/.test(f))
+      .map((f) => join('src', f));
+    const bloquean = archivos.filter((f) =>
+      /maximum-scale|user-scalable|maximumScale|userScalable/.test(readFileSync(join(process.cwd(), f), 'utf8')),
+    );
+    expect(bloquean).toEqual([]);
+  });
+});
+
 describe('contraste de los tokens de color', () => {
   it('el modo automático oscuro usa exactamente los valores del modo oscuro', () => {
     expect(MODOS.automatico).toEqual(MODOS.oscuro);
