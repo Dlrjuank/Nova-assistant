@@ -24,6 +24,7 @@
 | E03 Ampliación: navegación | completado | correcto | 295 pasan | 2026-11-06 |
 | E04 Ampliación: login con el estilo de Nova | completado | correcto | 304 pasan | 2026-11-07 |
 | RB-32 Ajuste: el Asistente nunca se bloquea sin documentos | completado | correcto | 312 pasan | 2026-11-07 |
+| Ajuste: el chat baja al último mensaje | completado | correcto | 324 pasan | 2026-11-07 |
 
 ## Bitácora
 
@@ -381,3 +382,13 @@ Total de fallas: 0
 - **Pruebas:** 7 nuevas o ajustadas en `tests/servidor/consulta.test.ts` (los tres casos pedidos, la línea de contexto correcta en cada uno, las respuestas exactas impuestas aunque el modelo las redacte distinto, el System Prompt) y en `tests/reglas/consulta.test.ts` (aviso en tuteo, sin "Indexe" ni "antes de preguntar").
 - **`probar:rag` con Gemini real** (0 fallas): paso 10d sin documentos ni tareas, pregunta de documento → la explicación exacta; 10e "¿Tengo alguna tarea?" → "No tienes tareas pendientes."; 11b sin documentos y con tareas, pregunta de PDF → la explicación; 13 nuevo, con documentos y sin tareas, "¿Tengo alguna tarea?" → "No tienes tareas pendientes.". Los demás pasos siguen pasando. Se corrió con la conexión directa (variable del proceso) porque el pooler seguía con `ECONNRESET` desde esta máquina.
 - **Al cierre:** `npm test` 312/312, `npm run build` correcto, `eslint` sin errores.
+- **Prueba del usuario en la vista previa:** el Asistente funciona en los 4 casos. Producción se arregla al unir `ampliacion` con `master` (no tocar `master` por ahora).
+
+#### Ajuste: el chat baja al último mensaje (2026-11-07, pedido del usuario)
+
+- **Problema informado:** al enviar una pregunta, la vista no bajaba sola hasta el mensaje nuevo ni hasta la respuesta, en el PC y en el teléfono (en el teléfono solo bajaba al tocar el campo, por el navegador).
+- **Causa:** `Chat` hacía `scrollIntoView({ block: 'nearest' })` sobre un `div` vacío justo encima del formulario: si ese punto ya contaba como visible, el navegador no se movía; además no tenía en cuenta la barra inferior fija ni el teclado.
+- **Arreglo:** `src/components/nova/seguirConversacion.ts`: `calcularDesplazamiento` (puro: deja el final de la conversación —el formulario— sobre el borde inferior visible con 16 px de margen, sin esconder el comienzo del último mensaje si es más alto que la pantalla), `zonaVisible` (visualViewport menos la barra inferior, marcada con `data-barra-inferior`) y `useSeguirConversacion`: al enviar baja siempre; al llegar la respuesta o un error, solo si el usuario sigue al final (a 120 px o menos); si subió, muestra "Ir al final"; si cambia el `visualViewport` (teclado) y estaba al final, lo mantiene; animación suave salvo con `prefers-reduced-motion`, que salta sin animación. Al abrir con historial, se ve lo último.
+- **Pruebas:** `tests/interfaz/chatDesplazamiento.test.tsx` (12: cálculo puro, zona con y sin barra, bajar al enviar, al llegar la respuesta, no mover si subió y "Ir al final", reducir movimiento, barra inferior, teclado, historial al abrir). Una prueba existente (`documentos-eliminar`) falló una vez por tiempo con la máquina cargada y pasó al repetirla, sola y con todas.
+- **Navegador real** (Edge con `next start` y la conexión directa por el pooler; usuario temporal con una tarea y una conversación larga sembrada, todo borrado al final; Gemini real; 0 fallas en 21 comprobaciones): en 1280 y 390 px (táctil), claro y oscuro: al abrir se ve el último mensaje guardado; al enviar, la pregunta queda a la vista; al llegar la respuesta, también, sobre la barra inferior en el teléfono; si el usuario sube mientras llega la respuesta, la vista no se mueve y aparece "Ir al final", que lleva a la respuesta y desaparece; con "reducir movimiento" llega de un salto. El teclado real del teléfono no se puede abrir en el navegador de prueba: lo cubre la prueba con `visualViewport`.
+- **Al cierre:** `npm test` 324/324, `npm run build` correcto, `eslint` sin errores.

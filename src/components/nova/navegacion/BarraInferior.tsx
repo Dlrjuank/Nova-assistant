@@ -60,6 +60,7 @@ export function BarraInferior({ email }: { email: string }) {
     <>
       <nav
         aria-label="Principal"
+        data-barra-inferior
         className="fixed inset-x-0 bottom-0 z-30 border-t border-borde bg-superficie pb-[env(safe-area-inset-bottom)] lg:hidden"
       >
         <ul className="mx-auto flex max-w-xl items-end gap-1 px-2 pt-1 pb-1">

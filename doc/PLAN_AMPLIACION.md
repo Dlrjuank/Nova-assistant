@@ -161,6 +161,8 @@ Las rutas de la API (`/api/nova/...`) que ya existen no cambian de nombre ni de 
 
 El chat actual con su historial. Si llega con una pregunta desde Inicio, la envía al cargar (una sola vez).
 
+La vista sigue a la conversación (pedido del usuario, 2026-11-07): al abrir, se ve lo último; al enviar una pregunta, baja siempre hasta ella; al llegar la respuesta, baja hasta ella solo si el usuario sigue al final. Si subió a leer algo anterior, no lo mueve y aparece el botón "Ir al final". La zona visible descuenta la barra inferior del teléfono y el teclado (`visualViewport`); si el teclado se abre estando al final, el último mensaje sigue a la vista. Con "reducir movimiento", el desplazamiento es inmediato, sin animación.
+
 Desde E02b (RB-30): sin documentos del usuario pero con al menos una tarea pendiente, el chat responde con las tareas y la pantalla muestra un aviso informativo con el enlace "Indexar un PDF": `Aún no hay documentos indexados: por ahora el asistente responde solo sobre tus tareas pendientes.`. Sin documentos ni tareas pendientes, se muestra el aviso de advertencia de siempre. El campo de pregunta nunca se bloquea.
 
 ### 5.3 Calendario (`/nova/calendario`)
