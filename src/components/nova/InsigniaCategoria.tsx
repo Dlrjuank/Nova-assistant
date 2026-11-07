@@ -18,12 +18,18 @@ export function PuntoCategoria({ color, className = '' }: { color: string; class
   return <span aria-hidden="true" className={`inline-block size-2.5 shrink-0 rounded-full ${clase} ${className}`} />;
 }
 
-/** E05: categoría con su punto de color y su nombre (el significado nunca va solo en el color). */
+/**
+ * E05: categoría con su punto de color y su nombre (el significado nunca va solo en el color).
+ * Nunca más ancha que su contenedor: un nombre largo se corta con "…" y se ve completo en `title`.
+ */
 export function InsigniaCategoria({ nombre, color }: { nombre: string; color: string }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-superficie-2 px-2.5 py-0.5 text-xs font-semibold text-texto">
+    <span
+      title={nombre}
+      className="inline-flex max-w-full min-w-0 items-center gap-1.5 rounded-full bg-superficie-2 px-2.5 py-0.5 text-xs font-semibold text-texto"
+    >
       <PuntoCategoria color={color} />
-      {nombre}
+      <span className="truncate">{nombre}</span>
     </span>
   );
 }

@@ -51,6 +51,21 @@ describe('CasillaTarea', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
+  it('en las columnas del computador (compacta) muestra lo mismo que en el teléfono: categoría y prioridad', () => {
+    render(<CasillaTarea tarea={tarea('1', 'Pendiente', 'Pagar luz', 3)} color="terracota" prefijo="p" compacta />);
+    expect(screen.getByText('Casa')).toBeTruthy();
+    expect(screen.getByText('Alta')).toBeTruthy();
+  });
+
+  it('la categoría no se sale de la columna: se corta con "…" y el nombre completo queda en title', () => {
+    const largo = 'Universidad Nacional de Colombia';
+    render(<CasillaTarea tarea={{ ...tarea('1'), categoria: largo }} color="azul" prefijo="p" compacta />);
+    const nombre = screen.getByText(largo);
+    expect(nombre.className).toContain('truncate');
+    expect(nombre.parentElement?.className).toContain('max-w-full');
+    expect(nombre.parentElement?.getAttribute('title')).toBe(largo);
+  });
+
   it('una completada se ve marcada y no se puede desmarcar', () => {
     render(<CasillaTarea tarea={tarea('1', 'Completada')} color="terracota" prefijo="p" />);
     const casilla = screen.getByRole('checkbox', { name: 'Tarea 1: completada' }) as HTMLInputElement;

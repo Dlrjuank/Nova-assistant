@@ -28,6 +28,7 @@
 | E05 Ampliación: categorías (M6) | completado | correcto | 351 pasan | 2026-11-07 |
 | E05b Ampliación: categorías dentro de Tareas | completado | correcto | 366 pasan | 2026-11-07 |
 | E06 Ampliación: Inicio | completado | correcto | 389 pasan | 2026-11-07 |
+| Ajustes de E06 (columnas, prioridad, botón "+") | completado | correcto | 391 pasan | 2026-11-07 |
 
 ## Bitácora
 
@@ -435,3 +436,14 @@ Total de fallas: 0
 - **Pruebas:** `tests/reglas/semana.test.ts` (8, incluido domingo 22:30 en Bogotá), `tests/servidor/semana.test.ts` (4: servicio con base simulada y ruta), `tests/interfaz/inicio.test.tsx` (11: casilla con cancelar y confirmar, completada, semana en computador y teléfono, flechas, progreso, prioridades, `?fecha=`). Las de `AccionesTarea` pasan sin cambios con el formulario extraído.
 - **Navegador real** (Edge, `next start` con la conexión directa, usuario temporal con 5 tareas, todo borrado al final; 0 fallas en 13): columnas por fecha límite; progreso 33 % (1 de 3); prioridades en orden y "1 tarea vencida"; la casilla abre el diálogo con el foco en los minutos, cancelar no cambia nada y confirmar 30 min completa en la base, el anillo pasa a 66 % y la tarea sale de prioridades; semana siguiente y "Esta semana"; "Agregar" con la fecha de hoy; teléfono con selector de días; claro y oscuro a 1280 y 390 sin desborde.
 - **Al cierre:** `npm test` 389/389, `npm run build` correcto, `eslint` sin errores.
+- **Prueba del usuario (iPhone, Safari, y PC):** Mi semana, la casilla con minutos, el anillo, Prioridades de hoy, "Agregar" y las flechas funcionan. No pudo probar "tarea vencida" porque creyó que el formulario no deja fechas pasadas: sí las deja (RN-07), con el aviso amarillo "Esta fecha ya pasó. Puedes guardar la tarea de todos modos."; verificado en el navegador.
+
+#### Ajustes de E06 (2026-11-07, pedidos del usuario)
+
+- **Categoría fuera de la columna (PC):** `InsigniaCategoria` ya no es más ancha que su contenedor (`max-w-full`, nombre con `truncate` y `title` con el nombre completo). En las columnas de la semana, `CasillaTarea` pone las insignias en su propia línea, con todo el ancho de la columna, para que "General" se lea completa.
+- **Prioridad en el PC:** las columnas muestran categoría y prioridad, igual que el teléfono.
+- **Columnas desde 1280 px:** al medir, a 1024 px (laptop pequeña con la barra lateral) cada columna quedaba en ~86 px y la prioridad se salía; entre 1024 y 1280 px se usa el selector de días.
+- **Botón "+" en el teléfono:** el contenido termina con `calc(10rem + env(safe-area-inset-bottom))` de espacio: el "+" termina a 9rem más el área segura, así queda 1rem libre y nunca tapa lo último.
+- **Pruebas:** 2 nuevas en `tests/interfaz/inicio.test.tsx` (prioridad en las columnas; insignia que no se sale, con `title`).
+- **Navegador real** (Edge, usuario temporal con una categoría de 32 caracteres, borrado al final; 0 fallas en 7): a 1280 y 1440, 12 insignias y ninguna fuera de su columna, con las 4 prioridades visibles; a 1024, selector de días sin desborde; a 390, al final de la página la tarjeta "Prioridades de hoy" termina 16 px por encima del "+"; el formulario guarda una fecha de ayer con su aviso e Inicio muestra "1 tarea vencida".
+- **Al cierre:** `npm test` 391/391, `npm run build` correcto, `eslint` sin errores.

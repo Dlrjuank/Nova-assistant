@@ -11,8 +11,9 @@ import { CasillaTarea, type TareaCasilla } from './CasillaTarea';
 const numeroDia = (fecha: string) => Number(fecha.slice(8, 10));
 
 /**
- * E06 (PLAN_AMPLIACION 5.1): lunes a domingo, con flechas de semana y el rango. En computador, 7 columnas;
- * en teléfono, una fila de 7 días para elegir y la lista del día elegido. Las tareas van por fecha límite.
+ * E06 (PLAN_AMPLIACION 5.1): lunes a domingo, con flechas de semana y el rango. Desde 1280 px, 7 columnas;
+ * por debajo (teléfono, tableta y laptops pequeñas, donde cada columna no alcanza ~120 px), una fila de 7 días
+ * para elegir y la lista del día elegido. Las tareas van por fecha límite.
  */
 export function MiSemana({
   dias,
@@ -76,8 +77,8 @@ export function MiSemana({
         </div>
       </div>
 
-      {/* Computador: 7 columnas. */}
-      <ol className="hidden gap-2 lg:grid lg:grid-cols-7">
+      {/* Computador ancho (≥ 1280 px): 7 columnas. */}
+      <ol className="hidden gap-2 xl:grid xl:grid-cols-7">
         {dias.map((fecha, i) => {
           const esHoy = fecha === hoy;
           return (
@@ -91,8 +92,8 @@ export function MiSemana({
         })}
       </ol>
 
-      {/* Teléfono: fila de 7 días para elegir y la lista del día elegido. */}
-      <div className="flex flex-col gap-3 lg:hidden">
+      {/* Por debajo de 1280 px: fila de 7 días para elegir y la lista del día elegido. */}
+      <div className="flex flex-col gap-3 xl:hidden">
         <div role="group" aria-label="Elegir día" className="grid grid-cols-7 gap-1">
           {dias.map((fecha, i) => {
             const activo = fecha === elegido;
