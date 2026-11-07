@@ -11,3 +11,6 @@ coverage/
 
 # Respaldos de la base (contienen el texto de los documentos): nunca en git
 respaldos/
+
+# Documento ajeno a este trabajo: nunca se sube
+/doc/CORREO RESEND VERCEL CONNECT (1).md
