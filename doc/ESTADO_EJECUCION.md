@@ -22,6 +22,7 @@
 | E02b Ampliación: Asistente sin documentos (RB-30) | completado | correcto | 268 pasan | 2026-11-06 |
 | E02c Ampliación: fecha de hoy y preguntas por fechas (RB-31) | completado | correcto | 278 pasan | 2026-11-06 |
 | E03 Ampliación: navegación | completado | correcto | 295 pasan | 2026-11-06 |
+| E04 Ampliación: login con el estilo de Nova | completado | correcto | 304 pasan | 2026-11-07 |
 
 ## Bitácora
 
@@ -351,3 +352,12 @@ Total de fallas: 0
 - **Pruebas:** `tests/interfaz/navegacion.test.tsx` (21: secciones sin botones muertos, `esActivo`, barra lateral, barra inferior, hoja "Más" con Escape, "Cerrar", tocar fuera, foco atrapado y devuelto, "+", oculto en el Asistente, "Pregúntale a Nova" y la pregunta inicial del chat enviada una sola vez). Las pruebas del menú anterior se quitaron de `componentes.test.tsx`.
 - **Navegador real** (Edge, `next start` con un usuario temporal sin datos, borrado al final; 0 fallas): A-01; las 8 pantallas en claro y oscuro, a 1280 y 390 px, sin desborde, sin errores, con la barra lateral solo en 1280, la inferior y el "+" solo en 390 (sin "+" en el Asistente) y un ítem activo; hoja "Más" (foco, Escape con foco devuelto, tocar fuera, navegar y cerrar); "+" a Nueva tarea y Subir documento; Inicio lleva al Asistente con la pregunta enviada (sin documentos ni tareas: `SIN_DOCUMENTOS`, sin llamar a Gemini) en 1280 y 390, y recargar no la reenvía.
 - **Al cierre:** `npm test` 295/295, `npm run build` correcto, `eslint` sin errores (solo el aviso de `eslint.config.mjs`).
+- **Prueba del usuario en la vista previa:** E02c y E03 funcionan.
+
+### E04 Ampliación: login con el estilo de Nova
+
+- **Qué cambió:** solo la presentación de `/login`, `/register`, `/recuperar-contrasena` y `/restablecer-contrasena`. Nuevo `src/components/login/TarjetaAcceso.tsx` (fondo crema u oscuro, tarjeta redondeada con sombra suave, marca "Nova" con ícono `Sparkles`) y clases compartidas para campos, etiquetas, enlaces y mensajes. `LoginForm`, `RegisterForm`, `RecoveryRequestForm` y `PasswordResetForm` conservan su lógica, sus rutas (`/api/auth/*`), sus mensajes y a dónde llevan (`/nova`, `/home`, `/login?restablecida=1`); los botones usan `claseBoton`. Se quitaron los rótulos decorativos "Tu asistente virtual" y "Cuenta de Supabase". Los campos tienen letra de 16 px para que el teléfono no haga zoom.
+- **Fuera de E04:** `/home`, `/dashboard`, `ChangePasswordForm` y `LogoutButton` (panel de administración y portal de usuarios no admin) conservan el estilo anterior.
+- **Pruebas:** `tests/interfaz/acceso.test.tsx` (9: tarjeta; login con validación, llamada, destino y error del servidor; enlaces; registro con contraseña corta y distinta y destino `/home`; recuperar; restablecer); la búsqueda de colores sueltos de `contraste.test.ts` cubre ahora los 9 archivos del acceso y se agregaron los pares texto/tinte de los avisos. Las pruebas existentes del login (`src/modules/auth`, `src/app/api/auth/*`) pasan sin cambios.
+- **Navegador real** (Edge, `next start`, usuario temporal borrado al final; 0 fallas): las 5 vistas (login, registro, recuperar, enlace vencido, login con contraseña restablecida) en claro y oscuro, a 1280 y 390 px, con el fondo de Nova, letra de 16 px y sin desborde; contraseña incorrecta en 390 px muestra "Correo o contraseña incorrectos."; foco visible con Tab; recuperar con un correo inexistente muestra el mensaje genérico (no se envía correo); el login correcto lleva a Inicio.
+- **Al cierre:** `npm test` 304/304, `npm run build` correcto, `eslint` sin errores.

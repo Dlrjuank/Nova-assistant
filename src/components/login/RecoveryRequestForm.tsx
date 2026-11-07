@@ -1,6 +1,13 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
+import { claseBoton } from '@/components/ui/Boton';
+import {
+  CLASE_CAMPO_ACCESO,
+  CLASE_ERROR_ACCESO,
+  CLASE_ETIQUETA_ACCESO,
+  CLASE_EXITO_ACCESO,
+} from './TarjetaAcceso';
 
 export function RecoveryRequestForm() {
   const [email, setEmail] = useState('');
@@ -41,12 +48,12 @@ export function RecoveryRequestForm() {
   return (
     <form className="space-y-5" noValidate onSubmit={handleSubmit}>
       <div>
-        <label htmlFor="email" className="mb-2 block text-sm font-medium text-slate-200">
+        <label htmlFor="email" className={CLASE_ETIQUETA_ACCESO}>
           Correo electrónico
         </label>
         <input
           autoComplete="email"
-          className="w-full min-w-0 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-base text-white outline-none transition placeholder:text-slate-500 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20"
+          className={`${CLASE_CAMPO_ACCESO} border-borde`}
           id="email"
           onChange={(event) => setEmail(event.target.value)}
           placeholder="tu@correo.com"
@@ -57,7 +64,7 @@ export function RecoveryRequestForm() {
       </div>
       {error && (
         <p
-          className="rounded-xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-200"
+          className={CLASE_ERROR_ACCESO}
           role="alert"
         >
           {error}
@@ -65,14 +72,14 @@ export function RecoveryRequestForm() {
       )}
       {mensaje && (
         <p
-          className="rounded-xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200"
+          className={CLASE_EXITO_ACCESO}
           role="status"
         >
           {mensaje}
         </p>
       )}
       <button
-        className="w-full rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 px-4 py-3.5 font-semibold text-white shadow-lg shadow-blue-950/30 transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2 focus:ring-offset-[#0b1020] disabled:cursor-not-allowed disabled:opacity-60"
+        className={`${claseBoton('primario')} min-h-12 w-full`}
         disabled={isSubmitting}
         type="submit"
       >

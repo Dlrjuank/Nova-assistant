@@ -2,6 +2,12 @@
 
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import { claseBoton } from '@/components/ui/Boton';
+import {
+  CLASE_CAMPO_ACCESO,
+  CLASE_ERROR_ACCESO,
+  CLASE_ETIQUETA_ACCESO,
+} from './TarjetaAcceso';
 
 interface PasswordResetFormProps {
   token: string;
@@ -48,12 +54,12 @@ export function PasswordResetForm({ token }: PasswordResetFormProps) {
   return (
     <form className="space-y-5" noValidate onSubmit={handleSubmit}>
       <div>
-        <label htmlFor="contrasena" className="mb-2 block text-sm font-medium text-slate-200">
+        <label htmlFor="contrasena" className={CLASE_ETIQUETA_ACCESO}>
           Nueva contraseña
         </label>
         <input
           autoComplete="new-password"
-          className="w-full min-w-0 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-base text-white outline-none transition placeholder:text-slate-500 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20"
+          className={`${CLASE_CAMPO_ACCESO} border-borde`}
           id="contrasena"
           minLength={8}
           onChange={(event) => setContrasena(event.target.value)}
@@ -63,12 +69,12 @@ export function PasswordResetForm({ token }: PasswordResetFormProps) {
         />
       </div>
       <div>
-        <label htmlFor="confirmacion" className="mb-2 block text-sm font-medium text-slate-200">
+        <label htmlFor="confirmacion" className={CLASE_ETIQUETA_ACCESO}>
           Confirmar contraseña
         </label>
         <input
           autoComplete="new-password"
-          className="w-full min-w-0 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-base text-white outline-none transition placeholder:text-slate-500 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20"
+          className={`${CLASE_CAMPO_ACCESO} border-borde`}
           id="confirmacion"
           minLength={8}
           onChange={(event) => setConfirmacion(event.target.value)}
@@ -79,14 +85,14 @@ export function PasswordResetForm({ token }: PasswordResetFormProps) {
       </div>
       {error && (
         <p
-          className="rounded-xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-200"
+          className={CLASE_ERROR_ACCESO}
           role="alert"
         >
           {error}
         </p>
       )}
       <button
-        className="w-full rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 px-4 py-3.5 font-semibold text-white shadow-lg shadow-blue-950/30 transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2 focus:ring-offset-[#0b1020] disabled:cursor-not-allowed disabled:opacity-60"
+        className={`${claseBoton('primario')} min-h-12 w-full`}
         disabled={isSubmitting}
         type="submit"
       >

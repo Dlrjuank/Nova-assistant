@@ -37,8 +37,20 @@ const MODOS = {
 };
 
 describe('sin colores sueltos en Nova', () => {
-  // Las pantallas y componentes de Nova solo usan los tokens; login y admin se migran en E04.
+  // Las pantallas y componentes de Nova solo usan los tokens. /home y el panel de administración quedan fuera.
   const CARPETAS = ['src/components/ui', 'src/components/nova', 'src/app/nova'];
+  // E04: el acceso (login, registro y recuperación) también usa solo tokens.
+  const ACCESO = [
+    'src/components/login/TarjetaAcceso.tsx',
+    'src/components/login/LoginForm.tsx',
+    'src/components/login/RegisterForm.tsx',
+    'src/components/login/RecoveryRequestForm.tsx',
+    'src/components/login/PasswordResetForm.tsx',
+    'src/app/login/page.tsx',
+    'src/app/register/page.tsx',
+    'src/app/recuperar-contrasena/page.tsx',
+    'src/app/restablecer-contrasena/page.tsx',
+  ];
   const PALETA_TAILWIND =
     /\b(?:bg|text|border|outline|ring|fill|stroke|divide|accent|from|to|via|decoration|placeholder)-(?:white|black|(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d{2,3})\b/;
   const LITERAL = /#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\(|oklch\(/;
@@ -48,7 +60,7 @@ describe('sin colores sueltos en Nova', () => {
       (readdirSync(join(process.cwd(), c), { recursive: true }) as string[])
         .filter((f) => /\.tsx?$/.test(f))
         .map((f) => join(c, f)),
-    );
+    ).concat(ACCESO);
     expect(archivos.length).toBeGreaterThan(10);
     const conColor = archivos.filter((f) => {
       const texto = readFileSync(join(process.cwd(), f), 'utf8');
@@ -77,6 +89,10 @@ describe('contraste de los tokens de color', () => {
     pares.push(['acento / acento-suave', c('acento'), c('acento-suave')]);
     for (const x of ['exito', 'aviso', 'peligro', 'acento']) {
       pares.push([`insignia ${x}`, c(x), sobre(c(x), c('superficie'), TINTE_INSIGNIA)]);
+    }
+    // Avisos del acceso y de Aviso: texto normal sobre el tinte del estado.
+    for (const x of ['exito', 'aviso', 'peligro']) {
+      pares.push([`texto / tinte ${x}`, c('texto'), sobre(c(x), c('superficie'), TINTE_INSIGNIA)]);
     }
     for (const cat of CATEGORIAS) for (const f of FONDOS) pares.push([`categoría ${cat} / ${f}`, c(`cat-${cat}`), c(f)]);
 

@@ -2,6 +2,15 @@
 
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import { claseBoton } from '@/components/ui/Boton';
+import {
+  CLASE_CAMPO_ACCESO,
+  CLASE_ENLACE_ACCESO,
+  CLASE_ERROR_ACCESO,
+  CLASE_ETIQUETA_ACCESO,
+  CLASE_EXITO_ACCESO,
+  TarjetaAcceso,
+} from './TarjetaAcceso';
 
 export function RegisterForm() {
   const router = useRouter();
@@ -91,29 +100,26 @@ export function RegisterForm() {
   }
 
   return (
-    <section className="relative z-10 w-full max-w-md rounded-3xl border border-white/10 bg-[#0b1020]/80 p-6 shadow-2xl shadow-black/30 backdrop-blur-xl sm:p-9">
-      <div className="mb-8">
-        <div className="mb-8 inline-flex items-center gap-2 text-sm font-semibold tracking-wide text-white">
-          <span className="flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-400 to-violet-500 text-lg">
-            ✦
-          </span>
-          NovaAssistant
-        </div>
-        <p className="mb-2 text-sm font-medium text-blue-300">Cuenta de Supabase</p>
-        <h1 className="text-3xl font-bold tracking-tight text-white">Crear cuenta</h1>
-        <p className="mt-2 text-sm leading-6 text-slate-400">
-          Elige un correo y una contraseña. No necesitas confirmar el correo para entrar.
-        </p>
-      </div>
-
+    <TarjetaAcceso
+      titulo="Crear cuenta"
+      subtitulo="Elige un correo y una contraseña. No necesitas confirmar el correo para entrar."
+      pie={
+        <>
+          ¿Ya tienes cuenta?{' '}
+          <a className={CLASE_ENLACE_ACCESO} href="/login">
+            Inicia sesión
+          </a>
+        </>
+      }
+    >
       <form className="space-y-5" noValidate onSubmit={handleSubmit}>
         <div>
-          <label htmlFor="email" className="mb-2 block text-sm font-medium text-slate-200">
+          <label htmlFor="email" className={CLASE_ETIQUETA_ACCESO}>
             Correo electrónico
           </label>
           <input
             autoComplete="email"
-            className="w-full min-w-0 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-base text-white outline-none transition placeholder:text-slate-500 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20"
+            className={`${CLASE_CAMPO_ACCESO} border-borde`}
             id="email"
             inputMode="email"
             name="email"
@@ -125,12 +131,12 @@ export function RegisterForm() {
           />
         </div>
         <div>
-          <label htmlFor="password" className="mb-2 block text-sm font-medium text-slate-200">
+          <label htmlFor="password" className={CLASE_ETIQUETA_ACCESO}>
             Contraseña
           </label>
           <input
             autoComplete="new-password"
-            className="w-full min-w-0 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-base text-white outline-none transition placeholder:text-slate-500 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20"
+            className={`${CLASE_CAMPO_ACCESO} border-borde`}
             id="password"
             name="password"
             onChange={(event) => setPassword(event.target.value)}
@@ -141,12 +147,12 @@ export function RegisterForm() {
           />
         </div>
         <div>
-          <label htmlFor="confirm-password" className="mb-2 block text-sm font-medium text-slate-200">
+          <label htmlFor="confirm-password" className={CLASE_ETIQUETA_ACCESO}>
             Confirmar contraseña
           </label>
           <input
             autoComplete="new-password"
-            className="w-full min-w-0 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-base text-white outline-none transition placeholder:text-slate-500 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20"
+            className={`${CLASE_CAMPO_ACCESO} border-borde`}
             id="confirm-password"
             name="confirm-password"
             onChange={(event) => setConfirmPassword(event.target.value)}
@@ -157,18 +163,18 @@ export function RegisterForm() {
         </div>
 
         {error && (
-          <p className="rounded-xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-200" role="alert">
+          <p className={CLASE_ERROR_ACCESO} role="alert">
             {error}
           </p>
         )}
         {success && (
-          <p className="rounded-xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200" role="status">
+          <p className={CLASE_EXITO_ACCESO} role="status">
             {success}
           </p>
         )}
         {confirmationEmail && (
           <button
-            className="w-full rounded-xl border border-white/15 px-4 py-3 text-sm font-medium text-blue-200 transition hover:bg-white/10 disabled:opacity-60"
+            className={`${claseBoton('secundario')} w-full`}
             disabled={isResending}
             onClick={resendConfirmation}
             type="button"
@@ -178,7 +184,7 @@ export function RegisterForm() {
         )}
 
         <button
-          className="w-full rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 px-4 py-3.5 font-semibold text-white shadow-lg shadow-blue-950/30 transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2 focus:ring-offset-[#0b1020] disabled:cursor-not-allowed disabled:opacity-60"
+          className={`${claseBoton('primario')} min-h-12 w-full`}
           disabled={isSubmitting}
           type="submit"
         >
@@ -186,12 +192,6 @@ export function RegisterForm() {
         </button>
       </form>
 
-      <p className="mt-7 text-center text-sm text-slate-400">
-        ¿Ya tienes cuenta?{' '}
-        <a className="text-blue-300 transition hover:text-blue-200" href="/login">
-          Inicia sesión
-        </a>
-      </p>
-    </section>
+    </TarjetaAcceso>
   );
 }
