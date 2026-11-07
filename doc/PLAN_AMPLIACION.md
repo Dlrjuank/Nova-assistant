@@ -172,6 +172,20 @@ Desde E02b (RB-30): sin documentos del usuario pero con al menos una tarea pendi
 - Vista mensual (lunes primero), con flechas de mes y botón "Hoy". Cada día muestra puntos del color de la categoría de sus tareas (máximo 3 puntos y "+N"), y un ícono distinto para fechas de Semestre (cortes y actividades) a partir de E13. Leyenda debajo.
 - Tocar un día muestra debajo (teléfono) o al lado (computador) la lista de ese día: tareas (con completar, mismo diálogo) y eventos de Semestre (enlazan a la materia), y el botón **"Agregar tarea"** → `/nova/tareas/nueva?fecha=<día>`.
 - El formulario de tarea acepta `?fecha=YYYY-MM-DD` válida y la pone en el campo (con la máscara); una fecha inválida se ignora.
+- **Decisiones del usuario (E07, 2026-11-07):**
+  - Los días muestran los puntos de color (máximo 3 y "+N").
+  - En el computador, si cabe, cada día muestra el título corto con su hora: desde 1280 px, máximo 2 títulos y "+N más". Una vencida va en rojo y una completada tachada.
+  - La lista del día ordena primero las tareas con horario, por hora; luego las demás, por prioridad; las completadas al final (el mismo orden de Mi semana).
+  - Las pendientes vencidas llevan la insignia sutil "Vencida".
+  - El botón dice "Agregar".
+  - A 390 px el mes se lee sin letra diminuta: mínimo 12 px y celdas de 44 × 56 px.
+  - Claro y oscuro; con "reducir movimiento", sin transiciones.
+- **Ubicación de la lista del día:** debajo del mes hasta 1536 px y al lado desde 1536 px. Al lado, a 1280 px, las celdas quedaban de ~75 px y los títulos no se leían. Si la lista queda fuera de la pantalla al elegir un día, la página baja hasta ella (sin animación con "reducir movimiento").
+- **El mes va en la URL** (`?mes=YYYY-MM`; si es inválido, se usa el mes actual).
+  - En el mes actual, "Hoy" elige el día de hoy sin recargar.
+  - En otro mes, "Hoy" vuelve al mes actual.
+  - La cuadrícula tiene semanas completas (4 a 6) y muestra también las tareas de los días vecinos.
+- `GET /api/nova/calendario` devuelve `eventos: {}` hasta E13: sin datos falsos.
 
 ### 5.4 Tareas (`/nova/tareas`)
 

@@ -471,3 +471,41 @@ Total de fallas: 0
 - **Navegador real** (Edge, usuario temporal con 6 tareas hoy, una completada a las 7:00; 0 fallas en 4): la columna muestra A 9:00, B 10:00, C y D con "+2 más"; al abrirla, 6 tareas con la completada al final; "Ver menos" vuelve a 4; el teléfono muestra las 6 con la completada al final.
 - **Diseño final anotado:** etapa E20b "Diseño final: darle vida a Nova", con el texto del usuario tal cual en `PROMPTS_AMPLIACION.md`, entre E20 y E21.
 - **Al cierre:** `npm test` 406/406, `npm run build` correcto, `eslint` sin errores.
+
+### E07 Ampliación: Calendario
+
+- **Reglas puras** (`src/lib/reglas/calendario.ts`):
+  - `esMesValido`, `mesDe`, `sumarMeses` (cruza el año) y `nombreMes` ("noviembre de 2026").
+  - `semanasDelMes`: lunes primero, semanas completas, de 4 a 6; incluye los años bisiestos.
+  - `estaVencida`: tarea pendiente con fecha límite antes de hoy.
+- **Datos** (`src/lib/datos/calendario.ts`):
+  - `mesDeTareas(usuarioId, mes?)` lee solo las tareas del usuario en el rango de la cuadrícula, incluidos los días vecinos.
+  - Agrupa por día con `tareasPorDia` (el mismo orden de Mi semana) y devuelve `eventos: {}` para E13.
+  - `GET /api/nova/calendario?mes=`: un mes inválido da 400 `DATOS_INVALIDOS` y sin sesión da 401.
+- **Interfaz:**
+  - `/nova/calendario` con `CalendarioMes`: cuadrícula con roles `grid`, `row` y `gridcell`; flechas de mes y "Hoy".
+  - Teléfono: puntos de color (máximo 3 y "+N").
+  - Desde 1280 px: títulos cortos con su hora (máximo 2 y "+N más"; la vencida en rojo, la completada tachada).
+  - Leyenda con las categorías del mes.
+  - Lista del día con `CasillaTarea` (completar con el mismo diálogo de minutos), la insignia "Vencida" y "Agregar" → `/nova/tareas/nueva?fecha=<día>`.
+  - Cada día tiene una etiqueta accesible, por ejemplo "martes 10 de nov., 2 tareas (1 pendiente)".
+- **Menú:** Calendario en la barra lateral (después de Asistente) y en la barra inferior del teléfono (Inicio, Calendario, Asistente, Tareas); Productividad pasa a "Más".
+- **Ajuste en el navegador:** con la lista al lado del mes, a 1280 px los títulos quedaban cortados ("8:00 Pr…"). La lista va debajo hasta 1536 px, y al elegir un día la página baja hasta ella si no se ve.
+- **Pruebas:**
+  - `tests/reglas/calendario.test.ts` (4).
+  - `tests/servidor/calendario.test.ts` (3).
+  - `tests/interfaz/calendario.test.tsx` (5).
+  - `navegacion.test.tsx` actualizado.
+  - `documentos-eliminar.test.ts` con un tiempo límite de 20 s: con la carga, la importación del módulo de PDF pasaba de 5 s.
+- **Navegador real:** Edge, `next start` con la conexión directa, usuario temporal con 6 tareas, todo borrado al final; 0 fallas en 13.
+  - Barra inferior con Calendario activo.
+  - A 390 px: letra mínima de 12 px, celdas de 44 × 56 y sin desborde.
+  - Lista de hoy en orden: 8:00 – 9:30, 20:00, sin hora (Alta) y la completada al final.
+  - "Agregar" con la fecha de hoy.
+  - La tarea de ayer lleva "Vencida".
+  - Mes siguiente (`?mes=2026-12`) y "Hoy" vuelve a hoy.
+  - A 1280 px: "8:00 Prueba clase", "20:00 Prueba cena" y "+2 más"; leyenda con 3 categorías.
+  - Al elegir un día, su lista queda a la vista.
+  - Claro y oscuro, a 1280 y 390 px, sin desborde ni errores; con "reducir movimiento", sin transiciones.
+- **Al cierre:** `npm test` 418/418, `npm run build` correcto, `eslint` sin errores.
+

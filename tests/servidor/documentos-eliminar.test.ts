@@ -61,5 +61,7 @@ describe('eliminarDocumento', () => {
 
     m.consultarBd.mockResolvedValueOnce([]);
     await expect(eliminarDocumento('u1', ID)).rejects.toMatchObject({ codigo: 'DOCUMENTO_NO_ENCONTRADO' });
-  });
+    // Importar de nuevo el módulo de documentos carga la librería de PDF: con toda la suite corriendo en
+    // paralelo puede pasar de los 5 s por defecto (falló así dos veces). El resto de la prueba es inmediato.
+  }, 20_000);
 });

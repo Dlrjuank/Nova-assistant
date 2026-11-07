@@ -5,6 +5,7 @@ import { Dialogo } from '@/components/ui/Dialogo';
 import { FormularioMinutos } from '@/components/nova/FormularioMinutos';
 import { InsigniaCategoria } from '@/components/nova/InsigniaCategoria';
 import { InsigniaPrioridad } from '@/components/nova/InsigniaPrioridad';
+import { Insignia } from '@/components/ui/Insignia';
 import { formatearHorario } from '@/lib/reglas/horario';
 
 export interface TareaCasilla {
@@ -27,12 +28,15 @@ export function CasillaTarea({
   color,
   prefijo,
   compacta = false,
+  vencida = false,
 }: {
   tarea: TareaCasilla;
   color: string;
   prefijo: string;
   /** En las columnas de la semana (computador): menos relleno. Muestra lo mismo que en el teléfono. */
   compacta?: boolean;
+  /** E07: pendiente con fecha límite pasada; se marca con una insignia sutil "Vencida". */
+  vencida?: boolean;
 }) {
   const [abierto, setAbierto] = useState(false);
   const casilla = useRef<HTMLInputElement>(null);
@@ -67,6 +71,7 @@ export function CasillaTarea({
     <div className="flex min-w-0 flex-wrap gap-1.5">
       <InsigniaCategoria nombre={tarea.categoria} color={color} />
       <InsigniaPrioridad prioridad={tarea.prioridad} />
+      {vencida && <Insignia tono="peligro">Vencida</Insignia>}
     </div>
   );
 

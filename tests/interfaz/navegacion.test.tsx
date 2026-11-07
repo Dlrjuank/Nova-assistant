@@ -28,7 +28,7 @@ afterEach(() => {
 
 describe('secciones (sin botones muertos)', () => {
   it('solo enlazan a rutas que existen hoy', () => {
-    const existentes = ['/nova', '/nova/asistente', '/nova/tareas', '/nova/documentos', '/nova/web', '/nova/productividad'];
+    const existentes = ['/nova', '/nova/asistente', '/nova/calendario', '/nova/tareas', '/nova/documentos', '/nova/web', '/nova/productividad'];
     const todas = [...MENU_LATERAL, ...BARRA_INFERIOR.izquierda, BARRA_INFERIOR.centro, ...BARRA_INFERIOR.derecha, ...MENU_MAS];
     expect(todas.every((s) => existentes.includes(s.href))).toBe(true);
     expect(MENU_LATERAL.map((s) => s.href)).toEqual(existentes);
@@ -56,6 +56,7 @@ describe('BarraLateral (computador)', () => {
     expect(within(menu).getAllByRole('link').map((a) => a.textContent)).toEqual([
       'Inicio',
       'Asistente',
+      'Calendario',
       'Tareas',
       'Documentos',
       'Web',
@@ -82,11 +83,11 @@ describe('BarraLateral (computador)', () => {
 });
 
 describe('BarraInferior y hoja "Más" (teléfono)', () => {
-  it('Inicio, Documentos (en el lugar de Calendario), Asistente al centro, Tareas y Más', () => {
+  it('Inicio, Calendario, Asistente al centro, Tareas y Más', () => {
     nav.ruta = '/nova/asistente';
     render(<BarraInferior email="yo@ejemplo.com" />);
     const barra = screen.getByRole('navigation', { name: 'Principal' });
-    expect(within(barra).getAllByRole('link').map((a) => a.textContent)).toEqual(['Inicio', 'Documentos', 'Asistente', 'Tareas']);
+    expect(within(barra).getAllByRole('link').map((a) => a.textContent)).toEqual(['Inicio', 'Calendario', 'Asistente', 'Tareas']);
     expect(within(barra).getByRole('link', { name: 'Asistente' }).getAttribute('aria-current')).toBe('page');
     expect(within(barra).getByRole('button', { name: 'Más' }).getAttribute('aria-expanded')).toBe('false');
   });
@@ -106,7 +107,7 @@ describe('BarraInferior y hoja "Más" (teléfono)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Más' }));
     const hoja = screen.getByRole('dialog', { name: 'Más secciones' });
     expect(hoja.getAttribute('aria-modal')).toBe('true');
-    expect(within(hoja).getAllByRole('link').map((a) => a.textContent)).toEqual(['Web', 'Productividad']);
+    expect(within(hoja).getAllByRole('link').map((a) => a.textContent)).toEqual(['Documentos', 'Web', 'Productividad']);
     expect(within(hoja).getByText('yo@ejemplo.com')).toBeTruthy();
     expect(within(hoja).getByRole('button', { name: 'Cerrar sesión' })).toBeTruthy();
     expect(hoja.contains(document.activeElement)).toBe(true);
