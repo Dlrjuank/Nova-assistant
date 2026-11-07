@@ -21,6 +21,9 @@ export type CodigoError =
   | 'COLOR_INVALIDO'
   | 'NOMBRE_CATEGORIA_INVALIDO'
   | 'CATEGORIA_GENERAL'
+  | 'HORA_INVALIDA'
+  | 'HORA_FIN_SIN_INICIO'
+  | 'HORA_FIN_ANTES'
   | 'ERROR_INTERNO';
 
 // Textos de la sección 12.2; los de la sección 5.1 se usan literalmente.
@@ -48,6 +51,10 @@ export const MENSAJES: Record<CodigoError, string> = {
   COLOR_INVALIDO: 'Elige un color de la lista.',
   NOMBRE_CATEGORIA_INVALIDO: 'Escribe un nombre de 1 a 80 caracteres.',
   CATEGORIA_GENERAL: 'La categoría General no se puede eliminar.',
+  // RB-34 (E06b): horario opcional de una tarea.
+  HORA_INVALIDA: 'La hora debe tener formato HH:MM de 24 horas.',
+  HORA_FIN_SIN_INICIO: 'La hora de fin necesita una hora de inicio.',
+  HORA_FIN_ANTES: 'La hora de fin debe ser después de la de inicio.',
   ERROR_INTERNO: 'Ocurrió un error inesperado. Intente de nuevo.',
 };
 
@@ -74,6 +81,9 @@ export const ESTADO_HTTP: Record<CodigoError, number> = {
   COLOR_INVALIDO: 422,
   NOMBRE_CATEGORIA_INVALIDO: 422,
   CATEGORIA_GENERAL: 409,
+  HORA_INVALIDA: 422,
+  HORA_FIN_SIN_INICIO: 422,
+  HORA_FIN_ANTES: 422,
   ERROR_INTERNO: 500,
 };
 

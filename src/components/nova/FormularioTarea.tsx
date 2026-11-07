@@ -9,14 +9,17 @@ import { Selector } from '@/components/ui/Selector';
 import { CATEGORIA_POR_DEFECTO, PRIORIDAD_POR_DEFECTO } from '@/lib/config/nova';
 import { ErrorDeNegocio, MENSAJES } from '@/lib/reglas/errores';
 import { aplicarMascaraFecha, esFechaISOValida, esFechaPasada, hoyBogota } from '@/lib/reglas/fechas';
+import { validarHorario } from '@/lib/reglas/horario';
 import { normalizarTitulo, resolverPrioridad } from '@/lib/reglas/tarea';
 
-type Campos = 'titulo' | 'prioridad' | 'fechaLimite';
+type Campos = 'titulo' | 'prioridad' | 'fechaLimite' | 'horaInicio' | 'horaFin';
 interface Valores {
   titulo: string;
   categoria: string;
   prioridad: string;
   fechaLimite: string;
+  horaInicio: string;
+  horaFin: string;
 }
 
 const OPCIONES_PRIORIDAD = [
@@ -24,6 +27,15 @@ const OPCIONES_PRIORIDAD = [
   { valor: '2', texto: '2 · Media' },
   { valor: '3', texto: '3 · Alta' },
 ];
+
+function esHoraValida(hora: string): boolean {
+  try {
+    validarHorario(hora, null);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 /** Mismas reglas que el servidor (lib/reglas), con los mensajes exactos de la sección 5.1. */
 function validar(v: Valores): Partial<Record<Campos, string>> {
@@ -34,6 +46,16 @@ function validar(v: Valores): Partial<Record<Campos, string>> {
     resolverPrioridad(Number(v.prioridad));
   } catch (error) {
     if (error instanceof ErrorDeNegocio) errores.prioridad = error.message;
+  }
+  // RB-34: las mismas reglas que el servidor; el error va en el campo que hay que corregir.
+  try {
+    validarHorario(v.horaInicio, v.horaFin);
+  } catch (error) {
+    if (error instanceof ErrorDeNegocio) {
+      // Una hora mal escrita se marca en su propio campo; los demás errores del horario, en "Hasta".
+      const inicioMalo = error.codigo === 'HORA_INVALIDA' && !esHoraValida(v.horaInicio);
+      errores[inicioMalo ? 'horaInicio' : 'horaFin'] = error.message;
+    }
   }
   return errores;
 }
@@ -46,6 +68,8 @@ export function FormularioTarea({ fechaInicial = '' }: { fechaInicial?: string }
     categoria: CATEGORIA_POR_DEFECTO,
     prioridad: String(PRIORIDAD_POR_DEFECTO),
     fechaLimite: fechaInicial,
+    horaInicio: '',
+    horaFin: '',
   });
   const [tocados, setTocados] = useState<Partial<Record<Campos, boolean>>>({});
   const [enviando, setEnviando] = useState(false);
@@ -61,7 +85,7 @@ export function FormularioTarea({ fechaInicial = '' }: { fechaInicial?: string }
   async function enviar(evento: FormEvent) {
     evento.preventDefault();
     setErrorServidor('');
-    setTocados({ titulo: true, prioridad: true, fechaLimite: true });
+    setTocados({ titulo: true, prioridad: true, fechaLimite: true, horaInicio: true, horaFin: true });
     if (Object.keys(errores).length > 0) return;
 
     setEnviando(true);
@@ -74,6 +98,8 @@ export function FormularioTarea({ fechaInicial = '' }: { fechaInicial?: string }
           categoria: valores.categoria.trim() || CATEGORIA_POR_DEFECTO,
           prioridad: Number(valores.prioridad),
           fechaLimite: valores.fechaLimite,
+          horaInicio: valores.horaInicio || null,
+          horaFin: valores.horaFin || null,
         }),
       });
       const cuerpo = (await respuesta.json()) as { ok: boolean; error?: { mensaje?: string } };
@@ -136,6 +162,34 @@ export function FormularioTarea({ fechaInicial = '' }: { fechaInicial?: string }
         autoComplete="off"
         required
       />
+      {/* RB-34: horario opcional, con el selector de hora del navegador (la rueda en el iPhone), en 24 horas. */}
+      <fieldset className="flex flex-col gap-2">
+        <legend className="mb-1.5 text-sm font-medium text-texto">Horario (opcional)</legend>
+        <div className="grid grid-cols-2 gap-3">
+          <Campo
+            id="horaInicio"
+            etiqueta="Desde"
+            type="time"
+            step={300}
+            value={valores.horaInicio}
+            onChange={cambiar('horaInicio')}
+            onBlur={tocar('horaInicio')}
+            error={visible('horaInicio')}
+          />
+          <Campo
+            id="horaFin"
+            etiqueta="Hasta"
+            type="time"
+            step={300}
+            value={valores.horaFin}
+            onChange={cambiar('horaFin')}
+            onBlur={tocar('horaFin')}
+            error={visible('horaFin')}
+          />
+        </div>
+        <p className="text-xs text-texto-suave">Puedes poner solo la hora de inicio. Las tareas con hora se ordenan por horario.</p>
+      </fieldset>
+
       {/* RN-07 permite fechas pasadas: se avisa por si fue un error al escribir, pero no se bloquea. */}
       {esFechaPasada(valores.fechaLimite, hoyBogota()) && (
         <Aviso tipo="advertencia">Esta fecha ya pasó. Puedes guardar la tarea de todos modos.</Aviso>

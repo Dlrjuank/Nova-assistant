@@ -109,6 +109,8 @@ describe('FormularioTarea', () => {
       categoria: 'General',
       prioridad: 3,
       fechaLimite: '2026-03-10',
+      horaInicio: null,
+      horaFin: null,
     });
     expect(nav.refresh).toHaveBeenCalled();
   });

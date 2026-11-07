@@ -107,6 +107,13 @@ describe('aislamiento por usuario (RB-01)', () => {
     expect(tareas).toHaveLength(50);
     expect(tareas[0]?.texto).toContain('fecha límite: ');
     expect(tareas[0]?.texto).toContain(', 2099-01-01)'); // RB-31: también AAAA-MM-DD
+    expect(tareas[0]?.texto).not.toContain('horario'); // sin horario no se menciona
+  });
+
+  it('RB-34: al modelo, cada tarea con horario lo lleva ("¿qué tengo a las 3?")', async () => {
+    m.consultarBd.mockResolvedValue([{ id: '1', titulo: 'Clase', categoria: 'General', prioridad: 2, fechaLimite: '2099-01-01', horaInicio: '15:00', horaFin: '16:30' }]);
+    const [tarea] = await tareasPendientesComoTexto(A);
+    expect(tarea?.texto).toContain('; horario: 15:00 – 16:30)');
   });
 
   it('hayTareasPendientes solo mira las pendientes del usuario', async () => {

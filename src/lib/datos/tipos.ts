@@ -7,6 +7,9 @@ export interface DatosTarea {
   categoria?: string | undefined;
   prioridad?: number | null | undefined;
   fechaLimite: string;
+  /** RB-34: 'HH:MM' de 24 horas, opcionales. */
+  horaInicio?: string | null | undefined;
+  horaFin?: string | null | undefined;
 }
 
 export interface Tarea {
@@ -19,6 +22,9 @@ export interface Tarea {
   fechaLimite: string;
   fechaCreacion: string;
   fechaCierre: string | null;
+  /** RB-34: 'HH:MM' de 24 horas o null. */
+  horaInicio: string | null;
+  horaFin: string | null;
 }
 
 export interface Documento {

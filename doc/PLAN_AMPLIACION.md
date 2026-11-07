@@ -17,7 +17,7 @@ Los prompts de ejecución están en `doc/PROMPTS_AMPLIACION.md` (etapas E00 a E2
 9. [El asistente en Semestre](#9-el-asistente-en-semestre)
 10. [API](#10-api)
 11. [Pruebas](#11-pruebas)
-12. [Casos de aceptación B-01 a B-46](#12-casos-de-aceptación-b-01-a-b-46)
+12. [Casos de aceptación B-01 a B-47](#12-casos-de-aceptación-b-01-a-b-47)
 13. [Riesgos y decisiones](#13-riesgos-y-decisiones)
 
 ---
@@ -47,6 +47,7 @@ Los prompts de ejecución están en `doc/PROMPTS_AMPLIACION.md` (etapas E00 a E2
 | X0 | Dueño en tareas, documentos y fuentes web (`usuario_id`) | E01 |
 | X0b | El Asistente responde con las tareas pendientes aunque no haya documentos (RB-30) | E02b |
 | X0c | El Asistente conoce la fecha de hoy y responde preguntas por fechas sobre las tareas (RB-31) | E02c |
+| X0d | Horario opcional de las tareas (hora de inicio y de fin), en 24 horas (RB-34) | E06b |
 | X1 | Rediseño: paleta cálida, modo claro y oscuro, íconos, encabezados, login | E02, E04 |
 | X2 | Navegación: barra lateral (computador), barra inferior + "Más" + botón "+" (teléfono) | E03 |
 | X3 | Categorías de tareas con color | E05 |
@@ -68,7 +69,6 @@ Los prompts de ejecución están en `doc/PROMPTS_AMPLIACION.md` (etapas E00 a E2
 ### 2.2 Fuera de alcance
 
 - Rutinas (tareas recurrentes).
-- Hora de las tareas: las tareas solo tienen fecha límite (la imagen de referencia muestra horas; no se agregan).
 - Escala de notas distinta de 0,0 a 5,0.
 - Que el chat del Asistente responda sobre notas, materias o metas (sigue respondiendo sobre PDF y tareas).
 - Que las fuentes web alimenten al chat.
@@ -198,7 +198,7 @@ Pestañas **Materias y notas**, **Objetivos y plan**, **Estadísticas** (cada un
 
 ### 5.8 Configuración (`/nova/configuracion`)
 
-Bloques: **Perfil** (nombre editable, correo de solo lectura, cambiar contraseña), **Apariencia** (claro, oscuro, automático), **Académico** (escala 0,0 a 5,0 de solo lectura, nota para aprobar, redondeo truncar/redondear, cortes por defecto), **Asistente** (borrar todo el historial, aviso de Gemini) y **Cerrar sesión**.
+Bloques: **Perfil** (nombre editable, correo de solo lectura, cambiar contraseña), **Apariencia** (claro, oscuro, automático; formato de hora de 24 o 12 horas, 24 por defecto, pedido del usuario en E06b), **Académico** (escala 0,0 a 5,0 de solo lectura, nota para aprobar, redondeo truncar/redondear, cortes por defecto), **Asistente** (borrar todo el historial, aviso de Gemini) y **Cerrar sesión**.
 
 ## 6. Modelo de datos
 
@@ -307,6 +307,10 @@ Un tema manual nace `confirmado`; uno del asistente nace `propuesto` y el usuari
 
 La versión vigente es la de mayor `numero`. Nunca se modifica una versión: editar o restaurar crea una nueva.
 
+### 6.10 M14 · Horario de tareas (E06b)
+
+Columnas nuevas en `tareas_personales`: `hora_inicio TIME NULL` y `hora_fin TIME NULL`, con `CHECK (hora_fin IS NULL OR (hora_inicio IS NOT NULL AND hora_fin > hora_inicio))` (`tareas_horario_valido`). Solo aditiva: los INSERT del código de `master` las dejan en NULL.
+
 ## 7. Reglas de cálculo
 
 Todas en funciones puras de `src/lib/reglas/` (sin red, sin base, sin reloj salvo `fechas.ts`), probadas con Vitest. Notas en centésimas (0 a 500), porcentajes en centésimas de punto (0 a 10000). Los productos se calculan con enteros; la división final y el redondeo, con aritmética exacta sobre esos enteros.
@@ -411,6 +415,7 @@ Los mensajes se usan **textualmente** en la interfaz y en la API. Los de `PLAN_N
 | RB-31 | (E02c) El contexto del Asistente empieza con la línea HOY: fecha de hoy, mañana y la semana actual (lunes a domingo), calculadas con la zona `America/Bogota` explícita, nunca con la hora del servidor (`lineaHoy`). Cada tarea lleva su fecha límite también como AAAA-MM-DD. Las preguntas de fechas sobre tareas (hoy, mañana, esta semana, qué vence primero) se responden con las tareas; si hay pendientes pero ninguna cae en el periodo, el modelo responde "No tienes tareas para {periodo}." y menciona la pendiente más próxima (y las vencidas, si hay). Las palabras semana, mañana (y manana), hoy y vencid se suman a las de RN-12 | `No tienes tareas para {periodo}.` (lo escribe el modelo siguiendo el System Prompt, no el servidor; se verifica con `probar:rag`, paso 12). Los mensajes exactos existentes no cambian |
 | RB-32 | (Ajuste pedido por el usuario el 2026-11-07; reemplaza a RN-15 y al último caso de RB-30.) La pregunta nunca se bloquea por falta de documentos. El contexto lleva `DOCUMENTOS: el usuario aún no tiene documentos indexados.` cuando no hay documentos y `TAREAS PENDIENTES: ninguna.` cuando se consultaron las tareas y no hay pendientes. Pregunta sobre tareas sin pendientes → respuesta exacta; pregunta que necesita documentos sin tenerlos → respuesta exacta que lo explica (el servidor impone ambos textos y no muestra fuentes). Con documentos, "No encontré esto en tus documentos" sigue igual. La pantalla solo muestra avisos informativos (ninguno bloquea) | `No tienes tareas pendientes.` · `Aún no tienes documentos indexados, así que no puedo responder sobre documentos. Indexa un PDF para preguntar sobre él.` · Aviso sin documentos ni tareas: `Aún no tienes documentos indexados ni tareas pendientes. Puedes preguntar igual; para que el asistente responda sobre tus documentos, indexa un PDF.` |
 | RB-33 | (E05b, pedido del usuario) La categoría de una tarea se resuelve en el servidor (`resolverCategoria`, dentro de la transacción de quien crea la tarea: formulario, E19 y cualquier forma futura, como el chat si se agregara): se recortan y unen los espacios y se compara sin mayúsculas; si existe, se usa su nombre guardado (" universidad " → "Universidad"); si no, se crea con el siguiente color libre; vacía → General. Nombres de 1 a 80 caracteres (aprobado por el usuario) | `Escribe un nombre de 1 a 80 caracteres.` |
+| RB-34 | (E06b, pedido del usuario) Horario opcional de una tarea: hora de inicio y de fin en 24 horas (`HH:MM`). Puede haber solo inicio, nunca solo fin; el fin es posterior al inicio dentro del mismo día; no se valida que dos tareas se crucen. Se muestra como "8:00 – 9:30" (o "8:00") en Mi semana, Prioridades de hoy, Tareas y Calendario. En cada día, primero las tareas con hora (por hora de inicio) y después las demás (por prioridad y título); Prioridades de hoy mantiene su orden por prioridad. El Asistente recibe el horario de cada tarea. El formulario usa el selector de hora del navegador (su apariencia depende del teléfono; lo guardado y lo mostrado en la app es de 24 horas). E11 agregará la opción de ver 12 horas | `La hora debe tener formato HH:MM de 24 horas.` · `La hora de fin necesita una hora de inicio.` · `La hora de fin debe ser después de la de inicio.` (`HORA_INVALIDA`, `HORA_FIN_SIN_INICIO`, `HORA_FIN_ANTES`, 422) |
 | RB-29 | Editar una tarea: solo pendientes y del usuario; título, categoría, prioridad y fecha límite con las mismas validaciones y mensajes que al crear; estado, minutos y fecha de cierre no se tocan | Los de crear (`PLAN_NOVA.md` 5.1). Tarea completada: `La tarea ya está completada.` (`TAREA_YA_COMPLETADA`, 409). De otro usuario o inexistente: `La tarea no existe.` (`TAREA_NO_ENCONTRADA`, 404) |
 
 Códigos de error nuevos (404 salvo indicación): `CATEGORIA_NO_ENCONTRADA`, `CATEGORIA_DUPLICADA` (409), `MATERIA_NO_ENCONTRADA`, `MATERIA_DUPLICADA` (409), `CORTE_NO_ENCONTRADO`, `ACTIVIDAD_NO_ENCONTRADA`, `PORCENTAJES_INVALIDOS` (422), `NOTA_INVALIDA` (422), `META_NO_ENCONTRADA`, `META_DUPLICADA` (409), `PLAN_SIN_TEMAS` (422), `PLAN_SIN_FECHA` (422), `SIN_SYLLABUS` (422), `PLAN_INVALIDO` (502), `PASO_YA_EN_TAREAS` (409).
@@ -504,7 +509,7 @@ Con un `git worktree` de `master` en una carpeta temporal: `npm run probar:rag` 
 
 En cada etapa con interfaz: navegador real a 1280 px y 390 px (sin desplazamiento horizontal, sin errores de página, foco visible) y prueba del usuario en la **vista previa de Vercel** desde su teléfono.
 
-## 12. Casos de aceptación B-01 a B-46
+## 12. Casos de aceptación B-01 a B-47
 
 Se ejecutan en la vista previa de Vercel de `ampliacion`, en computador y en teléfono, y se registran en `doc/ACEPTACION.md` (sección nueva). Antes, se repiten A-01 a A-21 en la vista previa.
 
@@ -554,6 +559,7 @@ Se ejecutan en la vista previa de Vercel de `ampliacion`, en computador y en tel
 | B-44 | Preguntas por fechas, con y sin documentos: "¿Qué tengo para hacer esta semana?" con una tarea esta semana y con tareas solo en fechas lejanas; "¿Qué tengo para mañana?"; "¿Qué vence primero?" | Con tareas en el periodo, las lista y las cita; sin tareas en el periodo, "No tienes tareas para esta semana." (o "para mañana") y la tarea pendiente más próxima con su fecha y su cita; "qué vence primero" responde la de fecha límite más próxima. Nunca "No encontré esto en tus documentos" si hay tareas pendientes |
 | B-45 | Sin documentos y sin tareas; sin documentos y con tareas; con documentos y sin tareas: preguntar "¿Tengo alguna tarea?" y algo de un documento | Sin tareas: "No tienes tareas pendientes."; con tareas: las lista y las cita; sin documentos, la pregunta de documento explica que no hay documentos (en tuteo); con documentos, "No encontré esto en tus documentos" si el dato no está. Nunca se bloquea la pregunta; el aviso de arriba es informativo y no se repite como respuesta |
 | B-46 | Recorrer Inicio, Asistente, Tareas, Productividad y Web | El aviso del proveedor está completo solo en el Asistente y como línea corta bajo "Pregúntale a Nova" en Inicio; Web conserva su subtítulo; no aparece en Tareas ni en Productividad |
+| B-47 | Crear tareas de hoy con horario (8:00 – 9:30, solo 20:00) y sin horario; probar "Hasta" sin "Desde" y "Hasta" antes de "Desde"; preguntar al Asistente por una hora | Los mensajes exactos de RB-34; en Mi semana el día muestra primero las de hora en orden y luego las demás por prioridad, con su horario; Tareas y Prioridades de hoy muestran el horario; el Asistente responde con la tarea de esa hora |
 | B-41 | Editar una tarea pendiente desde Tareas, Inicio y Calendario (título, categoría, prioridad y fecha) | El formulario abre lleno; al guardar, el cambio se ve en las tres pantallas y en su día del Calendario; "Cancelar" no cambia nada |
 | B-42 | Al editar, poner fecha "2026-02-30" y luego prioridad 5 por la API; intentar editar una tarea completada | Mismos mensajes que al crear (A-03, A-04); la completada responde "La tarea ya está completada." y no muestra "Editar" |
 

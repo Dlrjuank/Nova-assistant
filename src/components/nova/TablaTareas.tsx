@@ -5,6 +5,7 @@ import { InsigniaPrioridad } from '@/components/nova/InsigniaPrioridad';
 import type { Tarea } from '@/lib/dataService';
 import { formatearFecha, formatearMinutos } from '@/lib/formato';
 import { colorDeCategoria } from '@/lib/reglas/categorias';
+import { formatearHorario } from '@/lib/reglas/horario';
 
 const COLUMNAS = ['Título', 'Categoría', 'Prioridad', 'Estado', 'Fecha límite', 'Creada', 'Acciones'];
 
@@ -49,7 +50,10 @@ export function TablaTareas({
                     </p>
                   )}
                 </td>
-                <td className="whitespace-nowrap px-4 py-3 text-texto-suave">{formatearFecha(t.fechaLimite)}</td>
+                <td className="whitespace-nowrap px-4 py-3 text-texto-suave">
+                  {formatearFecha(t.fechaLimite)}
+                  {t.horaInicio && <span className="block text-xs">{formatearHorario(t)}</span>}
+                </td>
                 <td className="whitespace-nowrap px-4 py-3 text-texto-suave">{formatearFecha(t.fechaCreacion)}</td>
                 <td className="px-4 py-3">
                   <AccionesTarea id={t.id} titulo={t.titulo} completada={t.estado === 'Completada'} prefijo="tabla" />
@@ -72,7 +76,10 @@ export function TablaTareas({
               <dt className="text-texto-suave">Categoría</dt>
               <dd>{insignia(t)}</dd>
               <dt className="text-texto-suave">Fecha límite</dt>
-              <dd>{formatearFecha(t.fechaLimite)}</dd>
+              <dd>
+                {formatearFecha(t.fechaLimite)}
+                {t.horaInicio && ` · ${formatearHorario(t)}`}
+              </dd>
               <dt className="text-texto-suave">Creada</dt>
               <dd>{formatearFecha(t.fechaCreacion)}</dd>
               {t.estado === 'Completada' && (

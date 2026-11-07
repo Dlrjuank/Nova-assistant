@@ -29,6 +29,7 @@
 | E05b Ampliación: categorías dentro de Tareas | completado | correcto | 366 pasan | 2026-11-07 |
 | E06 Ampliación: Inicio | completado | correcto | 389 pasan | 2026-11-07 |
 | Ajustes de E06 (columnas, prioridad, botón "+") | completado | correcto | 391 pasan | 2026-11-07 |
+| E06b Ampliación: horario de las tareas (M14) | completado | correcto | 404 pasan | 2026-11-07 |
 
 ## Bitácora
 
@@ -447,3 +448,16 @@ Total de fallas: 0
 - **Pruebas:** 2 nuevas en `tests/interfaz/inicio.test.tsx` (prioridad en las columnas; insignia que no se sale, con `title`).
 - **Navegador real** (Edge, usuario temporal con una categoría de 32 caracteres, borrado al final; 0 fallas en 7): a 1280 y 1440, 12 insignias y ninguna fuera de su columna, con las 4 prioridades visibles; a 1024, selector de días sin desborde; a 390, al final de la página la tarjeta "Prioridades de hoy" termina 16 px por encima del "+"; el formulario guarda una fecha de ayer con su aviso e Inicio muestra "1 tarea vencida".
 - **Al cierre:** `npm test` 391/391, `npm run build` correcto, `eslint` sin errores.
+- **Prueba del usuario:** "General" cabe en la columna, la prioridad se ve en el PC, el "+" no tapa nada y "1 tarea vencida" funciona con una fecha pasada. E06 confirmado. Aprobó RB-34 (24 horas; en E11, opción de 12 horas) y E06b antes del Calendario. Idea anotada para E08 o el diseño final: marca sutil "Vencida" en Mi semana.
+
+### E06b Ampliación: horario de las tareas (pedida por el usuario)
+
+- **Respaldo previo:** `respaldos/2026-11-07_194203` (4 tareas, 0 documentos, 1 fuente, 12 conversaciones, 70 mensajes).
+- **Migración M14** `supabase/migrations/20261108100000_nova_horario_tareas.sql`: `hora_inicio` y `hora_fin` (`TIME`, opcionales) con `tareas_horario_valido`. Prueba en seco (6 casos, revertida), aplicada; `db:verificar` 0 fallas (nueva sección 6d); compatibilidad con `master` (worktree, conexión directa): `db:verificar` y `probar:rag` 0 fallas.
+- **Reglas** `src/lib/reglas/horario.ts`: `validarHorario` (acepta "8:5" y "08:05:00", rechaza fin sin inicio, fin antes o igual al inicio y horas imposibles), `formatearHorario` ("8:00 – 9:30", 24 horas sin cero a la izquierda) y `compararPorHorario`; errores `HORA_INVALIDA`, `HORA_FIN_SIN_INICIO`, `HORA_FIN_ANTES` (422).
+- **Servidor:** `crearTarea` guarda el horario; `listarTareas` ordena por fecha y hora; `Tarea` trae `horaInicio`/`horaFin` (`to_char(..., 'HH24:MI')`); `tareasPorDia` ordena cada día por horario; el texto de cada tarea para el Asistente incluye `horario`.
+- **Interfaz:** `FormularioTarea` con "Horario (opcional)": "Desde" y "Hasta" (`type="time"`, mismas reglas y mensajes); el horario se ve en `CasillaTarea` (dentro de la etiqueta, así lo leen los lectores de pantalla) y en `TablaTareas` (columna de fecha y tarjeta del teléfono).
+- **Pruebas:** `tests/reglas/horario.test.ts` (5), `tests/interfaz/horario.test.tsx` (5), RB-34 en `tests/servidor/categorias.test.ts` (2) y en `aislamiento.test.ts` (1); datos de prueba de `Tarea` con las horas.
+- **`probar:rag`** (Gemini real, 0 fallas): paso 14 nuevo, "¿Qué tengo mañana a las 3 de la tarde?" responde con la tarea de 15:00 a 16:00.
+- **Navegador real** (Edge, usuario temporal borrado al final; 0 fallas en 16): en el teléfono, el formulario (letra de 16 px) avisa "La hora de fin necesita una hora de inicio." y guarda 08:00 – 09:30; Tareas muestra "· 8:00 – 9:30"; Mi semana a 1280 ordena hoy "8:00 – 9:30", "20:00", luego sin hora Alta y Baja; Prioridades de hoy sigue por prioridad con el horario; Inicio, Tareas y el formulario en claro y oscuro, 1280 y 390, sin desborde. El selector de hora del navegador se ve según la configuración del dispositivo (en la prueba, "08:00 a. m."): lo guardado y lo mostrado por la app es de 24 horas.
+- **Al cierre:** `npm test` 404/404, `npm run build` correcto, `eslint` sin errores.

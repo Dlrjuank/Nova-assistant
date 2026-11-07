@@ -5,6 +5,7 @@ import { Dialogo } from '@/components/ui/Dialogo';
 import { FormularioMinutos } from '@/components/nova/FormularioMinutos';
 import { InsigniaCategoria } from '@/components/nova/InsigniaCategoria';
 import { InsigniaPrioridad } from '@/components/nova/InsigniaPrioridad';
+import { formatearHorario } from '@/lib/reglas/horario';
 
 export interface TareaCasilla {
   id: string;
@@ -12,6 +13,9 @@ export interface TareaCasilla {
   categoria: string;
   prioridad: number;
   estado: string;
+  /** RB-34: 'HH:MM' de 24 horas, opcionales. */
+  horaInicio?: string | null;
+  horaFin?: string | null;
 }
 
 /**
@@ -48,12 +52,15 @@ export function CasillaTarea({
       className="mt-0.5 size-5 shrink-0 cursor-pointer accent-acento disabled:cursor-default"
     />
   );
+  const horario = formatearHorario(tarea);
   const titulo = (
     <label
       htmlFor={id}
-      className={`min-w-0 text-sm font-medium break-words ${completada ? 'text-texto-suave line-through' : 'text-texto'}`}
+      className={`flex min-w-0 flex-col text-sm font-medium break-words ${completada ? 'text-texto-suave line-through' : 'text-texto'}`}
     >
       {tarea.titulo}
+      {/* RB-34: el horario va dentro de la etiqueta, así también lo leen los lectores de pantalla. */}
+      {horario && <span className="text-xs font-normal text-texto-suave">{horario}</span>}
     </label>
   );
   const insignias = (

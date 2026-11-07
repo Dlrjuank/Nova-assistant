@@ -298,10 +298,26 @@ async function main(): Promise<void> {
       `${primero.respuesta} | fuentes: ${primero.fuentes.map((f) => f.etiqueta).join(', ')}`,
     );
 
+    // Paso 14 (RB-34): el horario llega al modelo; "¿qué tengo a las 3?" responde con la tarea de esa hora.
+    const tareaHora = await crearTarea(OTRO, {
+      titulo: 'Prueba reunión con el profesor',
+      fechaLimite: manana,
+      horaInicio: '15:00',
+      horaFin: '16:00',
+    });
+    tareasCreadas.push(tareaHora.id);
+    const aLasTres = await consultar(OTRO, '¿Qué tengo mañana a las 3 de la tarde?');
+    marcar(
+      tareaHora.horaInicio === '15:00' && tareaHora.horaFin === '16:00' && /reuni[oó]n/i.test(aLasTres.respuesta) && !/taller/i.test(aLasTres.respuesta),
+      'Paso 14: "¿Qué tengo mañana a las 3 de la tarde?" -> la tarea de 15:00 a 16:00',
+      `${aLasTres.respuesta} | fuentes: ${aLasTres.fuentes.map((f) => f.etiqueta).join(', ')}`,
+    );
+
     // Paso 13 (RB-32): con documentos y sin tareas pendientes. Se completan las tareas del usuario temporal
     // y se le indexa el PDF de prueba (un lote de embeddings).
     await completarTarea(OTRO, tareaOtro.id, 10);
     await completarTarea(OTRO, tareaManana.id, 10);
+    await completarTarea(OTRO, tareaHora.id, 10);
     const conDocs = await indexarContenido(OTRO, generarPdf(LINEAS_PDF), { nombreArchivo: NOMBRE_PDF });
     documentosCreados.push(conDocs.documentoId);
     const docsSinTareas = await consultar(OTRO, '¿Tengo alguna tarea?');

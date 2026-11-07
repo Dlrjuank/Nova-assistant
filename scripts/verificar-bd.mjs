@@ -234,6 +234,24 @@ try {
       await esperaFalla('p) nombre con espacios alrededor', '23514', "INSERT INTO categorias (usuario_id, nombre, color) VALUES ($1, ' Otra ', 'azul')", [dueno]);
     }
   }
+  // M14 (ampliación, E06b): horario opcional de las tareas (RB-34).
+  console.log('== 6d. Horario de tareas (M14)');
+  const colsHora = await c.query(
+    "SELECT column_name FROM information_schema.columns WHERE table_name = 'tareas_personales' AND column_name IN ('hora_inicio', 'hora_fin')",
+  );
+  marcar(colsHora.rowCount === 2, `columnas hora_inicio y hora_fin (${colsHora.rowCount} de 2)`);
+  if (colsHora.rowCount === 2) {
+    const insHora = 'INSERT INTO tareas_personales (titulo, fecha_limite, fecha_creacion, hora_inicio, hora_fin) VALUES ($1, $2, $2, $3, $4)';
+    try {
+      await c.query(insHora, ['Verificación horario', hoy, '08:00', '09:30']);
+      await c.query(insHora, ['Verificación solo inicio', hoy, '08:00', null]);
+      marcar(true, 'q) horario completo y solo inicio se aceptan');
+    } catch (e) {
+      marcar(false, `q) horario válido: ${e.message}`);
+    }
+    await esperaFalla('r) hora de fin sin inicio', '23514', insHora, ['Verificación', hoy, null, '09:30']);
+    await esperaFalla('s) hora de fin antes del inicio', '23514', insHora, ['Verificación', hoy, '10:00', '09:30']);
+  }
   await c.query('ROLLBACK');
 
   console.log(`== 7. Total de fallas: ${fallas}`);

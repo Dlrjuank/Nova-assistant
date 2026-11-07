@@ -2,6 +2,7 @@ import { LIMITE_LISTADO, TAREAS_CONTEXTO_MAX } from '@/lib/config/nova';
 import { conTransaccion, consultar } from '@/lib/db/conexion';
 import { hoyBogota } from '@/lib/reglas/fechas';
 import { formatearFecha, formatearPrioridad } from '@/lib/formato';
+import { formatearHorario, validarHorario } from '@/lib/reglas/horario';
 import type { TareaContexto } from '@/lib/llm/prompts';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
 import { validarTarea } from '@/lib/reglas/tarea';
@@ -12,7 +13,9 @@ const COLUMNAS = `id, titulo, categoria, prioridad, estado,
   minutos_invertidos AS "minutosInvertidos",
   fecha_limite AS "fechaLimite",
   fecha_creacion AS "fechaCreacion",
-  fecha_cierre AS "fechaCierre"`;
+  fecha_cierre AS "fechaCierre",
+  to_char(hora_inicio, 'HH24:MI') AS "horaInicio",
+  to_char(hora_fin, 'HH24:MI') AS "horaFin"`;
 
 // RB-01 (ampliación): toda función recibe el id del usuario de la sesión y solo ve sus tareas.
 // Una tarea de otro usuario se comporta como inexistente.
@@ -20,13 +23,15 @@ const COLUMNAS = `id, titulo, categoria, prioridad, estado,
 /** RN-04, RN-06, RN-07 y RN-08. RB-33: la categoría se resuelve (o se crea) en la misma transacción. */
 export async function crearTarea(usuarioId: string, d: DatosTarea): Promise<Tarea> {
   const { titulo, prioridad } = validarTarea(d);
+  const { horaInicio, horaFin } = validarHorario(d.horaInicio, d.horaFin); // RB-34
   return conTransaccion(async (tx) => {
     const categoria = await resolverCategoria(tx, usuarioId, d.categoria);
     const { rows } = await tx.query<Tarea>(
-      `INSERT INTO tareas_personales (titulo, categoria, prioridad, estado, fecha_limite, fecha_creacion, usuario_id)
-       VALUES ($1, $2, $3, 'Pendiente', $4, $5, $6)
+      `INSERT INTO tareas_personales
+         (titulo, categoria, prioridad, estado, fecha_limite, fecha_creacion, usuario_id, hora_inicio, hora_fin)
+       VALUES ($1, $2, $3, 'Pendiente', $4, $5, $6, $7, $8)
        RETURNING ${COLUMNAS}`,
-      [titulo, categoria, prioridad, d.fechaLimite, hoyBogota(), usuarioId],
+      [titulo, categoria, prioridad, d.fechaLimite, hoyBogota(), usuarioId, horaInicio, horaFin],
     );
     return rows[0] as Tarea;
   });
@@ -70,7 +75,7 @@ export async function listarTareas(
   valores.push(f.limite ?? LIMITE_LISTADO);
   return consultar<Tarea>(
     `SELECT ${COLUMNAS} FROM tareas_personales WHERE ${condiciones.join(' AND ')}
-     ORDER BY fecha_limite, created_at
+     ORDER BY fecha_limite, hora_inicio NULLS LAST, created_at
      LIMIT $${valores.length}`,
     valores,
   );
@@ -85,7 +90,8 @@ export async function tareasPendientesComoTexto(usuarioId: string): Promise<Tare
   return tareas.map((t) => ({
     id: t.id,
     // RB-31: la fecha también como AAAA-MM-DD, para que el modelo la compare con la línea HOY sin ambigüedad.
-    texto: `${t.titulo} (categoría: ${t.categoria}; prioridad: ${formatearPrioridad(t.prioridad)}; fecha límite: ${formatearFecha(t.fechaLimite)}, ${String(t.fechaLimite).slice(0, 10)})`,
+    // RB-34: con su horario, para preguntas como "¿qué tengo a las 3?".
+    texto: `${t.titulo} (categoría: ${t.categoria}; prioridad: ${formatearPrioridad(t.prioridad)}; fecha límite: ${formatearFecha(t.fechaLimite)}, ${String(t.fechaLimite).slice(0, 10)}${t.horaInicio ? `; horario: ${formatearHorario(t)}` : ''})`,
   }));
 }
 

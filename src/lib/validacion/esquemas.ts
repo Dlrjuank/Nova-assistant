@@ -9,6 +9,9 @@ export const esquemaTarea = z.object({
   categoria: z.string().trim().max(80).optional(),
   prioridad: z.number().int().nullish(),
   fechaLimite: z.string(),
+  // RB-34: opcionales; las valida src/lib/reglas/horario.ts para devolver los mensajes exactos.
+  horaInicio: z.string().max(8).nullish(),
+  horaFin: z.string().max(8).nullish(),
 });
 export type DatosTareaEntrada = z.infer<typeof esquemaTarea>;
 

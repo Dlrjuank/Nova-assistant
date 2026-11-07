@@ -1,6 +1,6 @@
 # Prompts de la ampliación · Nova Assistant
 
-Etapas E00 a E21 (más E02b, E02c y E05b, pedidas por el usuario) para ejecutar `doc/PLAN_AMPLIACION.md`, en orden de dependencias. Cada etapa es pequeña, se puede probar sola y termina en un commit en la rama `ampliacion`. Se ejecuta una etapa por vez y se espera la confirmación del usuario antes de la siguiente.
+Etapas E00 a E21 (más E02b, E02c, E05b y E06b, pedidas por el usuario) para ejecutar `doc/PLAN_AMPLIACION.md`, en orden de dependencias. Cada etapa es pequeña, se puede probar sola y termina en un commit en la rama `ampliacion`. Se ejecuta una etapa por vez y se espera la confirmación del usuario antes de la siguiente.
 
 ## Reglas de todas las etapas
 
@@ -209,6 +209,26 @@ VERIFICACIÓN: B-09 a B-12.
 
 ---
 
+## E06b · Horario de las tareas (pedida por el usuario)
+
+**Plan:** 6.10 (M14), RB-34, B-47. **Requisito:** E06.
+
+```text
+OBJETIVO: hora de inicio y de fin opcionales en las tareas, en 24 horas, antes del Calendario.
+
+TAREA 1. Respaldo y migración M14 (hora_inicio, hora_fin con su CHECK); prueba en seco; db:verificar y compatibilidad con master.
+TAREA 2. Reglas puras (validarHorario, formatearHorario, compararPorHorario) con los mensajes exactos de RB-34.
+TAREA 3. Servicio: crear con horario, listar ordenado por hora, texto del Asistente con el horario.
+TAREA 4. Formulario con "Desde" y "Hasta" (selector de hora del navegador); horario en Mi semana (ordenado por hora), Prioridades de hoy y Tareas.
+TAREA 5. Pruebas; probar:rag paso 14 ("¿qué tengo a las 3?") con Gemini real.
+
+VERIFICACIÓN: B-47.
+```
+
+**Commit:** `feat(tareas): horario opcional de las tareas`
+
+---
+
 ## E07 · Calendario
 
 **Plan:** 5.3. **Requisito:** E06.
@@ -239,6 +259,7 @@ TAREA 1. Filtros en el servicio (por URL ?vista=) con pruebas.
 TAREA 2. Agrupación por categoría con punto de color y contador completadas/total dentro de la pestaña.
 TAREA 3. Formulario: selector de categorías existentes y opción de escribir una nueva (se crea con el siguiente color libre).
 TAREA 4. Conservar completar y eliminar con sus mensajes (A-16, CU-07).
+TAREA 5. (Idea del usuario, a decidir aquí o en el diseño final) Marca sutil "Vencida" (rojo suave) en las tareas pendientes con fecha pasada, en Mi semana y en Tareas.
 
 VERIFICACIÓN: B-16 y B-17; A-02 a A-05 siguen pasando.
 ```
@@ -293,7 +314,7 @@ OBJETIVO: el resto de Configuración.
 
 TAREA 1. Migración M7 (preferencias_usuario) y GET/PATCH /api/nova/configuracion.
 TAREA 2. Perfil: nombre (public.users.full_name), correo de solo lectura, cambiar contraseña con la ruta existente /api/auth/password y sus mensajes.
-TAREA 3. Apariencia: claro, oscuro, automático; se guarda en la base y en el navegador (el script del <head> de E02 la usa).
+TAREA 3. Apariencia: claro, oscuro, automático; se guarda en la base y en el navegador (el script del <head> de E02 la usa). Formato de hora: 24 horas (por defecto) o 12 horas (pedido del usuario en E06b); formatearHorario lo respeta en toda la app.
 TAREA 4. Académico: escala 0,0 a 5,0 solo lectura; nota para aprobar; redondeo truncar/redondear (truncar por defecto); cortes por defecto (deben sumar 100 %, RB-07).
 TAREA 5. Asistente: aviso de que las preguntas y los fragmentos se envían a Gemini; "Borrar historial" con confirmación (RB-25) → DELETE /api/nova/conversaciones.
 TAREA 6. Cerrar sesión.
@@ -462,11 +483,11 @@ VERIFICACIÓN: B-40.
 **Plan:** 12. **Requisito:** E20.
 
 ```text
-TAREA 1. Agregar a doc/ACEPTACION.md la tabla B-01 a B-46 (columnas como A-01 a A-15) y la nota de repetir A-01 a A-21 en la vista previa.
+TAREA 1. Agregar a doc/ACEPTACION.md la tabla B-01 a B-47 (columnas como A-01 a A-15) y la nota de repetir A-01 a A-21 en la vista previa.
 TAREA 2. Revisión final: sin botones muertos (recorrido de todas las pantallas), sin colores fuera de los tokens, sin textos en inglés, todas las rutas nuevas con exigirSesion y filtro por usuario, ninguna clave en el repositorio.
 TAREA 3. Actualizar README (funciones, pantallas, scripts nuevos) y crear doc/checkpoints/AMPLIACION_COMPLETADA.md.
 TAREA 4. Preparar (sin aplicar) la migración que quita el disparador de dueño por defecto (plan, 6.1): comprueba que no quedan filas sin usuario_id, borra el disparador y asignar_dueno_por_defecto (y nova_config si nada más la usa) y pasa usuario_id a NOT NULL. Se aplica solo al unir ampliacion con master, después de que master tenga el código nuevo; nunca antes, porque rompería el código de master en producción.
-TAREA 5. Recordarle al usuario ejecutar B-01 a B-46 y A-01 a A-21 en la vista previa, en computador y teléfono. La unión de ampliacion con master solo se hace si el usuario la pide, e incluye revisar y aplicar la migración de la TAREA 4.
+TAREA 5. Recordarle al usuario ejecutar B-01 a B-47 y A-01 a A-21 en la vista previa, en computador y teléfono. La unión de ampliacion con master solo se hace si el usuario la pide, e incluye revisar y aplicar la migración de la TAREA 4.
 ```
 
 **Commit:** `docs: aceptación de la ampliación`

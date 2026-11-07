@@ -1,4 +1,5 @@
 import { semanaDe, sumarDias } from './fechas';
+import { compararPorHorario } from './horario';
 
 /**
  * E06 (PLAN_AMPLIACION 5.1 y 7.1): reglas puras de Inicio. Las fechas son 'YYYY-MM-DD' ya calculadas en
@@ -66,10 +67,17 @@ export function prioridadesDeHoy<T extends TareaSemana>(tareas: readonly T[], ho
     .sort((a, b) => b.prioridad - a.prioridad || a.titulo.localeCompare(b.titulo, 'es', { sensitivity: 'base' }));
 }
 
-/** Agrupa las tareas por día de la semana (por fecha límite), en el orden de entrada. */
-export function tareasPorDia<T extends Pick<TareaSemana, 'fechaLimite'>>(tareas: readonly T[], dias: readonly string[]): Record<string, T[]> {
+/**
+ * Agrupa las tareas por día de la semana (por fecha límite). En cada día, primero las que tienen hora
+ * (por hora de inicio) y después las demás, por prioridad y título (RB-34).
+ */
+export function tareasPorDia<T extends Pick<TareaSemana, 'fechaLimite' | 'prioridad' | 'titulo'> & { horaInicio?: string | null; horaFin?: string | null }>(
+  tareas: readonly T[],
+  dias: readonly string[],
+): Record<string, T[]> {
   const grupos: Record<string, T[]> = Object.fromEntries(dias.map((d) => [d, [] as T[]]));
   for (const t of tareas) grupos[t.fechaLimite.slice(0, 10)]?.push(t);
+  for (const lista of Object.values(grupos)) lista.sort(compararPorHorario);
   return grupos;
 }
 

@@ -200,3 +200,22 @@ describe('RB-33: la categoría de una tarea se resuelve sin duplicar', () => {
     expect(insertar?.[1]?.[1]).toBe('Universidad');
   });
 });
+
+describe('RB-34: crearTarea guarda el horario', () => {
+  it('pasa las horas normalizadas al INSERT', async () => {
+    m.txQuery.mockImplementation(async (sql: string) =>
+      String(sql).startsWith('SELECT nombre FROM categorias') ? { rows: [{ nombre: 'General' }] } : { rows: [{ id: ID }] },
+    );
+    await crearTarea(U, { titulo: 'Clase', fechaLimite: '2099-01-01', horaInicio: '8:00', horaFin: '09:30' });
+    const insertar = m.txQuery.mock.calls.find(([sql]) => String(sql).includes('INSERT INTO tareas_personales'));
+    expect(insertar?.[1]?.slice(-2)).toEqual(['08:00', '09:30']);
+  });
+
+  it('un horario inválido no llega a la base, con el mensaje exacto', async () => {
+    await expect(crearTarea(U, { titulo: 'Clase', fechaLimite: '2099-01-01', horaFin: '09:30' })).rejects.toMatchObject({
+      codigo: 'HORA_FIN_SIN_INICIO',
+      message: 'La hora de fin necesita una hora de inicio.',
+    });
+    expect(m.txQuery).not.toHaveBeenCalled();
+  });
+});
