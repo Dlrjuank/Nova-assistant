@@ -12,6 +12,7 @@ import {
 } from '@/lib/llm/prompts';
 import { mencionaTareas, normalizarConsulta, textoDeBusqueda, validarConsulta } from '@/lib/reglas/consulta';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
+import { lineaHoy } from '@/lib/reglas/fechas';
 import { existenDocumentos } from './documentos';
 import { recuperarFragmentos } from './fragmentos';
 import { tareasPendientesComoTexto } from './tareas';
@@ -63,7 +64,7 @@ export async function consultar(
 
   const respuesta = await llm.responder({
     sistema: SYSTEM_PROMPT,
-    contexto: construirContexto(fragmentos, tareas),
+    contexto: construirContexto(fragmentos, tareas, lineaHoy()), // RB-31
     pregunta: preguntaNormal,
     historial,
   }); // RN-13

@@ -38,4 +38,10 @@ export const NIVELES_PALABRAS_CLAVE_TAREAS = [
   'vence',
   'límite',
   'limite',
+  // RB-31: preguntas por fechas ('hoy' también cubre 'para hoy'; 'vencid' cubre vencida y vencidas)
+  'semana',
+  'mañana',
+  'manana',
+  'hoy',
+  'vencid',
 ]; // RN-12

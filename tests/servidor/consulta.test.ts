@@ -16,7 +16,8 @@ vi.mock('@/lib/llm/gemini', () => ({
 }));
 
 import { armarFuentes, consultar } from '@/lib/datos/consulta';
-import { construirContexto } from '@/lib/llm/prompts';
+import { construirContexto, SYSTEM_PROMPT } from '@/lib/llm/prompts';
+import { hoyBogota } from '@/lib/reglas/fechas';
 
 const U = '33333333-3333-4333-8333-333333333333';
 const F1 = { nombre_archivo: 'a.pdf', numero: 1, contenido: 'uno' };
@@ -192,5 +193,41 @@ describe('RB-30: con documentos, solo tareas, solo documentos o ninguno', () => 
     await expect(consultar(U, 'Mi agenda de hoy')).rejects.toMatchObject({ codigo: 'SIN_DOCUMENTOS' });
     expect(m.generarEmbedding).not.toHaveBeenCalled();
     expect(m.responder).not.toHaveBeenCalled();
+  });
+});
+
+describe('RB-31: la fecha de hoy va en el contexto', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    m.generarEmbedding.mockResolvedValue([0.1]);
+    m.recuperarFragmentos.mockResolvedValue([F1]);
+    m.tareasPendientesComoTexto.mockResolvedValue([T1]);
+    m.responder.mockResolvedValue('Pagar luz [Tarea 1a2b3c4d].');
+  });
+
+  it('construirContexto pone la línea HOY primero', () => {
+    const contexto = construirContexto([F1], [T1], 'HOY: viernes (2026-11-06)');
+    expect(contexto.startsWith('HOY: viernes (2026-11-06)\n\nFRAGMENTOS DE DOCUMENTOS:')).toBe(true);
+  });
+
+  it('con documentos y sin documentos, el modelo recibe la fecha de hoy en Bogotá', async () => {
+    for (const hayDocs of [true, false]) {
+      m.responder.mockClear();
+      m.existenDocumentos.mockResolvedValue(hayDocs);
+      await consultar(U, '¿Qué tengo para hacer esta semana?');
+      const { contexto } = m.responder.mock.calls[0]?.[0];
+      expect(contexto.startsWith('HOY: ')).toBe(true);
+      expect(contexto).toContain(`(${hoyBogota()}), hora de Bogotá`);
+      expect(contexto).toContain('Esta semana: del lunes');
+      expect(contexto).toContain('Pagar luz'); // con documentos entra por la palabra "semana"
+    }
+  });
+
+  it('el System Prompt explica la línea HOY y la respuesta cuando no hay tareas en el periodo', () => {
+    expect(SYSTEM_PROMPT).toContain('La primera línea del contexto (HOY)');
+    expect(SYSTEM_PROMPT).toContain('"No tienes tareas para {periodo}."');
+    expect(SYSTEM_PROMPT).toContain('"No tienes tareas para esta semana."');
+    expect(SYSTEM_PROMPT).toContain('menciona la tarea pendiente más próxima');
+    expect(SYSTEM_PROMPT).toContain('Si el contexto no contiene la respuesta, responde exactamente: "No encontré esto en tus documentos".');
   });
 });

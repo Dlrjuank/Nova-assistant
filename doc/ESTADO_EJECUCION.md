@@ -20,6 +20,7 @@
 | E01 Ampliación: dueño por usuario (M5) | completado | correcto | 247 pasan | 2026-11-06 |
 | E02 Ampliación: diseño base | completado | correcto | 259 pasan | 2026-11-06 |
 | E02b Ampliación: Asistente sin documentos (RB-30) | completado | correcto | 268 pasan | 2026-11-06 |
+| E02c Ampliación: fecha de hoy y preguntas por fechas (RB-31) | completado | correcto | 278 pasan | 2026-11-06 |
 
 ## Bitácora
 
@@ -329,3 +330,12 @@ Total de fallas: 0
 - **Interrupción:** el computador se apagó durante `probar:rag`. Esa ejecución dejó una tarea, un documento de prueba y un usuario temporal; se borraron (solo esas filas, creadas por el script) y `probar:rag` se repitió completo. Después, por pedido del usuario, se revisó el estado: rama `ampliacion` sin commits por subir, los 10 archivos modificados eran de E02b, sin cuentas de prueba ni filas de otras cuentas, `db:verificar` 0 fallas, `npm test` 268/268 y build correcto. El usuario decidió continuar.
 - **`probar:rag`** (0 fallas): el paso 9 se omite si la cuenta tiene documentos o tareas pendientes; paso 11a, un usuario temporal sin documentos y con una tarea pendiente recibe la tarea citada; paso 11b, una pregunta de PDF responde el mensaje exacto.
 - **Al cierre:** `npm test` 268/268, `npm run build` correcto, `eslint` sin errores (sigue el aviso de `eslint.config.mjs`). No se tocaron la tarea "Prueba" ni la fuente "Gripe" del usuario.
+- **Prueba del usuario en la vista previa:** sin documentos, "que me falta por hacer" respondió con su tarea y la citó, y el aviso informativo apareció con el enlace. "que tengo para hacer esta semana" respondió "No encontré esto en tus documentos": el modelo no conocía la fecha de hoy. Se corrigió en E02c.
+
+### E02c Ampliación: fecha de hoy y preguntas por fechas (pedida por el usuario)
+
+- **Causa:** ni el System Prompt ni el contexto traían la fecha de hoy; con documentos, además, "semana", "mañana" y "hoy" no estaban entre las palabras que llevan las tareas al contexto.
+- **RB-31:** `lineaHoy()` en `src/lib/reglas/fechas.ts` (con `semanaDe`, `sumarDias` y `fechaLarga`) arma la primera línea del contexto con hoy, mañana y la semana de lunes a domingo, calculadas con `America/Bogota` explícita (`hoyBogota`), no con la hora del servidor. `construirContexto` recibe la línea; cada tarea lleva también su fecha AAAA-MM-DD. El System Prompt explica la línea HOY y pide "No tienes tareas para {periodo}." con la tarea pendiente más próxima cuando no hay tareas en el periodo. Palabras nuevas en RN-12: semana, mañana, manana, hoy, vencid. El usuario eligió que el modelo escriba esa respuesta (no el servidor).
+- **Pruebas:** 10 nuevas (semana y bordes, `sumarDias`, `fechaLarga`, domingo 22:30 en Bogotá con UTC ya en lunes, cambio exacto a la medianoche de Bogotá, línea HOY primero con y sin documentos, AAAA-MM-DD en las tareas, regla en el System Prompt, palabras clave y "primer paso" excluido).
+- **`probar:rag` paso 12 con Gemini real** (0 fallas en total): "¿Qué tengo para hacer esta semana?" con una sola tarea en 2099 respondió "No tienes tareas para esta semana. La tarea pendiente más próxima es: Prueba pagar el recibo de la luz (2099-02-01)" con su cita; "¿Qué tengo para mañana?" respondió solo la tarea de mañana, citada; "¿Qué vence primero?" respondió esa misma tarea. Los pasos 1 a 11 (incluido B-43) siguen pasando.
+- **Al cierre:** `npm test` 278/278, `npm run build` correcto, `eslint` sin errores. No se tocaron la fuente "Gripe" ni las tareas de prueba del usuario.

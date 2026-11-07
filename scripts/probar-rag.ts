@@ -15,7 +15,7 @@ import {
 import { recuperarFragmentos } from '@/lib/datos/fragmentos';
 import { completarTarea, crearTarea, eliminarTarea, hayTareasPendientes, listarTareas } from '@/lib/datos/tareas';
 import { SIN_RESPUESTA } from '@/lib/llm/prompts';
-import { hoyBogota } from '@/lib/reglas/fechas';
+import { hoyBogota, sumarDias } from '@/lib/reglas/fechas';
 import { cargarEnv, opcionesConexion } from './cargar-env.mjs';
 
 cargarEnv();
@@ -259,6 +259,31 @@ async function main(): Promise<void> {
       soloPdf.respuesta === SIN_RESPUESTA && soloPdf.fuentes.length === 0,
       'Paso 11b: sin documentos, una pregunta de PDF -> mensaje exacto',
       `${soloPdf.respuesta} | ${soloPdf.fuentes.length} fuentes`,
+    );
+
+    // Paso 12 (RB-31): preguntas por fechas. La única tarea del usuario temporal vence en 2099.
+    const semana = await consultar(OTRO, '¿Qué tengo para hacer esta semana?');
+    marcar(
+      /no tienes tareas para esta semana/i.test(semana.respuesta) && /luz/i.test(semana.respuesta),
+      'Paso 12a: sin tareas esta semana -> "No tienes tareas para esta semana" y la más próxima',
+      `${semana.respuesta} | fuentes: ${semana.fuentes.map((f) => f.etiqueta).join(', ')}`,
+    );
+    const manana = sumarDias(hoyBogota(), 1);
+    const tareaManana = await crearTarea(OTRO, { titulo: 'Prueba llevar el carro al taller', fechaLimite: manana });
+    tareasCreadas.push(tareaManana.id);
+    const paraManana = await consultar(OTRO, '¿Qué tengo para mañana?');
+    marcar(
+      /taller/i.test(paraManana.respuesta) &&
+        !/luz/i.test(paraManana.respuesta) &&
+        paraManana.fuentes.some((f) => f.etiqueta === `Tarea ${tareaManana.id.slice(0, 8)}`),
+      `Paso 12b: "¿Qué tengo para mañana?" (${manana}) -> la tarea de mañana, citada`,
+      `${paraManana.respuesta} | fuentes: ${paraManana.fuentes.map((f) => f.etiqueta).join(', ')}`,
+    );
+    const primero = await consultar(OTRO, '¿Qué vence primero?');
+    marcar(
+      /taller/i.test(primero.respuesta),
+      'Paso 12c: "¿Qué vence primero?" -> la de fecha límite más próxima',
+      `${primero.respuesta} | fuentes: ${primero.fuentes.map((f) => f.etiqueta).join(', ')}`,
     );
 
     const ajenas = [

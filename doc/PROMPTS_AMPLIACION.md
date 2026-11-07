@@ -1,6 +1,6 @@
 # Prompts de la ampliación · Nova Assistant
 
-Etapas E00 a E21 (más E02b, pedida por el usuario) para ejecutar `doc/PLAN_AMPLIACION.md`, en orden de dependencias. Cada etapa es pequeña, se puede probar sola y termina en un commit en la rama `ampliacion`. Se ejecuta una etapa por vez y se espera la confirmación del usuario antes de la siguiente.
+Etapas E00 a E21 (más E02b y E02c, pedidas por el usuario) para ejecutar `doc/PLAN_AMPLIACION.md`, en orden de dependencias. Cada etapa es pequeña, se puede probar sola y termina en un commit en la rama `ampliacion`. Se ejecuta una etapa por vez y se espera la confirmación del usuario antes de la siguiente.
 
 ## Reglas de todas las etapas
 
@@ -94,6 +94,24 @@ VERIFICACIÓN: B-43 y A-13 (nuevo resultado) en la vista previa.
 ```
 
 **Commit:** `feat(asistente): responder con tareas aunque no haya documentos`
+
+---
+
+## E02c · Fecha de hoy y preguntas por fechas (pedida por el usuario)
+
+**Plan:** RB-31, B-44. **Requisito:** E02b.
+
+```text
+OBJETIVO: que el Asistente sepa qué día es en Bogotá y responda "esta semana", "mañana" o "qué vence primero" con las tareas.
+
+TAREA 1. lineaHoy en src/lib/reglas/fechas.ts (hoy, mañana y semana lunes-domingo con America/Bogota explícita) y primera línea del contexto, con y sin documentos.
+TAREA 2. Cada tarea del contexto con su fecha límite AAAA-MM-DD; regla de fechas en el System Prompt ("No tienes tareas para {periodo}." y la más próxima); palabras semana, mañana, hoy y vencid en RN-12.
+TAREA 3. Pruebas: relojes fijos, incluido el caso de noche en Bogotá con UTC en el día siguiente; contexto; System Prompt; palabras clave. probar:rag paso 12 con Gemini real.
+
+VERIFICACIÓN: B-44; A-01 a A-21 y B-43 siguen pasando.
+```
+
+**Commit:** `feat(asistente): fecha de hoy y preguntas por fechas en el contexto`
 
 ---
 
@@ -424,11 +442,11 @@ VERIFICACIÓN: B-40.
 **Plan:** 12. **Requisito:** E20.
 
 ```text
-TAREA 1. Agregar a doc/ACEPTACION.md la tabla B-01 a B-43 (columnas como A-01 a A-15) y la nota de repetir A-01 a A-21 en la vista previa.
+TAREA 1. Agregar a doc/ACEPTACION.md la tabla B-01 a B-44 (columnas como A-01 a A-15) y la nota de repetir A-01 a A-21 en la vista previa.
 TAREA 2. Revisión final: sin botones muertos (recorrido de todas las pantallas), sin colores fuera de los tokens, sin textos en inglés, todas las rutas nuevas con exigirSesion y filtro por usuario, ninguna clave en el repositorio.
 TAREA 3. Actualizar README (funciones, pantallas, scripts nuevos) y crear doc/checkpoints/AMPLIACION_COMPLETADA.md.
 TAREA 4. Preparar (sin aplicar) la migración que quita el disparador de dueño por defecto (plan, 6.1): comprueba que no quedan filas sin usuario_id, borra el disparador y asignar_dueno_por_defecto (y nova_config si nada más la usa) y pasa usuario_id a NOT NULL. Se aplica solo al unir ampliacion con master, después de que master tenga el código nuevo; nunca antes, porque rompería el código de master en producción.
-TAREA 5. Recordarle al usuario ejecutar B-01 a B-43 y A-01 a A-21 en la vista previa, en computador y teléfono. La unión de ampliacion con master solo se hace si el usuario la pide, e incluye revisar y aplicar la migración de la TAREA 4.
+TAREA 5. Recordarle al usuario ejecutar B-01 a B-44 y A-01 a A-21 en la vista previa, en computador y teléfono. La unión de ampliacion con master solo se hace si el usuario la pide, e incluye revisar y aplicar la migración de la TAREA 4.
 ```
 
 **Commit:** `docs: aceptación de la ampliación`

@@ -29,3 +29,37 @@ export function aplicarMascaraFecha(texto: string): string {
 export function esFechaPasada(fecha: string, hoy: string): boolean {
   return esFechaISOValida(fecha) && fecha < hoy;
 }
+
+/** Suma (o resta) días a una fecha 'YYYY-MM-DD', con aritmética de calendario (sin horas ni zonas). */
+export function sumarDias(fecha: string, dias: number): string {
+  const [anio, mes, dia] = fecha.split('-').map(Number) as [number, number, number];
+  return new Date(Date.UTC(anio, mes - 1, dia + dias)).toISOString().slice(0, 10);
+}
+
+/** PLAN_AMPLIACION 7.1: la semana de una fecha, de lunes a domingo. */
+export function semanaDe(fecha: string): { lunes: string; domingo: string } {
+  const [anio, mes, dia] = fecha.split('-').map(Number) as [number, number, number];
+  const diaSemana = new Date(Date.UTC(anio, mes - 1, dia)).getUTCDay(); // 0 = domingo
+  const lunes = sumarDias(fecha, -((diaSemana + 6) % 7));
+  return { lunes, domingo: sumarDias(lunes, 6) };
+}
+
+/** "viernes, 6 de noviembre de 2026" a partir de 'YYYY-MM-DD' (la fecha ya está en Bogotá). */
+export function fechaLarga(fecha: string): string {
+  const [anio, mes, dia] = fecha.split('-').map(Number) as [number, number, number];
+  return new Intl.DateTimeFormat('es-CO', { dateStyle: 'full', timeZone: 'UTC' }).format(new Date(Date.UTC(anio, mes - 1, dia)));
+}
+
+/**
+ * RB-31: primera línea del contexto del Asistente. Hoy, mañana y la semana se calculan en America/Bogota,
+ * nunca con la hora del servidor (Vercel corre en UTC: a las 19:00 de Bogotá, UTC ya es el día siguiente).
+ */
+export function lineaHoy(reloj: Date = new Date()): string {
+  const hoy = hoyBogota(reloj);
+  const { lunes, domingo } = semanaDe(hoy);
+  return (
+    `HOY: ${fechaLarga(hoy)} (${hoy}), hora de Bogotá. ` +
+    `Mañana: ${sumarDias(hoy, 1)}. ` +
+    `Esta semana: del ${fechaLarga(lunes)} (${lunes}) al ${fechaLarga(domingo)} (${domingo}).`
+  );
+}

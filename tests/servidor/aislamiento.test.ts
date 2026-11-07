@@ -101,6 +101,8 @@ describe('aislamiento por usuario (RB-01)', () => {
     expect(sql).toMatch(/ORDER BY fecha_limite/);
     expect(valores).toEqual([A, 'Pendiente', 50]);
     expect(tareas).toHaveLength(50);
+    expect(tareas[0]?.texto).toContain('fecha límite: ');
+    expect(tareas[0]?.texto).toContain(', 2099-01-01)'); // RB-31: también AAAA-MM-DD
   });
 
   it('hayTareasPendientes solo mira las pendientes del usuario', async () => {

@@ -51,3 +51,14 @@ describe('RB-30: aviso de la pantalla del Asistente', () => {
     expect(avisoAsistente(false, false)).toBe('sin-fuentes');
   });
 });
+
+describe('RB-31: palabras de fechas llevan las tareas al contexto', () => {
+  it('semana, mañana, hoy y vencidas cuentan como preguntas de tareas', () => {
+    for (const q of ['¿Qué tengo para hacer esta semana?', '¿Qué tengo para mañana?', 'que hay para manana', '¿Qué hay para hoy?', '¿Tengo algo vencido o vencidas?', '¿Qué vence primero?']) {
+      expect(mencionaTareas(q)).toBe(true);
+    }
+  });
+  it('"¿cuál es el primer paso?" no es una pregunta de tareas', () => {
+    expect(mencionaTareas('¿Cuál es el primer paso del manual?')).toBe(false);
+  });
+});
