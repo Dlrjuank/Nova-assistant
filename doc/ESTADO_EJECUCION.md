@@ -508,4 +508,18 @@ Total de fallas: 0
   - Al elegir un día, su lista queda a la vista.
   - Claro y oscuro, a 1280 y 390 px, sin desborde ni errores; con "reducir movimiento", sin transiciones.
 - **Al cierre:** `npm test` 418/418, `npm run build` correcto, `eslint` sin errores.
+- **Prueba del usuario (teléfono y PC):** funcionan el mes, los colores y la leyenda, el orden de la lista del día, "Agregar" con la fecha, "Vencida", completar con minutos, las flechas con "Hoy", claro y oscuro. Aprobó la lista debajo del mes en el PC.
 
+#### Ajuste de E07: bajar hasta la lista del día (2026-11-07, pedido del usuario)
+
+- **Problema:** en el PC, al tocar un día la página bajaba poco; se veía el encabezado del día y la primera tarea cortada.
+- **Causa:** la lista se medía antes de dibujar la del día nuevo, así que se usaba el alto de la lista anterior (por ejemplo, la de un día vacío).
+- **Corrección:** la página baja en un efecto, después de dibujar la lista nueva.
+  - En el computador (≥ 1024 px) deja la lista arriba de la pantalla (`block: 'start'`, `scroll-mt-4`) o lo más arriba que permita el final de la página.
+  - En el teléfono baja solo lo necesario (`nearest`), para no esconder el mes en cada toque.
+  - Si la lista ya se ve entera, no se mueve. Con "reducir movimiento", sin animación.
+- **Prueba nueva** en `tests/interfaz/calendario.test.tsx`: la medición se hace con la lista nueva (3 tareas), `start`, sin animación, y no se mueve si ya se ve entera.
+- **Navegador real** (Edge, 1330 × 1093 como la captura del usuario, primero un día vacío y luego hoy con 4 tareas; 0 fallas en 16):
+  - La lista, antes cortada en 889 px, sube a 643–1053 y se ve entera, con y sin "reducir movimiento"; no puede subir más porque ahí termina la página.
+  - En una ventana donde ya se ve, la página no se mueve.
+- **Al cierre:** `npm test` 419/419, `npm run build` correcto, `eslint` sin errores.

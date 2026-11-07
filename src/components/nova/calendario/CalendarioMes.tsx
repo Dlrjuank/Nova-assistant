@@ -2,7 +2,7 @@
 
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import Link from 'next/link';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { claseBoton, CLASE_FOCO } from '@/components/ui/Boton';
 import { PuntoCategoria } from '@/components/nova/InsigniaCategoria';
 import { CasillaTarea, type TareaCasilla } from '@/components/nova/inicio/CasillaTarea';
@@ -47,17 +47,26 @@ export function CalendarioMes({
   const tareasDia = porDia[elegido] ?? [];
   const esMesActual = mesDe(hoy) === mes;
   const panelDia = useRef<HTMLElement>(null);
+  // Cada toque en un día pide llevar su lista a la vista. Se hace en un efecto, ya con la lista nueva dibujada:
+  // medirla antes daba el alto de la lista anterior y la página se quedaba corta.
+  const [pedido, setPedido] = useState(0);
 
-  // Si la lista del día quedó fuera de la pantalla (debajo del mes), la trae a la vista; sin animación con "reducir movimiento".
   const elegir = (fecha: string) => {
     setElegido(fecha);
-    const panel = panelDia.current;
-    if (!panel || typeof panel.scrollIntoView !== 'function') return;
-    const { top, bottom } = panel.getBoundingClientRect();
-    if (top >= 0 && bottom <= window.innerHeight) return;
-    const reducir = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    panel.scrollIntoView({ behavior: reducir ? 'auto' : 'smooth', block: 'nearest' });
+    setPedido((n) => n + 1);
   };
+
+  useEffect(() => {
+    const panel = panelDia.current;
+    if (pedido === 0 || !panel || typeof panel.scrollIntoView !== 'function') return;
+    const { top, bottom } = panel.getBoundingClientRect();
+    if (top >= 0 && bottom <= window.innerHeight) return; // ya se ve entera: no se mueve
+    const reducir = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+    const computador = window.matchMedia?.('(min-width: 1024px)').matches ?? false;
+    // Computador: la lista queda arriba de la pantalla (se ve completa o lo más posible).
+    // Teléfono: baja solo lo necesario, para no esconder el mes en cada toque.
+    panel.scrollIntoView({ behavior: reducir ? 'auto' : 'smooth', block: computador ? 'start' : 'nearest' });
+  }, [pedido]);
 
   // Leyenda: solo las categorías que tienen tareas en este mes.
   const usadas = new Map<string, string>();
@@ -184,7 +193,7 @@ export function CalendarioMes({
         )}
       </section>
 
-      <section ref={panelDia} aria-labelledby="titulo-dia" className="flex flex-col gap-3 rounded-2xl border border-borde bg-superficie p-4 shadow-suave sm:p-5">
+      <section ref={panelDia} aria-labelledby="titulo-dia" className="scroll-mt-4 flex flex-col gap-3 rounded-2xl border border-borde bg-superficie p-4 shadow-suave sm:p-5">
         <div className="flex items-center justify-between gap-3">
           <h2 id="titulo-dia" className="text-base font-semibold text-texto first-letter:uppercase">
             {nombreDia(elegido)}

@@ -180,7 +180,7 @@ Desde E02b (RB-30): sin documentos del usuario pero con al menos una tarea pendi
   - El botón dice "Agregar".
   - A 390 px el mes se lee sin letra diminuta: mínimo 12 px y celdas de 44 × 56 px.
   - Claro y oscuro; con "reducir movimiento", sin transiciones.
-- **Ubicación de la lista del día:** debajo del mes hasta 1536 px y al lado desde 1536 px. Al lado, a 1280 px, las celdas quedaban de ~75 px y los títulos no se leían. Si la lista queda fuera de la pantalla al elegir un día, la página baja hasta ella (sin animación con "reducir movimiento").
+- **Ubicación de la lista del día:** debajo del mes hasta 1536 px y al lado desde 1536 px. Al lado, a 1280 px, las celdas quedaban de ~75 px y los títulos no se leían. Al elegir un día, si su lista no se ve entera, la página baja ya con la lista nueva dibujada (sin animación con "reducir movimiento"). En el computador la deja arriba de la pantalla, o lo más arriba que permita el final de la página; en el teléfono baja solo lo necesario, para no esconder el mes en cada toque. Si la lista ya se ve entera, no se mueve (ajuste pedido por el usuario).
 - **El mes va en la URL** (`?mes=YYYY-MM`; si es inválido, se usa el mes actual).
   - En el mes actual, "Hoy" elige el día de hoy sin recargar.
   - En otro mes, "Hoy" vuelve al mes actual.

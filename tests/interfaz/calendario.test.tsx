@@ -70,6 +70,36 @@ describe('CalendarioMes', () => {
     expect(within(lista).getByRole('checkbox', { name: 'Completar «Tarea v»' }).closest('li')?.textContent).toContain('Vencida');
   });
 
+  it('al elegir un día, lleva su lista arriba de la pantalla ya dibujada; si se ve entera no la mueve', () => {
+    const pedidos: Array<{ block?: string; behavior?: string; tareas: number }> = [];
+    let rect = { top: 900, bottom: 1400 }; // la lista empieza debajo del borde inferior
+    const proto = HTMLElement.prototype as unknown as Record<string, unknown>;
+    const scrollOriginal = proto.scrollIntoView;
+    const rectOriginal = proto.getBoundingClientRect;
+    proto.scrollIntoView = function (this: HTMLElement, o: ScrollIntoViewOptions) {
+      pedidos.push({ block: o.block, behavior: o.behavior, tareas: this.querySelectorAll('li').length });
+    };
+    proto.getBoundingClientRect = function (this: HTMLElement) {
+      return this.getAttribute('aria-labelledby') === 'titulo-dia' ? rect : { top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0 };
+    };
+    const matchOriginal = window.matchMedia;
+    window.matchMedia = ((q: string) => ({ matches: q.includes('min-width') || q.includes('reduce') })) as unknown as typeof window.matchMedia;
+    try {
+      render(<CalendarioMes {...props({ '2026-11-10': [t('1', '2026-11-10'), t('2', '2026-11-10'), t('3', '2026-11-10')] })} />);
+      expect(pedidos).toHaveLength(0); // al abrir la página no se mueve
+      fireEvent.click(diaLabel(/^martes 10 de nov\./));
+      // Se mide con la lista nueva (3 tareas), arriba de la pantalla y sin animación con "reducir movimiento".
+      expect(pedidos).toEqual([{ block: 'start', behavior: 'auto', tareas: 3 }]);
+      rect = { top: 100, bottom: 600 };
+      fireEvent.click(diaLabel(/^jueves 12 de nov\./));
+      expect(pedidos).toHaveLength(1); // ya se veía entera
+    } finally {
+      proto.scrollIntoView = scrollOriginal;
+      proto.getBoundingClientRect = rectOriginal;
+      window.matchMedia = matchOriginal;
+    }
+  });
+
   it('día sin tareas y leyenda con las categorías del mes', () => {
     render(<CalendarioMes {...props({ '2026-11-12': [t('a', '2026-11-12')] })} />);
     expect(screen.getByText('Sin tareas este día.')).toBeTruthy();
