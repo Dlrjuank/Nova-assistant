@@ -142,9 +142,9 @@ describe('indexarDocumento', () => {
     expect(sentencias().some((s) => s.includes('por_indexar = NULL, progreso = NULL'))).toBe(true);
   });
 
-  it('RB-38: sin presupuesto, guarda un lote y deja el resto para después', async () => {
+  it('RB-38: cada llamada hace una sola parte, para que la pantalla vea el avance', async () => {
     m.extraerPdf.mockResolvedValue(extraido(paginasPara(25)));
-    const r = await indexarContenido('u1', new Uint8Array(1), { nombreArchivo: 'a.pdf' }, { presupuestoMs: -1 });
+    const r = await indexarContenido('u1', new Uint8Array(1), { nombreArchivo: 'a.pdf' });
     expect(r.numFragmentos).toBeGreaterThan(20);
     expect(r.progreso).toBeGreaterThan(0);
     expect(r.progreso).toBeLessThan(100);
@@ -163,8 +163,9 @@ describe('indexarDocumento', () => {
   it('si Gemini se queda sin cuota tras guardar un lote, conserva lo hecho y se puede seguir', async () => {
     m.extraerPdf.mockResolvedValue(extraido(paginasPara(25)));
     m.generarEmbeddings.mockImplementationOnce(async (t: string[]) => t.map(() => [0.1])).mockRejectedValueOnce(new ErrorDeNegocio('ERROR_LLM'));
-    const r = await indexarContenido('u1', new Uint8Array(1), { nombreArchivo: 'a.pdf' });
+    const r = await indexarContenido('u1', new Uint8Array(1), { nombreArchivo: 'a.pdf' }, { presupuestoMs: 60_000 });
     expect(r.progreso).toBeGreaterThan(0);
+    expect(m.generarEmbeddings).toHaveBeenCalledTimes(2);
     expect(m.consultar.mock.calls.some((c) => String(c[0]).startsWith('DELETE FROM documentos'))).toBe(false);
   });
 });

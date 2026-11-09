@@ -10,8 +10,7 @@ import { ErrorDeNegocio } from '@/lib/reglas/errores';
 
 export interface LLMClient {
   generarEmbedding(texto: string): Promise<number[]>;
-  /** `esperaMaximaMs`: cuánto se puede esperar la cuota por minuto, para no pasar del límite de la ruta. */
-  generarEmbeddings(textos: string[], esperaMaximaMs?: number): Promise<number[][]>;
+  generarEmbeddings(textos: string[]): Promise<number[][]>;
   responder(d: {
     sistema: string;
     contexto: string;
@@ -140,8 +139,8 @@ export const llm: LLMClient = {
     return vector as number[];
   },
 
-  generarEmbeddings(textos, esperaMaximaMs = ESPERA_MAXIMA_INDEXAR_MS) {
-    return embeber(textos, 'RETRIEVAL_DOCUMENT', esperaMaximaMs);
+  generarEmbeddings(textos) {
+    return embeber(textos, 'RETRIEVAL_DOCUMENT', ESPERA_MAXIMA_INDEXAR_MS);
   },
 
   async responder({ sistema, contexto, pregunta, historial = [] }) {

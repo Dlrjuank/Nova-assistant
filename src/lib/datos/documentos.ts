@@ -63,7 +63,6 @@ async function descargarPdf(urlBlob: string): Promise<Uint8Array> {
 type Pendiente = FragmentoLibro;
 
 const LEASE_MINUTOS = 6; // más que el maxDuration de la ruta: si la función muere, otra llamada puede retomar
-const MARGEN_ESPERA_MS = 30_000; // la espera de cuota puede pasar del presupuesto, sin llegar al límite de la ruta
 
 /**
  * RB-38: vectoriza y guarda de a un lote hasta terminar o agotar el presupuesto. Cada lote queda guardado
@@ -82,7 +81,7 @@ async function avanzarIndexacion(documentoId: string, iniciales: Pendiente[], pr
       let vectores: number[][];
       try {
         // Los embeddings van antes de la transacción para no retener una conexión durante las llamadas a Gemini.
-        vectores = await llm.generarEmbeddings(lote.map((f) => f.contenido), Math.max(limite + MARGEN_ESPERA_MS - Date.now(), MARGEN_ESPERA_MS));
+        vectores = await llm.generarEmbeddings(lote.map((f) => f.contenido));
       } catch (error) {
         // Sin cuota por ahora, pero ya se avanzó: se conserva y se sigue en la próxima llamada.
         if (guardadosAhora > 0 && error instanceof ErrorDeNegocio && error.codigo === 'ERROR_LLM') break;

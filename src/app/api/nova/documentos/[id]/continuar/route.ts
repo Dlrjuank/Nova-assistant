@@ -4,7 +4,7 @@ import { conManejoDeErrores, responderOk } from '@/lib/http/respuestas';
 import { esquemaIdDocumento } from '@/lib/validacion/esquemas';
 
 export const dynamic = 'force-dynamic';
-// E10b (RB-38): cada llamada indexa la parte que quepa antes de este límite.
+// E10b (RB-38): cada llamada indexa una parte; puede esperar la cuota por minuto de Gemini.
 export const maxDuration = 300;
 
 export const POST = conManejoDeErrores(async (_peticion: Request, { params }: { params: Promise<{ id: string }> }) => {

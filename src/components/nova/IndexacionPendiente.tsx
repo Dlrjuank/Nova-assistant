@@ -8,6 +8,7 @@ import { Tarjeta } from '@/components/ui/Tarjeta';
 import { MENSAJES } from '@/lib/reglas/errores';
 
 const ESPERA_SI_OCUPADO_MS = 5000;
+const SIN_CONEXION = 'Se perdió la conexión con el servidor. Intente de nuevo.';
 
 interface Pendiente {
   id: string;
@@ -16,23 +17,28 @@ interface Pendiente {
 }
 
 /**
- * E10b (RB-38): mientras esta pantalla esté abierta, indexa por partes los libros que falten, de a uno.
- * Si se cierra, sigue al volver: lo que falta está guardado en la base.
+ * E10b (RB-38): indexa por partes los libros que falten, de a uno. Cada llamada hace una parte, así el
+ * porcentaje sube en pantalla. Solo avanza con esta pantalla abierta: nadie más pide las partes siguientes.
+ * Lo que falta queda guardado en la base y se retoma al volver.
  */
 export function IndexacionPendiente({ pendientes }: { pendientes: Pendiente[] }) {
+  const [listo, setListo] = useState('');
   const actual = pendientes[0];
-  if (!actual) return null;
-  return <Avance key={actual.id} documento={actual} enCola={pendientes.length - 1} />;
+  if (actual) return <Avance key={actual.id} documento={actual} enCola={pendientes.length - 1} alTerminar={setListo} />;
+  if (!listo) return null;
+  return <Aviso tipo="exito">«{listo}» quedó indexado. Ya puedes preguntarle al Asistente o ver sus capítulos.</Aviso>;
 }
 
-function Avance({ documento, enCola }: { documento: Pendiente; enCola: number }) {
+function Avance({ documento, enCola, alTerminar }: { documento: Pendiente; enCola: number; alTerminar: (nombre: string) => void }) {
   const router = useRouter();
   const enrutador = useRef(router);
   enrutador.current = router;
+  const terminar = useRef(alTerminar);
+  terminar.current = alTerminar;
   const [avance, setAvance] = useState(documento.progreso);
   const [error, setError] = useState('');
   const [intento, setIntento] = useState(0);
-  const { id } = documento;
+  const { id, nombreArchivo } = documento;
 
   useEffect(() => {
     let vivo = true;
@@ -51,12 +57,17 @@ function Avance({ documento, enCola }: { documento: Pendiente; enCola: number })
             setError(cuerpo?.error?.mensaje ?? MENSAJES.ERROR_LLM);
             return;
           }
-          enrutador.current.refresh();
-          if (cuerpo.datos.progreso === null) return;
+          if (cuerpo.datos.progreso === null) {
+            setAvance(100);
+            terminar.current(nombreArchivo);
+            enrutador.current.refresh();
+            return;
+          }
           setAvance(cuerpo.datos.progreso);
+          enrutador.current.refresh(); // la fila de la lista también muestra el avance
           if (cuerpo.datos.ocupado) await new Promise((r) => setTimeout(r, ESPERA_SI_OCUPADO_MS));
         } catch {
-          if (vivo) setError('No se pudo conectar con el servidor. Intente de nuevo.');
+          if (vivo) setError(SIN_CONEXION);
           return;
         }
       }
@@ -65,18 +76,32 @@ function Avance({ documento, enCola }: { documento: Pendiente; enCola: number })
     return () => {
       vivo = false;
     };
-  }, [id, intento]);
+  }, [id, nombreArchivo, intento]);
+
+  // Al desbloquear el teléfono o volver a la pestaña, si la conexión se había cortado, sigue solo.
+  useEffect(() => {
+    if (!error) return;
+    const alVolver = () => {
+      if (document.visibilityState !== 'visible') return;
+      setError('');
+      setIntento((n) => n + 1);
+    };
+    document.addEventListener('visibilitychange', alVolver);
+    return () => document.removeEventListener('visibilitychange', alVolver);
+  }, [error]);
 
   return (
     <Tarjeta className="flex max-w-xl flex-col gap-3">
       <div className="flex flex-col gap-1.5">
         <label htmlFor="avance-indexacion" className="text-sm font-medium break-all text-texto">
-          Indexando «{documento.nombreArchivo}»… {avance} %
+          Indexando «{nombreArchivo}»… {avance} %
         </label>
         <progress id="avance-indexacion" value={avance} max={100} className="h-2 w-full accent-acento" />
       </div>
+      <p className="text-sm font-medium text-texto">Deja esta pantalla abierta hasta que termine.</p>
       <p className="text-xs text-texto-suave">
-        Un libro largo se indexa por partes y puede tardar varios minutos. Si sales de esta pantalla, sigue cuando vuelvas.
+        Si sales o se bloquea el teléfono, se detiene y sigue cuando vuelvas a Fuentes, sin perder lo avanzado. Entre una parte y otra puede
+        pasar hasta un minuto por el límite gratuito de Gemini.
         {enCola > 0 && ` Después siguen ${enCola === 1 ? '1 documento' : `${enCola} documentos`}.`}
       </p>
       {error && (

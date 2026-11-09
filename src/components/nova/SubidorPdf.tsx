@@ -42,7 +42,7 @@ export function SubidorPdf() {
   const [etapa, setEtapa] = useState<Etapa>('inicial');
   const [progreso, setProgreso] = useState(0);
   const [error, setError] = useState('');
-  const [resultado, setResultado] = useState<{ nombre: string; numFragmentos: number; progreso: number | null } | null>(null);
+  const [resultado, setResultado] = useState<{ nombre: string; numFragmentos: number } | null>(null);
 
   const ocupado = etapa !== 'inicial';
 
@@ -101,7 +101,8 @@ export function SubidorPdf() {
         );
         return;
       }
-      setResultado({ nombre: archivo.name, numFragmentos: cuerpo.datos.numFragmentos, progreso: cuerpo.datos.progreso ?? null });
+      // Si es largo, el avance lo muestra IndexacionPendiente, que aparece con el refresh.
+      if ((cuerpo.datos.progreso ?? null) === null) setResultado({ nombre: archivo.name, numFragmentos: cuerpo.datos.numFragmentos });
       setArchivo(null);
       if (entrada.current) entrada.current.value = '';
       router.refresh();
@@ -156,9 +157,7 @@ export function SubidorPdf() {
       {error && <Aviso tipo="error">{error}</Aviso>}
       {resultado && (
         <Aviso tipo="exito">
-          {resultado.progreso === null
-            ? `Documento indexado: ${resultado.numFragmentos} fragmentos (${resultado.nombre}).`
-            : `El documento es largo: se sigue indexando por partes (${resultado.nombre}).`}
+          Documento indexado: {resultado.numFragmentos} fragmentos ({resultado.nombre}).
         </Aviso>
       )}
 
