@@ -7,6 +7,7 @@ export type CodigoError =
   | 'ARCHIVO_MUY_GRANDE'
   | 'PDF_INVALIDO'
   | 'PDF_SIN_TEXTO'
+  | 'PDF_MUY_LARGO'
   | 'CONSULTA_MUY_CORTA'
   | 'SIN_DOCUMENTOS'
   | 'ERROR_LLM'
@@ -38,6 +39,7 @@ export const MENSAJES: Record<CodigoError, string> = {
   PDF_SIN_TEXTO: 'El documento no contiene texto seleccionable (no se admite OCR)',
   CONSULTA_MUY_CORTA: 'La instrucción es demasiado corta',
   SIN_DOCUMENTOS: 'Aún no hay documentos indexados. Indexe un PDF antes de preguntar.',
+  PDF_MUY_LARGO: 'El PDF tiene demasiadas páginas; el máximo es 800.',
   ERROR_LLM: 'No se pudo obtener respuesta del asistente. Intente de nuevo.',
   TAREA_NO_ENCONTRADA: 'La tarea no existe.',
   TAREA_YA_COMPLETADA: 'La tarea ya está completada.',
@@ -69,6 +71,7 @@ export const ESTADO_HTTP: Record<CodigoError, number> = {
   PDF_SIN_TEXTO: 422,
   CONSULTA_MUY_CORTA: 422,
   SIN_DOCUMENTOS: 409,
+  PDF_MUY_LARGO: 422,
   ERROR_LLM: 502,
   TAREA_NO_ENCONTRADA: 404,
   TAREA_YA_COMPLETADA: 409,

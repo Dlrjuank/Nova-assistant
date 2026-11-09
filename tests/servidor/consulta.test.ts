@@ -46,6 +46,14 @@ describe('armarFuentes', () => {
       { tipo: 'pdf', etiqueta: 'a.pdf · fragmento 2' },
     ]);
   });
+  it('RB-36: con páginas cita la página; la misma página sale una vez y acepta guion en vez de raya', () => {
+    const conPagina = (numero: number, etiqueta_paginas: string) => ({ nombre_archivo: 'l.pdf', numero, contenido: 'x', etiqueta_paginas });
+    expect(construirContexto([conPagina(1, '45')], [], 'HOY', { tareasConsultadas: false, hayDocumentos: true })).toContain('[l.pdf · p. 45]\nx');
+    expect(armarFuentes('Según [l.pdf · p. 45].', [conPagina(1, '45'), conPagina(2, '45'), conPagina(3, '46')], [])).toEqual([{ tipo: 'pdf', etiqueta: 'l.pdf · p. 45' }]);
+    expect(armarFuentes('Según [l.pdf · pp. 45-46].', [conPagina(1, '45–46')], [])).toEqual([{ tipo: 'pdf', etiqueta: 'l.pdf · pp. 45–46' }]);
+    expect(armarFuentes('Según [l.pdf · p. 45].', [conPagina(1, '4'), conPagina(2, '45')], [])).toEqual([{ tipo: 'pdf', etiqueta: 'l.pdf · p. 45' }]);
+  });
+
   it('"fragmento 1" no coincide dentro de "fragmento 12"', () => {
     const f12 = { ...F1, numero: 12 };
     expect(armarFuentes('Según [a.pdf · fragmento 12].', [F1, f12], [])).toEqual([

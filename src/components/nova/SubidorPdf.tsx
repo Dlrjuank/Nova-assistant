@@ -42,7 +42,7 @@ export function SubidorPdf() {
   const [etapa, setEtapa] = useState<Etapa>('inicial');
   const [progreso, setProgreso] = useState(0);
   const [error, setError] = useState('');
-  const [resultado, setResultado] = useState<{ nombre: string; numFragmentos: number } | null>(null);
+  const [resultado, setResultado] = useState<{ nombre: string; numFragmentos: number; progreso: number | null } | null>(null);
 
   const ocupado = etapa !== 'inicial';
 
@@ -91,7 +91,7 @@ export function SubidorPdf() {
       // Si Vercel corta la función por tiempo, la respuesta no es JSON.
       const cuerpo = (await respuesta.json().catch(() => null)) as {
         ok?: boolean;
-        datos?: { numFragmentos: number };
+        datos?: { numFragmentos: number; progreso?: number | null };
         error?: { mensaje?: string };
       } | null;
       if (!respuesta.ok || !cuerpo?.ok || !cuerpo.datos) {
@@ -101,7 +101,7 @@ export function SubidorPdf() {
         );
         return;
       }
-      setResultado({ nombre: archivo.name, numFragmentos: cuerpo.datos.numFragmentos });
+      setResultado({ nombre: archivo.name, numFragmentos: cuerpo.datos.numFragmentos, progreso: cuerpo.datos.progreso ?? null });
       setArchivo(null);
       if (entrada.current) entrada.current.value = '';
       router.refresh();
@@ -149,14 +149,16 @@ export function SubidorPdf() {
       )}
       {etapa === 'indexando' && (
         <p role="status" className="text-sm text-texto-suave">
-          Indexando el documento. Si tiene muchas páginas puede tardar varios minutos; no cierre esta ventana.
+          Indexando el documento. Si tiene muchas páginas, se hará por partes y verás el avance en esta pantalla.
         </p>
       )}
 
       {error && <Aviso tipo="error">{error}</Aviso>}
       {resultado && (
         <Aviso tipo="exito">
-          Documento indexado: {resultado.numFragmentos} fragmentos ({resultado.nombre}).
+          {resultado.progreso === null
+            ? `Documento indexado: ${resultado.numFragmentos} fragmentos (${resultado.nombre}).`
+            : `El documento es largo: se sigue indexando por partes (${resultado.nombre}).`}
         </Aviso>
       )}
 

@@ -20,6 +20,9 @@ export function esConsultaValida(texto: string): boolean {
   return palabras >= CONSULTA_MIN_PALABRAS && caracteres >= CONSULTA_MIN_CARACTERES;
 }
 
+/** Aviso del campo de búsqueda web; el mensaje de RN-02 de la API y del Asistente no cambia. */
+export const AVISO_BUSQUEDA_CORTA = `Escribe al menos ${CONSULTA_MIN_PALABRAS} palabras y ${CONSULTA_MIN_CARACTERES} caracteres. Por ejemplo: qué es la fotosíntesis.`;
+
 export function validarConsulta(texto: string): void {
   if (!esConsultaValida(texto)) throw new ErrorDeNegocio('CONSULTA_MUY_CORTA');
 }

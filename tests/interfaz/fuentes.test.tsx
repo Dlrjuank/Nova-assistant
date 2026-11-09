@@ -65,6 +65,28 @@ describe('Fuentes', () => {
     expect(m.listarDocumentos).not.toHaveBeenCalled();
   });
 
+  it('E10b: capítulos, páginas, documento anterior y avance de un libro a medias', async () => {
+    vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {}))); // la indexación pendiente queda en curso
+    const base = { categoria: 'General', fechaGuardado: '2026-11-09', numCapitulos: 0 };
+    m.listarDocumentos.mockResolvedValue([
+      { ...base, id: 'a', nombreArchivo: 'libro.pdf', numFragmentos: 9, paginas: 312, progreso: null, numCapitulos: 4 },
+      { ...base, id: 'b', nombreArchivo: 'viejo.pdf', numFragmentos: 3, paginas: null, progreso: null },
+      { ...base, id: 'c', nombreArchivo: 'largo.pdf', numFragmentos: 0, paginas: 500, progreso: 40 },
+    ]);
+    await abrir('pdf');
+    const ver = screen.getAllByRole('link', { name: 'Ver capítulos de libro.pdf' });
+    expect(ver[0]?.getAttribute('href')).toBe('/nova/fuentes/a/capitulos');
+    expect(screen.getAllByText('312').length).toBeGreaterThan(0);
+    expect(screen.queryByRole('link', { name: 'Ver capítulos de largo.pdf' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Ver capítulos de viejo.pdf' })).toBeNull();
+    expect(screen.getAllByText('Vuelve a indexar este documento para ver páginas y capítulos.').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Indexando… 40 %').length).toBeGreaterThan(0);
+    expect(screen.getByLabelText('Indexando «largo.pdf»… 40 %')).toBeTruthy();
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(fetch).toHaveBeenCalledWith('/api/nova/documentos/c/continuar', { method: 'POST' });
+    vi.unstubAllGlobals();
+  });
+
   it('un valor desconocido abre "Subir PDF"', async () => {
     await abrir('otra');
     expect(pestanas()[0]?.getAttribute('aria-current')).toBe('page');

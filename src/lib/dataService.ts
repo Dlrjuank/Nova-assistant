@@ -133,6 +133,8 @@ export {
   existenDocumentos,
   indexarDocumento,
   listarDocumentos,
+  capitulosDeDocumento,
+  continuarIndexacion,
 } from '@/lib/datos/documentos';
 export { completarTarea, crearTarea, editarTarea, eliminarTarea, hayTareasPendientes, listarTareas, obtenerTarea } from '@/lib/datos/tareas';
 export { calcularProductividad } from '@/lib/datos/productividad';
@@ -154,4 +156,7 @@ export type {
   ResultadoProductividad,
   ResultadoWeb,
   Tarea,
+  Capitulo,
+  CapitulosDocumento,
+  ResultadoIndexacion,
 } from '@/lib/datos/tipos';

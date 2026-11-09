@@ -618,4 +618,30 @@ Total de fallas: 0
   - El primer intento de indexar falló por un corte de red hacia Gemini desde esta máquina (`other side closed`); al repetir, pasó.
   - La búsqueda real en Wikipedia no se ejecutó: `BuscadorWeb` no cambió.
 - **Al cierre:** `npm test` 456/456, `npm run build` correcto, `eslint` sin errores.
+- **Prueba del usuario (teléfono y PC):** las dos pestañas, indexar sin salir de la pantalla, la respuesta con cita, eliminar, "+" → "Subir documento", las direcciones anteriores y la búsqueda web funcionan. E10 confirmado.
+
+#### Ajuste de E10: mensaje de la búsqueda web (2026-11-09, pedido del usuario)
+
+- Con una sola palabra, el campo ahora dice `Escribe al menos 2 palabras y 8 caracteres. Por ejemplo: qué es la fotosíntesis.`, y muestra un ejemplo de frase completa como ayuda y en el campo.
+- Solo cambia ese campo: el mensaje de RN-02 de la API y del Asistente no cambia, y la búsqueda funciona igual.
+
+### E10b Ampliación: libros, páginas y capítulos
+
+- **Respaldo previo:** `respaldos/2026-11-09_164211` (0 tareas, 0 documentos, 0 fragmentos, 0 fuentes, 14 conversaciones, 78 mensajes).
+- **Migración M15** `supabase/migrations/20261109100000_nova_libros.sql`: columnas de páginas e indexación por partes en `documentos` y `fragmentos_pdf`, tabla `capitulos` con RLS y `buscar_fragmentos_usuario` recreada (devuelve `etiqueta_paginas` y excluye los documentos a medias). Aditiva. Agrega `indexando_hasta`, que no estaba en el plan, para que dos pantallas no indexen lo mismo.
+- **`db:verificar`** 0 fallas, con la sección nueva 6e. **Compatibilidad con `master`** (worktree, conexión directa): `db:verificar` y `probar:rag` con 0 fallas.
+- **Reglas** (`src/lib/reglas/libros.ts`): fragmentos por página con los mismos trozos de RN-10, etiquetas con número impreso, capítulos del índice interno (con la raíz única y la página final) y de encabezados (descarta páginas de índice y cabeceras repetidas), y límite de 800 páginas (RB-38).
+- **Extracción** (`src/lib/pdf/extraer.ts`): texto por página, números impresos e índice interno; un enlace roto del índice no impide indexar.
+- **Indexación por partes** (`src/lib/datos/documentos.ts`):
+  - Cada lote de 20 fragmentos queda guardado antes de seguir; cada llamada se detiene a los 240 s.
+  - Si la cuota se agota después de avanzar, conserva lo hecho. Si falla antes de guardar nada, no queda un documento a medias.
+  - `POST .../continuar` retoma con un bloqueo de 6 minutos. Un documento a medias no entra en las búsquedas.
+  - El PDF se borra de Blob al empezar, como antes: lo pendiente está en la base.
+- **Citas:** `libro.pdf · p. 45` o `pp. 45–46`; la misma página sale una vez; los documentos anteriores siguen con "fragmento N".
+- **`gemini.ts`:** también reintenta ante una conexión cortada (`fetch failed`), que apareció dos veces desde esta máquina. Aplica también al chat.
+- **Interfaz:** `IndexacionPendiente` (avance, sigue solo al volver, de a un libro y con "Reintentar"), columna Páginas, "Ver capítulos" y `/nova/fuentes/[id]/capitulos`.
+- **Pruebas:** `tests/reglas/libros.test.ts`, `tests/servidor/extraerPdf.test.ts` (unpdf real sobre PDF generados), `documentos.test.ts` reescrita para el flujo por partes, y casos nuevos en `consulta`, `gemini`, `fuentes` y `BuscadorWeb`.
+- **`npm run probar:libro`** (nuevo; Gemini y base reales, 40 páginas y 64 fragmentos; 0 fallas): números impresos, índice, primer lote y pausa, a medias fuera de las búsquedas, "ocupado", reanudar hasta terminar sin repetir, páginas y citas, capítulos, encabezados. **`probar:rag`** 0 fallas.
+- **Navegador real** (Edge, usuarios temporales borrados al final; 0 fallas en 21): reanuda solo al abrir Fuentes y al terminar muestra "Ver capítulos"; capítulos con secciones y título largo a 390 px; mensajes sin capítulos y documento anterior; documento ajeno 404 sin datos; aviso de la búsqueda web; acciones en una línea a 1280 px; claro y oscuro a 1280 y 390 px sin desborde ni errores.
+- **Al cierre:** `npm test` 487/487, `npm run build` correcto, `eslint` sin errores.
 

@@ -1,4 +1,5 @@
 import { BuscadorWeb } from '@/components/nova/BuscadorWeb';
+import { IndexacionPendiente } from '@/components/nova/IndexacionPendiente';
 import { SubidorPdf } from '@/components/nova/SubidorPdf';
 import { TablaDocumentos } from '@/components/nova/TablaDocumentos';
 import { EncabezadoPantalla } from '@/components/ui/EncabezadoPantalla';
@@ -37,16 +38,19 @@ async function PestanaPdf() {
   // El layout ya exige sesión con acceso; aquí hace falta el id para ver solo sus documentos (RB-01).
   const { id } = await exigirSesion();
   const documentos = await listarDocumentos(id);
+  const pendientes = documentos.flatMap((d) => (d.progreso == null ? [] : [{ id: d.id, nombreArchivo: d.nombreArchivo, progreso: d.progreso }]));
 
   return (
     <>
       <Tarjeta className="flex max-w-xl flex-col gap-4">
         <div className="flex flex-col gap-1">
           <h2 className="text-base font-semibold text-texto">Indexar PDF</h2>
-          <p className="text-sm text-texto-suave">Solo se admiten PDF con texto seleccionable (no escaneados), de hasta 15 MB.</p>
+          <p className="text-sm text-texto-suave">Solo se admiten PDF con texto seleccionable (no escaneados), de hasta 15 MB y 800 páginas.</p>
         </div>
         <SubidorPdf />
       </Tarjeta>
+
+      <IndexacionPendiente pendientes={pendientes} />
 
       <section aria-labelledby="titulo-documentos" className="flex flex-col gap-3">
         <h2 id="titulo-documentos" className="text-base font-semibold text-texto">

@@ -33,6 +33,32 @@ export interface Documento {
   categoria: string;
   numFragmentos: number;
   fechaGuardado: string;
+  /** E10b: null en documentos indexados antes de tener páginas. */
+  paginas: number | null;
+  /** E10b (RB-38): 0 a 99 mientras se indexa por partes; null = terminado. */
+  progreso: number | null;
+  numCapitulos: number;
+}
+
+export interface Capitulo {
+  orden: number;
+  nivel: number;
+  titulo: string;
+  paginaInicio: number;
+  paginaFin: number;
+  etiquetaPaginas: string;
+}
+
+export interface CapitulosDocumento {
+  documento: Pick<Documento, 'id' | 'nombreArchivo' | 'paginas'>;
+  capitulos: Capitulo[];
+}
+
+export interface ResultadoIndexacion {
+  documentoId: string;
+  numFragmentos: number;
+  /** RB-38: null = terminado; un número = falta por indexar y se sigue por partes. */
+  progreso: number | null;
 }
 
 export interface Fragmento {
@@ -42,6 +68,8 @@ export interface Fragmento {
   contenido: string;
   nombre_archivo: string;
   distancia: number;
+  /** RB-36: "45" o "45–46"; null en documentos indexados antes de E10b. */
+  etiqueta_paginas?: string | null;
 }
 
 export interface Fuente {

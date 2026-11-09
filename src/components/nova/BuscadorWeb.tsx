@@ -7,7 +7,7 @@ import { Campo } from '@/components/ui/Campo';
 import { Tarjeta } from '@/components/ui/Tarjeta';
 import type { ResultadoWeb } from '@/lib/dataService';
 import { CATEGORIA_POR_DEFECTO, MAX_FUENTES_WEB_POR_CATEGORIA, WEB_MAX_CARACTERES } from '@/lib/config/nova';
-import { esConsultaValida, normalizarConsulta } from '@/lib/reglas/consulta';
+import { AVISO_BUSQUEDA_CORTA, esConsultaValida, normalizarConsulta } from '@/lib/reglas/consulta';
 import { MENSAJES } from '@/lib/reglas/errores';
 
 /** CU-06: buscar en Wikipedia, resumir y guardar la fuente (RN-02, RN-05). */
@@ -65,8 +65,9 @@ export function BuscadorWeb() {
             etiqueta="¿Qué quieres buscar?"
             value={consulta}
             onChange={(e) => setConsulta(e.target.value)}
-            error={demasiadoCorta ? MENSAJES.CONSULTA_MUY_CORTA : undefined}
-            placeholder="Por ejemplo: Sierra Nevada de Santa Marta"
+            error={demasiadoCorta ? AVISO_BUSQUEDA_CORTA : undefined}
+            ayuda={demasiadoCorta ? undefined : 'Escribe una frase completa. Por ejemplo: qué es la fotosíntesis.'}
+            placeholder="Ej.: qué es la fotosíntesis"
             maxLength={WEB_MAX_CARACTERES}
             autoComplete="off"
           />

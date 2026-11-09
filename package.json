@@ -19,7 +19,8 @@
     "db:limpiar": "node scripts/limpiar-prueba.mjs",
     "db:respaldar": "node scripts/respaldo.mjs",
     "db:restaurar": "node scripts/restaurar-respaldo.mjs",
-    "probar:rag": "tsx scripts/probar-rag.ts"
+    "probar:rag": "tsx scripts/probar-rag.ts",
+    "probar:libro": "tsx scripts/probar-libro.ts"
   },
   "dependencies": {
     "@google/genai": "^2.32.0",

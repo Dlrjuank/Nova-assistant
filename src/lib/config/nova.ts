@@ -1,5 +1,8 @@
 // Constantes de Nova Assistant (plan sección 10.4)
 export const PDF_MAX_BYTES = 15_728_640; // 15 MB exactos (RN-01)
+export const PDF_MAX_PAGINAS = 800; // RB-38
+export const INDEXACION_LOTE = 20; // fragmentos por llamada a Gemini y por guardado
+export const INDEXACION_PRESUPUESTO_MS = 240_000; // RB-38: cada llamada se detiene a tiempo; maxDuration es 300 s
 export const FRAGMENTO_PALABRAS = 500; // RN-10
 export const FRAGMENTO_SOLAPAMIENTO = 50; // RN-10
 export const CONSULTA_MIN_PALABRAS = 2; // RN-02

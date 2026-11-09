@@ -97,6 +97,13 @@ describe('llm.responder', () => {
     expect(generateContent).toHaveBeenLastCalledWith(expect.objectContaining({ model: MODELO_CHAT_RESPALDO }));
   }, 15_000);
 
+  it('E10b: reintenta ante una conexión cortada', async () => {
+    const { llm } = await import('@/lib/llm/gemini');
+    generateContent.mockRejectedValueOnce(new TypeError('fetch failed')).mockResolvedValueOnce({ text: ' hola ' });
+    await expect(llm.responder(DATOS)).resolves.toBe('hola');
+    expect(generateContent).toHaveBeenCalledTimes(2);
+  });
+
   it('una cuota agotada (429) no reintenta y pasa directo al respaldo', async () => {
     const { llm } = await import('@/lib/llm/gemini');
     generateContent.mockRejectedValueOnce(error(429)).mockResolvedValueOnce({ text: 'respaldo' });

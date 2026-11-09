@@ -10,7 +10,8 @@ import { ErrorDeNegocio } from '@/lib/reglas/errores';
 
 export interface LLMClient {
   generarEmbedding(texto: string): Promise<number[]>;
-  generarEmbeddings(textos: string[]): Promise<number[][]>;
+  /** `esperaMaximaMs`: cuánto se puede esperar la cuota por minuto, para no pasar del límite de la ruta. */
+  generarEmbeddings(textos: string[], esperaMaximaMs?: number): Promise<number[][]>;
   responder(d: {
     sistema: string;
     contexto: string;
@@ -52,10 +53,10 @@ function estadoDe(error: unknown): number | undefined {
   return ((error ?? {}) as { status?: number }).status;
 }
 
-/** Saturación momentánea (503 frecuente): reintentar puede bastar. */
+/** Saturación momentánea (503 frecuente) o conexión cortada: reintentar puede bastar. */
 function esErrorTemporal(error: unknown): boolean {
   const estado = estadoDe(error);
-  return estado === 500 || estado === 503;
+  return estado === 500 || estado === 503 || (error instanceof TypeError && error.message === 'fetch failed');
 }
 
 /** Además de la saturación, una cuota agotada (429): no se reintenta, pero la cuota es por modelo. */
@@ -139,8 +140,8 @@ export const llm: LLMClient = {
     return vector as number[];
   },
 
-  generarEmbeddings(textos) {
-    return embeber(textos, 'RETRIEVAL_DOCUMENT', ESPERA_MAXIMA_INDEXAR_MS);
+  generarEmbeddings(textos, esperaMaximaMs = ESPERA_MAXIMA_INDEXAR_MS) {
+    return embeber(textos, 'RETRIEVAL_DOCUMENT', esperaMaximaMs);
   },
 
   async responder({ sistema, contexto, pregunta, historial = [] }) {

@@ -256,7 +256,7 @@ Bloques: **Perfil** (nombre editable, correo de solo lectura, cambiar contraseñ
 ### 5.9 Libros en PDF (E10b a E10d, pedido del usuario del 2026-11-07)
 
 - **Páginas (E10b):** al indexar, el texto se extrae página por página. Cada fragmento guarda su página o su rango (por ejemplo 45–46) y toda cita lo muestra: `libro.pdf · p. 45` o `libro.pdf · pp. 45–46` (RB-36). Se usa el número impreso en el libro (las etiquetas de página del PDF) cuando existe; si no, el número de página del PDF.
-- **Capítulos (E10b):** se toman del índice interno del PDF. Si no tiene índice, de los encabezados al comienzo de una página ("Capítulo 3", "Unidad 2", "Tema 4", "Chapter 5"). En Fuentes, cada documento con capítulos tiene "Ver capítulos": la lista con su título y sus páginas (RB-37).
+- **Capítulos (E10b):** se toman del índice interno del PDF. Si no tiene índice, de los encabezados al comienzo de una página ("Capítulo 3", "Unidad 2", "Tema 4", "Chapter 5"). En Fuentes, cada documento indexado con páginas tiene "Ver capítulos" (`/nova/fuentes/[id]/capitulos`): la lista con su título y sus páginas, o el mensaje de RB-37 si no hay (RB-37).
 - **Libros largos (E10b):** la indexación se hace por partes y se puede reanudar. El documento se ve "Indexando… 40 %" y, si se cierra la pantalla, sigue al volver. Hasta 15 MB (RN-01 no cambia) y 800 páginas (RB-38).
 - **Preguntar por página o capítulo (E10c):** en el Asistente, "¿Qué dice la página 45?", "Resume el capítulo 3" o "Explícame el capítulo de fotosíntesis". Se responde con el texto de esa página o de ese capítulo, no con una búsqueda, y siempre se cita la página (RB-39, RB-40). Un selector "Buscar en" encima del campo permite elegir un documento o "Todos".
 - **Explicar de otra manera (E10c):** debajo de cada respuesta que cita documentos, las opciones **Más simple**, **Con un ejemplo**, **Paso a paso**, **Resumen corto** y **Con una analogía**. Usan los mismos fragmentos de esa respuesta, sin buscar otra vez, y conservan las citas (RB-41).
@@ -423,7 +423,7 @@ Columnas nuevas en `tareas_personales`: `hora_inicio TIME NULL` y `hora_fin TIME
 
 | Tabla | Columnas | Restricciones |
 |---|---|---|
-| `documentos` (columnas nuevas) | `paginas` SMALLINT NULL, `progreso` SMALLINT NULL (0 a 100 mientras se indexa por partes), `por_indexar` JSONB NULL (las partes que faltan, para reanudar) | `paginas` 1 a 800 |
+| `documentos` (columnas nuevas) | `paginas` SMALLINT NULL, `progreso` SMALLINT NULL (0 a 100 mientras se indexa por partes), `por_indexar` JSONB NULL (las partes que faltan, para reanudar), `indexando_hasta` TIMESTAMPTZ NULL (evita que dos pantallas indexen lo mismo) | `paginas` 1 a 800; `UNIQUE (id, usuario_id)` |
 | `fragmentos_pdf` (columnas nuevas) | `pagina_inicio` SMALLINT NULL, `pagina_fin` SMALLINT NULL, `etiqueta_paginas` TEXT NULL (lo que se muestra: "45" o "45–46", con el número impreso si existe) | `pagina_fin >= pagina_inicio` |
 | `capitulos` | `id`, `documento_id`, `usuario_id`, `orden` SMALLINT, `nivel` SMALLINT (1 capítulo, 2 sección), `titulo` VARCHAR(200), `pagina_inicio`, `pagina_fin`, `etiqueta_paginas` TEXT, `tarea_id` UUID NULL | FK compuesta al dueño, `ON DELETE CASCADE` con el documento; `tarea_id` → `tareas_personales` `ON DELETE SET NULL` (RB-42); `UNIQUE (documento_id, orden)` |
 

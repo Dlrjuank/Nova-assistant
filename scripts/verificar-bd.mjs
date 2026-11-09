@@ -252,6 +252,47 @@ try {
     await esperaFalla('r) hora de fin sin inicio', '23514', insHora, ['Verificación', hoy, null, '09:30']);
     await esperaFalla('s) hora de fin antes del inicio', '23514', insHora, ['Verificación', hoy, '10:00', '09:30']);
   }
+  console.log('== 6e. Libros: páginas y capítulos (M15)');
+  const colsLibro = await c.query(
+    `SELECT table_name, column_name FROM information_schema.columns
+     WHERE (table_name = 'documentos' AND column_name IN ('paginas', 'progreso', 'por_indexar', 'indexando_hasta'))
+        OR (table_name = 'fragmentos_pdf' AND column_name IN ('pagina_inicio', 'pagina_fin', 'etiqueta_paginas'))`,
+  );
+  marcar(colsLibro.rowCount === 7, `columnas de páginas e indexación (${colsLibro.rowCount} de 7)`);
+  const tablaCap = await c.query("SELECT to_regclass('public.capitulos') AS r");
+  const hayCapitulos = tablaCap.rows[0].r !== null;
+  marcar(hayCapitulos, 'tabla capitulos');
+  if (hayCapitulos && colsLibro.rowCount === 7 && dueno && docId) {
+    const rlsCap = await c.query("SELECT relrowsecurity FROM pg_class WHERE relname = 'capitulos'");
+    marcar(rlsCap.rows[0]?.relrowsecurity === true, 'RLS activo en capitulos');
+    const nuevoDoc = async (nombre, extra = '', valores = []) =>
+      (await c.query(`INSERT INTO documentos (nombre_archivo, fecha_guardado, usuario_id${extra ? ', paginas, progreso' : ''}) VALUES ($1, $2, $3${extra}) RETURNING id`, [nombre, hoy, dueno, ...valores])).rows[0].id;
+    const insFrag = 'INSERT INTO fragmentos_pdf (documento_id, numero, contenido, vector, pagina_inicio, pagina_fin, etiqueta_paginas) VALUES ($1, $2, $3, $4::vector, $5, $6, $7)';
+    try {
+      const listo = await nuevoDoc('libro-listo.pdf', ', $4, NULL', [40]);
+      const medias = await nuevoDoc('libro-a-medias.pdf', ', $4, $5', [40, 50]);
+      await c.query(insFrag, [listo, 1, 'listo', vec(5), 45, 46, '45–46']);
+      await c.query(insFrag, [medias, 1, 'a medias', vec(5), 1, 1, '1']);
+      const q = Array.from({ length: DIM }, (_, i) => (i === 5 ? 1 : 0));
+      const halladas = await c.query('SELECT contenido, etiqueta_paginas FROM buscar_fragmentos_usuario($1::vector, 500, $2::uuid)', [`[${q.join(',')}]`, dueno]);
+      const conListo = halladas.rows.find((r) => r.contenido === 'listo');
+      marcar(conListo?.etiqueta_paginas === '45–46', 't) la búsqueda por usuario devuelve la etiqueta de páginas');
+      marcar(!halladas.rows.some((r) => r.contenido === 'a medias'), 'u) un documento a medio indexar no entra en la búsqueda (RB-38)');
+      await c.query("INSERT INTO capitulos (documento_id, usuario_id, orden, titulo, pagina_inicio, pagina_fin, etiqueta_paginas) VALUES ($1, $2, 1, 'Uno', 1, 9, '1–9')", [listo, dueno]);
+      marcar(true, 'v) capítulo válido');
+      const insCap = 'INSERT INTO capitulos (documento_id, usuario_id, orden, titulo, pagina_inicio, pagina_fin, etiqueta_paginas) VALUES ($1, $2, $3, $4, $5, $6, $7)';
+      await esperaFalla('w) capítulo con la página final antes de la inicial', '23514', insCap, [listo, dueno, 2, 'Mal', 9, 3, 'x']);
+      await esperaFalla('x) capítulo de un documento con otro dueño', '23503', insCap, [listo, '00000000-0000-4000-8000-000000000000', 3, 'Ajeno', 1, 2, 'x']);
+      await esperaFalla('y) orden repetido en el mismo documento', '23505', insCap, [listo, dueno, 1, 'Repetido', 1, 2, 'x']);
+      await esperaFalla('z) más de 800 páginas', '23514', 'UPDATE documentos SET paginas = 801 WHERE id = $1', [listo]);
+      await esperaFalla('aa) fragmento con la página final antes de la inicial', '23514', insFrag, [listo, 2, 'mal', vec(6), 9, 3, 'x']);
+      await c.query('DELETE FROM documentos WHERE id = $1', [listo]);
+      const quedan = await c.query('SELECT count(*)::int AS n FROM capitulos WHERE documento_id = $1', [listo]);
+      marcar(quedan.rows[0].n === 0, 'ab) al eliminar el documento se borran sus capítulos');
+    } catch (e) {
+      marcar(false, `t-ab) libros: ${e.message}`);
+    }
+  }
   await c.query('ROLLBACK');
 
   console.log(`== 7. Total de fallas: ${fallas}`);

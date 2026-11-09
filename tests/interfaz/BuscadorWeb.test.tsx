@@ -26,7 +26,8 @@ describe('BuscadorWeb', () => {
     expect(boton().hasAttribute('disabled')).toBe(true);
     escribir('¿Qué quieres buscar?', 'Colombia');
     expect(boton().hasAttribute('disabled')).toBe(true);
-    expect(screen.getByText('La instrucción es demasiado corta')).toBeTruthy();
+    expect(screen.getByText('Escribe al menos 2 palabras y 8 caracteres. Por ejemplo: qué es la fotosíntesis.')).toBeTruthy();
+    expect((screen.getByLabelText('¿Qué quieres buscar?') as HTMLInputElement).placeholder).toBe('Ej.: qué es la fotosíntesis');
     escribir('¿Qué quieres buscar?', 'Sierra Nevada');
     expect(boton().hasAttribute('disabled')).toBe(false);
   });

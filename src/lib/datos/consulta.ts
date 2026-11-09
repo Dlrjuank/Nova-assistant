@@ -28,13 +28,18 @@ export function armarFuentes(
   fragmentos: FragmentoContexto[],
   tareas: TareaContexto[],
 ): Fuente[] {
+  // RB-36: dos fragmentos de la misma página tienen la misma etiqueta; la fuente se muestra una vez.
+  const etiquetas = [...new Set(fragmentos.map(etiquetaFragmento))];
   const entregadas: Fuente[] = [
-    ...fragmentos.map((f): Fuente => ({ tipo: 'pdf', etiqueta: etiquetaFragmento(f) })),
+    ...etiquetas.map((etiqueta): Fuente => ({ tipo: 'pdf', etiqueta })),
     ...tareas.map((t): Fuente => ({ tipo: 'tarea', etiqueta: etiquetaTarea(t.id) })),
   ];
+  // El modelo a veces cambia la raya de "pp. 45–46" por un guion.
+  const sinRaya = (texto: string) => texto.replaceAll('–', '-');
+  const citada = sinRaya(respuesta);
   // Sin el lookahead, "fragmento 1" también coincidiría dentro de "fragmento 12".
   const citadas = entregadas.filter((f) =>
-    new RegExp(`${f.etiqueta.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?!\\d)`).test(respuesta),
+    new RegExp(`${sinRaya(f.etiqueta).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?!\\d)`).test(citada),
   );
   return citadas.length > 0 ? citadas : entregadas;
 }
