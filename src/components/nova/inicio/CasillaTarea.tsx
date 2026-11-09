@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { Dialogo } from '@/components/ui/Dialogo';
+import { EnlaceEditarTarea } from '@/components/nova/EnlaceEditarTarea';
 import { FormularioMinutos } from '@/components/nova/FormularioMinutos';
 import { InsigniaCategoria } from '@/components/nova/InsigniaCategoria';
 import { InsigniaPrioridad } from '@/components/nova/InsigniaPrioridad';
@@ -29,6 +30,7 @@ export function CasillaTarea({
   prefijo,
   compacta = false,
   vencida = false,
+  volver,
 }: {
   tarea: TareaCasilla;
   color: string;
@@ -37,6 +39,8 @@ export function CasillaTarea({
   compacta?: boolean;
   /** E07: pendiente con fecha límite pasada; se marca con una insignia sutil "Vencida". */
   vencida?: boolean;
+  /** E09: pantalla a la que vuelve Editar, cuando la dirección actual no basta (día elegido del Calendario). */
+  volver?: string | undefined;
 }) {
   const [abierto, setAbierto] = useState(false);
   const casilla = useRef<HTMLInputElement>(null);
@@ -67,12 +71,17 @@ export function CasillaTarea({
       {horario && <span className="text-xs font-normal text-texto-suave">{horario}</span>}
     </label>
   );
-  const insignias = (
-    <div className="flex min-w-0 flex-wrap gap-1.5">
+  const piezas = (
+    <>
       <InsigniaCategoria nombre={tarea.categoria} color={color} />
       <InsigniaPrioridad prioridad={tarea.prioridad} />
       {vencida && <Insignia tono="peligro">Vencida</Insignia>}
-    </div>
+    </>
+  );
+
+  // E09: solo las pendientes se editan (RB-29).
+  const editar = !completada && (
+    <EnlaceEditarTarea id={tarea.id} titulo={tarea.titulo} volver={volver} soloIcono className={compacta ? 'ml-auto size-8' : 'size-10'} />
   );
 
   return (
@@ -86,15 +95,20 @@ export function CasillaTarea({
             {entrada}
             {titulo}
           </div>
-          {insignias}
+          {/* El lápiz va en la misma fila que se reparte: la insignia de categoría conserva todo el ancho de la columna. */}
+          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+            {piezas}
+            {editar}
+          </div>
         </>
       ) : (
         <>
           {entrada}
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             {titulo}
-            {insignias}
+            <div className="flex min-w-0 flex-wrap gap-1.5">{piezas}</div>
           </div>
+          {editar}
         </>
       )}
       <Dialogo

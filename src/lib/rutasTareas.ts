@@ -10,3 +10,15 @@ export function hrefTareas(vista: string | undefined, categoria: string | null):
   const consulta = parametros.toString();
   return consulta ? `/nova/tareas?${consulta}` : '/nova/tareas';
 }
+
+/** E09: la pantalla a la que vuelve Editar. Solo rutas internas de Nova, para no redirigir fuera de la app. */
+export function rutaVolverSegura(valor: string | string[] | undefined, porDefecto = '/nova/tareas'): string {
+  if (typeof valor !== 'string' || !/^\/nova(?:[/?]|$)/.test(valor) || valor.includes('\\')) return porDefecto;
+  return valor;
+}
+
+/** E09: enlace a editar una tarea; `volver` es la pantalla de origen. */
+export function hrefEditarTarea(id: string, volver?: string): string {
+  const base = `/nova/tareas/${id}/editar`;
+  return volver ? `${base}?volver=${encodeURIComponent(volver)}` : base;
+}

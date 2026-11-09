@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Boton } from '@/components/ui/Boton';
 import { MENSAJES } from '@/lib/reglas/errores';
+import { EnlaceEditarTarea } from './EnlaceEditarTarea';
 import { FormularioMinutos } from './FormularioMinutos';
 
 type Modo = 'inicial' | 'completar' | 'eliminar';
@@ -14,11 +15,14 @@ export function AccionesTarea({
   titulo,
   completada,
   prefijo,
+  editarSoloIcono = false,
 }: {
   id: string;
   titulo: string;
   completada: boolean;
   prefijo: string;
+  /** E09: en la tabla del computador, "Editar" es un ícono para que las acciones quepan en una línea. */
+  editarSoloIcono?: boolean;
 }) {
   const router = useRouter();
   const [modo, setModo] = useState<Modo>('inicial');
@@ -70,7 +74,7 @@ export function AccionesTarea({
   }
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       {!completada && (
         <Boton
           variante="secundario"
@@ -81,6 +85,7 @@ export function AccionesTarea({
           Completar
         </Boton>
       )}
+      {!completada && <EnlaceEditarTarea id={id} titulo={titulo} soloIcono={editarSoloIcono} className={editarSoloIcono ? 'size-9' : 'min-h-9 py-1.5'} />}
       <Boton
         variante="fantasma"
         aria-label={`Eliminar tarea: ${titulo}`}

@@ -37,6 +37,38 @@ export async function crearTarea(usuarioId: string, d: DatosTarea): Promise<Tare
   });
 }
 
+/** E09: una tarea del usuario, o null si no existe o es de otro. */
+export async function obtenerTarea(usuarioId: string, id: string): Promise<Tarea | null> {
+  const [tarea] = await consultar<Tarea>(`SELECT ${COLUMNAS} FROM tareas_personales WHERE id = $1 AND usuario_id = $2`, [id, usuarioId]);
+  return tarea ?? null;
+}
+
+/**
+ * E09 (RB-29): edita una tarea pendiente con las mismas reglas que crear; no toca estado, minutos ni cierre.
+ * La fila se bloquea antes de resolver la categoría: una tarea completada o ajena no deja una categoría nueva.
+ */
+export async function editarTarea(usuarioId: string, id: string, d: DatosTarea): Promise<Tarea> {
+  const { titulo, prioridad } = validarTarea(d);
+  const { horaInicio, horaFin } = validarHorario(d.horaInicio, d.horaFin); // RB-34
+  return conTransaccion(async (tx) => {
+    const { rows: actual } = await tx.query<{ estado: EstadoTarea }>(
+      'SELECT estado FROM tareas_personales WHERE id = $1 AND usuario_id = $2 FOR UPDATE',
+      [id, usuarioId],
+    );
+    if (!actual[0]) throw new ErrorDeNegocio('TAREA_NO_ENCONTRADA');
+    if (actual[0].estado === 'Completada') throw new ErrorDeNegocio('TAREA_YA_COMPLETADA');
+    const categoria = await resolverCategoria(tx, usuarioId, d.categoria);
+    const { rows } = await tx.query<Tarea>(
+      `UPDATE tareas_personales
+       SET titulo = $3, categoria = $4, prioridad = $5, fecha_limite = $6, hora_inicio = $7, hora_fin = $8
+       WHERE id = $1 AND usuario_id = $2
+       RETURNING ${COLUMNAS}`,
+      [id, usuarioId, titulo, categoria, prioridad, d.fechaLimite, horaInicio, horaFin],
+    );
+    return rows[0] as Tarea;
+  });
+}
+
 export async function listarTareas(
   usuarioId: string,
   f: {

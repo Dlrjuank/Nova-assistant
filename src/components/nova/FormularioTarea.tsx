@@ -64,19 +64,35 @@ function validar(v: Valores): Partial<Record<Campos, string>> {
 /**
  * `fechaInicial`: la que trae `?fecha=` desde Inicio o el Calendario (ya validada por la página).
  * `categorias`: las del usuario, para la lista del campo de categoría (E08).
+ * `tarea`: modo edición (E09), con el formulario lleno; `volver` es la pantalla a la que regresa.
  */
 export function FormularioTarea({
   fechaInicial = '',
   categorias = [],
-}: { fechaInicial?: string; categorias?: ReadonlyArray<{ nombre: string; color: string }> } = {}) {
+  tarea,
+  volver = '/nova/tareas',
+}: {
+  fechaInicial?: string;
+  categorias?: ReadonlyArray<{ nombre: string; color: string }>;
+  tarea?: {
+    id: string;
+    titulo: string;
+    categoria: string;
+    prioridad: number;
+    fechaLimite: string;
+    horaInicio?: string | null;
+    horaFin?: string | null;
+  };
+  volver?: string;
+} = {}) {
   const router = useRouter();
   const [valores, setValores] = useState<Valores>({
-    titulo: '',
-    categoria: CATEGORIA_POR_DEFECTO,
-    prioridad: String(PRIORIDAD_POR_DEFECTO),
-    fechaLimite: fechaInicial,
-    horaInicio: '',
-    horaFin: '',
+    titulo: tarea?.titulo ?? '',
+    categoria: tarea?.categoria ?? CATEGORIA_POR_DEFECTO,
+    prioridad: String(tarea?.prioridad ?? PRIORIDAD_POR_DEFECTO),
+    fechaLimite: tarea?.fechaLimite ?? fechaInicial,
+    horaInicio: tarea?.horaInicio ?? '',
+    horaFin: tarea?.horaFin ?? '',
   });
   const [tocados, setTocados] = useState<Partial<Record<Campos, boolean>>>({});
   const [enviando, setEnviando] = useState(false);
@@ -97,8 +113,8 @@ export function FormularioTarea({
 
     setEnviando(true);
     try {
-      const respuesta = await fetch('/api/nova/tareas', {
-        method: 'POST',
+      const respuesta = await fetch(tarea ? `/api/nova/tareas/${tarea.id}` : '/api/nova/tareas', {
+        method: tarea ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           titulo: normalizarTitulo(valores.titulo),
@@ -114,7 +130,7 @@ export function FormularioTarea({
         setErrorServidor(cuerpo.error?.mensaje ?? MENSAJES.ERROR_INTERNO);
         return;
       }
-      router.push('/nova/tareas');
+      router.push(volver);
       router.refresh();
     } catch {
       setErrorServidor('No se pudo conectar con el servidor. Intente de nuevo.');
@@ -205,9 +221,9 @@ export function FormularioTarea({
 
       <div className="flex flex-wrap gap-3">
         <Boton type="submit" cargando={enviando}>
-          Guardar tarea
+          {tarea ? 'Guardar cambios' : 'Guardar tarea'}
         </Boton>
-        <Boton variante="secundario" onClick={() => router.push('/nova/tareas')}>
+        <Boton variante="secundario" onClick={() => router.push(volver)}>
           Cancelar
         </Boton>
       </div>

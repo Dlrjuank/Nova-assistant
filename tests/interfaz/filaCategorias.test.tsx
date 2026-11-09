@@ -214,7 +214,7 @@ describe('selector de color, insignia y tabla', () => {
       fechaLimite: '2099-01-01', fechaCreacion: '2026-11-07', fechaCierre: null, horaInicio: null, horaFin: null,
     });
     const { container } = render(<TablaTareas tareas={[tarea('1', 'casa'), tarea('2', 'Sin registrar')]} categorias={CATEGORIAS} />);
-    const puntos = [...container.querySelectorAll('table [aria-hidden="true"]')].map((p) => p.className);
+    const puntos = [...container.querySelectorAll('table [aria-hidden="true"][class*="bg-cat-"]')].map((p) => p.className);
     expect(puntos[0]).toContain('bg-cat-terracota');
     expect(puntos[1]).toContain('bg-cat-gris');
   });

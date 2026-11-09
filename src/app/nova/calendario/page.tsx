@@ -6,8 +6,8 @@ import { nombreMes, sumarMeses } from '@/lib/reglas/calendario';
 export const dynamic = 'force-dynamic';
 
 /** Calendario (PLAN_AMPLIACION 5.3, E07). `?mes=YYYY-MM` elige el mes (las flechas lo cambian); sin él, el actual. */
-export default async function CalendarioPage({ searchParams }: { searchParams: Promise<{ mes?: string | string[] }> }) {
-  const { mes } = await searchParams;
+export default async function CalendarioPage({ searchParams }: { searchParams: Promise<{ mes?: string | string[]; dia?: string | string[] }> }) {
+  const { mes, dia } = await searchParams;
   // El layout ya exige sesión con acceso; aquí hace falta el id para ver solo sus tareas (RB-01).
   const { id } = await exigirSesion();
   const [datos, categorias] = await Promise.all([mesDeTareas(id, typeof mes === 'string' ? mes : undefined), listarCategorias(id)]);
@@ -25,6 +25,7 @@ export default async function CalendarioPage({ searchParams }: { searchParams: P
         categorias={categorias}
         anterior={`/nova/calendario?mes=${sumarMeses(datos.mes, -1)}`}
         siguiente={`/nova/calendario?mes=${sumarMeses(datos.mes, 1)}`}
+        diaInicial={typeof dia === 'string' ? dia : undefined}
       />
     </>
   );

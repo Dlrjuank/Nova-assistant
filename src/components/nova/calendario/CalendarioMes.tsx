@@ -32,6 +32,7 @@ export function CalendarioMes({
   categorias,
   anterior,
   siguiente,
+  diaInicial,
 }: {
   mes: string;
   titulo: string;
@@ -41,8 +42,10 @@ export function CalendarioMes({
   categorias: ReadonlyArray<{ nombre: string; color: string }>;
   anterior: string;
   siguiente: string;
+  /** E09: `?dia=` al volver de editar una tarea; solo si está en la cuadrícula. */
+  diaInicial?: string | undefined;
 }) {
-  const [elegido, setElegido] = useState(() => (mesDe(hoy) === mes ? hoy : `${mes}-01`));
+  const [elegido, setElegido] = useState(() => (diaInicial && semanas.flat().includes(diaInicial) ? diaInicial : mesDe(hoy) === mes ? hoy : `${mes}-01`));
   const color = (t: TareaCalendario) => colorDeCategoria(t.categoria, categorias);
   const tareasDia = porDia[elegido] ?? [];
   const esMesActual = mesDe(hoy) === mes;
@@ -210,7 +213,7 @@ export function CalendarioMes({
           <ul className="flex flex-col gap-1">
             {tareasDia.map((t) => (
               <li key={t.id}>
-                <CasillaTarea tarea={t} color={color(t)} prefijo="calendario" vencida={estaVencida(t, hoy)} />
+                <CasillaTarea tarea={t} color={color(t)} prefijo="calendario" vencida={estaVencida(t, hoy)} volver={`/nova/calendario?mes=${mes}&dia=${elegido}`} />
               </li>
             ))}
           </ul>

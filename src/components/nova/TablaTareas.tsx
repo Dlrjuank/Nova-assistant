@@ -20,7 +20,7 @@ const ANCHO_GRUPO: Record<string, string> = {
   Estado: 'xl:w-[11.5rem]',
   'Fecha límite': 'xl:w-[7rem]',
   Creada: 'xl:w-[6.5rem]',
-  Acciones: 'xl:w-[14.5rem]', // "Completar" y "Eliminar" en la misma línea
+  Acciones: 'xl:w-[17rem]', // "Completar", el ícono de editar y "Eliminar" en la misma línea
 };
 
 /**
@@ -86,7 +86,7 @@ export function TablaTareas({
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-texto-suave">{formatearFecha(t.fechaCreacion)}</td>
                 <td className="px-4 py-3">
-                  <AccionesTarea id={t.id} titulo={t.titulo} completada={t.estado === 'Completada'} prefijo="tabla" />
+                  <AccionesTarea id={t.id} titulo={t.titulo} completada={t.estado === 'Completada'} prefijo="tabla" editarSoloIcono />
                 </td>
               </tr>
             ))}

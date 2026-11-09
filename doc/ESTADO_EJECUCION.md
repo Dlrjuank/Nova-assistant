@@ -555,4 +555,30 @@ Total de fallas: 0
   - Combobox en el teléfono: letra de 16 px y lista encima de todo. " universidad " no ofrece crear; ‘Crear “Viaje”’ crea una sola categoría con color al guardar, y "  viaje  " sin elegir usa la misma.
   - Claro y oscuro a 1280 y 390 px, sin desborde ni errores y sin transiciones con "reducir movimiento".
 - **Al cierre:** `npm test` 434/434, `npm run build` correcto, `eslint` sin errores.
+- **Prueba del usuario (teléfono y PC):** campo de categoría, las cuatro pestañas con sus contadores, la combinación con la fila de categorías, la vista Vencidas, la marca "Vencida", completar y eliminar funcionan. E08 confirmado.
+
+### Cierre del plan (2026-11-09)
+
+- **Aprobado por el usuario:** E10b a E10d y E11b a E11d antes de E12, con `pg_cron` de Supabase. Commit `6901757`.
+- **Cambios pedidos:** sin correo de respaldo con Resend (no hay dominio verificado; queda "para más adelante"); E11d queda con el resumen diario por notificación y el `.ics`.
+- **Agregado:** cuestionarios (E10e, E10f, M17, RB-48 a RB-53, S-51 a S-59, B-60 a B-66); riesgo de pausa de Supabase con cómo evitarlo; costo de los cuestionarios; privacidad del plan gratuito de Gemini; límite por persona y Gemini de pago como ideas para más adelante.
+
+### E09 Ampliación: editar tareas
+
+- **Limpieza previa** (con el OK del usuario): "Prueba 1" a "Prueba 3" y la categoría Gimnasio (0 tareas), en una transacción. Se mostraron antes y se comprobó que todas eran del 7 de noviembre, de las 17:07 a las 17:08, posteriores a la limpieza anterior. Quedan 0 tareas y las categorías General y Universidad.
+- **Servicio** (`src/lib/datos/tareas.ts`): `obtenerTarea` y `editarTarea`, con `validarTarea` y `validarHorario`, las mismas reglas que crear. La fila se bloquea (`FOR UPDATE`) antes de `resolverCategoria`, para que una tarea completada o ajena no deje una categoría nueva. No toca estado, minutos ni fechas de creación y cierre.
+- **Ruta:** `PATCH /api/nova/tareas/[id]`, con el mismo `esquemaTarea` de crear.
+- **Interfaz:**
+  - `/nova/tareas/[id]/editar` con `FormularioTarea` en modo edición (lleno, "Guardar cambios"). Una tarea completada, ajena o inexistente muestra el mensaje, sin formulario.
+  - `EnlaceEditarTarea`: lleva la pantalla de origen en `?volver=` y `rutaVolverSegura` solo acepta rutas internas de Nova.
+  - "Editar" solo en las pendientes: texto en las tarjetas del teléfono; ícono de lápiz en la tabla del computador, en Inicio y en la lista del día del Calendario.
+  - El Calendario vuelve al mismo día con `?dia=`.
+  - Además de lo que pedía la etapa, también se edita el horario (RB-34), anotado en RB-29.
+- **Pruebas:** `tests/servidor/editarTarea.test.ts` (7) y `tests/interfaz/editarTarea.test.tsx` (8). En `filaCategorias` se acotó un selector que también tomaba el ícono del lápiz.
+- **Edge en esta sesión:** `puppeteer.launch` falla porque `msedge.exe` se desprende del proceso inicial. Se lanza aparte y se conecta por `DevToolsActivePort`.
+- **Verificación con la base real** (usuarios temporales, borrados al final):
+  - Por HTTP, 0 fallas en 20: guardar, categoría nueva sin duplicar, campos intocables, mensajes exactos, fecha pasada, completada sin categoría suelta, tarea de otro usuario (404, sin mostrar sus datos) y sin sesión (401).
+  - En Edge, 0 fallas en 30: recorrido desde Tareas, Inicio y Calendario con su vuelta, formulario lleno, Cancelar, volver externo ignorado, acciones en una línea a 1280 px, categoría entera en Mi semana, y claro y oscuro a 1280 y 390 px sin desborde ni errores y sin transiciones con "reducir movimiento".
+- **Corregido al revisar las capturas:** el lápiz encogía la categoría en las columnas de Mi semana; quedaba 2 px desalineado en la tabla; "Editar" tenía casi el color de "Eliminar".
+- **Al cierre:** `npm test` 449/449, `npm run build` correcto, `eslint` sin errores.
 
