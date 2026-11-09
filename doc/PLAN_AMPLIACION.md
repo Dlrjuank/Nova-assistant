@@ -17,7 +17,7 @@ Los prompts de ejecución están en `doc/PROMPTS_AMPLIACION.md` (etapas E00 a E2
 9. [El asistente en Semestre](#9-el-asistente-en-semestre)
 10. [API](#10-api)
 11. [Pruebas](#11-pruebas)
-12. [Casos de aceptación B-01 a B-59](#12-casos-de-aceptación-b-01-a-b-59)
+12. [Casos de aceptación B-01 a B-66](#12-casos-de-aceptación-b-01-a-b-66)
 13. [Riesgos y decisiones](#13-riesgos-y-decisiones)
 
 ---
@@ -71,7 +71,9 @@ Los prompts de ejecución están en `doc/PROMPTS_AMPLIACION.md` (etapas E00 a E2
 | X20 | Plan de lectura por capítulos que pasa a Tareas | E10d |
 | X21 | App instalable (PWA): ícono, pantalla completa, nombre "Nova" y guía para agregarla a inicio | E11b |
 | X22 | Recordatorios de tareas con notificaciones push (a la hora, 15 min, 1 hora o 1 día antes; sin horario, a una hora fija) | E11c |
-| X23 | Respaldo por correo (Resend), resumen diario opcional y "Agregar a mi calendario" (.ics) | E11d |
+| X23 | Resumen diario opcional por notificación y "Agregar a mi calendario" (.ics) | E11d |
+| X24 | Cuestionarios de selección múltiple desde un documento, capítulo o rango de páginas, con puntaje de 0 a 5 y "Repetir solo las que fallé" (pedido del usuario, 2026-11-09) | E10e |
+| X25 | Historial de intentos por documento o capítulo y sugerencia de tarea para repasar | E10f |
 
 ### 2.2 Fuera de alcance
 
@@ -87,6 +89,9 @@ Los prompts de ejecución están en `doc/PROMPTS_AMPLIACION.md` (etapas E00 a E2
 - **Ideas para más adelante, solo anotadas, sin planear** (pedido del usuario, 2026-11-07):
   - Publicar Nova en Google Play y en la App Store con Capacitor. Google cobra 25 USD una vez; Apple, 99 USD al año, y exige un Mac o compilar en la nube.
   - Recordatorios por mensaje de WhatsApp con la API de WhatsApp Business, que cobra por mensaje.
+  - Respaldo de los recordatorios por correo con Resend (retirado de E11d el 2026-11-09). Enviar a cualquier destinatario exige un dominio verificado, que tiene costo.
+  - **Límite de uso por persona:** cuando más personas usen Nova, la cuota de Gemini se comparte entre todos. Idea: un límite por usuario y por día, configurable (por ejemplo, 1 libro grande y 50 preguntas), con un mensaje claro al alcanzarlo, para que nadie gaste el cupo de todos.
+  - **Gemini de pago para uso con más personas o en una universidad:** en el plan gratuito, Google usa lo enviado para mejorar sus productos, personas pueden leerlo y sus términos piden no enviar información sensible, confidencial o personal. En el de pago no usa los prompts ni las respuestas para mejorar sus productos.
 - Un segundo proyecto de Supabase.
 
 ## 3. Diseño
@@ -279,11 +284,24 @@ Bloques: **Perfil** (nombre editable, correo de solo lectura, cambiar contraseñ
   - "Enviar una de prueba";
   - la hora fija para tareas sin horario;
   - el resumen diario;
-  - el respaldo por correo.
-- **Respaldo y extras (E11d):**
-  - Por correo con Resend, solo si el usuario no tiene notificaciones activas en ningún dispositivo y no apagó el respaldo.
-  - Resumen diario opcional por la mañana: "Hoy: 3 tareas · 1 vencida" (RB-46).
+- **Sin notificaciones activas:** no hay respaldo por correo (decisión del usuario, 2026-11-09). El campo "Recordatorio" lo advierte y ofrece activarlas o usar "Agregar a mi calendario".
+- **Extras (E11d):**
+  - Resumen diario opcional por notificación, por la mañana: "Hoy: 3 tareas · 1 vencida" (RB-46).
   - Botón "Agregar a mi calendario" en cada tarea pendiente, que descarga un `.ics` con la alarma del recordatorio para que la ponga el propio teléfono (RB-47).
+
+### 5.11 Cuestionarios (E10e y E10f, pedido del usuario del 2026-11-09)
+
+- **Crear:** en Fuentes, en cada documento con páginas y en "Ver capítulos", el botón "Crear cuestionario". Se elige el alcance (documento completo, un capítulo o un rango de páginas), cuántas preguntas (5, 10 o 20) y la dificultad (fácil, media o difícil).
+- **Responder (`/nova/cuestionarios/[id]`):**
+  - Una pregunta por pantalla, con "Pregunta 3 de 10" y 4 opciones.
+  - Cada opción es una fila de todo el ancho, de al menos 56 px de alto y letra de 16 px, fácil de tocar en el teléfono.
+  - Al elegir, la respuesta queda fija. Se marca si acertaste, con ícono y texto (no solo con color), la opción correcta, una explicación corta y la cita de la página (`libro.pdf · p. 45`).
+  - Cada respuesta se guarda al momento: si se cierra la pantalla, el intento sigue donde iba.
+  - La respuesta correcta no llega al navegador hasta que se responde.
+- **Al final:** el puntaje de 0 a 5, los aciertos, las preguntas falladas con su explicación y los botones "Repetir solo las que fallé" y "Hacer de nuevo". Ninguno de los dos llama a Gemini: usan las mismas preguntas.
+- **Historial (E10f, `/nova/cuestionarios`):** intentos por documento y por capítulo, con fecha, dificultad y puntaje, y si mejoraste respecto al intento anterior del mismo cuestionario. Los repasos de falladas se marcan "Repaso" y no cuentan para esa comparación.
+- **Sugerencia de repaso (E10f):** si en un capítulo fallaste 2 preguntas o más, el resultado ofrece crear la tarea "Repasar cap. 3: Título (pp. 45–67)". Se confirma en un diálogo; nunca se crea sola.
+- **El puntaje no afecta las notas de Semestre.**
 
 ## 6. Modelo de datos
 
@@ -418,14 +436,27 @@ Columnas nuevas en `tareas_personales`: `hora_inicio TIME NULL` y `hora_fin TIME
 |---|---|---|
 | `tareas_personales` (columnas nuevas) | `recordatorio` TEXT NULL (`a_la_hora`, `15_min`, `1_hora`, `1_dia`; sin horario solo `a_la_hora` = el mismo día y `1_dia`), `recordatorio_en` TIMESTAMPTZ NULL (calculado en el servidor), `recordatorio_estado` TEXT NULL (`pendiente`, `enviado`, `omitido`) | CHECK de los valores; índice parcial sobre `recordatorio_en` donde `recordatorio_estado = 'pendiente'` |
 | `suscripciones_push` | `id`, `usuario_id`, `endpoint` TEXT, `p256dh` TEXT, `auth` TEXT, `dispositivo` TEXT, `creada_en`, `ultimo_error` TEXT NULL | `UNIQUE (endpoint)`; RLS por dueño |
-| `preferencias_usuario` (columnas nuevas, M7) | `hora_recordatorio` TIME default 08:00, `resumen_diario` BOOLEAN default false, `hora_resumen` TIME default 07:00, `correo_respaldo` BOOLEAN default true | — |
-| `envios` | `id`, `usuario_id`, `tarea_id` NULL, `tipo` (`recordatorio`/`resumen`/`prueba`), `canal` (`push`/`correo`), `fecha` DATE, `resultado` TEXT, `creado_en` | `UNIQUE (usuario_id, tipo, fecha)` solo para `resumen` (índice parcial): un resumen por día |
+| `preferencias_usuario` (columnas nuevas, M7) | `hora_recordatorio` TIME default 08:00, `resumen_diario` BOOLEAN default false, `hora_resumen` TIME default 07:00 | — |
+| `envios` | `id`, `usuario_id`, `tarea_id` NULL, `tipo` (`recordatorio`/`resumen`/`prueba`), `fecha` DATE, `resultado` TEXT, `creado_en` | `UNIQUE (usuario_id, tipo, fecha)` solo para `resumen` (índice parcial): un resumen por día |
 
 - **Programación de los envíos:**
   - `pg_cron` y `pg_net` de Supabase llaman cada minuto a `POST /api/nova/recordatorios/tick`, con un secreto guardado en Supabase Vault (`RECORDATORIOS_SECRETO` en Vercel).
   - Se eligió así porque Vercel Hobby solo permite tareas programadas una vez al día y con hasta una hora de imprecisión. Cada minuto exige Vercel Pro (20 USD al mes).
   - Hasta E21, la llamada va a la vista previa con el encabezado de omisión de la protección de Vercel (`x-vercel-protection-bypass`). En E21 pasa a producción.
 - Solo aditiva: los INSERT de `master` dejan `recordatorio` en NULL.
+- El tick hace una consulta real a la base cada minuto desde la aplicación, y eso cuenta como actividad para la pausa de Supabase (sección 13).
+
+### 6.13 M17 · Cuestionarios (E10e, E10f)
+
+| Tabla | Columnas | Restricciones |
+|---|---|---|
+| `cuestionarios` | `id`, `usuario_id`, `documento_id`, `capitulo_id` NULL, `pagina_desde` NULL, `pagina_hasta` NULL, `alcance` (`documento`/`capitulo`/`paginas`), `dificultad` (`facil`/`media`/`dificil`), `pedidas` SMALLINT (5, 10 o 20), `creado_en` | FK compuesta al dueño; `documento_id` `ON DELETE CASCADE`; `capitulo_id` `ON DELETE SET NULL`; `UNIQUE (id, usuario_id)` |
+| `preguntas_cuestionario` | `id`, `cuestionario_id`, `usuario_id`, `orden`, `enunciado` VARCHAR(400), `opciones` JSONB (4 textos), `correcta` SMALLINT, `explicacion` VARCHAR(400), `cita_textual` TEXT, `etiqueta_paginas` TEXT, `capitulo_id` NULL | FK compuesta, `ON DELETE CASCADE`; `correcta` 0 a 3; `UNIQUE (id, usuario_id)`; `UNIQUE (cuestionario_id, orden)` |
+| `intentos_cuestionario` | `id`, `cuestionario_id`, `usuario_id`, `preguntas` UUID[], `repaso_de` UUID NULL (el intento del que salen las falladas), `aciertos` SMALLINT NULL, `total` SMALLINT, `puntaje` SMALLINT NULL (centésimas, 0 a 500), `iniciado_en`, `terminado_en` NULL | FK compuesta, `ON DELETE CASCADE`; `UNIQUE (id, usuario_id)` |
+| `respuestas_intento` | `intento_id`, `pregunta_id`, `usuario_id`, `elegida` SMALLINT, `acierto` BOOLEAN, `respondida_en` | PK `(intento_id, pregunta_id)`: una respuesta no se cambia |
+
+- Solo aditiva y con RLS por dueño: `master` no la usa.
+- Al eliminar un documento se borran sus cuestionarios e intentos; la confirmación de RN-22 lo dice.
 
 ## 7. Reglas de cálculo
 
@@ -527,6 +558,10 @@ En la zona `America/Bogota`, con la fecha límite `F`, la hora de inicio `H` (si
 - Si al guardar la hora ya pasó, la tarea se guarda con el aviso de RB-43 y queda `omitido`.
 - **Envío** (cada minuto): se toman los `pendiente` con `recordatorio_en` entre ahora − 30 min y ahora, con `FOR UPDATE SKIP LOCKED`, y se marcan `enviado` en la misma transacción. Así una tarea nunca avisa dos veces. Los que se atrasaron más de 30 minutos (por ejemplo, si la base estuvo pausada) pasan a `omitido`.
 
+### 7.11 Puntaje de un cuestionario (E10e)
+
+`puntaje = aciertos × 500 / total`, en centésimas y truncado, y se muestra con un decimal truncado (7 de 10 → 3,5; 2 de 3 → 3,3; 20 de 20 → 5,0). No usa el redondeo académico de Configuración porque no es una nota de Semestre. Un repaso se califica sobre sus propias preguntas.
+
 ## 8. Reglas de negocio y mensajes exactos
 
 Los mensajes se usan **textualmente** en la interfaz y en la API. Los de `PLAN_NOVA.md` (sección 5.1 y 12.2) no cambian.
@@ -577,9 +612,15 @@ Los mensajes se usan **textualmente** en la interfaz y en la API. Los de `PLAN_N
 | RB-42 | (E10d) Plan de lectura: capítulos elegidos entre fecha de inicio y fecha final (o N capítulos por semana), repartidos en orden; vista previa antes de crear; un capítulo ya en Tareas no se repite | `La fecha final debe ser igual o posterior a la de inicio.` · `Este capítulo ya está en Tareas.` |
 | RB-43 | (E11c) Recordatorio opcional de una tarea pendiente (regla 7.10); con horario, 4 opciones; sin horario, 2 a la hora fija | `Ese momento ya pasó: no se enviará el recordatorio.` (aviso; la tarea se guarda) |
 | RB-44 | (E11c) Texto exacto de la notificación (título "Nova") | `Ahora: {t} ({h})` · `En 15 min: {t} ({h})` · `En 1 hora: {t} ({h})` · `Mañana: {t} ({h})` · sin horario: `Hoy: {t}` · `Mañana: {t}` |
-| RB-45 | (E11c) El permiso de notificaciones se pide solo después de tocar "Activar notificaciones"; en un iPhone sin la app instalada se muestra la guía de E11b; si el permiso está negado, se explica y se usa el correo | `Para recibir avisos en el iPhone, primero agrega Nova a inicio.` · `Las notificaciones están bloqueadas. Actívalas en los ajustes del teléfono para Nova.` |
-| RB-46 | (E11d) Resumen diario opcional a la hora elegida (7:00 por defecto), uno por día, solo si hay tareas de hoy o vencidas; respaldo por correo solo sin notificaciones activas | `Hoy: {n} tareas · {v} vencidas` (en singular cuando corresponde) |
+| RB-45 | (E11c) El permiso de notificaciones se pide solo después de tocar "Activar notificaciones"; en un iPhone sin la app instalada se muestra la guía de E11b; si el permiso está negado, se explica y se ofrece "Agregar a mi calendario". Sin notificaciones activas en ningún dispositivo, el recordatorio queda `omitido` | `Para recibir avisos en el iPhone, primero agrega Nova a inicio.` · `Las notificaciones están bloqueadas. Actívalas en los ajustes del teléfono para Nova.` · `Activa las notificaciones para recibir este aviso.` |
+| RB-46 | (E11d) Resumen diario opcional por notificación a la hora elegida (7:00 por defecto), uno por día, solo si hay tareas de hoy o vencidas | `Hoy: {n} tareas · {v} vencidas` (en singular cuando corresponde) |
 | RB-47 | (E11d) "Agregar a mi calendario": `.ics` con el evento (con horario, o de todo el día) y una alarma por el recordatorio | `Es una copia: si cambias la tarea en Nova, vuelve a agregarla.` |
+| RB-48 | (E10e) Un cuestionario necesita un documento con páginas; se piden 5, 10 o 20 preguntas y dificultad fácil, media o difícil; un rango de páginas debe existir en el documento | `Vuelve a indexar este documento para ver páginas y capítulos.` · `El rango de páginas no es válido: este documento tiene {n} páginas.` |
+| RB-49 | (E10e) Las preguntas no se inventan: si el texto no alcanza (menos de un fragmento por cada 2 preguntas, o menos de la mitad de las pedidas tras validar, con un mínimo de 3), no se crea; con parte de las pedidas, se crea y se avisa | `Este contenido no alcanza para un cuestionario. Elige más páginas o menos preguntas.` · `Solo pude sacar {k} de {n} preguntas de este contenido.` |
+| RB-50 | (E10e) Validación de cada pregunta en el servidor (9.6): cita literal dentro del fragmento citado, 4 opciones distintas y una sola correcta. La correcta no se envía al navegador antes de responder | (se descarta sin mensaje; aplica RB-49) |
+| RB-51 | (E10e) Una respuesta se guarda una sola vez y no se cambia; una pregunta ajena al intento o de otro usuario responde como inexistente | `La pregunta no existe.` (`PREGUNTA_NO_ENCONTRADA`, 404) |
+| RB-52 | (E10e) Cuota de Gemini agotada al generar: no se guarda nada a medias | `Se agotó por ahora el cupo gratuito de Gemini. Intenta más tarde.` (`CUOTA_AGOTADA`, 429) |
+| RB-53 | (E10f) Sugerencia de repaso: con 2 o más falladas de un capítulo; se confirma en un diálogo; no se repite si ya hay una tarea pendiente con ese título | `Ya tienes esa tarea de repaso.` |
 | RB-29 | Editar una tarea: solo pendientes y del usuario; título, categoría, prioridad y fecha límite con las mismas validaciones y mensajes que al crear; estado, minutos y fecha de cierre no se tocan | Los de crear (`PLAN_NOVA.md` 5.1). Tarea completada: `La tarea ya está completada.` (`TAREA_YA_COMPLETADA`, 409). De otro usuario o inexistente: `La tarea no existe.` (`TAREA_NO_ENCONTRADA`, 404) |
 
 Códigos de error nuevos (404 salvo indicación): `CATEGORIA_NO_ENCONTRADA`, `CATEGORIA_DUPLICADA` (409), `MATERIA_NO_ENCONTRADA`, `MATERIA_DUPLICADA` (409), `CORTE_NO_ENCONTRADO`, `COMPONENTE_NO_ENCONTRADO`, `NOTA_NO_ENCONTRADA`, `PORCENTAJES_INVALIDOS` (422, solo RB-10 y los cortes por defecto de Configuración), `CORTES_NO_SE_QUITAN` (422, RB-35), `NOTA_INVALIDA` (422), `META_NO_ENCONTRADA`, `META_DUPLICADA` (409), `PLAN_SIN_TEMAS` (422), `PLAN_SIN_FECHA` (422), `SIN_SYLLABUS` (422), `PLAN_INVALIDO` (502), `PASO_YA_EN_TAREAS` (409).
@@ -616,6 +657,20 @@ Cada versión guarda su `huella`: `{ meta, temas: [id+nombre confirmados], notas
 
 Cada paso tiene "Pasar a Tareas": un diálogo muestra título, fecha límite = fecha del paso, categoría = nombre de la materia y prioridad 2, y pide confirmar. Se registra en `pasos_en_tareas`; el paso queda marcado "En Tareas" con enlace. Los pasos conservan su `id` entre versiones, así que la marca se mantiene al editar.
 
+### 9.6 Generar un cuestionario (E10e)
+
+Es una llamada a `gemini-3.1-flash-lite` (con su respaldo) que pide JSON con esquema, igual que 9.1. No usa embeddings.
+
+1. **Contexto:** los fragmentos del alcance elegido, etiquetados `[F1]`, `[F2]`… Hasta 3 fragmentos por pregunta (5 → 15, 10 → 30, 20 → 60). Si el alcance tiene más, se toman repartidos de manera uniforme; en un libro completo, repartidos entre sus capítulos.
+2. **Mínimo de texto:** al menos un fragmento por cada 2 preguntas. Si no, no se llama a Gemini (RB-49).
+3. **Dificultad** (instrucción al modelo): fácil, un dato explícito del texto; media, comprender o relacionar ideas del texto; difícil, aplicar o inferir, siempre con la respuesta justificable por el texto. Es criterio del modelo y no se puede validar con reglas.
+4. **El modelo devuelve** `[{ enunciado, opciones: [4], correcta, explicacion, fuente: "F3", cita_textual }]`.
+5. **Validación en el servidor (RB-50):** se descarta la pregunta si `fuente` no es una etiqueta entregada, si `cita_textual` (de 20 a 200 caracteres) no aparece literalmente en ese fragmento (sin distinguir mayúsculas, espacios ni guiones de fin de línea), si las 4 opciones no son distintas, si `correcta` no está entre 0 y 3 o si el enunciado se repite.
+6. **El servidor** baraja las opciones (los modelos tienden a poner la correcta en las mismas posiciones) y calcula la página y el capítulo a partir del fragmento, sin confiar en el modelo.
+7. **Reintento:** si faltan preguntas, una segunda llamada solo por las que faltan. Como máximo 2 llamadas por cuestionario.
+
+La cita literal demuestra que la pregunta sale del documento. No demuestra que la opción marcada como correcta lo sea: por eso la explicación y la cita se muestran siempre, para que se pueda comprobar.
+
 ## 10. API
 
 Todas con `exigirSesion()` como primera instrucción y el id del usuario de la sesión. Contrato de respuesta igual que `PLAN_NOVA.md` 12.1.
@@ -646,6 +701,12 @@ Todas con `exigirSesion()` como primera instrucción y el id del usuario de la s
 | `POST/DELETE /api/nova/notificaciones/suscripcion`, `POST /api/nova/notificaciones/prueba` | Suscripción push del dispositivo y aviso de prueba | E11c |
 | `POST /api/nova/recordatorios/tick` | Envío cada minuto; sin sesión, con `RECORDATORIOS_SECRETO` | E11c |
 | `GET /api/nova/tareas/[id]/ics` | "Agregar a mi calendario" (RB-47) | E11d |
+| `POST/GET /api/nova/cuestionarios` | Generar (`maxDuration = 60`) y listar el historial (`?documentoId=`) | E10e, E10f |
+| `GET /api/nova/cuestionarios/[id]` | Preguntas sin la respuesta correcta | E10e |
+| `POST /api/nova/cuestionarios/[id]/intentos` | Empezar un intento; `repasoDe` para "Repetir solo las que fallé" | E10e |
+| `POST /api/nova/intentos/[id]/respuestas` | Responder; devuelve acierto, correcta, explicación y cita | E10e |
+| `POST /api/nova/intentos/[id]/tarea-repaso` | Crear la tarea de repaso (RB-53) | E10f |
+| `GET /api/nova/salud` | Consulta mínima a la base, para el cron diario de Vercel; con `CRON_SECRET` | E21 |
 | `src/app/manifest.ts`, `public/sw.js` | Manifiesto e service worker; públicos (el middleware no los protege) | E11b |
 
 Las rutas que llaman a Gemini declaran `maxDuration = 60`.
@@ -665,6 +726,10 @@ Las rutas que llaman a Gemini declaran `maxDuration = 60`.
   - S-42 a S-47 (E11c, regla 7.10): las 4 opciones con horario, las 2 sin horario, cruce de medianoche, de mes y de año en Bogotá, hora ya pasada.
   - S-48 y S-49 (E11c): ventana de 30 min sin envíos dobles; texto exacto de RB-44.
   - S-50 (E11d): `.ics` válido (zona horaria, todo el día y alarma).
+  - S-51 a S-53 (E10e, contexto): fragmentos por pregunta y reparto uniforme, también entre capítulos; mínimo de texto de RB-49; rango de páginas inválido.
+  - S-54 a S-56 (E10e, validación de 9.6): cita inexistente, fuente inventada, opciones repetidas, `correcta` fuera de rango y enunciado duplicado; cita válida a pesar de mayúsculas, espacios y guiones de fin de línea; barajar conserva cuál es la correcta.
+  - S-57 (E10e): puntaje de 7.11, con truncado y 0 de N.
+  - S-58 y S-59 (E10f): comparación entre intentos sin contar los repasos; capítulos con 2 o más falladas.
   - S-29 a S-32 (validación del plan: tema no confirmado, fuente inventada, fecha fuera de rango, plan válido).
 - **Contraste**: una prueba lee los tokens de `globals.css` y comprueba ≥ 4,5:1 en cada par texto/fondo, en ambos modos, y para los 8 colores de categoría.
 - **Servidor**: cada ruta nueva prueba 401/403, aislamiento (un id de otro usuario responde como inexistente), validación y contrato.
@@ -680,6 +745,7 @@ Las rutas que llaman a Gemini declaran `maxDuration = 60`.
 - `npm run probar:semestre` (nuevo, E13): crea una materia de prueba completa en la base real, comprueba los cálculos contra valores hechos a mano y borra lo que creó.
 - `npm run probar:libro` (nuevo, E10b y E10c): con un PDF de prueba de unas 40 páginas con índice, comprueba capítulos y páginas, una pregunta por página con su cita, un capítulo y "Más simple" con Gemini real; borra lo que creó.
 - `npm run probar:recordatorios` (nuevo, E11c): crea tareas con recordatorio, llama al tick con un reloj fijo en modo de prueba (sin enviar) y comprueba qué se enviaría y que no se repite; borra lo que creó.
+- `npm run probar:cuestionario` (nuevo, E10e): con Gemini real y el PDF de `probar:libro`, genera 5 preguntas de un capítulo, comprueba que todas pasan RB-50 y que sus páginas están dentro del capítulo; pide 20 preguntas de 2 páginas y comprueba RB-49; borra lo que creó.
 - `npm run probar:plan` (nuevo, E18): con Gemini real, propone temas desde un PDF de prueba y genera un plan; comprueba que pasa la validación y borra lo que creó.
 
 ### 11.3 Compatibilidad con `master` (después de cada migración)
@@ -690,7 +756,7 @@ Con un `git worktree` de `master` en una carpeta temporal: `npm run probar:rag` 
 
 En cada etapa con interfaz: navegador real a 1280 px y 390 px (sin desplazamiento horizontal, sin errores de página, foco visible) y prueba del usuario en la **vista previa de Vercel** desde su teléfono.
 
-## 12. Casos de aceptación B-01 a B-59
+## 12. Casos de aceptación B-01 a B-66
 
 Se ejecutan en la vista previa de Vercel de `ampliacion`, en computador y en teléfono, y se registran en `doc/ACEPTACION.md` (sección nueva). Antes, se repiten A-01 a A-21 en la vista previa.
 
@@ -751,8 +817,15 @@ Se ejecutan en la vista previa de Vercel de `ampliacion`, en computador y en tel
 | B-55 | (E11b) En el iPhone: agregar Nova a inicio desde la guía; en Android, "Instalar" | Ícono "Nova", abre a pantalla completa sin barra del navegador; inicia sesión dentro de la app |
 | B-56 | (E11c) Activar notificaciones desde el primer recordatorio y "Enviar una de prueba" | El permiso se pide solo al tocar el botón; la de prueba llega a la pantalla de bloqueo y al centro de notificaciones |
 | B-57 | (E11c) Tarea de hoy con horario dentro de 20 min y recordatorio "15 min antes"; otra sin horario con "El mismo día" | Llega `En 15 min: {título} ({horario})` una sola vez; al tocarla abre la tarea resaltada; el ícono muestra el numerito; la otra avisa a la hora fija |
-| B-58 | (E11d) Con las notificaciones desactivadas en todos los dispositivos y el respaldo por correo encendido | El recordatorio llega por correo |
+| B-58 | (E11d) Activar el resumen diario con tareas de hoy y una vencida; otro día sin ninguna | Llega una sola notificación `Hoy: {n} tareas · 1 vencida`; sin tareas, ninguna |
 | B-59 | (E11d) "Agregar a mi calendario" en el iPhone y en Android | Se abre el calendario del teléfono con el evento y su alarma |
+| B-60 | (E10e) Crear un cuestionario de 5 preguntas, dificultad media, de un capítulo, y otro de un rango de páginas | Preguntas de 4 opciones; las páginas citadas están dentro del alcance elegido |
+| B-61 | (E10e) Pedir 20 preguntas de una sola página | Dice que el contenido no alcanza (RB-49); no crea nada |
+| B-62 | (E10e) Responder en el teléfono, con una correcta y una incorrecta | Opciones fáciles de tocar; muestra si acertaste, la correcta, la explicación y la cita de la página; la respuesta no se puede cambiar |
+| B-63 | (E10e) Cerrar a la mitad y volver | Sigue en la pregunta donde iba |
+| B-64 | (E10e) Terminar con 3 de 5 y "Repetir solo las que fallé" | Puntaje 3,0; el repaso trae solo las 2 falladas y se califica sobre ellas |
+| B-65 | (E10f) Hacer el mismo cuestionario dos veces y abrir el historial | Se ven los intentos por documento y capítulo, y si mejoraste; los repasos dicen "Repaso" |
+| B-66 | (E10f) Fallar 2 preguntas de un capítulo y aceptar la sugerencia; repetirlo | Crea "Repasar cap. N: Título (pp. a–b)" tras confirmar; la segunda vez, RB-53 |
 | B-41 | Editar una tarea pendiente desde Tareas, Inicio y Calendario (título, categoría, prioridad y fecha) | El formulario abre lleno; al guardar, el cambio se ve en las tres pantallas y en su día del Calendario; "Cancelar" no cambia nada |
 | B-42 | Al editar, poner fecha "2026-02-30" y luego prioridad 5 por la API; intentar editar una tarea completada | Mismos mensajes que al crear (A-03, A-04); la completada responde "La tarea ya está completada." y no muestra "Editar" |
 
@@ -770,10 +843,12 @@ Se ejecutan en la vista previa de Vercel de `ampliacion`, en computador y en tel
 | Variables de entorno en vista previa | `GEMINI_API_KEY` y `BLOB_READ_WRITE_TOKEN` ya están en Preview; las de Supabase y Postgres se comprueban por nombre en E00 |
 | Navegador para pruebas | Edge con `puppeteer-core`; si una actualización pendiente lo impide, se verifica por HTTP y se avisa (como en P10 y P11) |
 | Tareas programadas en Vercel Hobby (una vez al día, imprecisas) | Los recordatorios usan `pg_cron` + `pg_net` de Supabase cada minuto (gratis); `pg_net` está en beta y no reintenta: el tick es idempotente y `db:verificar` revisa `net._http_response` |
-| Supabase gratis pausa proyectos inactivos | Con uso diario no pasa; si se pausara, los avisos atrasados más de 30 min se omiten (7.10), no llegan tarde en tropel |
+| Supabase gratis pausa el proyecto con poca actividad en 7 días | **Efecto:** con la base pausada, Nova entera deja de funcionar, no solo los recordatorios, y `pg_cron` no corre (es un trabajo dentro de la base; la documentación no lo detalla). Al reanudar, los trabajos siguen configurados y los avisos atrasados más de 30 min se omiten (7.10), no llegan en tropel. **Qué cuenta como actividad:** según Supabase, las peticiones del usuario a la base, incluidas las de la aplicación conectada; bastan unas pocas por día. No está documentado si un trabajo de `pg_cron` por sí solo cuenta. **Cómo se evita:** (1) desde E11c, el tick llega a la aplicación en Vercel y esta consulta la base cada minuto; (2) como eso depende de `pg_cron`, al unir con `master` (E21) se agrega un cron diario de Vercel a `GET /api/nova/salud`, que Hobby sí permite, independiente de la base. Los cron de Vercel solo corren en producción: hasta E21 protege el tick y el uso diario. (3) Supabase avisa por correo antes de pausar: en ese caso, abrir Nova o el panel. (4) Si se pausa: "Resume project" en el panel, con datos y configuración intactos (hasta 1 año) |
 | Sonido de las notificaciones en el iPhone | La web no elige el sonido; iOS decide según sus ajustes. Se comprueba en el iPhone del usuario en E11c y se documenta lo que se ve |
 | Cuota gratuita de Gemini con libros largos | Embeddings gratis: unos 30.000 tokens por minuto y unas 1.000 peticiones al día (cifras de la documentación de Google, a confirmar en AI Studio). Un libro de 400 páginas (unos 210.000 tokens) tarda unos 8 a 10 minutos: por eso se indexa por partes (RB-38). Caben 1 o 2 libros grandes por día y comparten la cuota con las preguntas. Resumir un capítulo es una sola llamada de hasta unas 40.000 palabras; "Explicar de otra manera" es una llamada por toque |
 | Espacio en Supabase gratis (500 MB) | Un libro de 400 páginas ocupa unos 2 a 3 MB (texto, vectores e índice); los PDF se borran de Blob al terminar |
-| Remitente de Resend | Gratis: 100 correos al día y 3.000 al mes. `RESEND_FROM` debe ser un dominio verificado: con el remitente de prueba de Resend solo llegan correos al dueño de la cuenta. Se comprueba en E11d |
+| Costo de los cuestionarios con la cuota gratis de Gemini | Generar es 1 llamada (2 como máximo) del modelo de chat, sin embeddings; responder, repetir y ver el historial no llaman a Gemini. Entrada aproximada: 10.000 tokens con 5 preguntas, 20.000 con 10 y 40.000 con 20; salida, unos 3.000 con 20. Para el modelo de chat las fuentes dan entre 500 y 1.500 peticiones al día y unos 250.000 tokens por minuto (cifras no oficiales: confirmar en AI Studio). Con la cifra más baja y reintento en todos: unos 250 cuestionarios al día, compartidos con el chat; el modelo de respaldo tiene su propia cuota. En tokens, unos 6 de 20 preguntas por minuto |
+| Preguntas equivocadas del modelo | La validación de 9.6 garantiza que la pregunta sale del documento, no que la respuesta marcada sea correcta. Se muestran siempre la explicación y la cita para poder comprobarla; el puntaje no afecta las notas |
+| Privacidad con Gemini gratuito | Los términos del plan gratuito permiten a Google usar el contenido para mejorar sus productos y que personas lo lean, y piden no enviar información sensible, confidencial o personal. Rige desde hoy para preguntas, fragmentos y libros. El aviso de E11 (Configuración → Asistente) debe decirlo con claridad. El plan de pago no los usa para mejorar productos (2.2) |
 | Sesión dentro de la app instalada en el iPhone | Es distinta de la de Safari: se inicia sesión una vez dentro de la app; la guía lo dice |
 | Tamaño de la ampliación | 22 etapas pequeñas (más las agregadas después), cada una con su commit y su prueba; se puede parar en cualquier etapa con todo funcionando |

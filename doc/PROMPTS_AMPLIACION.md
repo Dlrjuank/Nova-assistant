@@ -361,6 +361,44 @@ VERIFICACIÓN: B-54; las tareas aparecen en Inicio, Calendario y Tareas.
 
 ---
 
+## E10e · Cuestionarios (pedida por el usuario, 2026-11-09)
+
+**Plan:** 5.11, 6.13, 7.11, 9.6, RB-48 a RB-52. **Requisito:** E10b.
+
+```text
+OBJETIVO: practicar con preguntas de selección múltiple que salen del documento.
+
+TAREA 1. Respaldo y migración M17 (cuestionarios, preguntas_cuestionario, intentos_cuestionario, respuestas_intento). Compatibilidad con master (11.3).
+TAREA 2. Reglas puras: contexto y mínimo de texto, validación de 9.6, barajar opciones y puntaje de 7.11. Pruebas S-51 a S-57.
+TAREA 3. Generar con Gemini (JSON y esquema, nuevo método en src/lib/llm con pruebas), máximo 2 llamadas; RB-49 y RB-52.
+TAREA 4. API con aislamiento por usuario; la respuesta correcta no sale antes de responder (RB-50, RB-51).
+TAREA 5. Pantallas: "Crear cuestionario" en Fuentes y en "Ver capítulos"; /nova/cuestionarios/[id] con una pregunta por pantalla, opciones grandes, resultado con el puntaje y las falladas, "Repetir solo las que fallé" y "Hacer de nuevo". 390 y 1280 px, claro y oscuro, "reducir movimiento".
+TAREA 6. Script probar:cuestionario con Gemini real.
+
+VERIFICACIÓN: B-60 a B-64.
+```
+
+**Commit:** `feat(cuestionarios): generar y responder cuestionarios`
+
+---
+
+## E10f · Historial de cuestionarios y repaso (pedida por el usuario, 2026-11-09)
+
+**Plan:** 5.11, RB-53. **Requisito:** E10e.
+
+```text
+OBJETIVO: ver si mejoro y convertir lo que fallo en una tarea.
+
+TAREA 1. /nova/cuestionarios: intentos por documento y por capítulo, con fecha, dificultad, puntaje y comparación con el intento anterior; los repasos dicen "Repaso". Pruebas S-58 y S-59.
+TAREA 2. En el resultado, sugerir "Repasar cap. N: Título (pp. a–b)" con 2 o más falladas de un capítulo: diálogo con fecha y categoría (RB-33), sin duplicar (RB-53).
+
+VERIFICACIÓN: B-65 y B-66.
+```
+
+**Commit:** `feat(cuestionarios): historial y tarea de repaso`
+
+---
+
 ## E11 · Configuración completa
 
 **Plan:** 5.8, 6.3, RB-11, RB-25 a RB-28. **Requisito:** E05.
@@ -421,21 +459,20 @@ VERIFICACIÓN: B-56 y B-57.
 
 ---
 
-## E11d · Correo, resumen diario y "Agregar a mi calendario" (pedida por el usuario, 2026-11-07)
+## E11d · Resumen diario y "Agregar a mi calendario" (pedida por el usuario, 2026-11-07; sin correo desde el 2026-11-09)
 
 **Plan:** 5.10, RB-46, RB-47. **Requisito:** E11c.
 
 ```text
-OBJETIVO: que el aviso llegue aunque no haya notificaciones y que el teléfono pueda poner su propia alarma.
+OBJETIVO: un resumen por la mañana y que el teléfono pueda poner su propia alarma.
 
-TAREA 1. Respaldo por correo con Resend (src/lib/correo.ts) solo si no hay notificaciones activas y el respaldo está encendido; comprobar que RESEND_FROM es un dominio verificado.
-TAREA 2. Resumen diario opcional (hora en Configuración), uno por día, por notificación o por correo.
-TAREA 3. GET /api/nova/tareas/[id]/ics y botón "Agregar a mi calendario", con la alarma del recordatorio (S-50).
+TAREA 1. Resumen diario opcional por notificación (hora en Configuración), uno por día, solo si hay tareas de hoy o vencidas.
+TAREA 2. GET /api/nova/tareas/[id]/ics y botón "Agregar a mi calendario", con la alarma del recordatorio (S-50).
 
 VERIFICACIÓN: B-58 y B-59.
 ```
 
-**Commit:** `feat(recordatorios): correo, resumen diario y calendario del teléfono`
+**Commit:** `feat(recordatorios): resumen diario y calendario del teléfono`
 
 ---
 
@@ -651,12 +688,12 @@ Anota en el plan lo que decidas y avísame antes de pasar a la siguiente pantall
 **Plan:** 12. **Requisito:** E20b.
 
 ```text
-TAREA 1. Agregar a doc/ACEPTACION.md la tabla B-01 a B-59 (columnas como A-01 a A-15) y la nota de repetir A-01 a A-21 en la vista previa.
+TAREA 1. Agregar a doc/ACEPTACION.md la tabla B-01 a B-66 (columnas como A-01 a A-15) y la nota de repetir A-01 a A-21 en la vista previa.
 TAREA 2. Revisión final: sin botones muertos (recorrido de todas las pantallas), sin colores fuera de los tokens, sin textos en inglés, todas las rutas nuevas con exigirSesion y filtro por usuario, ninguna clave en el repositorio.
 TAREA 3. Actualizar README (funciones, pantallas, scripts nuevos) y crear doc/checkpoints/AMPLIACION_COMPLETADA.md.
 TAREA 4. Preparar (sin aplicar) la migración que quita el disparador de dueño por defecto (plan, 6.1): comprueba que no quedan filas sin usuario_id, borra el disparador y asignar_dueno_por_defecto (y nova_config si nada más la usa) y pasa usuario_id a NOT NULL. Se aplica solo al unir ampliacion con master, después de que master tenga el código nuevo; nunca antes, porque rompería el código de master en producción.
-TAREA 5. Recordarle al usuario ejecutar B-01 a B-59 y A-01 a A-21 en la vista previa, en computador y teléfono. La unión de ampliacion con master solo se hace si el usuario la pide, e incluye revisar y aplicar la migración de la TAREA 4.
-TAREA 6. (Recordatorios, E11c) Al unir con master: el trabajo de pg_cron pasa a llamar a la URL de producción, se quita el encabezado de omisión de la protección de la vista previa y se comprueba que las claves VAPID y RECORDATORIOS_SECRETO están en Production.
+TAREA 5. Recordarle al usuario ejecutar B-01 a B-66 y A-01 a A-21 en la vista previa, en computador y teléfono. La unión de ampliacion con master solo se hace si el usuario la pide, e incluye revisar y aplicar la migración de la TAREA 4.
+TAREA 6. (Recordatorios, E11c) Al unir con master: el trabajo de pg_cron pasa a llamar a la URL de producción, se quita el encabezado de omisión de la protección de la vista previa y se comprueba que las claves VAPID y RECORDATORIOS_SECRETO están en Production. Se agrega el cron diario de Vercel a GET /api/nova/salud con CRON_SECRET (riesgo de pausa de Supabase, plan 13).
 ```
 
 **Commit:** `docs: aceptación de la ampliación`
