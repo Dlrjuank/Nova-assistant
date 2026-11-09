@@ -47,8 +47,8 @@ describe('historial del chat (RN-20 y RN-21)', () => {
       conversacionId: CONV,
       guardada: true,
     });
-    expect(m.txQuery.mock.calls[0]?.[1]).toEqual([CONV, USUARIO, 'usuario', '¿Cuánto dura?', '[]']);
-    expect(m.txQuery.mock.calls[1]?.[1]).toEqual([CONV, USUARIO, 'asistente', 'Dura 24 meses.', JSON.stringify(fuentes)]);
+    expect(m.txQuery.mock.calls[0]?.[1]).toEqual([CONV, USUARIO, 'usuario', '¿Cuánto dura?', '[]', null]);
+    expect(m.txQuery.mock.calls[1]?.[1]).toEqual([CONV, USUARIO, 'asistente', 'Dura 24 meses.', JSON.stringify(fuentes), null]);
     expect(m.txQuery.mock.calls[2]?.[0]).toContain('UPDATE conversaciones SET actualizada_en');
   });
 
@@ -69,6 +69,7 @@ describe('historial del chat (RN-20 y RN-21)', () => {
       USUARIO,
       '¿y el segundo?',
       previos.map(({ autor, texto }) => ({ autor, texto })),
+      {},
     );
   });
 
@@ -77,7 +78,7 @@ describe('historial del chat (RN-20 y RN-21)', () => {
     m.consultar.mockResolvedValue({ respuesta: 'Sí.', fuentes: [] });
     const r = await consultarYRegistrar(USUARIO, 'Mi agenda de hoy');
     expect(r.conversacionId).toBe('nueva');
-    expect(m.consultar).toHaveBeenCalledWith(USUARIO, 'Mi agenda de hoy', []);
+    expect(m.consultar).toHaveBeenCalledWith(USUARIO, 'Mi agenda de hoy', [], {});
   });
 
   it('una conversación de otro usuario (o inexistente) es CONVERSACION_NO_ENCONTRADA y no llega a Gemini', async () => {

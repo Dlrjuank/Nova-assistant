@@ -15,9 +15,10 @@ import {
 import { mencionaTareas, normalizarConsulta, textoDeBusqueda, validarConsulta } from '@/lib/reglas/consulta';
 import { lineaHoy } from '@/lib/reglas/fechas';
 import { existenDocumentos } from './documentos';
-import { recuperarFragmentos } from './fragmentos';
+import { resolverPreguntaDeLibro } from './consultaLibro';
+import { recuperarFragmentos, recuperarFragmentosDeDocumento } from './fragmentos';
 import { tareasPendientesComoTexto } from './tareas';
-import type { Fragmento, Fuente, RespuestaAsistente } from './tipos';
+import type { Continuacion, Fragmento, Fuente, RespuestaAsistente } from './tipos';
 
 /**
  * RN-14: fuentes usadas. Se recuperan siempre 4 fragmentos, aunque no todos sirvan, así que se dejan
@@ -49,9 +50,29 @@ export async function consultar(
   usuarioId: string,
   pregunta: string,
   historial: TurnoConversacion[] = [],
+  opciones: { documentoId?: string | undefined; continuacion?: Continuacion | undefined } = {},
 ): Promise<RespuestaAsistente> {
   validarConsulta(pregunta); // RN-02
   const preguntaNormal = normalizarConsulta(pregunta);
+
+  // E10c (RB-39, RB-40): por página o capítulo se responde con ese texto, sin búsqueda vectorial.
+  const libro = await resolverPreguntaDeLibro(usuarioId, preguntaNormal, opciones);
+  if (libro?.tipo === 'fija') return { respuesta: libro.respuesta, fuentes: [] };
+  if (libro) {
+    const texto = await llm.responder({
+      sistema: SYSTEM_PROMPT,
+      contexto: construirContexto(libro.fragmentos, [], lineaHoy(), { tareasConsultadas: false, hayDocumentos: true }),
+      pregunta: libro.pregunta,
+      historial,
+    });
+    if (texto.startsWith(SIN_RESPUESTA)) return { respuesta: SIN_RESPUESTA, fuentes: [] };
+    return {
+      respuesta: libro.aviso ? `${texto}\n\n${libro.aviso}` : texto,
+      fuentes: libro.fuente ? [{ tipo: 'pdf', etiqueta: libro.fuente }] : armarFuentes(texto, libro.fragmentos, []),
+      contexto: { fragmentos: libro.fragmentos.map((f) => f.id), ...(libro.continuacion ? { continuacion: libro.continuacion } : {}) },
+    };
+  }
+
   const anterior = historial.findLast((m) => m.autor === 'usuario')?.texto;
   const busqueda = textoDeBusqueda(preguntaNormal, anterior); // RN-21
 
@@ -60,7 +81,9 @@ export async function consultar(
   let fragmentos: Fragmento[] = [];
   if (hayDocumentos) {
     const vector = await llm.generarEmbedding(busqueda);
-    fragmentos = await recuperarFragmentos(usuarioId, vector, FRAGMENTOS_RECUPERADOS); // RN-12
+    fragmentos = opciones.documentoId
+      ? await recuperarFragmentosDeDocumento(usuarioId, vector, FRAGMENTOS_RECUPERADOS, opciones.documentoId) // E10c: "Buscar en"
+      : await recuperarFragmentos(usuarioId, vector, FRAGMENTOS_RECUPERADOS); // RN-12
   }
   // Con documentos, las tareas van si la pregunta las menciona (RN-12); sin documentos, siempre (RB-30).
   const tareasConsultadas = !hayDocumentos || mencionaTareas(busqueda);
@@ -81,5 +104,7 @@ export async function consultar(
   if (respuesta.startsWith(SIN_RESPUESTA) || respuesta.startsWith(SIN_DOCUMENTOS_RESPUESTA.slice(0, 30))) {
     return { respuesta: hayDocumentos ? SIN_RESPUESTA : SIN_DOCUMENTOS_RESPUESTA, fuentes: [] };
   }
-  return { respuesta, fuentes: armarFuentes(respuesta, fragmentos, tareas) };
+  const fuentes = armarFuentes(respuesta, fragmentos, tareas);
+  // RB-41: solo las respuestas que citan documentos se pueden explicar de otra manera.
+  return { respuesta, fuentes, ...(fuentes.some((f) => f.tipo === 'pdf') ? { contexto: { fragmentos: fragmentos.map((f) => f.id) } } : {}) };
 }

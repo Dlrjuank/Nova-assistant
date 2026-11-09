@@ -293,6 +293,9 @@ try {
       marcar(false, `t-ab) libros: ${e.message}`);
     }
   }
+  console.log('== 6f. Contexto de las respuestas (M19)');
+  const colContexto = await c.query("SELECT 1 FROM information_schema.columns WHERE table_name = 'mensajes_chat' AND column_name = 'contexto'");
+  marcar(colContexto.rowCount === 1, 'columna mensajes_chat.contexto');
   await c.query('ROLLBACK');
 
   console.log(`== 7. Total de fallas: ${fallas}`);

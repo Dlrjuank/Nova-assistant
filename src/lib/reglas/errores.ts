@@ -15,6 +15,7 @@ export type CodigoError =
   | 'TAREA_YA_COMPLETADA'
   | 'CONVERSACION_NO_ENCONTRADA'
   | 'DOCUMENTO_NO_ENCONTRADO'
+  | 'MENSAJE_NO_ENCONTRADO'
   | 'LIMITE_FUENTES'
   | 'FUENTE_NO_ENCONTRADA'
   | 'ERROR_WIKIPEDIA'
@@ -46,6 +47,7 @@ export const MENSAJES: Record<CodigoError, string> = {
   TAREA_YA_COMPLETADA: 'La tarea ya está completada.',
   CONVERSACION_NO_ENCONTRADA: 'La conversación no existe. Recargue la página.',
   DOCUMENTO_NO_ENCONTRADO: 'El documento no existe.',
+  MENSAJE_NO_ENCONTRADO: 'Esa respuesta ya no se puede explicar de otra manera.',
   FUENTE_NO_ENCONTRADA: 'La fuente no existe.',
   LIMITE_FUENTES: 'Alcanzó el máximo de 20 fuentes en esta categoría; archive o elimine una.',
   ERROR_WIKIPEDIA: 'No se pudo consultar Wikipedia. Intente de nuevo.',
@@ -79,6 +81,7 @@ export const ESTADO_HTTP: Record<CodigoError, number> = {
   TAREA_YA_COMPLETADA: 409,
   CONVERSACION_NO_ENCONTRADA: 404,
   DOCUMENTO_NO_ENCONTRADO: 404,
+  MENSAJE_NO_ENCONTRADO: 404,
   LIMITE_FUENTES: 409,
   FUENTE_NO_ENCONTRADA: 404,
   ERROR_WIKIPEDIA: 502,

@@ -119,7 +119,7 @@ export function capitulosDesdeIndice(indice: readonly EntradaIndice[], totalPagi
 const ENCABEZADO = /^(cap[ií]tulo|unidad|tema|lecci[oó]n|m[oó]dulo|chapter)\s+(\d{1,3}|[ivxlcdm]{1,7})\b\s*[.:–—-]?\s*(.*)$/i;
 const ROMANOS: Record<string, number> = { i: 1, v: 5, x: 10, l: 50, c: 100, d: 500, m: 1000 };
 
-function numeroDe(texto: string): number {
+export function numeroDe(texto: string): number {
   if (/^\d+$/.test(texto)) return Number(texto);
   const letras = texto.toLowerCase().split('').map((l) => ROMANOS[l] as number);
   return letras.reduce((suma, valor, i) => suma + (valor < (letras[i + 1] ?? 0) ? -valor : valor), 0);

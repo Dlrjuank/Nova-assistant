@@ -350,7 +350,7 @@ VERIFICACIÓN: B-67.
 ```text
 OBJETIVO: preguntar por página o capítulo y pedir otra explicación.
 
-TAREA 1. Selector "Buscar en" (Todos o un documento) encima del campo del Asistente.
+TAREA 1. Selector "Buscar en" (Todos los documentos o uno) encima del campo del Asistente. Migración M19 (mensajes_chat.contexto), con respaldo y compatibilidad con master (11.3).
 TAREA 2. Reglas puras para reconocer página y capítulo (S-37 a S-39); consulta directa por página o capítulo, sin vector, con citas de página (RB-39, RB-40). Las reglas de RB-30 a RB-32 no cambian.
 TAREA 3. "Explicar de otra manera" bajo las respuestas con citas: 5 modos, mismos fragmentos, mismas citas, historial (RB-41).
 TAREA 4. probar:rag y probar:libro con Gemini real (pregunta por página, capítulo y "Más simple").

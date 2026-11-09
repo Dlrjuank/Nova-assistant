@@ -77,14 +77,31 @@ export interface Fuente {
   etiqueta: string;
 }
 
+/** RB-40: dónde sigue un capítulo que se responde por partes. */
+export interface Continuacion {
+  documentoId: string;
+  orden: number;
+  desde: number;
+}
+
+/** E10c: qué fragmentos usó una respuesta; se guarda con el mensaje y no sale al navegador. */
+export interface ContextoMensaje {
+  fragmentos: string[];
+  continuacion?: Continuacion;
+}
+
 export interface RespuestaAsistente {
   respuesta: string;
   fuentes: Fuente[];
+  contexto?: ContextoMensaje;
 }
 
-export interface RespuestaConHistorial extends RespuestaAsistente {
+export interface RespuestaConHistorial extends Omit<RespuestaAsistente, 'contexto'> {
   conversacionId: string;
   guardada: boolean; // false si la respuesta llegó pero no se pudo guardar en el historial
+  /** E10c: para "Explicar de otra manera" (RB-41). */
+  mensajeId?: number;
+  explicable?: boolean;
 }
 
 export interface MensajeGuardado {
@@ -92,6 +109,8 @@ export interface MensajeGuardado {
   autor: 'usuario' | 'asistente';
   texto: string;
   fuentes: Fuente[];
+  /** E10c: si la respuesta citó documentos y se puede explicar de otra manera (RB-41). */
+  explicable?: boolean;
 }
 
 export interface ConversacionActual {

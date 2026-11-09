@@ -464,6 +464,10 @@ Columnas nuevas en `tareas_personales`: `hora_inicio TIME NULL` y `hora_fin TIME
 
 Columna nueva en `fuentes_web`: `vector vector(768) NULL`, con el embedding de su resumen. Función nueva `buscar_fuentes_web_usuario(consulta, limite, usuario)`, que solo mira las fuentes del usuario con vector. Solo aditiva: `master` no usa la columna y sus INSERT la dejan en NULL. Una fuente guardada antes de E10c2 se vectoriza la primera vez que se busca en "Fuentes web".
 
+### 6.15 M19 · Contexto de las respuestas (E10c)
+
+Columna nueva en `mensajes_chat`: `contexto JSONB NULL`, con `{ fragmentos: uuid[], continuacion?: { documentoId, orden, desde } }`. Guarda qué fragmentos usó cada respuesta, para "Explicar de otra manera" (RB-41) y para seguir un capítulo por partes (RB-40). No sale al navegador. Solo aditiva: los INSERT de `master` la dejan en NULL.
+
 ## 7. Reglas de cálculo
 
 Todas en funciones puras de `src/lib/reglas/` (sin red, sin base, sin reloj salvo `fechas.ts`), probadas con Vitest. Notas en centésimas (0 a 500), porcentajes en centésimas de punto (0 a 10000). Los productos se calculan con enteros; la división final y el redondeo, con aritmética exacta sobre esos enteros.
@@ -613,7 +617,7 @@ Los mensajes se usan **textualmente** en la interfaz y en la API. Los de `PLAN_N
 | RB-37 | (E10b) Capítulos del índice interno del PDF; si no tiene, de encabezados al comienzo de página; si no hay ninguno, no se inventan | `No encontré capítulos en este PDF. Puedes preguntar por página.` |
 | RB-38 | (E10b) Libro de hasta 800 páginas (y 15 MB, RN-01); se indexa por partes y se puede reanudar; mientras tanto no entra en las búsquedas | `El PDF tiene {n} páginas; el máximo es 800.` · Estado: `Indexando… {p} %` |
 | RB-39 | (E10c) Pregunta por página ("página 45", "pág. 45", "p. 45"): se responde con los fragmentos de esa página, sin búsqueda vectorial, y se cita la página. Con varios documentos con páginas y ninguno elegido en "Buscar en", se pregunta cuál | `Ese documento tiene {n} páginas.` · `¿En qué documento? Elígelo en "Buscar en".` |
-| RB-40 | (E10c) Pregunta por capítulo (por número o por título): todos los fragmentos del capítulo, hasta 60 (unas 30.000 palabras) por respuesta; si es más largo, se resume por partes a pedido del usuario | `El capítulo es largo: resumí las páginas {a}–{b}. Escribe "sigue" para el resto.` · Sin ese capítulo: `No encontré el capítulo {x} en este documento.` |
+| RB-40 | (E10c) Pregunta por capítulo (por número o por título): todos los fragmentos del capítulo, hasta 60 (unas 30.000 palabras) por respuesta; si es más largo, se resume por partes a pedido del usuario | `El capítulo es largo: resumí las páginas {a}–{b}. Escribe "sigue con el resto" para continuar.` · Sin ese capítulo: `No encontré el capítulo {x} en este documento.` |
 | RB-41 | (E10c) "Explicar de otra manera": 5 modos; solo bajo respuestas que citan documentos; usa exactamente los fragmentos de esa respuesta (sin buscar otra vez) y conserva sus citas; cada modo es una llamada a Gemini y queda en el historial | Mensaje del usuario en el historial: `Explícalo: {modo}` |
 | RB-42 | (E10d) Plan de lectura: capítulos elegidos entre fecha de inicio y fecha final (o N capítulos por semana), repartidos en orden; vista previa antes de crear; un capítulo ya en Tareas no se repite | `La fecha final debe ser igual o posterior a la de inicio.` · `Este capítulo ya está en Tareas.` |
 | RB-43 | (E11c) Recordatorio opcional de una tarea pendiente (regla 7.10); con horario, 4 opciones; sin horario, 2 a la hora fija | `Ese momento ya pasó: no se enviará el recordatorio.` (aviso; la tarea se guarda) |
@@ -706,7 +710,7 @@ Todas con `exigirSesion()` como primera instrucción y el id del usuario de la s
 | `GET /api/nova/estadisticas` | Datos de Estadísticas | E20 |
 | `POST /api/nova/documentos/[id]/continuar` | Indexar la parte siguiente de un libro (RB-38) | E10b |
 | `GET /api/nova/documentos/[id]/capitulos` | Capítulos con sus páginas | E10b |
-| `POST /api/nova/consultar` (campos nuevos) | `documentoId` ("Buscar en"), y `explicar: { mensajeId, modo }` (RB-41) | E10c |
+| `POST /api/nova/consultar` (campos nuevos) | `documentoId` ("Buscar en"), y `explicar: { mensajeId, modo }` (RB-41; una respuesta ajena o sin fragmentos: `MENSAJE_NO_ENCONTRADO`, 404) | E10c |
 | `POST /api/nova/documentos/[id]/plan-lectura` (vista previa) y `.../plan-lectura/confirmar` | Plan de lectura (RB-42) | E10d |
 | `POST/DELETE /api/nova/notificaciones/suscripcion`, `POST /api/nova/notificaciones/prueba` | Suscripción push del dispositivo y aviso de prueba | E11c |
 | `POST /api/nova/recordatorios/tick` | Envío cada minuto; sin sesión, con `RECORDATORIOS_SECRETO` | E11c |

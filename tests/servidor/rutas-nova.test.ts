@@ -144,14 +144,14 @@ describe('rutas /api/nova', () => {
       m.consultarYRegistrar.mockResolvedValueOnce(datos);
       const ok = await consultarRuta.POST(post({ pregunta: 'Mi agenda de hoy' }));
       expect(await ok.json()).toEqual({ ok: true, datos });
-      expect(m.consultarYRegistrar).toHaveBeenLastCalledWith(USUARIO, 'Mi agenda de hoy', undefined);
+      expect(m.consultarYRegistrar).toHaveBeenLastCalledWith(USUARIO, 'Mi agenda de hoy', undefined, undefined);
     });
 
     it('POST consultar pasa el id de conversación del cuerpo y rechaza uno que no es UUID', async () => {
       const CONV = '33333333-3333-4333-8333-333333333333';
       m.consultarYRegistrar.mockResolvedValue({ respuesta: 'Sí', fuentes: [], conversacionId: CONV, guardada: true });
       await consultarRuta.POST(post({ pregunta: '¿y el segundo?', conversacionId: CONV }));
-      expect(m.consultarYRegistrar).toHaveBeenLastCalledWith(USUARIO, '¿y el segundo?', CONV);
+      expect(m.consultarYRegistrar).toHaveBeenLastCalledWith(USUARIO, '¿y el segundo?', CONV, undefined);
       const malo = await consultarRuta.POST(post({ pregunta: '¿y el segundo?', conversacionId: 'x' }));
       expect(malo.status).toBe(400);
       expect(m.consultarYRegistrar).toHaveBeenCalledTimes(1);

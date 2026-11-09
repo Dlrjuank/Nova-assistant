@@ -7,10 +7,12 @@ import { MensajeChat, type AutorMensaje } from '@/components/nova/MensajeChat';
 import { Aviso } from '@/components/ui/Aviso';
 import { Boton } from '@/components/ui/Boton';
 import { CLASE_CONTROL } from '@/components/ui/Campo';
+import { Selector } from '@/components/ui/Selector';
 import type { Fuente, MensajeGuardado, RespuestaConHistorial } from '@/lib/dataService';
 import { esConsultaValida as esValida, normalizarConsulta } from '@/lib/reglas/consulta';
 import { MENSAJES } from '@/lib/reglas/errores';
 import { CONSULTA_MAX_CARACTERES } from '@/lib/config/nova';
+import type { ModoExplicar } from '@/lib/reglas/preguntasLibro';
 import { useSeguirConversacion } from './seguirConversacion';
 
 interface Mensaje {
@@ -18,12 +20,14 @@ interface Mensaje {
   autor: AutorMensaje;
   texto: string;
   fuentes?: Fuente[];
+  /** RB-41: id en la base, solo si la respuesta se puede explicar de otra manera. */
+  explicableId?: number;
 }
 
 interface ErrorChat {
   codigo: string;
   mensaje: string;
-  pregunta: string;
+  cuerpo: Record<string, unknown>;
 }
 
 // Reintentar no sirve para estos: repetir la misma pregunta daría el mismo error.
@@ -37,15 +41,19 @@ export function Chat({
   conversacionId: idInicial = null,
   historial = [],
   preguntaInicial,
+  documentos = [],
 }: {
   conversacionId?: string | null;
   historial?: MensajeGuardado[];
   /** E03: pregunta escrita en "Pregúntale a Nova" (Inicio); se envía al cargar, una sola vez. */
   preguntaInicial?: string;
+  /** E10c: los documentos listos, para el selector "Buscar en". */
+  documentos?: ReadonlyArray<{ id: string; nombre: string }>;
 }) {
   const [mensajes, setMensajes] = useState<Mensaje[]>(() =>
-    historial.map((m, i) => ({ id: i, autor: m.autor, texto: m.texto, fuentes: m.fuentes })),
+    historial.map((m, i) => ({ id: i, autor: m.autor, texto: m.texto, fuentes: m.fuentes, ...(m.explicable ? { explicableId: Number(m.id) } : {}) })),
   );
+  const [buscarEn, setBuscarEn] = useState('');
   const [conversacionId, setConversacionId] = useState(idInicial);
   const [texto, setTexto] = useState('');
   const [pensando, setPensando] = useState(false);
@@ -97,13 +105,24 @@ export function Chat({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar
   }, [preguntaInicial]);
 
-  const agregar = (autor: AutorMensaje, contenido: string, fuentes?: Fuente[]) => {
+  const agregar = (autor: AutorMensaje, contenido: string, fuentes?: Fuente[], explicableId?: number) => {
     pendiente.current = autor === 'usuario' ? 'enviada' : 'llegada';
     const id = siguienteId.current++;
-    setMensajes((previos) => [...previos, { id, autor, texto: contenido, ...(fuentes ? { fuentes } : {}) }]);
+    setMensajes((previos) => [...previos, { id, autor, texto: contenido, ...(fuentes ? { fuentes } : {}), ...(explicableId ? { explicableId } : {}) }]);
   };
 
-  async function preguntar(pregunta: string) {
+  function preguntar(pregunta: string) {
+    return consultar({ pregunta, ...(buscarEn ? { documentoId: buscarEn } : {}) });
+  }
+
+  /** RB-41: vuelve a explicar una respuesta con sus mismos fragmentos. */
+  function explicar(mensajeId: number, modo: ModoExplicar, texto: string) {
+    if (pensando) return;
+    agregar('usuario', `Explícalo: ${texto}`);
+    void consultar({ explicar: { mensajeId, modo } });
+  }
+
+  async function consultar(cuerpoConsulta: Record<string, unknown>) {
     setError(null);
     setSinGuardar(false);
     setPensando(true);
@@ -111,7 +130,7 @@ export function Chat({
       const respuesta = await fetch('/api/nova/consultar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(conversacionId ? { pregunta, conversacionId } : { pregunta }),
+        body: JSON.stringify(conversacionId ? { ...cuerpoConsulta, conversacionId } : cuerpoConsulta),
       });
       // Si Vercel corta la función por tiempo, la respuesta no es JSON.
       const cuerpo = (await respuesta.json().catch(() => null)) as {
@@ -124,16 +143,16 @@ export function Chat({
         setError({
           codigo: cuerpo?.error?.codigo ?? 'ERROR_LLM',
           mensaje: cuerpo?.error?.mensaje ?? MENSAJES.ERROR_LLM,
-          pregunta,
+          cuerpo: cuerpoConsulta,
         });
         return;
       }
-      agregar('asistente', cuerpo.datos.respuesta, cuerpo.datos.fuentes);
+      agregar('asistente', cuerpo.datos.respuesta, cuerpo.datos.fuentes, cuerpo.datos.explicable ? cuerpo.datos.mensajeId : undefined);
       setConversacionId(cuerpo.datos.conversacionId);
       setSinGuardar(cuerpo.datos.guardada === false);
     } catch {
       pendiente.current = 'llegada';
-      setError({ codigo: 'SIN_CONEXION', mensaje: 'No se pudo conectar con el servidor.', pregunta });
+      setError({ codigo: 'SIN_CONEXION', mensaje: 'No se pudo conectar con el servidor.', cuerpo: cuerpoConsulta });
     } finally {
       setPensando(false);
     }
@@ -212,7 +231,14 @@ export function Chat({
 
       <ul ref={lista} role="log" aria-label="Conversación con el asistente" className="flex flex-col gap-4">
         {mensajes.map((m) => (
-          <MensajeChat key={m.id} autor={m.autor} texto={m.texto} {...(m.fuentes ? { fuentes: m.fuentes } : {})} />
+          <MensajeChat
+            key={m.id}
+            autor={m.autor}
+            texto={m.texto}
+            {...(m.fuentes ? { fuentes: m.fuentes } : {})}
+            {...(m.explicableId ? { alExplicar: (modo: ModoExplicar, nombre: string) => explicar(m.explicableId as number, modo, nombre) } : {})}
+            ocupado={pensando}
+          />
         ))}
       </ul>
 
@@ -234,7 +260,7 @@ export function Chat({
         <div className="flex flex-col items-start gap-2">
           <Aviso tipo="error">{error.mensaje}</Aviso>
           {!SIN_REINTENTO.includes(error.codigo) && (
-            <Boton variante="secundario" onClick={() => void preguntar(error.pregunta)} disabled={pensando}>
+            <Boton variante="secundario" onClick={() => void consultar(error.cuerpo)} disabled={pensando}>
               Reintentar
             </Boton>
           )}
@@ -257,6 +283,15 @@ export function Chat({
       )}
 
       <form ref={formulario} onSubmit={enviar} className="flex scroll-mb-24 flex-col gap-2">
+        {documentos.length > 0 && (
+          <Selector
+            id="buscar-en"
+            etiqueta="Buscar en"
+            value={buscarEn}
+            onChange={(e) => setBuscarEn(e.target.value)}
+            opciones={[{ valor: '', texto: 'Todos los documentos' }, ...documentos.map((d) => ({ valor: d.id, texto: d.nombre }))]}
+          />
+        )}
         <label htmlFor="pregunta" className="text-sm font-medium text-texto">
           Tu pregunta
         </label>

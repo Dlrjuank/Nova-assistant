@@ -3,6 +3,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { randomUUID } from 'node:crypto';
 import pg from 'pg';
+import { consultarYRegistrar, explicarRespuesta } from '@/lib/datos/conversacion';
 import { capitulosDeDocumento, continuarIndexacion, indexarContenido, listarDocumentos } from '@/lib/datos/documentos';
 import { recuperarFragmentos } from '@/lib/datos/fragmentos';
 import { llm } from '@/lib/llm/gemini';
@@ -72,6 +73,16 @@ try {
   const cap = capitulos.filter((c) => c.nivel === 1);
   marcar(cap.length === 4 && capitulos.length === 7, `Paso 5: ${cap.length} capítulos y ${capitulos.length - cap.length} secciones`);
   marcar(cap[0]?.etiquetaPaginas === '1–10' && cap[3]?.etiquetaPaginas === '29–38', `Paso 5b: páginas impresas (${cap.map((c) => c.etiquetaPaginas).join(', ')})`);
+
+  // 5c) E10c: preguntas reales por página y capítulo, y "Más simple".
+  const pagina = await consultarYRegistrar(U, '¿Qué dice la página 10?', undefined, id);
+  marcar(pagina.fuentes.some((f) => /p+\. .*10/.test(f.etiqueta)) && pagina.explicable === true, `Paso 5c: pregunta por página citando ${pagina.fuentes.map((f) => f.etiqueta).join(', ')}`);
+  const fuera = await consultarYRegistrar(U, '¿Qué dice la página 500?', undefined, id);
+  marcar(fuera.respuesta === 'Ese documento tiene 40 páginas.', `Paso 5d: página inexistente: ${fuera.respuesta}`);
+  const capitulo = await consultarYRegistrar(U, 'Resume el capítulo 3', undefined, id);
+  marcar(capitulo.fuentes[0]?.etiqueta === 'prueba-libro.pdf · pp. 20–28' && capitulo.respuesta.length > 40, `Paso 5e: capítulo citando ${capitulo.fuentes[0]?.etiqueta}`);
+  const simple = await explicarRespuesta(U, pagina.mensajeId as number, 'simple');
+  marcar(simple.fuentes.map((f) => f.etiqueta).join() === pagina.fuentes.map((f) => f.etiqueta).join() && simple.respuesta !== pagina.respuesta && simple.guardada, 'Paso 5f: "Más simple" responde con las mismas citas');
 
   // 6) Sin índice interno: encabezados. Solo extracción y reglas, sin gastar más cuota.
   const sinIndice = generarLibroPdf({ paginas: [['Portada'], ['Capítulo 1', 'Primeros pasos', 'Texto.'], ['Más texto.'], ['Capítulo 2: Segundo paso', 'Texto.']] });

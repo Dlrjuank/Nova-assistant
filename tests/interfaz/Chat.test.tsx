@@ -238,3 +238,73 @@ describe('Chat', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Reintentar' }).hasAttribute('disabled')).toBe(false));
   });
 });
+
+describe('E10c: Buscar en y Explicar de otra manera', () => {
+  const ok = (datos: unknown) => responder({ ok: true, datos });
+  const cuerpo = (f: ReturnType<typeof vi.fn>, n = 0) => JSON.parse(f.mock.calls[n]?.[1].body);
+  const DOCS = [{ id: '22222222-2222-4222-8222-222222222222', nombre: 'libro.pdf' }];
+
+  it('sin documentos no hay selector; con documentos, por defecto busca en todos', async () => {
+    const { unmount } = render(<Chat />);
+    expect(screen.queryByLabelText('Buscar en')).toBeNull();
+    unmount();
+    const f = vi.fn().mockResolvedValue(ok({ respuesta: 'Hola', fuentes: [], conversacionId: 'c', guardada: true }));
+    vi.stubGlobal('fetch', f);
+    render(<Chat documentos={DOCS} />);
+    const selector = screen.getByLabelText('Buscar en') as HTMLSelectElement;
+    expect([...selector.options].map((o) => o.textContent)).toEqual(['Todos los documentos', 'libro.pdf']);
+    escribir('¿Qué dice el libro?');
+    fireEvent.click(boton());
+    await screen.findByText('Hola');
+    expect(cuerpo(f)).toEqual({ pregunta: '¿Qué dice el libro?' });
+  });
+
+  it('con un documento elegido, la pregunta lo lleva', async () => {
+    const f = vi.fn().mockResolvedValue(ok({ respuesta: 'Hola', fuentes: [], conversacionId: 'c', guardada: true }));
+    vi.stubGlobal('fetch', f);
+    render(<Chat documentos={DOCS} />);
+    fireEvent.change(screen.getByLabelText('Buscar en'), { target: { value: DOCS[0]?.id } });
+    escribir('¿Qué dice la página 45?');
+    fireEvent.click(boton());
+    await screen.findByText('Hola');
+    expect(cuerpo(f).documentoId).toBe(DOCS[0]?.id);
+  });
+
+  const respuestaConCita = { respuesta: 'Dice algo', fuentes: [{ tipo: 'pdf', etiqueta: 'l.pdf · p. 2' }], conversacionId: 'c', guardada: true, mensajeId: 9, explicable: true };
+
+  it('los 5 modos aparecen solo bajo las respuestas explicables', async () => {
+    const f = vi.fn().mockResolvedValueOnce(ok({ respuesta: 'Sin citas', fuentes: [], conversacionId: 'c', guardada: true }));
+    vi.stubGlobal('fetch', f);
+    render(<Chat documentos={DOCS} />);
+    escribir('Primera pregunta larga');
+    fireEvent.click(boton());
+    await screen.findByText('Sin citas');
+    expect(screen.queryByRole('group', { name: 'Explicar de otra manera' })).toBeNull();
+    f.mockResolvedValueOnce(ok(respuestaConCita));
+    escribir('Segunda pregunta larga');
+    fireEvent.click(boton());
+    await screen.findByText('Dice algo');
+    const grupo = screen.getByRole('group', { name: 'Explicar de otra manera' });
+    expect(grupo.querySelectorAll('button')).toHaveLength(5);
+  });
+
+  it('"Más simple" pide esa explicación, la deja en el historial y permite seguir explicando', async () => {
+    const f = vi.fn().mockResolvedValueOnce(ok(respuestaConCita));
+    vi.stubGlobal('fetch', f);
+    render(<Chat />);
+    escribir('Una pregunta larga');
+    fireEvent.click(boton());
+    await screen.findByText('Dice algo');
+    f.mockResolvedValueOnce(ok({ ...respuestaConCita, respuesta: 'Más fácil', mensajeId: 11 }));
+    fireEvent.click(screen.getByRole('button', { name: 'Más simple' }));
+    expect(await screen.findByText('Explícalo: Más simple')).toBeTruthy();
+    await screen.findByText('Más fácil');
+    expect(cuerpo(f, 1)).toEqual({ explicar: { mensajeId: 9, modo: 'simple' }, conversacionId: 'c' });
+    expect(screen.getAllByRole('group', { name: 'Explicar de otra manera' })).toHaveLength(2);
+  });
+
+  it('el historial guardado también ofrece explicar', () => {
+    render(<Chat historial={[{ id: 3, autor: 'asistente', texto: 'Antes', fuentes: [], explicable: true }, { id: 4, autor: 'asistente', texto: 'Otra', fuentes: [] }]} />);
+    expect(screen.getAllByRole('group', { name: 'Explicar de otra manera' })).toHaveLength(1);
+  });
+});

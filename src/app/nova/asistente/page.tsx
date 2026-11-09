@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Chat } from '@/components/nova/Chat';
 import { Aviso } from '@/components/ui/Aviso';
 import { EncabezadoPantalla } from '@/components/ui/EncabezadoPantalla';
-import { conversacionActual, exigirSesion, existenDocumentos, hayTareasPendientes } from '@/lib/dataService';
+import { conversacionActual, exigirSesion, existenDocumentos, hayTareasPendientes, listarDocumentos } from '@/lib/dataService';
 import { AVISO_PROVEEDOR, AVISO_SIN_FUENTES, AVISO_SOLO_TAREAS, avisoAsistente } from '@/lib/reglas/consulta';
 
 export const dynamic = 'force-dynamic';
@@ -13,10 +13,11 @@ export default async function AsistentePage({ searchParams }: { searchParams: Pr
   const preguntaInicial = typeof pregunta === 'string' ? pregunta : undefined;
   // El layout ya exige sesión con acceso; aquí hace falta el id para el historial (RN-20) y sus documentos (RB-01).
   const { id } = await exigirSesion();
-  const [hayDocumentos, hayTareas, conversacion] = await Promise.all([
+  const [hayDocumentos, hayTareas, conversacion, documentos] = await Promise.all([
     existenDocumentos(id),
     hayTareasPendientes(id),
     conversacionActual(id),
+    listarDocumentos(id),
   ]);
   const aviso = avisoAsistente(hayDocumentos, hayTareas); // RB-30
   const enlaceIndexar = (
@@ -43,6 +44,7 @@ export default async function AsistentePage({ searchParams }: { searchParams: Pr
       <Chat
         conversacionId={conversacion?.id ?? null}
         historial={conversacion?.mensajes ?? []}
+        documentos={documentos.filter((d) => d.progreso === null && d.numFragmentos > 0).map((d) => ({ id: d.id, nombre: d.nombreArchivo }))}
         {...(preguntaInicial ? { preguntaInicial } : {})}
       />
     </>

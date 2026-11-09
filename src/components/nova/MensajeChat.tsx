@@ -1,5 +1,7 @@
 import { ListaFuentes } from '@/components/nova/ListaFuentes';
+import { Boton } from '@/components/ui/Boton';
 import type { Fuente } from '@/lib/dataService';
+import { MODOS_EXPLICAR, type ModoExplicar } from '@/lib/reglas/preguntasLibro';
 
 export type AutorMensaje = 'usuario' | 'asistente';
 
@@ -8,10 +10,15 @@ export function MensajeChat({
   autor,
   texto,
   fuentes = [],
+  alExplicar,
+  ocupado = false,
 }: {
   autor: AutorMensaje;
   texto: string;
   fuentes?: Fuente[];
+  /** RB-41: solo en las respuestas que citan documentos. */
+  alExplicar?: ((modo: ModoExplicar, texto: string) => void) | undefined;
+  ocupado?: boolean;
 }) {
   const esUsuario = autor === 'usuario';
   return (
@@ -22,6 +29,15 @@ export function MensajeChat({
       >
         <p className="whitespace-pre-wrap break-words text-texto">{texto}</p>
         <ListaFuentes fuentes={fuentes} />
+        {alExplicar && (
+          <div role="group" aria-label="Explicar de otra manera" className="mt-3 flex flex-wrap gap-1.5">
+            {MODOS_EXPLICAR.map((m) => (
+              <Boton key={m.id} variante="secundario" disabled={ocupado} onClick={() => alExplicar(m.id, m.texto)} className="min-h-9 px-3 py-1 text-xs">
+                {m.texto}
+              </Boton>
+            ))}
+          </div>
+        )}
       </div>
     </li>
   );

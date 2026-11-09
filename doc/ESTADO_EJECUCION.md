@@ -666,4 +666,25 @@ Total de fallas: 0
   - Fuentes por categoría, aviso del tope, eliminar libera el cupo (19/20), una búsqueda real aparece sin recargar. Claro y oscuro a 1280 y 390 px sin desborde ni errores.
   - La comprobación que no pasó estaba mal planteada: esperaba que nada cambiara tras salir, pero la parte en curso terminó en el servidor (62 → 93) y ahí se detuvo.
 - **Al cierre:** `npm test` 500/500, `npm run build` correcto, `eslint` sin errores.
+- **Prueba del usuario (teléfono y PC):** el porcentaje sube solo, "quedó indexado" y "Ver capítulos" aparecen sin recargar, retoma al salir y al bloquear el teléfono, y las fuentes guardadas funcionan. E10b y E10b2 confirmados.
+
+### E10c Ampliación: libros en el Asistente
+
+- **Plan actualizado antes de empezar** (commit `4c5c4dc`): E10c2 ("Guardar" y fuentes web en el Asistente) y la indexación en segundo plano en E11c.
+- **Limpieza:** con el OK del usuario se revisó su cuenta: 0 documentos, 0 fuentes y 0 tareas; no hubo nada que borrar.
+- **Respaldo previo:** `respaldos/2026-11-09_180445` (0 tareas, 0 documentos, 0 fragmentos, 0 fuentes, 14 conversaciones, 82 mensajes).
+- **Migración M19** `supabase/migrations/20261109110000_nova_contexto_mensajes.sql`: `mensajes_chat.contexto`, con los fragmentos que usó cada respuesta (no estaba en el plan; hace falta para RB-40 y RB-41). `db:verificar` 0 fallas; compatibilidad con `master` (worktree, conexión directa): `db:verificar` y `probar:rag` con 0 fallas.
+- **Reglas** (`src/lib/reglas/preguntasLibro.ts`): reconocer página y capítulo (número, romano, unidad o título), continuación y los 5 modos.
+- **Servicio** (`src/lib/datos/consultaLibro.ts`, `consulta.ts`, `conversacion.ts`):
+  - Por página o capítulo se responde con ese texto, sin búsqueda vectorial, y se le indica al modelo de qué página o capítulo es.
+  - Un capítulo largo va por partes de 60 fragmentos, con "sigue con el resto".
+  - Con varios libros y ninguno elegido, pregunta cuál. Respuestas exactas sin llamar a Gemini para página inexistente, capítulo inexistente y libro sin capítulos.
+  - `explicarRespuesta` usa los mismos fragmentos y las mismas citas, y queda en el historial.
+  - "Buscar en" limita también la búsqueda normal a un documento.
+- **Interfaz:** selector "Buscar en" y los 5 modos bajo cada respuesta con citas, también en el historial.
+- **Encontrado con Gemini real:** "Resume el capítulo 3" respondía "No encontré" porque nada le decía al modelo que esos fragmentos eran el capítulo 3. Corregido.
+- **Pruebas:** `tests/reglas/preguntasLibro.test.ts`, `tests/servidor/consultaLibro.test.ts` y casos nuevos en `Chat.test.tsx`; actualizadas `conversacion` y `rutas-nova`.
+- **`probar:libro`** (Gemini y base reales; 0 fallas, ahora con página, página inexistente, capítulo y "Más simple"). **`probar:rag`** 0 fallas. Dos intentos anteriores de `probar:libro` se cortaron por la red o por el fallo ya corregido.
+- **Navegador real** (Edge, usuario temporal borrado al final, con Gemini real; 0 fallas en 14): selector, pregunta cuál con dos libros, página con su cita, 5 opciones táctiles solo bajo respuestas con citas, página inexistente, capítulo con sus páginas, "Más simple" con el mismo origen, opciones al recargar, los ids no salen al navegador, claro y oscuro a 1280 y 390 px.
+- **Al cierre:** `npm test` 527/527, `npm run build` correcto, `eslint` sin errores.
 
