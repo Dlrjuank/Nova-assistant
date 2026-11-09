@@ -99,6 +99,21 @@ describe('acción Editar', () => {
     expect(screen.queryByRole('link', { name: 'Editar tarea: T' })).toBeNull();
   });
 
+  it('en las columnas, el lápiz va siempre en la línea de la prioridad y la categoría tiene la suya', () => {
+    const tarea = { id: ID, titulo: 'T', categoria: 'Universidad', prioridad: 2, estado: 'Pendiente' };
+    render(<CasillaTarea tarea={tarea} color="azul" prefijo="p" compacta />);
+    const lapiz = screen.getByRole('link', { name: 'Editar tarea: T' });
+    expect(lapiz.parentElement?.textContent).toBe('Media');
+    expect(lapiz.parentElement?.textContent).not.toContain('Universidad');
+    expect(screen.getByTitle('Universidad').className).toContain('px-1.5');
+  });
+
+  it('fuera de las columnas (teléfono), la categoría conserva su tamaño', () => {
+    const tarea = { id: ID, titulo: 'T', categoria: 'Universidad', prioridad: 2, estado: 'Pendiente' };
+    render(<CasillaTarea tarea={tarea} color="azul" prefijo="p" />);
+    expect(screen.getByTitle('Universidad').className).toContain('px-2.5');
+  });
+
   it('al tocarlo lleva la pantalla actual, o la que se le indica', () => {
     window.history.pushState({}, '', '/nova/tareas?vista=hoy');
     const { rerender } = render(<EnlaceEditarTarea id={ID} titulo="T" />);

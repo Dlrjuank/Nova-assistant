@@ -71,9 +71,8 @@ export function CasillaTarea({
       {horario && <span className="text-xs font-normal text-texto-suave">{horario}</span>}
     </label>
   );
-  const piezas = (
+  const estado = (
     <>
-      <InsigniaCategoria nombre={tarea.categoria} color={color} />
       <InsigniaPrioridad prioridad={tarea.prioridad} />
       {vencida && <Insignia tono="peligro">Vencida</Insignia>}
     </>
@@ -81,12 +80,12 @@ export function CasillaTarea({
 
   // E09: solo las pendientes se editan (RB-29).
   const editar = !completada && (
-    <EnlaceEditarTarea id={tarea.id} titulo={tarea.titulo} volver={volver} soloIcono className={compacta ? 'ml-auto size-8' : 'size-10'} />
+    <EnlaceEditarTarea id={tarea.id} titulo={tarea.titulo} volver={volver} soloIcono className={compacta ? 'size-7' : 'size-10'} />
   );
 
   return (
     <div
-      className={`rounded-xl hover:bg-superficie-2 ${compacta ? 'flex flex-col gap-1.5 p-1.5' : 'flex items-start gap-2.5 p-2.5'}`}
+      className={`rounded-xl hover:bg-superficie-2 ${compacta ? 'flex flex-col gap-1.5 px-0.5 py-1.5' : 'flex items-start gap-2.5 p-2.5'}`}
     >
       {compacta ? (
         // Columnas de la semana: las insignias en su propia línea, con todo el ancho de la columna.
@@ -95,9 +94,10 @@ export function CasillaTarea({
             {entrada}
             {titulo}
           </div>
-          {/* El lápiz va en la misma fila que se reparte: la insignia de categoría conserva todo el ancho de la columna. */}
-          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-            {piezas}
+          {/* La categoría tiene su línea, con todo el ancho; el lápiz va siempre al final de la línea de la prioridad. */}
+          <InsigniaCategoria nombre={tarea.categoria} color={color} compacta />
+          <div className="flex min-w-0 items-start justify-between gap-1">
+            <div className="flex min-w-0 flex-wrap gap-1">{estado}</div>
             {editar}
           </div>
         </>
@@ -106,7 +106,10 @@ export function CasillaTarea({
           {entrada}
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             {titulo}
-            <div className="flex min-w-0 flex-wrap gap-1.5">{piezas}</div>
+            <div className="flex min-w-0 flex-wrap gap-1.5">
+              <InsigniaCategoria nombre={tarea.categoria} color={color} />
+              {estado}
+            </div>
           </div>
           {editar}
         </>

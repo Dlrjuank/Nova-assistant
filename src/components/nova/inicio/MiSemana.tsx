@@ -116,7 +116,7 @@ export function MiSemana({
         {dias.map((fecha, i) => {
           const esHoy = fecha === hoy;
           return (
-            <li key={fecha} aria-label={nombreDia(fecha)} className={`flex min-w-0 flex-col gap-2 rounded-xl p-2 ${esHoy ? 'bg-acento-suave' : 'bg-superficie-2'}`}>
+            <li key={fecha} aria-label={nombreDia(fecha)} className={`flex min-w-0 flex-col gap-2 rounded-xl p-1.5 ${esHoy ? 'bg-acento-suave' : 'bg-superficie-2'}`}>
               <p className={`text-center text-xs font-semibold uppercase ${esHoy ? 'text-acento' : 'text-texto-suave'}`} aria-hidden="true">
                 {DIAS_CORTOS[i]} <span className="block text-lg normal-case">{numeroDia(fecha)}</span>
               </p>

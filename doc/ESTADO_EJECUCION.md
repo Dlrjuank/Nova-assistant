@@ -581,4 +581,20 @@ Total de fallas: 0
   - En Edge, 0 fallas en 30: recorrido desde Tareas, Inicio y Calendario con su vuelta, formulario lleno, Cancelar, volver externo ignorado, acciones en una línea a 1280 px, categoría entera en Mi semana, y claro y oscuro a 1280 y 390 px sin desborde ni errores y sin transiciones con "reducir movimiento".
 - **Corregido al revisar las capturas:** el lápiz encogía la categoría en las columnas de Mi semana; quedaba 2 px desalineado en la tabla; "Editar" tenía casi el color de "Eliminar".
 - **Al cierre:** `npm test` 449/449, `npm run build` correcto, `eslint` sin errores.
+- **Prueba del usuario (teléfono y PC):** editar desde Tareas, Inicio y Calendario con su vuelta, cambiar fecha, categoría nueva sin duplicados, quitar el horario, el mensaje de "Hasta" sin "Desde", Cancelar, las completadas sin Editar, completar y eliminar funcionan.
+
+#### Ajuste de E09: columnas de Mi semana en el PC (2026-11-09, pedido del usuario)
+
+- **Problema:** "Universidad" salía como "Universi…", y el lápiz cambiaba de lugar: con "Media" bajaba a una línea sola y alargaba la tarjeta.
+- **Causa:** a 1280 px quedaban unos 92 px útiles por columna; "Universidad" necesitaba unos 105, y "Media" más el lápiz de 32 px no cabían juntos.
+- **Corrección** (solo en las columnas, desde 1280 px):
+  - La insignia de categoría tiene su propia línea y una versión `compacta`, con menos relleno; la columna y la casilla dejan más ancho útil.
+  - El lápiz, de 28 px, va siempre al final de la línea de la prioridad.
+  - El teléfono no cambia.
+- **Pruebas:** 2 nuevas en `tests/interfaz/editarTarea.test.tsx`.
+- **Navegador real** (Edge, usuario temporal borrado al final; 0 fallas en 19):
+  - A 1280, 1440 y 1920 px, "Universidad", "Programación" y "Laboratorio" se leen enteras; un nombre de 39 caracteres sí se corta.
+  - Media, Alta y Baja tienen el mismo alto y el lápiz en el mismo sitio, dentro de la columna.
+  - A 390 px, la insignia y el lápiz conservan su tamaño. Claro y oscuro sin desborde ni errores.
+- **Al cierre:** `npm test` 451/451, `npm run build` correcto, `eslint` sin errores.
 
