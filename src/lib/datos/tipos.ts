@@ -116,6 +116,15 @@ export interface ArticuloWeb {
   url: string;
 }
 
+/** E10b2: una fuente web guardada del usuario. */
+export interface FuenteWeb {
+  id: string;
+  categoria: string;
+  url: string;
+  extracto: string;
+  fechaGuardado: string;
+}
+
 export interface ResultadoWeb {
   resumen: string;
   url: string; // la del primer resultado: es la que se guarda

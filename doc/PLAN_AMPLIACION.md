@@ -17,7 +17,7 @@ Los prompts de ejecución están en `doc/PROMPTS_AMPLIACION.md` (etapas E00 a E2
 9. [El asistente en Semestre](#9-el-asistente-en-semestre)
 10. [API](#10-api)
 11. [Pruebas](#11-pruebas)
-12. [Casos de aceptación B-01 a B-66](#12-casos-de-aceptación-b-01-a-b-66)
+12. [Casos de aceptación B-01 a B-67](#12-casos-de-aceptación-b-01-a-b-67)
 13. [Riesgos y decisiones](#13-riesgos-y-decisiones)
 
 ---
@@ -73,6 +73,7 @@ Los prompts de ejecución están en `doc/PROMPTS_AMPLIACION.md` (etapas E00 a E2
 | X22 | Recordatorios de tareas con notificaciones push (a la hora, 15 min, 1 hora o 1 día antes; sin horario, a una hora fija) | E11c |
 | X23 | Resumen diario opcional por notificación y "Agregar a mi calendario" (.ics) | E11d |
 | X24 | Cuestionarios de selección múltiple desde un documento, capítulo o rango de páginas, con puntaje de 0 a 5 y "Repetir solo las que fallé" (pedido del usuario, 2026-11-09) | E10e |
+| X26 | Fuentes web guardadas: verlas por categoría y eliminarlas (pedido del usuario, 2026-11-09) | E10b2 |
 | X25 | Historial de intentos por documento o capítulo y sugerencia de tarea para repasar | E10f |
 
 ### 2.2 Fuera de alcance
@@ -227,7 +228,7 @@ Desde E02b (RB-30): sin documentos del usuario pero con al menos una tarea pendi
 
 ### 5.5 Fuentes (`/nova/fuentes`)
 
-Pestañas **Subir PDF** (subida e índice de documentos actuales, con eliminar) y **Buscar en la web** (búsqueda en Wikipedia actual), con `?pestana=pdf` (por defecto) o `?pestana=web`. El formulario y la lista "Tus documentos" están en la misma pantalla: al indexar, la lista se actualiza sin salir. A partir de E13, al subir un PDF se puede elegir como categoría una **materia** de Semestre (se guarda en `documentos.materia_id`); la lista muestra la materia.
+Pestañas **Subir PDF** (subida e índice de documentos actuales, con eliminar) y **Buscar en la web** (búsqueda en Wikipedia actual), con `?pestana=pdf` (por defecto) o `?pestana=web`. El formulario y la lista "Tus documentos" están en la misma pantalla: al indexar, la lista se actualiza sin salir. Debajo del buscador, **Fuentes guardadas** (E10b2, RB-54): por categoría con su cupo ("General 3/20"), cada una con el nombre del artículo enlazado a Wikipedia, el resumen, la fecha y "Eliminar" con confirmación. A partir de E13, al subir un PDF se puede elegir como categoría una **materia** de Semestre (se guarda en `documentos.materia_id`); la lista muestra la materia.
 
 ### 5.6 Productividad (`/nova/productividad`)
 
@@ -257,7 +258,7 @@ Bloques: **Perfil** (nombre editable, correo de solo lectura, cambiar contraseñ
 
 - **Páginas (E10b):** al indexar, el texto se extrae página por página. Cada fragmento guarda su página o su rango (por ejemplo 45–46) y toda cita lo muestra: `libro.pdf · p. 45` o `libro.pdf · pp. 45–46` (RB-36). Se usa el número impreso en el libro (las etiquetas de página del PDF) cuando existe; si no, el número de página del PDF.
 - **Capítulos (E10b):** se toman del índice interno del PDF. Si no tiene índice, de los encabezados al comienzo de una página ("Capítulo 3", "Unidad 2", "Tema 4", "Chapter 5"). En Fuentes, cada documento indexado con páginas tiene "Ver capítulos" (`/nova/fuentes/[id]/capitulos`): la lista con su título y sus páginas, o el mensaje de RB-37 si no hay (RB-37).
-- **Libros largos (E10b):** la indexación se hace por partes y se puede reanudar. El documento se ve "Indexando… 40 %" y, si se cierra la pantalla, sigue al volver. Hasta 15 MB (RN-01 no cambia) y 800 páginas (RB-38).
+- **Libros largos (E10b):** la indexación se hace por partes y se puede reanudar. Cada llamada del navegador procesa una parte, así el porcentaje sube en pantalla. Solo avanza con Fuentes abierta (aviso `Deja esta pantalla abierta hasta que termine.`); si se sale o se bloquea el teléfono, se detiene y sigue al volver, sin perder lo avanzado. Hasta 15 MB (RN-01 no cambia) y 800 páginas (RB-38).
 - **Preguntar por página o capítulo (E10c):** en el Asistente, "¿Qué dice la página 45?", "Resume el capítulo 3" o "Explícame el capítulo de fotosíntesis". Se responde con el texto de esa página o de ese capítulo, no con una búsqueda, y siempre se cita la página (RB-39, RB-40). Un selector "Buscar en" encima del campo permite elegir un documento o "Todos".
 - **Explicar de otra manera (E10c):** debajo de cada respuesta que cita documentos, las opciones **Más simple**, **Con un ejemplo**, **Paso a paso**, **Resumen corto** y **Con una analogía**. Usan los mismos fragmentos de esa respuesta, sin buscar otra vez, y conservan las citas (RB-41).
 - **Plan de lectura (E10d):** desde "Ver capítulos", elegir capítulos, fecha de inicio y fecha final (o capítulos por semana). Se reparten en los días disponibles y se ve la lista "Leer cap. 3: Título (pp. 45–67)" con su fecha antes de confirmar. Al confirmar, se crea una tarea por capítulo (categoría elegida, RB-33; prioridad 2). Un capítulo que ya está en Tareas se marca y no se repite (RB-42).
@@ -621,6 +622,7 @@ Los mensajes se usan **textualmente** en la interfaz y en la API. Los de `PLAN_N
 | RB-51 | (E10e) Una respuesta se guarda una sola vez y no se cambia; una pregunta ajena al intento o de otro usuario responde como inexistente | `La pregunta no existe.` (`PREGUNTA_NO_ENCONTRADA`, 404) |
 | RB-52 | (E10e) Cuota de Gemini agotada al generar: no se guarda nada a medias | `Se agotó por ahora el cupo gratuito de Gemini. Intenta más tarde.` (`CUOTA_AGOTADA`, 429) |
 | RB-53 | (E10f) Sugerencia de repaso: con 2 o más falladas de un capítulo; se confirma en un diálogo; no se repite si ya hay una tarea pendiente con ese título | `Ya tienes esa tarea de repaso.` |
+| RB-54 | (E10b2) Ver y eliminar las fuentes web propias, con confirmación; eliminar libera el cupo de la categoría (RN-05); una fuente de otro usuario responde como inexistente | Confirmación: `¿Eliminar esta fuente? Se libera su cupo en la categoría. No se puede deshacer.` Ajena o inexistente: `La fuente no existe.` (`FUENTE_NO_ENCONTRADA`, 404) |
 | RB-29 | Editar una tarea: solo pendientes y del usuario; título, categoría, prioridad, fecha límite y horario con las mismas validaciones y mensajes que al crear; estado, minutos y fecha de cierre no se tocan | Los de crear (`PLAN_NOVA.md` 5.1). Tarea completada: `La tarea ya está completada.` (`TAREA_YA_COMPLETADA`, 409). De otro usuario o inexistente: `La tarea no existe.` (`TAREA_NO_ENCONTRADA`, 404) |
 
 Códigos de error nuevos (404 salvo indicación): `CATEGORIA_NO_ENCONTRADA`, `CATEGORIA_DUPLICADA` (409), `MATERIA_NO_ENCONTRADA`, `MATERIA_DUPLICADA` (409), `CORTE_NO_ENCONTRADO`, `COMPONENTE_NO_ENCONTRADO`, `NOTA_NO_ENCONTRADA`, `PORCENTAJES_INVALIDOS` (422, solo RB-10 y los cortes por defecto de Configuración), `CORTES_NO_SE_QUITAN` (422, RB-35), `NOTA_INVALIDA` (422), `META_NO_ENCONTRADA`, `META_DUPLICADA` (409), `PLAN_SIN_TEMAS` (422), `PLAN_SIN_FECHA` (422), `SIN_SYLLABUS` (422), `PLAN_INVALIDO` (502), `PASO_YA_EN_TAREAS` (409).
@@ -706,6 +708,7 @@ Todas con `exigirSesion()` como primera instrucción y el id del usuario de la s
 | `POST /api/nova/cuestionarios/[id]/intentos` | Empezar un intento; `repasoDe` para "Repetir solo las que fallé" | E10e |
 | `POST /api/nova/intentos/[id]/respuestas` | Responder; devuelve acierto, correcta, explicación y cita | E10e |
 | `POST /api/nova/intentos/[id]/tarea-repaso` | Crear la tarea de repaso (RB-53) | E10f |
+| `GET /api/nova/web/fuentes`, `DELETE /api/nova/web/fuentes/[id]` | Fuentes web guardadas (RB-54) | E10b2 |
 | `GET /api/nova/salud` | Consulta mínima a la base, para el cron diario de Vercel; con `CRON_SECRET` | E21 |
 | `src/app/manifest.ts`, `public/sw.js` | Manifiesto e service worker; públicos (el middleware no los protege) | E11b |
 
@@ -756,7 +759,7 @@ Con un `git worktree` de `master` en una carpeta temporal: `npm run probar:rag` 
 
 En cada etapa con interfaz: navegador real a 1280 px y 390 px (sin desplazamiento horizontal, sin errores de página, foco visible) y prueba del usuario en la **vista previa de Vercel** desde su teléfono.
 
-## 12. Casos de aceptación B-01 a B-66
+## 12. Casos de aceptación B-01 a B-67
 
 Se ejecutan en la vista previa de Vercel de `ampliacion`, en computador y en teléfono, y se registran en `doc/ACEPTACION.md` (sección nueva). Antes, se repiten A-01 a A-21 en la vista previa.
 
@@ -826,6 +829,7 @@ Se ejecutan en la vista previa de Vercel de `ampliacion`, en computador y en tel
 | B-64 | (E10e) Terminar con 3 de 5 y "Repetir solo las que fallé" | Puntaje 3,0; el repaso trae solo las 2 falladas y se califica sobre ellas |
 | B-65 | (E10f) Hacer el mismo cuestionario dos veces y abrir el historial | Se ven los intentos por documento y capítulo, y si mejoraste; los repasos dicen "Repaso" |
 | B-66 | (E10f) Fallar 2 preguntas de un capítulo y aceptar la sugerencia; repetirlo | Crea "Repasar cap. N: Título (pp. a–b)" tras confirmar; la segunda vez, RB-53 |
+| B-67 | (E10b2) En "Buscar en la web": buscar una frase, ver la fuente en "Fuentes guardadas" sin recargar y eliminarla; con 20 en una categoría, buscar otra vez | Aparece en su categoría con su enlace y "1/20"; eliminar pide confirmación y la quita; al llegar a 20, el aviso indica que se pueden eliminar abajo, y al eliminar una se puede volver a buscar |
 | B-41 | Editar una tarea pendiente desde Tareas, Inicio y Calendario (título, categoría, prioridad y fecha) | El formulario abre lleno; al guardar, el cambio se ve en las tres pantallas y en su día del Calendario; "Cancelar" no cambia nada |
 | B-42 | Al editar, poner fecha "2026-02-30" y luego prioridad 5 por la API; intentar editar una tarea completada | Mismos mensajes que al crear (A-03, A-04); la completada responde "La tarea ya está completada." y no muestra "Editar" |
 

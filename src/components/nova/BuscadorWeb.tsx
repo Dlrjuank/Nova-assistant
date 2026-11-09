@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { Aviso } from '@/components/ui/Aviso';
 import { Boton } from '@/components/ui/Boton';
@@ -12,6 +13,7 @@ import { MENSAJES } from '@/lib/reglas/errores';
 
 /** CU-06: buscar en Wikipedia, resumir y guardar la fuente (RN-02, RN-05). */
 export function BuscadorWeb() {
+  const router = useRouter();
   const [consulta, setConsulta] = useState('');
   const [categoria, setCategoria] = useState(CATEGORIA_POR_DEFECTO);
   const [buscando, setBuscando] = useState(false);
@@ -49,6 +51,7 @@ export function BuscadorWeb() {
         return;
       }
       setResultado(cuerpo.datos);
+      if (cuerpo.datos.guardada) router.refresh(); // E10b2: la lista de fuentes guardadas
     } catch {
       setError({ codigo: 'SIN_CONEXION', mensaje: 'No se pudo conectar con el servidor. Intente de nuevo.' });
     } finally {
@@ -93,7 +96,12 @@ export function BuscadorWeb() {
           Buscando en Wikipedia y resumiendo…
         </p>
       )}
-      {error && <Aviso tipo={error.codigo === 'LIMITE_FUENTES' ? 'advertencia' : 'error'}>{error.mensaje}</Aviso>}
+      {error && (
+        <Aviso tipo={error.codigo === 'LIMITE_FUENTES' ? 'advertencia' : 'error'}>
+          {error.mensaje}
+          {error.codigo === 'LIMITE_FUENTES' && ' Puedes eliminarlas en «Fuentes guardadas», más abajo.'}
+        </Aviso>
+      )}
       {resultado && <Resultado datos={resultado} />}
     </div>
   );

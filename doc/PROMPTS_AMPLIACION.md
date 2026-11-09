@@ -325,6 +325,24 @@ VERIFICACIÓN: B-50; A-06 a A-12 y A-21 siguen pasando.
 
 ---
 
+## E10b2 · Fuentes web guardadas (pedida por el usuario, 2026-11-09)
+
+**Plan:** 5.5, RB-54. **Requisito:** E10.
+
+```text
+OBJETIVO: ver y eliminar las fuentes web, para no quedar bloqueado al llegar a 20 por categoría.
+
+TAREA 1. Servicios y API para listar y eliminar, con aislamiento por usuario (RB-54).
+TAREA 2. En la pestaña "Buscar en la web", "Fuentes guardadas" por categoría con su cupo, enlace, resumen, fecha y "Eliminar" con confirmación; se actualiza al buscar y al eliminar.
+TAREA 3. El aviso del tope de 20 indica que se pueden eliminar en esa lista.
+
+VERIFICACIÓN: B-67.
+```
+
+**Commit:** `feat(fuentes): ver y eliminar las fuentes web guardadas`
+
+---
+
 ## E10c · Libros en el Asistente (pedida por el usuario, 2026-11-07)
 
 **Plan:** 5.9, RB-39 a RB-41. **Requisito:** E10b.
@@ -688,11 +706,11 @@ Anota en el plan lo que decidas y avísame antes de pasar a la siguiente pantall
 **Plan:** 12. **Requisito:** E20b.
 
 ```text
-TAREA 1. Agregar a doc/ACEPTACION.md la tabla B-01 a B-66 (columnas como A-01 a A-15) y la nota de repetir A-01 a A-21 en la vista previa.
+TAREA 1. Agregar a doc/ACEPTACION.md la tabla B-01 a B-67 (columnas como A-01 a A-15) y la nota de repetir A-01 a A-21 en la vista previa.
 TAREA 2. Revisión final: sin botones muertos (recorrido de todas las pantallas), sin colores fuera de los tokens, sin textos en inglés, todas las rutas nuevas con exigirSesion y filtro por usuario, ninguna clave en el repositorio.
 TAREA 3. Actualizar README (funciones, pantallas, scripts nuevos) y crear doc/checkpoints/AMPLIACION_COMPLETADA.md.
 TAREA 4. Preparar (sin aplicar) la migración que quita el disparador de dueño por defecto (plan, 6.1): comprueba que no quedan filas sin usuario_id, borra el disparador y asignar_dueno_por_defecto (y nova_config si nada más la usa) y pasa usuario_id a NOT NULL. Se aplica solo al unir ampliacion con master, después de que master tenga el código nuevo; nunca antes, porque rompería el código de master en producción.
-TAREA 5. Recordarle al usuario ejecutar B-01 a B-66 y A-01 a A-21 en la vista previa, en computador y teléfono. La unión de ampliacion con master solo se hace si el usuario la pide, e incluye revisar y aplicar la migración de la TAREA 4.
+TAREA 5. Recordarle al usuario ejecutar B-01 a B-67 y A-01 a A-21 en la vista previa, en computador y teléfono. La unión de ampliacion con master solo se hace si el usuario la pide, e incluye revisar y aplicar la migración de la TAREA 4.
 TAREA 6. (Recordatorios, E11c) Al unir con master: el trabajo de pg_cron pasa a llamar a la URL de producción, se quita el encabezado de omisión de la protección de la vista previa y se comprueba que las claves VAPID y RECORDATORIOS_SECRETO están en Production. Se agrega el cron diario de Vercel a GET /api/nova/salud con CRON_SECRET (riesgo de pausa de Supabase, plan 13).
 ```
 

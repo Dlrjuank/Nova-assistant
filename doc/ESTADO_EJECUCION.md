@@ -644,4 +644,26 @@ Total de fallas: 0
 - **`npm run probar:libro`** (nuevo; Gemini y base reales, 40 páginas y 64 fragmentos; 0 fallas): números impresos, índice, primer lote y pausa, a medias fuera de las búsquedas, "ocupado", reanudar hasta terminar sin repetir, páginas y citas, capítulos, encabezados. **`probar:rag`** 0 fallas.
 - **Navegador real** (Edge, usuarios temporales borrados al final; 0 fallas en 21): reanuda solo al abrir Fuentes y al terminar muestra "Ver capítulos"; capítulos con secciones y título largo a 390 px; mensajes sin capítulos y documento anterior; documento ajeno 404 sin datos; aviso de la búsqueda web; acciones en una línea a 1280 px; claro y oscuro a 1280 y 390 px sin desborde ni errores.
 - **Al cierre:** `npm test` 487/487, `npm run build` correcto, `eslint` sin errores.
+- **Prueba del usuario (teléfono y PC):** el mensaje de la búsqueda web, los 4 capítulos con sus páginas, la cita con página, eliminar (también durante la indexación) y claro y oscuro funcionan. Reportó que el porcentaje no se actualizaba en pantalla. No probó un libro real.
+
+#### Corrección de E10b: el porcentaje no subía (2026-11-09, reportado por el usuario)
+
+- **Causa:** cada llamada indexaba hasta 240 s seguidos y la pantalla solo recibía el avance al final; en la base sí iba subiendo.
+- **Corrección:** cada llamada hace una sola parte (`INDEXACION_PRESUPUESTO_MS = 0`, 20 fragmentos), así que el porcentaje sube con cada parte en la tarjeta y en la fila de la lista.
+- **Al terminar:** aviso "quedó indexado" y "Ver capítulos" sin recargar.
+- **Si falla:** mensaje y "Reintentar"; una conexión cortada se retoma sola al volver a la pantalla.
+- **Aviso nuevo:** `Deja esta pantalla abierta hasta que termine.` La indexación solo avanza con Fuentes abierta, porque el navegador pide cada parte. Al salir o bloquear el teléfono, solo termina la parte en curso; lo demás sigue al volver.
+- **Pruebas:** `tests/interfaz/indexacionPendiente.test.tsx` (5).
+
+### E10b2 Ampliación: fuentes web guardadas
+
+- **Servicio:** `listarFuentesWeb` y `eliminarFuenteWeb`, solo del usuario. **Rutas:** `GET /api/nova/web/fuentes` y `DELETE /api/nova/web/fuentes/[id]` (`FUENTE_NO_ENCONTRADA`, 404). Sin migración y sin gastar cuota.
+- **Interfaz:** `FuentesGuardadas` en "Buscar en la web", por categoría con su cupo, enlace, resumen, fecha y eliminar con confirmación. `EliminarConConfirmacion` se comparte con los documentos. La lista se actualiza al buscar y al eliminar, y el aviso del tope de 20 indica dónde eliminar.
+- **Pruebas:** `tests/servidor/fuentesWeb.test.ts` (6) y casos nuevos en `tests/interfaz/fuentes.test.tsx`.
+- **Navegador real** (Edge, usuario temporal borrado al final, con Gemini real y el libro de 40 páginas; 13 de 14 comprobaciones):
+  - El porcentaje sube sin salir (31 → 62), con el aviso y también en la fila.
+  - Fallo simulado: mensaje y "Reintentar". Al volver retoma (93 → 100) y termina sin recargar, con "Ver capítulos".
+  - Fuentes por categoría, aviso del tope, eliminar libera el cupo (19/20), una búsqueda real aparece sin recargar. Claro y oscuro a 1280 y 390 px sin desborde ni errores.
+  - La comprobación que no pasó estaba mal planteada: esperaba que nada cambiara tras salir, pero la parte en curso terminó en el servidor (62 → 93) y ahí se detuvo.
+- **Al cierre:** `npm test` 500/500, `npm run build` correcto, `eslint` sin errores.
 

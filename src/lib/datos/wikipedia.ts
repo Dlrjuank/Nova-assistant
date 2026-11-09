@@ -1,5 +1,6 @@
 import {
   CATEGORIA_POR_DEFECTO,
+  LIMITE_LISTADO,
   MAX_FUENTES_WEB_POR_CATEGORIA,
   WEB_RESULTADOS,
   WIKIPEDIA_AGENTE,
@@ -11,7 +12,7 @@ import { SYSTEM_PROMPT_WEB } from '@/lib/llm/prompts';
 import { normalizarConsulta, validarConsulta } from '@/lib/reglas/consulta';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
 import { hoyBogota } from '@/lib/reglas/fechas';
-import type { ArticuloWeb, ResultadoWeb } from './tipos';
+import type { FuenteWeb, ArticuloWeb, ResultadoWeb } from './tipos';
 
 const TIEMPO_WIKIPEDIA_MS = 10_000;
 const MAX_CARACTERES_EXTRACTO = 2_000; // por artículo: acota los tokens que se envían a Gemini
@@ -121,4 +122,19 @@ export async function buscarEnWikipedia(
     articulos: articulosWeb,
     fuentesEnCategoria: await contarFuentes(usuarioId, cat),
   };
+}
+
+/** E10b2 (RB-54): las fuentes guardadas del usuario, de la más reciente a la más antigua. */
+export async function listarFuentesWeb(usuarioId: string): Promise<FuenteWeb[]> {
+  return consultar<FuenteWeb>(
+    `SELECT id, categoria, url, extracto, fecha_guardado AS "fechaGuardado"
+     FROM fuentes_web WHERE usuario_id = $1 ORDER BY created_at DESC LIMIT $2`,
+    [usuarioId, LIMITE_LISTADO],
+  );
+}
+
+/** E10b2 (RB-54): libera su cupo en la categoría (RN-05). */
+export async function eliminarFuenteWeb(usuarioId: string, id: string): Promise<void> {
+  const borradas = await consultar<{ id: string }>('DELETE FROM fuentes_web WHERE id = $1 AND usuario_id = $2 RETURNING id', [id, usuarioId]);
+  if (borradas.length === 0) throw new ErrorDeNegocio('FUENTE_NO_ENCONTRADA');
 }

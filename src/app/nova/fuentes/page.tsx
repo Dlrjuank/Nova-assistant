@@ -1,4 +1,5 @@
 import { BuscadorWeb } from '@/components/nova/BuscadorWeb';
+import { FuentesGuardadas } from '@/components/nova/FuentesGuardadas';
 import { IndexacionPendiente } from '@/components/nova/IndexacionPendiente';
 import { SubidorPdf } from '@/components/nova/SubidorPdf';
 import { TablaDocumentos } from '@/components/nova/TablaDocumentos';
@@ -6,7 +7,7 @@ import { EncabezadoPantalla } from '@/components/ui/EncabezadoPantalla';
 import { EstadoVacio } from '@/components/ui/EstadoVacio';
 import { Pestanas } from '@/components/ui/Pestanas';
 import { Tarjeta } from '@/components/ui/Tarjeta';
-import { exigirSesion, listarDocumentos } from '@/lib/dataService';
+import { exigirSesion, listarDocumentos, listarFuentesWeb } from '@/lib/dataService';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,7 +30,18 @@ export default async function FuentesPage({ searchParams }: { searchParams: Prom
           { href: '/nova/fuentes?pestana=web', texto: 'Buscar en la web', activa: esWeb },
         ]}
       />
-      {esWeb ? <BuscadorWeb /> : <PestanaPdf />}
+      {esWeb ? <PestanaWeb /> : <PestanaPdf />}
+    </>
+  );
+}
+
+async function PestanaWeb() {
+  const { id } = await exigirSesion();
+  const fuentes = await listarFuentesWeb(id); // E10b2 (RB-54)
+  return (
+    <>
+      <BuscadorWeb />
+      <FuentesGuardadas fuentes={fuentes} />
     </>
   );
 }

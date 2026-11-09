@@ -2,10 +2,10 @@
 import { cleanup, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const m = vi.hoisted(() => ({ exigirSesion: vi.fn(), listarDocumentos: vi.fn() }));
+const m = vi.hoisted(() => ({ exigirSesion: vi.fn(), listarDocumentos: vi.fn(), listarFuentesWeb: vi.fn() }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }), usePathname: () => '/nova/fuentes' }));
 vi.mock('@vercel/blob/client', () => ({ upload: vi.fn() }));
-vi.mock('@/lib/dataService', () => ({ exigirSesion: m.exigirSesion, listarDocumentos: m.listarDocumentos }));
+vi.mock('@/lib/dataService', () => ({ exigirSesion: m.exigirSesion, listarDocumentos: m.listarDocumentos, listarFuentesWeb: m.listarFuentesWeb }));
 
 import FuentesPage from '@/app/nova/fuentes/page';
 import nextConfig from '../../next.config';
@@ -17,7 +17,7 @@ const abrir = async (pestana?: string) => {
   const hijos = arbol.props.children as Array<{ type: unknown; props: unknown } | false>;
   const resueltos = await Promise.all(
     hijos.map(async (h) => {
-      if (h && typeof h === 'object' && typeof h.type === 'function' && h.type.name === 'PestanaPdf') return (h.type as (p: unknown) => Promise<unknown>)(h.props);
+      if (h && typeof h === 'object' && typeof h.type === 'function' && ['PestanaPdf', 'PestanaWeb'].includes(h.type.name)) return (h.type as (p: unknown) => Promise<unknown>)(h.props);
       return h;
     }),
   );
@@ -29,6 +29,7 @@ beforeEach(() => {
   vi.resetAllMocks();
   m.exigirSesion.mockResolvedValue({ id: U, email: 'dueno@ejemplo.com' });
   m.listarDocumentos.mockResolvedValue([]);
+  m.listarFuentesWeb.mockResolvedValue([]);
 });
 afterEach(cleanup);
 
@@ -85,6 +86,26 @@ describe('Fuentes', () => {
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(fetch).toHaveBeenCalledWith('/api/nova/documentos/c/continuar', { method: 'POST' });
     vi.unstubAllGlobals();
+  });
+
+  it('E10b2: fuentes guardadas por categoría, con cupo, enlace y eliminar', async () => {
+    m.listarFuentesWeb.mockResolvedValue([
+      { id: 'f1', categoria: 'Viajes', url: 'https://es.wikipedia.org/wiki/Sierra_Nevada', extracto: 'Una cordillera.', fechaGuardado: '2026-11-09' },
+      { id: 'f2', categoria: 'General', url: 'https://es.wikipedia.org/wiki/Fotos%C3%ADntesis', extracto: 'Un proceso.', fechaGuardado: '2026-11-09' },
+    ]);
+    await abrir('web');
+    expect(screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual(['General1/20, 1 de 20 fuentes', 'Viajes1/20, 1 de 20 fuentes']);
+    const enlace = screen.getByRole('link', { name: 'Fotosíntesis' });
+    expect(enlace.getAttribute('href')).toBe('https://es.wikipedia.org/wiki/Fotos%C3%ADntesis');
+    expect(enlace.getAttribute('rel')).toContain('noopener');
+    expect(screen.getByRole('button', { name: 'Eliminar fuente: Sierra Nevada' })).toBeTruthy();
+    expect(m.listarFuentesWeb).toHaveBeenCalledWith(U);
+  });
+
+  it('E10b2: sin fuentes guardadas lo dice', async () => {
+    await abrir('web');
+    expect(screen.getByRole('heading', { name: 'Fuentes guardadas' })).toBeTruthy();
+    expect(screen.getByText(/Aún no has guardado fuentes/)).toBeTruthy();
   });
 
   it('un valor desconocido abre "Subir PDF"', async () => {
