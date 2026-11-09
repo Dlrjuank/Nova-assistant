@@ -98,6 +98,23 @@ describe('capítulo (RB-40)', () => {
     expect(r.contexto?.continuacion).toBeUndefined();
   });
 
+  it('las citas quedan cortas y no se salen de las páginas del capítulo', async () => {
+    base([LIBRO], [fila(1, '0–1', 0, 1), fila(2, '2–3', 2, 3)]);
+    m.responder.mockResolvedValue('Inicio [l.pdf · p. 1]. Fin [l.pdf · p. 2].');
+    const r = await consultar(U, 'Resume el capítulo 1', [], { documentoId: D });
+    // Al modelo le llegan las etiquetas ya recortadas: el fragmento 0–1 se ve como 1 y el 2–3 como 2.
+    expect(contextoDe()).toContain('[l.pdf · p. 1]\ntexto 1');
+    expect(contextoDe()).toContain('[l.pdf · p. 2]\ntexto 2');
+    expect(r.respuesta).toBe('Inicio. Fin [pp. 1–2].');
+    expect(r.contexto?.limitePaginas).toBe('1–2');
+  });
+
+  it('una cita fuera del capítulo se recorta aunque el modelo la escriba', async () => {
+    base([LIBRO], [fila(1, '1'), fila(2, '2')]);
+    m.responder.mockResolvedValue('Sale [l.pdf · pp. 2–3].');
+    await expect(consultar(U, 'Resume el capítulo 1', [], { documentoId: D })).resolves.toMatchObject({ respuesta: 'Sale [p. 2].' });
+  });
+
   it('sin ese capítulo o sin capítulos, lo dice sin llamar a Gemini', async () => {
     base([LIBRO], []);
     await expect(consultar(U, 'Resume el capítulo 9', [], { documentoId: D })).resolves.toMatchObject({ respuesta: 'No encontré el capítulo 9 en este documento.' });
@@ -149,6 +166,36 @@ describe('Buscar en: un solo documento', () => {
     expect(r.contexto).toEqual({ fragmentos: ['f1'] });
   });
 
+  it('las citas de una búsqueda normal también quedan cortas, y se reconocen las cortas', async () => {
+    m.bd.mockResolvedValue([{ ...fila(1, '1'), distancia: 0.1 }, { ...fila(2, '2'), distancia: 0.2 }]);
+    m.responder.mockResolvedValue('Dice algo [l.pdf · p. 1].');
+    await expect(consultar(U, '¿Qué dice sobre el tema?', [], { documentoId: D })).resolves.toMatchObject({ respuesta: 'Dice algo [p. 1].', fuentes: [{ tipo: 'pdf', etiqueta: 'l.pdf · p. 1' }] });
+    m.responder.mockResolvedValue('Dice algo [p. 2].');
+    await expect(consultar(U, '¿Qué dice sobre el tema?', [], { documentoId: D })).resolves.toMatchObject({ fuentes: [{ tipo: 'pdf', etiqueta: 'l.pdf · p. 2' }] });
+  });
+
+  it('con varios documentos, cada cita conserva el suyo', async () => {
+    m.bd.mockResolvedValue([{ ...fila(1, '1'), distancia: 0.1 }]);
+    m.responder.mockResolvedValue('Uno [a.pdf · p. 1]. Dos [b.pdf · p. 5].');
+    await expect(consultar(U, '¿Qué dice sobre el tema?')).resolves.toMatchObject({ respuesta: 'Uno [a.pdf · p. 1]. Dos [b.pdf · p. 5].' });
+  });
+
+  it('con un documento elegido, "No encontré" nombra ese documento y sugiere buscar en todos', async () => {
+    m.bd.mockResolvedValue([{ ...fila(1, '1'), distancia: 0.1 }]);
+    m.responder.mockResolvedValue('No encontré esto en tus documentos');
+    await expect(consultar(U, '¿Qué dice sobre el tema?', [], { documentoId: D })).resolves.toEqual({
+      respuesta: 'No encontré esto en «l.pdf». Prueba con "Todos los documentos" en "Buscar en".',
+      fuentes: [],
+    });
+  });
+
+  it('por página o capítulo con un documento elegido, también; sin elegir, el mensaje de siempre', async () => {
+    base([LIBRO], [fila(2, '2')]);
+    m.responder.mockResolvedValue('No encontré esto en tus documentos');
+    await expect(consultar(U, '¿Qué dice la página 2?', [], { documentoId: D })).resolves.toMatchObject({ respuesta: 'No encontré esto en «l.pdf». Prueba con "Todos los documentos" en "Buscar en".' });
+    await expect(consultar(U, '¿Qué dice la página 2?')).resolves.toMatchObject({ respuesta: 'No encontré esto en tus documentos' });
+  });
+
   it('una respuesta sin citas de documentos no es explicable', async () => {
     m.bd.mockResolvedValue([]);
     m.responder.mockResolvedValue('No encontré esto en tus documentos');
@@ -184,6 +231,15 @@ describe('Explicar de otra manera (RB-41)', () => {
     const guardado = m.txQuery.mock.calls[1]?.[1] as unknown[];
     expect(JSON.parse(guardado[4] as string)).toEqual(FUENTES);
     expect(JSON.parse(guardado[5] as string)).toEqual({ fragmentos: ['f2'] }); // sin continuación
+  });
+
+  it('al explicar un capítulo, las citas siguen dentro de sus páginas', async () => {
+    conMensaje({ ...original, contexto: { fragmentos: ['f1'], limitePaginas: '20–28' } }, [fila(1, '19–20', 19, 20)]);
+    m.responder.mockResolvedValue('Fácil [l.pdf · pp. 19–20].');
+    const r = await explicarRespuesta(U, 5, 'simple');
+    expect(m.responder.mock.calls[0]?.[0].contexto).toContain('[l.pdf · p. 20]');
+    expect(r.respuesta).toBe('Fácil [p. 20].');
+    expect(JSON.parse((m.txQuery.mock.calls[1]?.[1] as unknown[])[5] as string)).toEqual({ fragmentos: ['f1'], limitePaginas: '20–28' });
   });
 
   it('solo mensajes propios; sin fragmentos o ya borrados, no disponible', async () => {

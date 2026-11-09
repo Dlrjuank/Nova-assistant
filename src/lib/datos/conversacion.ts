@@ -2,6 +2,7 @@ import { CONVERSACION_MAX_MENSAJES, CONVERSACION_MENSAJES_CONTEXTO } from '@/lib
 import { consultar as consultarBd, conTransaccion } from '@/lib/db/conexion';
 import { llm } from '@/lib/llm/gemini';
 import { construirContexto, SYSTEM_PROMPT, type TurnoConversacion } from '@/lib/llm/prompts';
+import { compactarCitas, recortarEtiqueta } from '@/lib/reglas/citas';
 import { normalizarConsulta } from '@/lib/reglas/consulta';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
 import { lineaHoy } from '@/lib/reglas/fechas';
@@ -135,23 +136,25 @@ export async function explicarRespuesta(usuarioId: string, mensajeId: number, mo
   );
   const ids = original?.contexto?.fragmentos ?? [];
   if (!original || ids.length === 0) throw new ErrorDeNegocio('MENSAJE_NO_ENCONTRADO');
-  const fragmentos = await fragmentosPorIds(usuarioId, ids);
-  if (fragmentos.length === 0) throw new ErrorDeNegocio('MENSAJE_NO_ENCONTRADO'); // se eliminó el documento
+  const encontrados = await fragmentosPorIds(usuarioId, ids);
+  if (encontrados.length === 0) throw new ErrorDeNegocio('MENSAJE_NO_ENCONTRADO'); // se eliminó el documento
+  const limite = original?.contexto?.limitePaginas;
+  const fragmentos = encontrados.map((f) => (limite && f.etiqueta_paginas ? { ...f, etiqueta_paginas: recortarEtiqueta(f.etiqueta_paginas, limite) } : f));
 
   const [pregunta] = await consultarBd<{ texto: string }>(
     `SELECT texto FROM mensajes_chat WHERE conversacion_id = $1 AND id < $2 AND autor = 'usuario' ORDER BY id DESC LIMIT 1`,
     [original.conversacion_id, original.id],
   );
   const opcion = MODOS_EXPLICAR.find((m) => m.id === modo) as (typeof MODOS_EXPLICAR)[number];
-  const respuesta = await llm.responder({
+  const explicada = await llm.responder({
     sistema: SYSTEM_PROMPT,
     contexto: construirContexto(fragmentos, [], lineaHoy(), { tareasConsultadas: false, hayDocumentos: true }),
     pregunta: `Explica de nuevo tu respuesta anterior ${opcion.instruccion}. Usa solo el contexto y conserva las citas.`,
     historial: [...(pregunta ? [{ autor: 'usuario' as const, texto: pregunta.texto }] : []), { autor: 'asistente' as const, texto: original.texto }],
   });
   return guardarTurno(usuarioId, original.conversacion_id, `Explícalo: ${opcion.texto}`, {
-    respuesta,
+    respuesta: compactarCitas(explicada, { limite }),
     fuentes: original.fuentes,
-    contexto: { fragmentos: ids },
+    contexto: { fragmentos: ids, ...(limite ? { limitePaginas: limite } : {}) },
   });
 }

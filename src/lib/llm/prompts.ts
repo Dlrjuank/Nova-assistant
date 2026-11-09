@@ -2,6 +2,9 @@ import { citaDePaginas } from '@/lib/reglas/libros';
 
 export const SIN_RESPUESTA = 'No encontré esto en tus documentos';
 
+/** Con un documento elegido en "Buscar en". */
+export const sinRespuestaEnDocumento = (nombre: string) => `No encontré esto en «${nombre}». Prueba con "Todos los documentos" en "Buscar en".`;
+
 /** RB-32: respuestas fijas (en tuteo, como el resto de la app). El servidor las impone aunque el modelo las redacte distinto. */
 export const SIN_TAREAS_PENDIENTES = 'No tienes tareas pendientes.';
 export const SIN_DOCUMENTOS_RESPUESTA =

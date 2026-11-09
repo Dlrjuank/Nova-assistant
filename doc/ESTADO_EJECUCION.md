@@ -687,4 +687,14 @@ Total de fallas: 0
 - **`probar:libro`** (Gemini y base reales; 0 fallas, ahora con página, página inexistente, capítulo y "Más simple"). **`probar:rag`** 0 fallas. Dos intentos anteriores de `probar:libro` se cortaron por la red o por el fallo ya corregido.
 - **Navegador real** (Edge, usuario temporal borrado al final, con Gemini real; 0 fallas en 14): selector, pregunta cuál con dos libros, página con su cita, 5 opciones táctiles solo bajo respuestas con citas, página inexistente, capítulo con sus páginas, "Más simple" con el mismo origen, opciones al recargar, los ids no salen al navegador, claro y oscuro a 1280 y 390 px.
 - **Al cierre:** `npm test` 527/527, `npm run build` correcto, `eslint` sin errores.
+- **Prueba del usuario (teléfono y PC):** preguntar por página, página inexistente, resumir un capítulo con sus páginas, las 5 opciones con las mismas citas y en el historial al recargar, la pregunta de en cuál documento y buscar en uno solo funcionan.
+
+#### Ajustes de E10c: citas y "No encontré" (2026-11-09, pedidos del usuario)
+
+- **Citas cortas** (`src/lib/reglas/citas.ts`): el servidor las compacta, sin depender del modelo. Dentro del texto quedan `[p. 20]` o `[pp. 20–21]` y las páginas seguidas de cada párrafo se unen en un rango, en el lugar de la última. El nombre va en "Fuentes"; con varios documentos en la respuesta, cada cita conserva el suyo. `armarFuentes` reconoce también la forma corta, que el modelo puede imitar del historial.
+- **Capítulos:** un fragmento puede empezar o terminar en la página vecina; ahora al modelo le llegan las etiquetas recortadas al capítulo y la respuesta se recorta otra vez. `contexto.limitePaginas` mantiene el límite al usar "Explicar de otra manera".
+- **Con un documento elegido:** `No encontré esto en «nombre». Prueba con "Todos los documentos" en "Buscar en".`
+- **Pruebas:** `tests/reglas/citas.test.ts` y casos nuevos en `tests/servidor/consultaLibro.test.ts`. `probar:libro` comprueba además que las citas del capítulo sean cortas y estén en sus páginas.
+- **Con Gemini real:** `probar:libro` y `probar:rag` con 0 fallas; las citas del capítulo 3 quedaron en un solo `[pp. 20–28]`.
+- **Al cierre:** `npm test` 543/543, `npm run build` correcto, `eslint` sin errores.
 

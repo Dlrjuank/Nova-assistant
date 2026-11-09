@@ -7,11 +7,13 @@ import {
   SIN_DOCUMENTOS_RESPUESTA,
   SIN_RESPUESTA,
   SIN_TAREAS_PENDIENTES,
+  sinRespuestaEnDocumento,
   SYSTEM_PROMPT,
   type FragmentoContexto,
   type TareaContexto,
   type TurnoConversacion,
 } from '@/lib/llm/prompts';
+import { citaCorta, compactarCitas } from '@/lib/reglas/citas';
 import { mencionaTareas, normalizarConsulta, textoDeBusqueda, validarConsulta } from '@/lib/reglas/consulta';
 import { lineaHoy } from '@/lib/reglas/fechas';
 import { existenDocumentos } from './documentos';
@@ -39,9 +41,12 @@ export function armarFuentes(
   const sinRaya = (texto: string) => texto.replaceAll('–', '-');
   const citada = sinRaya(respuesta);
   // Sin el lookahead, "fragmento 1" también coincidiría dentro de "fragmento 12".
-  const citadas = entregadas.filter((f) =>
-    new RegExp(`${sinRaya(f.etiqueta).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?!\\d)`).test(citada),
-  );
+  const escapar = (t: string) => sinRaya(t).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const citadas = entregadas.filter((f) => {
+    // También la forma corta "[p. 20]": el modelo puede imitarla de las respuestas anteriores.
+    const corta = f.tipo === 'pdf' ? citaCorta(f.etiqueta) : null;
+    return new RegExp(`${escapar(f.etiqueta)}(?!\\d)`).test(citada) || (corta !== null && citada.includes(sinRaya(corta)));
+  });
   return citadas.length > 0 ? citadas : entregadas;
 }
 
@@ -65,11 +70,19 @@ export async function consultar(
       pregunta: libro.pregunta,
       historial,
     });
-    if (texto.startsWith(SIN_RESPUESTA)) return { respuesta: SIN_RESPUESTA, fuentes: [] };
+    if (texto.startsWith(SIN_RESPUESTA)) {
+      const nombre = opciones.documentoId ? libro.fragmentos[0]?.nombre_archivo : undefined;
+      return { respuesta: nombre ? sinRespuestaEnDocumento(nombre) : SIN_RESPUESTA, fuentes: [] };
+    }
+    const corto = compactarCitas(texto, { limite: libro.limitePaginas }); // RB-36
     return {
-      respuesta: libro.aviso ? `${texto}\n\n${libro.aviso}` : texto,
+      respuesta: libro.aviso ? `${corto}\n\n${libro.aviso}` : corto,
       fuentes: libro.fuente ? [{ tipo: 'pdf', etiqueta: libro.fuente }] : armarFuentes(texto, libro.fragmentos, []),
-      contexto: { fragmentos: libro.fragmentos.map((f) => f.id), ...(libro.continuacion ? { continuacion: libro.continuacion } : {}) },
+      contexto: {
+        fragmentos: libro.fragmentos.map((f) => f.id),
+        ...(libro.continuacion ? { continuacion: libro.continuacion } : {}),
+        ...(libro.limitePaginas ? { limitePaginas: libro.limitePaginas } : {}),
+      },
     };
   }
 
@@ -102,9 +115,11 @@ export async function consultar(
   }
   // Sin respuesta en el contexto: mensaje exacto de la sección 5.1; sin documentos, se explica por qué (RB-32).
   if (respuesta.startsWith(SIN_RESPUESTA) || respuesta.startsWith(SIN_DOCUMENTOS_RESPUESTA.slice(0, 30))) {
+    const elegido = opciones.documentoId ? fragmentos[0]?.nombre_archivo : undefined;
+    if (elegido) return { respuesta: sinRespuestaEnDocumento(elegido), fuentes: [] };
     return { respuesta: hayDocumentos ? SIN_RESPUESTA : SIN_DOCUMENTOS_RESPUESTA, fuentes: [] };
   }
   const fuentes = armarFuentes(respuesta, fragmentos, tareas);
   // RB-41: solo las respuestas que citan documentos se pueden explicar de otra manera.
-  return { respuesta, fuentes, ...(fuentes.some((f) => f.tipo === 'pdf') ? { contexto: { fragmentos: fragmentos.map((f) => f.id) } } : {}) };
+  return { respuesta: compactarCitas(respuesta), fuentes, ...(fuentes.some((f) => f.tipo === 'pdf') ? { contexto: { fragmentos: fragmentos.map((f) => f.id) } } : {}) };
 }

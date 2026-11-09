@@ -1,4 +1,5 @@
 import { consultar as consultarBd } from '@/lib/db/conexion';
+import { recortarEtiqueta } from '@/lib/reglas/citas';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
 import { citaDePaginas, MENSAJE_REINDEXAR, MENSAJE_SIN_CAPITULOS } from '@/lib/reglas/libros';
 import {
@@ -21,7 +22,7 @@ type FilaLibro = Omit<Fragmento, 'distancia'> & { pagina_inicio: number | null; 
 /** Lo que se le entrega al modelo, o la respuesta exacta si no hace falta preguntarle. */
 export type PreguntaDeLibro =
   | { tipo: 'fija'; respuesta: string }
-  | { tipo: 'contexto'; fragmentos: FilaLibro[]; pregunta: string; fuente?: string; aviso?: string; continuacion?: Continuacion };
+  | { tipo: 'contexto'; fragmentos: FilaLibro[]; pregunta: string; fuente?: string; aviso?: string; continuacion?: Continuacion; limitePaginas?: string };
 
 interface DocumentoListo {
   id: string;
@@ -49,7 +50,11 @@ async function fragmentosDe(usuarioId: string, documentoId: string): Promise<Fil
 /** Los fragmentos que tocan las páginas del capítulo, por partes de hasta FRAGMENTOS_POR_PARTE (RB-40). */
 function parteDeCapitulo(todos: FilaLibro[], capitulo: Capitulo, documento: DocumentoListo, desde: number, pregunta: string): PreguntaDeLibro {
   const delCapitulo = todos.filter((f) => f.pagina_inicio !== null && f.pagina_fin !== null && f.pagina_inicio <= capitulo.paginaFin && f.pagina_fin >= capitulo.paginaInicio);
-  const parte = delCapitulo.slice(desde, desde + FRAGMENTOS_POR_PARTE);
+  // Un fragmento puede empezar en la página anterior o terminar en la siguiente: las citas no salen del capítulo.
+  const limitePaginas = capitulo.etiquetaPaginas;
+  const parte = delCapitulo
+    .slice(desde, desde + FRAGMENTOS_POR_PARTE)
+    .map((f) => (f.etiqueta_paginas ? { ...f, etiqueta_paginas: recortarEtiqueta(f.etiqueta_paginas, limitePaginas) } : f));
   if (parte.length === 0) return { tipo: 'fija', respuesta: `Ya resumí todo el capítulo «${capitulo.titulo}».` };
 
   const quedan = desde + parte.length < delCapitulo.length;
@@ -61,6 +66,7 @@ function parteDeCapitulo(todos: FilaLibro[], capitulo: Capitulo, documento: Docu
     tipo: 'contexto',
     fragmentos: parte,
     pregunta,
+    limitePaginas,
     fuente: `${documento.nombre} · ${citaDePaginas(rango)}`,
     ...(quedan
       ? {

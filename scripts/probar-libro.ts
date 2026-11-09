@@ -81,6 +81,9 @@ try {
   marcar(fuera.respuesta === 'Ese documento tiene 40 páginas.', `Paso 5d: página inexistente: ${fuera.respuesta}`);
   const capitulo = await consultarYRegistrar(U, 'Resume el capítulo 3', undefined, id);
   marcar(capitulo.fuentes[0]?.etiqueta === 'prueba-libro.pdf · pp. 20–28' && capitulo.respuesta.length > 40, `Paso 5e: capítulo citando ${capitulo.fuentes[0]?.etiqueta}`);
+  const citasCap = [...capitulo.respuesta.matchAll(/\[pp?\. ([^\]]+)\]/g)].map((m) => m[1] as string);
+  const dentro = citasCap.every((c) => c.split('–').every((n) => Number(n) >= 20 && Number(n) <= 28));
+  marcar(!capitulo.respuesta.includes('prueba-libro.pdf') && citasCap.length > 0 && dentro, `Paso 5e2: citas cortas y dentro del capítulo (${citasCap.join(', ')})`);
   const simple = await explicarRespuesta(U, pagina.mensajeId as number, 'simple');
   marcar(simple.fuentes.map((f) => f.etiqueta).join() === pagina.fuentes.map((f) => f.etiqueta).join() && simple.respuesta !== pagina.respuesta && simple.guardada, 'Paso 5f: "Más simple" responde con las mismas citas');
 
