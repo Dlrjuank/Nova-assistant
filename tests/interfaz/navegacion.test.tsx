@@ -28,7 +28,7 @@ afterEach(() => {
 
 describe('secciones (sin botones muertos)', () => {
   it('solo enlazan a rutas que existen hoy', () => {
-    const existentes = ['/nova', '/nova/asistente', '/nova/calendario', '/nova/tareas', '/nova/documentos', '/nova/web', '/nova/productividad'];
+    const existentes = ['/nova', '/nova/asistente', '/nova/calendario', '/nova/tareas', '/nova/fuentes', '/nova/productividad'];
     const todas = [...MENU_LATERAL, ...BARRA_INFERIOR.izquierda, BARRA_INFERIOR.centro, ...BARRA_INFERIOR.derecha, ...MENU_MAS];
     expect(todas.every((s) => existentes.includes(s.href))).toBe(true);
     expect(MENU_LATERAL.map((s) => s.href)).toEqual(existentes);
@@ -58,8 +58,7 @@ describe('BarraLateral (computador)', () => {
       'Asistente',
       'Calendario',
       'Tareas',
-      'Documentos',
-      'Web',
+      'Fuentes',
       'Productividad',
     ]);
     expect(within(menu).getByRole('link', { name: 'Tareas' }).getAttribute('aria-current')).toBe('page');
@@ -93,7 +92,7 @@ describe('BarraInferior y hoja "Más" (teléfono)', () => {
   });
 
   it('si la sección actual está en "Más", el botón "Más" lo indica con aria-current', () => {
-    nav.ruta = '/nova/web';
+    nav.ruta = '/nova/fuentes';
     render(<BarraInferior email="yo@ejemplo.com" />);
     expect(screen.getByRole('button', { name: 'Más' }).getAttribute('aria-current')).toBe('true');
     cleanup();
@@ -107,7 +106,7 @@ describe('BarraInferior y hoja "Más" (teléfono)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Más' }));
     const hoja = screen.getByRole('dialog', { name: 'Más secciones' });
     expect(hoja.getAttribute('aria-modal')).toBe('true');
-    expect(within(hoja).getAllByRole('link').map((a) => a.textContent)).toEqual(['Documentos', 'Web', 'Productividad']);
+    expect(within(hoja).getAllByRole('link').map((a) => a.textContent)).toEqual(['Fuentes', 'Productividad']);
     expect(within(hoja).getByText('yo@ejemplo.com')).toBeTruthy();
     expect(within(hoja).getByRole('button', { name: 'Cerrar sesión' })).toBeTruthy();
     expect(hoja.contains(document.activeElement)).toBe(true);
@@ -150,9 +149,9 @@ describe('BarraInferior y hoja "Más" (teléfono)', () => {
   it('elegir una sección de la hoja la cierra', () => {
     render(<BarraInferior email="yo@ejemplo.com" />);
     fireEvent.click(screen.getByRole('button', { name: 'Más' }));
-    const web = screen.getByRole('link', { name: 'Web' });
-    web.addEventListener('click', (e) => e.preventDefault());
-    fireEvent.click(web);
+    const fuentes = screen.getByRole('link', { name: 'Fuentes' });
+    fuentes.addEventListener('click', (e) => e.preventDefault());
+    fireEvent.click(fuentes);
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 });
@@ -164,7 +163,7 @@ describe('Botón "+" (teléfono)', () => {
     expect(boton.getAttribute('aria-expanded')).toBe('false');
     fireEvent.click(boton);
     expect(screen.getByRole('link', { name: 'Nueva tarea' }).getAttribute('href')).toBe('/nova/tareas/nueva');
-    expect(screen.getByRole('link', { name: 'Subir documento' }).getAttribute('href')).toBe('/nova/documentos/nuevo');
+    expect(screen.getByRole('link', { name: 'Subir documento' }).getAttribute('href')).toBe('/nova/fuentes?pestana=pdf');
     expect(screen.getByRole('button', { name: 'Cerrar el menú Agregar' }).getAttribute('aria-expanded')).toBe('true');
   });
 

@@ -1,9 +1,9 @@
-import { CalendarDays, ChartColumn, FileText, Globe, House, ListChecks, MessageCircle, type LucideIcon } from 'lucide-react';
+import { CalendarDays, ChartColumn, FileText, House, ListChecks, MessageCircle, type LucideIcon } from 'lucide-react';
 
 /**
  * Secciones de Nova (PLAN_AMPLIACION 4.1). Solo las que ya existen: una sección entra al menú en la etapa
- * en que se construye (regla "sin botones muertos"). Calendario entró en E07; Fuentes (E10, reemplaza a
- * Documentos y Web), Semestre (E12) y Configuración (E11) se agregan en sus etapas. Las categorías viven en
+ * en que se construye (regla "sin botones muertos"). Calendario entró en E07 y Fuentes en E10 (reemplaza a
+ * Documentos y Web); Semestre (E12) y Configuración (E11) se agregan en sus etapas. Las categorías viven en
  * Tareas desde E05b.
  */
 export interface Seccion {
@@ -17,8 +17,7 @@ export const SECCIONES = {
   asistente: { href: '/nova/asistente', texto: 'Asistente', icono: MessageCircle },
   calendario: { href: '/nova/calendario', texto: 'Calendario', icono: CalendarDays },
   tareas: { href: '/nova/tareas', texto: 'Tareas', icono: ListChecks },
-  documentos: { href: '/nova/documentos', texto: 'Documentos', icono: FileText },
-  web: { href: '/nova/web', texto: 'Web', icono: Globe },
+  fuentes: { href: '/nova/fuentes', texto: 'Fuentes', icono: FileText },
   productividad: { href: '/nova/productividad', texto: 'Productividad', icono: ChartColumn },
 } satisfies Record<string, Seccion>;
 
@@ -28,14 +27,13 @@ export const MENU_LATERAL: Seccion[] = [
   SECCIONES.asistente,
   SECCIONES.calendario,
   SECCIONES.tareas,
-  SECCIONES.documentos,
-  SECCIONES.web,
+  SECCIONES.fuentes,
   SECCIONES.productividad,
 ];
 
 /**
  * Barra inferior (teléfono): Inicio, [Calendario], Asistente al centro, Tareas y "Más".
- * Desde E07 Calendario ocupa su lugar y Documentos pasa a la hoja "Más".
+ * Desde E07 Calendario ocupa su lugar; Fuentes y Productividad están en la hoja "Más".
  */
 export const BARRA_INFERIOR: { izquierda: Seccion[]; centro: Seccion; derecha: Seccion[] } = {
   izquierda: [SECCIONES.inicio, SECCIONES.calendario],
@@ -44,7 +42,7 @@ export const BARRA_INFERIOR: { izquierda: Seccion[]; centro: Seccion; derecha: S
 };
 
 /** Hoja "Más": las secciones que no caben en la barra inferior. */
-export const MENU_MAS: Seccion[] = [SECCIONES.documentos, SECCIONES.web, SECCIONES.productividad];
+export const MENU_MAS: Seccion[] = [SECCIONES.fuentes, SECCIONES.productividad];
 
 /** Inicio solo está activo en /nova exacto; las demás, también en sus subrutas (/nova/tareas/nueva). */
 export function esActivo(ruta: string, href: string): boolean {

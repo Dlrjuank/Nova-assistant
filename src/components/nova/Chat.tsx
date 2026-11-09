@@ -225,7 +225,7 @@ export function Chat({
       {error?.codigo === 'SIN_DOCUMENTOS' && (
         <Aviso tipo="advertencia">
           {error.mensaje}{' '}
-          <Link href="/nova/documentos/nuevo" className="font-semibold text-acento underline">
+          <Link href="/nova/fuentes?pestana=pdf" className="font-semibold text-acento underline">
             Indexar un PDF
           </Link>
         </Aviso>

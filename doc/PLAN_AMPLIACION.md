@@ -227,7 +227,7 @@ Desde E02b (RB-30): sin documentos del usuario pero con al menos una tarea pendi
 
 ### 5.5 Fuentes (`/nova/fuentes`)
 
-Pestañas **Subir PDF** (subida e índice de documentos actuales, con eliminar) y **Buscar en la web** (búsqueda en Wikipedia actual). A partir de E13, al subir un PDF se puede elegir como categoría una **materia** de Semestre (se guarda en `documentos.materia_id`); la lista muestra la materia.
+Pestañas **Subir PDF** (subida e índice de documentos actuales, con eliminar) y **Buscar en la web** (búsqueda en Wikipedia actual), con `?pestana=pdf` (por defecto) o `?pestana=web`. El formulario y la lista "Tus documentos" están en la misma pantalla: al indexar, la lista se actualiza sin salir. A partir de E13, al subir un PDF se puede elegir como categoría una **materia** de Semestre (se guarda en `documentos.materia_id`); la lista muestra la materia.
 
 ### 5.6 Productividad (`/nova/productividad`)
 

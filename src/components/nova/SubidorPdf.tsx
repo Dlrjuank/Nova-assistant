@@ -1,11 +1,10 @@
 'use client';
 
 import { upload } from '@vercel/blob/client';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useRef, useState, type FormEvent } from 'react';
 import { Aviso } from '@/components/ui/Aviso';
-import { Boton, claseBoton } from '@/components/ui/Boton';
+import { Boton } from '@/components/ui/Boton';
 import { Campo } from '@/components/ui/Campo';
 import { CATEGORIA_POR_DEFECTO } from '@/lib/config/nova';
 import { validarTamanoPdf } from '@/lib/reglas/documento';
@@ -165,9 +164,6 @@ export function SubidorPdf() {
         <Boton type="submit" cargando={ocupado} disabled={!archivo}>
           Indexar PDF
         </Boton>
-        <Link href="/nova/documentos" className={claseBoton('secundario')}>
-          Ver documentos
-        </Link>
       </div>
     </form>
   );

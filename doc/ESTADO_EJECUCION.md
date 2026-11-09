@@ -597,4 +597,25 @@ Total de fallas: 0
   - Media, Alta y Baja tienen el mismo alto y el lápiz en el mismo sitio, dentro de la columna.
   - A 390 px, la insignia y el lápiz conservan su tamaño. Claro y oscuro sin desborde ni errores.
 - **Al cierre:** `npm test` 451/451, `npm run build` correcto, `eslint` sin errores.
+- **Prueba del usuario (PC):** "Universidad" se lee completa y el lápiz queda siempre en la línea de la prioridad. E09 confirmado.
+
+### E10 Ampliación: Fuentes
+
+- **Limpieza previa** (con el OK del usuario): "prueba 11", "prueba 2", "prueba 33", "prueba 44" y la categoría "gimnasio", en una transacción. Se mostraron antes y se comprobó que todas eran del 9 de noviembre, de las 10:46 a las 10:48, posteriores a la limpieza anterior (cuenta en 0 antes de las 10:16). Quedan 0 tareas y las categorías General y Universidad.
+- **Interfaz:**
+  - `/nova/fuentes` con las pestañas "Subir PDF" (formulario y "Tus documentos" en la misma pantalla) y "Buscar en la web" (`?pestana=`; un valor desconocido abre PDF). Reutiliza `SubidorPdf`, `TablaDocumentos`, `EliminarDocumento` y `BuscadorWeb`.
+  - `SubidorPdf` ya no tiene "Ver documentos": la lista se actualiza en la misma pantalla.
+- **Rutas:** redirecciones permanentes (308) en `next.config.ts` de `/nova/documentos`, `/nova/documentos/nuevo` y `/nova/web`; las páginas anteriores se eliminaron. Sin sesión, Fuentes lleva a login.
+- **Menú:** Fuentes reemplaza a Documentos y Web en la barra lateral y en "Más". El "+" → "Subir documento" y los enlaces "Indexar un PDF" del Asistente llevan a la pestaña PDF.
+- **Pruebas:** `tests/interfaz/fuentes.test.tsx` (5); actualizadas `navegacion`, `Chat` y `filaCategorias`.
+- **Navegador real** (Edge, usuario temporal borrado al final; 0 fallas en 18):
+  - Redirecciones 308 y Fuentes sin sesión.
+  - Hoja "Más", "+" y menú lateral.
+  - Indexación real de un PDF (Blob y Gemini): aviso y lista actualizada sin salir de la pantalla.
+  - Eliminar con confirmación.
+  - Enlace del Asistente.
+  - Claro y oscuro a 1280 y 390 px, sin desborde ni errores, y sin transiciones con "reducir movimiento".
+  - El primer intento de indexar falló por un corte de red hacia Gemini desde esta máquina (`other side closed`); al repetir, pasó.
+  - La búsqueda real en Wikipedia no se ejecutó: `BuscadorWeb` no cambió.
+- **Al cierre:** `npm test` 456/456, `npm run build` correcto, `eslint` sin errores.
 

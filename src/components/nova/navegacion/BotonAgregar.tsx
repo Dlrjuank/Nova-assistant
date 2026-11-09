@@ -10,7 +10,7 @@ import { esActivo } from './secciones';
 /** Lo que ofrece el botón "+". "Subir documento" pasa a Fuentes (pestaña PDF) en E10. */
 export const ACCIONES_AGREGAR = [
   { href: '/nova/tareas/nueva', texto: 'Nueva tarea', icono: ListPlus },
-  { href: '/nova/documentos/nuevo', texto: 'Subir documento', icono: FileUp },
+  { href: '/nova/fuentes?pestana=pdf', texto: 'Subir documento', icono: FileUp },
 ];
 
 /**

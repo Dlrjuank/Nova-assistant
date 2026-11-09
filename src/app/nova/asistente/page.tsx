@@ -20,7 +20,7 @@ export default async function AsistentePage({ searchParams }: { searchParams: Pr
   ]);
   const aviso = avisoAsistente(hayDocumentos, hayTareas); // RB-30
   const enlaceIndexar = (
-    <Link href="/nova/documentos/nuevo" className="font-semibold text-acento underline">
+    <Link href="/nova/fuentes?pestana=pdf" className="font-semibold text-acento underline">
       Indexar un PDF
     </Link>
   );

@@ -109,7 +109,7 @@ describe('Chat', () => {
     escribir('Mi agenda de hoy');
     fireEvent.click(boton());
     const enlace = await screen.findByRole('link', { name: 'Indexar un PDF' });
-    expect(enlace.getAttribute('href')).toBe('/nova/documentos/nuevo');
+    expect(enlace.getAttribute('href')).toBe('/nova/fuentes?pestana=pdf');
     expect(screen.queryByRole('button', { name: 'Reintentar' })).toBeNull();
   });
 
