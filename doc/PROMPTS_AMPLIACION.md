@@ -362,6 +362,25 @@ VERIFICACIÓN: B-51 a B-53; B-43 a B-45 siguen pasando.
 
 ---
 
+## E10c2 · Fuentes web: "Guardar" y consulta desde el Asistente (pedida por el usuario, 2026-11-09)
+
+**Plan:** 5.5, 5.9, 6.14, RB-55, RB-56. **Requisito:** E10c y E10b2.
+
+```text
+OBJETIVO: guardar solo lo que sirve y poder preguntarle al Asistente por eso. "Guardar" va primero: con guardado automático, cada búsqueda de prueba terminaría en las respuestas del Asistente.
+
+TAREA 1. Búsqueda web sin guardar: el resultado trae "Guardar"; POST /api/nova/web/fuentes con la categoría, el tope de 20 y sin duplicar (RB-55). Actualizar A-18 en doc/ACEPTACION.md. Pruebas S-60.
+TAREA 2. Respaldo y migración M18 (fuentes_web.vector y buscar_fuentes_web_usuario). Compatibilidad con master (11.3). Un embedding al guardar; las guardadas antes se vectorizan la primera vez que se busca.
+TAREA 3. "Fuentes web" en el selector "Buscar en": responde solo con las fuentes guardadas y las cita con su enlace (RB-56). Pruebas S-61.
+TAREA 4. probar:rag con Gemini real (pregunta sobre una fuente guardada y su cita).
+
+VERIFICACIÓN: B-68 y B-69; A-18 con el botón "Guardar".
+```
+
+**Commit:** `feat(fuentes): guardar fuentes web y consultarlas desde el asistente`
+
+---
+
 ## E10d · Plan de lectura por capítulos (pedida por el usuario, 2026-11-07)
 
 **Plan:** 5.9, RB-42. **Requisito:** E10b.
@@ -458,7 +477,7 @@ VERIFICACIÓN: B-55; Lighthouse sin errores de instalabilidad.
 
 ## E11c · Recordatorios con notificaciones push (pedida por el usuario, 2026-11-07)
 
-**Plan:** 5.10, 6.12, 7.10, RB-43 a RB-45. **Requisito:** E11b y E09.
+**Plan:** 5.9, 5.10, 6.12, 7.10, RB-43 a RB-45, RB-57. **Requisito:** E11b y E09.
 
 ```text
 OBJETIVO: avisos como los de cualquier app, a la hora elegida.
@@ -468,9 +487,10 @@ TAREA 2. Regla pura de la hora del recordatorio (7.10) y del texto (RB-44), prue
 TAREA 3. Campo "Recordatorio" en crear y editar (opciones según haya horario); recalcular al editar, cancelar al completar o eliminar.
 TAREA 4. Suscripción: "Activar notificaciones" solo por acción del usuario (RB-45), guía de E11b en el iPhone sin instalar, "Enviar una de prueba"; Configuración → Notificaciones con la hora fija.
 TAREA 5. Tick cada minuto (pg_cron + pg_net + Vault) con la ventana de 30 min sin envíos dobles; borrar suscripciones vencidas (404/410). Service worker: mostrar, numerito (setAppBadge), abrir /nova/tareas?tarea=<id> y resaltarla.
-TAREA 6. probar:recordatorios; prueba real en el iPhone y en Android del usuario (pantalla de bloqueo, banner, centro de notificaciones, numerito y sonido: se anota lo que hace iOS).
+TAREA 6. Indexación en segundo plano (RB-57): el tick avanza una parte del libro a medias más antiguo, sin esperar la cuota, y la tarjeta cambia su aviso a "Puedes cerrar esta pantalla: seguirá sola." Pruebas S-62 y S-63.
+TAREA 7. probar:recordatorios; prueba real en el iPhone y en Android del usuario (pantalla de bloqueo, banner, centro de notificaciones, numerito y sonido: se anota lo que hace iOS).
 
-VERIFICACIÓN: B-56 y B-57.
+VERIFICACIÓN: B-56, B-57 y B-70.
 ```
 
 **Commit:** `feat(recordatorios): notificaciones push de las tareas`
@@ -706,11 +726,11 @@ Anota en el plan lo que decidas y avísame antes de pasar a la siguiente pantall
 **Plan:** 12. **Requisito:** E20b.
 
 ```text
-TAREA 1. Agregar a doc/ACEPTACION.md la tabla B-01 a B-67 (columnas como A-01 a A-15) y la nota de repetir A-01 a A-21 en la vista previa.
+TAREA 1. Agregar a doc/ACEPTACION.md la tabla B-01 a B-70 (columnas como A-01 a A-15) y la nota de repetir A-01 a A-21 en la vista previa.
 TAREA 2. Revisión final: sin botones muertos (recorrido de todas las pantallas), sin colores fuera de los tokens, sin textos en inglés, todas las rutas nuevas con exigirSesion y filtro por usuario, ninguna clave en el repositorio.
 TAREA 3. Actualizar README (funciones, pantallas, scripts nuevos) y crear doc/checkpoints/AMPLIACION_COMPLETADA.md.
 TAREA 4. Preparar (sin aplicar) la migración que quita el disparador de dueño por defecto (plan, 6.1): comprueba que no quedan filas sin usuario_id, borra el disparador y asignar_dueno_por_defecto (y nova_config si nada más la usa) y pasa usuario_id a NOT NULL. Se aplica solo al unir ampliacion con master, después de que master tenga el código nuevo; nunca antes, porque rompería el código de master en producción.
-TAREA 5. Recordarle al usuario ejecutar B-01 a B-67 y A-01 a A-21 en la vista previa, en computador y teléfono. La unión de ampliacion con master solo se hace si el usuario la pide, e incluye revisar y aplicar la migración de la TAREA 4.
+TAREA 5. Recordarle al usuario ejecutar B-01 a B-70 y A-01 a A-21 en la vista previa, en computador y teléfono. La unión de ampliacion con master solo se hace si el usuario la pide, e incluye revisar y aplicar la migración de la TAREA 4.
 TAREA 6. (Recordatorios, E11c) Al unir con master: el trabajo de pg_cron pasa a llamar a la URL de producción, se quita el encabezado de omisión de la protección de la vista previa y se comprueba que las claves VAPID y RECORDATORIOS_SECRETO están en Production. Se agrega el cron diario de Vercel a GET /api/nova/salud con CRON_SECRET (riesgo de pausa de Supabase, plan 13).
 ```
 
