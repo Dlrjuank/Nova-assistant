@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Chat } from '@/components/nova/Chat';
 import { calcularDesplazamiento, zonaVisible } from '@/components/nova/seguirConversacion';
 
+vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
+
 const pantalla = { alto: 800, finFormulario: 790, inicioUltimo: 500 };
 const rect = (r: Partial<DOMRect>) => ({ top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0, x: 0, y: 0, toJSON: () => ({}), ...r }) as DOMRect;
 const scrollBy = vi.fn();

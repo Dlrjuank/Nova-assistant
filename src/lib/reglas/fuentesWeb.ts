@@ -19,6 +19,14 @@ export function origenDeBuscarEn(documentoId: string | undefined): OrigenMensaje
   return documentoId === BUSCAR_EN_WEB || documentoId === BUSCAR_EN_WIKIPEDIA ? documentoId : null;
 }
 
+const INICIO_DE_PREGUNTA = /^¿?\s*(?:qu[eé]|qui[eé]n(?:es)?|cu[aá]ndo|d[oó]nde|c[oó]mo|cu[aá]l(?:es)?|cu[aá]nt[oa]s?)\s+(?:(?:es|son|fue|fueron|era|eran|se|hay|significa)\s+)?/i;
+
+/** RB-58: la búsqueda de Wikipedia exige todas las palabras, y "cuándo se..." aleja el artículo. El modelo sí recibe la pregunta completa. */
+export function terminosDeWikipedia(consulta: string): string {
+  const terminos = consulta.replace(INICIO_DE_PREGUNTA, '').replace(/\?+\s*$/, '').trim();
+  return terminos.length >= 3 ? terminos : consulta;
+}
+
 /** RB-55: solo se guardan artículos de Wikipedia en español. */
 export function esUrlDeWikipedia(url: string): boolean {
   try {

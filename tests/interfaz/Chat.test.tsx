@@ -8,10 +8,14 @@ const responder = (cuerpo: unknown, status = 200) => new Response(JSON.stringify
 const campo = () => screen.getByLabelText('Tu pregunta') as HTMLTextAreaElement;
 const boton = () => screen.getByRole('button', { name: 'Preguntar' });
 const escribir = (valor: string) => fireEvent.change(campo(), { target: { value: valor } });
+const refrescar = vi.hoisted(() => vi.fn());
+vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: refrescar }) }));
 
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  sessionStorage.clear();
+  refrescar.mockClear();
 });
 
 describe('ListaFuentes y MensajeChat', () => {
@@ -135,7 +139,52 @@ describe('Chat', () => {
     render(<Chat />);
     escribir('Mi agenda de hoy');
     fireEvent.click(boton());
-    expect(await screen.findByText('No se pudo obtener respuesta del asistente. Intente de nuevo.')).toBeTruthy();
+    expect(await screen.findByText('No se pudo obtener respuesta del asistente. Intenta de nuevo.')).toBeTruthy();
+  });
+
+  it('RN-20: una pregunta en error sale de la conversación, se muestra en el aviso y no refresca', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('An error occurred', { status: 504 })));
+    render(<Chat />);
+    escribir('Mi agenda de hoy');
+    fireEvent.click(boton());
+    expect(await screen.findByText('Quedó sin respuesta y no se guardó: «Mi agenda de hoy»')).toBeTruthy();
+    expect(screen.getByRole('log').children).toHaveLength(0);
+    expect(refrescar).not.toHaveBeenCalled();
+  });
+
+  it('una respuesta actualiza la copia de la página, para que Atrás muestre lo mismo que F5', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(responder({ ok: true, datos: { respuesta: 'Listo.', fuentes: [], conversacionId: 'c1', guardada: true } })));
+    render(<Chat />);
+    escribir('Mi agenda de hoy');
+    fireEvent.click(boton());
+    await screen.findByText('Listo.');
+    expect(refrescar).toHaveBeenCalledTimes(1);
+  });
+
+  it('"Buscar en" se conserva al volver a la pantalla', async () => {
+    const f = vi.fn().mockResolvedValue(responder({ ok: true, datos: { respuesta: 'Listo.', fuentes: [], conversacionId: 'c1', guardada: true } }));
+    vi.stubGlobal('fetch', f);
+    const primera = render(<Chat />);
+    fireEvent.change(screen.getByLabelText('Buscar en'), { target: { value: 'wikipedia' } });
+    primera.unmount();
+    render(<Chat />);
+    expect((screen.getByLabelText('Buscar en') as HTMLSelectElement).value).toBe('wikipedia');
+    escribir('cuando es navidad');
+    fireEvent.click(boton());
+    await screen.findByText('Listo.');
+    expect(JSON.parse(f.mock.calls[0]?.[1].body)).toMatchObject({ documentoId: 'wikipedia' });
+  });
+
+  it('"Buscar en" no recuerda un documento que ya no existe, y lo de Inicio va a todos los documentos', () => {
+    sessionStorage.setItem('nova-buscar-en', 'doc-borrado');
+    const primera = render(<Chat documentos={[{ id: 'd1', nombre: 'a.pdf' }]} />);
+    expect((screen.getByLabelText('Buscar en') as HTMLSelectElement).value).toBe('');
+    primera.unmount();
+    sessionStorage.setItem('nova-buscar-en', 'wikipedia');
+    vi.stubGlobal('fetch', vi.fn().mockReturnValue(new Promise(() => {})));
+    render(<Chat preguntaInicial="Mi agenda de hoy" />);
+    expect((screen.getByLabelText('Buscar en') as HTMLSelectElement).value).toBe('');
+    expect(sessionStorage.getItem('nova-buscar-en')).toBe('');
   });
 
   it('RN-20: muestra el historial guardado y continúa en esa conversación', async () => {

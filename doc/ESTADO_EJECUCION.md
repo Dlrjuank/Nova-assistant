@@ -742,3 +742,15 @@ Total de fallas: 0
 - **Navegador real** (Edge, base real, usuario temporal borrado, respuestas del Asistente simuladas para no gastar cuota; 51 de 51): selector, enlace y "Guardar fuente" al recargar, aviso de Wikipedia, confirmación al guardar, Fuentes guardadas, dirección antigua, claro y oscuro a 1280 y 390 px.
 - **`scripts/verificar-bd.mjs`:** su lista `TABLAS` no incluye `nova_config`, `categorias` ni `capitulos`, pero sus secciones 6b, 6c y 6e comprueban que existan y su RLS. Solo les falta el conteo de filas.
 - **Al cierre:** `npm test` 605/605, `npm run build` correcto, `eslint` sin errores.
+
+#### E10c2: correcciones tras la prueba del usuario en la vista previa
+
+- **"Fuentes web" fallaba:** los registros de Vercel muestran cortes de la función a los 60 s, sin error de Gemini. La pantalla convierte ese corte en `ERROR_LLM`. Medido con una fuente guardada: el modelo principal no contestó en 15 s, y antes `responder` hacía 3 intentos sin tope de tiempo antes de pasar al respaldo. El SDK no pone tope por defecto.
+- **Corrección en `gemini.ts`:** principal con un solo intento y 15 s; respaldo con el tiempo restante de 40 s; embeddings desde el Asistente con 10 s por intento. La indexación no cambia.
+- **`ERROR_LLM` en tuteo** (`Intenta de nuevo.`), también en `PLAN_NOVA.md`.
+- **Pantalla e historial:** el botón Atrás restauraba una copia vieja de la página. `Chat` llama a `router.refresh()` tras cada respuesta y tras "Conversación nueva". Una pregunta en error no se guarda (RN-20): sale de la conversación y queda en el aviso, con "Reintentar".
+- **"cuando es navidad":** quedó en el historial con `origen` NULL, o sea que se hizo con "Todos los documentos". "Buscar en" se reiniciaba al cambiar de pestaña; ahora se recuerda con `sessionStorage` durante la sesión de esa pestaña. Lo que llega de "Pregúntale a Nova" va a todos los documentos.
+- **Búsqueda de Wikipedia (RB-58):** `terminosDeWikipedia` quita el comienzo de la pregunta ("cuándo se celebra la navidad" traía Patricia Navidad; ahora, Navidad). El modelo recibe la pregunta completa.
+- **`probar:rag`:** el paso 15f usa `consultarYRegistrar` (camino de la ruta) y se agregan 15f2 (menos de 50 s) y 15f3 (origen en el historial). No se repitió la prueba completa: el mismo camino se ejecutó una vez con Gemini real y un usuario temporal, 20 s en "Fuentes web" y 16 s de respuesta en Wikipedia.
+- **Edge** (base real, usuario temporal borrado, el error simulado): 16 de 16.
+- **Al cierre:** `npm test` 620/620, `npm run build` correcto, `eslint` sin errores.

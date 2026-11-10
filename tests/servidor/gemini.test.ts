@@ -52,6 +52,15 @@ describe('llm.generarEmbeddings', () => {
     await expect(llm.generarEmbeddings(Array.from({ length: 45 }, (_, i) => `t${i}`))).resolves.toHaveLength(45);
     expect(embedContent.mock.calls.map((c) => c[0].contents.length)).toEqual([20, 20, 5]);
   });
+
+  it('desde el Asistente cada intento tiene tope; la indexación no', async () => {
+    const { llm } = await import('@/lib/llm/gemini');
+    embedContent.mockResolvedValue({ embeddings: [vector] });
+    await llm.generarEmbedding('a');
+    await llm.generarEmbeddings(['a'], { interactivo: true });
+    await llm.generarEmbeddings(['a']);
+    expect(embedContent.mock.calls.map((c) => c[0].config.httpOptions?.timeout)).toEqual([10_000, 10_000, undefined]);
+  });
 });
 
 describe('llm.responder', () => {
@@ -80,11 +89,41 @@ describe('llm.responder', () => {
     expect(contents[2].parts[0].text).toContain(`PREGUNTA:\n${DATOS.pregunta}`);
   });
 
-  it('reintenta ante un 503 y devuelve la respuesta', async () => {
+  it('un 503 del principal pasa al respaldo sin reintentar', async () => {
     const { llm } = await import('@/lib/llm/gemini');
     generateContent.mockRejectedValueOnce(error(503)).mockResolvedValueOnce({ text: ' hola ' });
     await expect(llm.responder(DATOS)).resolves.toBe('hola');
+    expect(generateContent.mock.calls.map((c) => c[0].model)).toEqual([MODELO_CHAT, MODELO_CHAT_RESPALDO]);
+  });
+
+  it('el principal que no contesta a tiempo cede al respaldo, con un tope por llamada', async () => {
+    const { llm } = await import('@/lib/llm/gemini');
+    generateContent.mockRejectedValueOnce(Object.assign(new Error('aborted'), { name: 'AbortError' })).mockResolvedValueOnce({ text: 'respaldo' });
+    await expect(llm.responder(DATOS)).resolves.toBe('respaldo');
+    const [principal, respaldo] = generateContent.mock.calls.map((c) => c[0].config.httpOptions.timeout);
+    expect(principal).toBe(15_000);
+    expect(respaldo).toBeGreaterThan(30_000);
+    expect(respaldo).toBeLessThanOrEqual(40_000);
+  });
+
+  it('el respaldo reintenta una saturación momentánea', async () => {
+    const { llm } = await import('@/lib/llm/gemini');
+    generateContent.mockRejectedValueOnce(error(503)).mockRejectedValueOnce(error(503)).mockResolvedValueOnce({ text: 'por fin' });
+    await expect(llm.responder(DATOS)).resolves.toBe('por fin');
+    expect(generateContent).toHaveBeenCalledTimes(3);
+  });
+
+  it('con el tiempo agotado no reintenta el respaldo y sale como ERROR_LLM', async () => {
+    const { llm } = await import('@/lib/llm/gemini');
+    const inicio = Date.now();
+    const ahora = vi.spyOn(Date, 'now');
+    generateContent.mockRejectedValueOnce(error(503)).mockImplementationOnce(async () => {
+      ahora.mockReturnValue(inicio + 41_000);
+      throw Object.assign(new Error('aborted'), { name: 'AbortError' });
+    });
+    await expect(llm.responder(DATOS)).rejects.toMatchObject({ codigo: 'ERROR_LLM' });
     expect(generateContent).toHaveBeenCalledTimes(2);
+    ahora.mockRestore();
   });
 
   it('pasa al modelo de respaldo si el principal sigue saturado', async () => {
@@ -97,11 +136,11 @@ describe('llm.responder', () => {
     expect(generateContent).toHaveBeenLastCalledWith(expect.objectContaining({ model: MODELO_CHAT_RESPALDO }));
   }, 15_000);
 
-  it('E10b: reintenta ante una conexión cortada', async () => {
+  it('E10b: una conexión cortada pasa al respaldo', async () => {
     const { llm } = await import('@/lib/llm/gemini');
     generateContent.mockRejectedValueOnce(new TypeError('fetch failed')).mockResolvedValueOnce({ text: ' hola ' });
     await expect(llm.responder(DATOS)).resolves.toBe('hola');
-    expect(generateContent).toHaveBeenCalledTimes(2);
+    expect(generateContent).toHaveBeenLastCalledWith(expect.objectContaining({ model: MODELO_CHAT_RESPALDO }));
   });
 
   it('una cuota agotada (429) no reintenta y pasa directo al respaldo', async () => {

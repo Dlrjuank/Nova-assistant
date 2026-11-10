@@ -13,7 +13,7 @@ import { SYSTEM_PROMPT_WEB } from '@/lib/llm/prompts';
 import { normalizarConsulta, validarConsulta } from '@/lib/reglas/consulta';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
 import { hoyBogota } from '@/lib/reglas/fechas';
-import { esUrlDeWikipedia } from '@/lib/reglas/fuentesWeb';
+import { esUrlDeWikipedia, terminosDeWikipedia } from '@/lib/reglas/fuentesWeb';
 import type { ArticuloWeb, FuenteGuardada, FuenteWeb, ResultadoWeb } from './tipos';
 
 const TIEMPO_WIKIPEDIA_MS = 10_000;
@@ -30,7 +30,7 @@ async function buscarArticulos(consulta: string): Promise<Articulo[]> {
     format: 'json',
     formatversion: '2',
     generator: 'search',
-    gsrsearch: consulta.slice(0, WEB_MAX_CARACTERES),
+    gsrsearch: terminosDeWikipedia(consulta).slice(0, WEB_MAX_CARACTERES),
     gsrlimit: String(WEB_RESULTADOS),
     prop: 'extracts|info',
     exintro: '1',

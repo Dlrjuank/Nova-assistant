@@ -754,7 +754,7 @@ Todas las respuestas llevan `Cache-Control: no-store`.
 | `PDF_SIN_TEXTO` | 422 | El documento no contiene texto seleccionable (no se admite OCR) |
 | `CONSULTA_MUY_CORTA` | 422 | La instrucción es demasiado corta |
 | `SIN_DOCUMENTOS` | 409 | Aún no hay documentos indexados. Indexe un PDF antes de preguntar. |
-| `ERROR_LLM` | 502 | No se pudo obtener respuesta del asistente. Intente de nuevo. |
+| `ERROR_LLM` | 502 | No se pudo obtener respuesta del asistente. Intenta de nuevo. |
 | `TAREA_NO_ENCONTRADA` | 404 | La tarea no existe. |
 | `TAREA_YA_COMPLETADA` | 409 | La tarea ya está completada. |
 | `CONVERSACION_NO_ENCONTRADA` | 404 | La conversación no existe. Recargue la página. |

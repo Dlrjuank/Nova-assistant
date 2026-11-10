@@ -2,6 +2,7 @@
 
 import { ArrowDown } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { MensajeChat, type AutorMensaje } from '@/components/nova/MensajeChat';
 import { Aviso } from '@/components/ui/Aviso';
@@ -31,10 +32,30 @@ interface ErrorChat {
   codigo: string;
   mensaje: string;
   cuerpo: Record<string, unknown>;
+  /** RN-20: la pregunta sin respuesta no se guarda; se muestra aquí, no en la conversación. */
+  pregunta: string;
 }
 
 // Reintentar no sirve para estos: repetir la misma pregunta daría el mismo error.
 const SIN_REINTENTO = ['CONSULTA_MUY_CORTA', 'CONVERSACION_NO_ENCONTRADA'];
+const CLAVE_BUSCAR_EN = 'nova-buscar-en';
+
+// El almacenamiento puede estar bloqueado: entonces "Buscar en" simplemente no se recuerda.
+function leerBuscarEn(): string {
+  try {
+    return sessionStorage.getItem(CLAVE_BUSCAR_EN) ?? '';
+  } catch {
+    return '';
+  }
+}
+
+function recordarBuscarEn(valor: string): void {
+  try {
+    sessionStorage.setItem(CLAVE_BUSCAR_EN, valor);
+  } catch {
+    // ver leerBuscarEn
+  }
+}
 
 /**
  * RN-20: la conversación se guarda en la base por usuario y la página entrega la más reciente al cargar.
@@ -65,6 +86,7 @@ export function Chat({
   const [creando, setCreando] = useState(false);
   const [errorNueva, setErrorNueva] = useState('');
   const siguienteId = useRef(historial.length);
+  const router = useRouter();
 
   // La vista sigue a la conversación (ver seguirConversacion.ts): al enviar baja siempre; al llegar la
   // respuesta, solo si el usuario no subió a leer algo anterior (si subió, aparece "Ir al final").
@@ -91,6 +113,14 @@ export function Chat({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar
   }, []);
 
+  // "Buscar en" se conserva al cambiar de pestaña. Lo que llega de "Pregúntale a Nova" va a todos los documentos.
+  useEffect(() => {
+    if (preguntaInicial) return recordarBuscarEn('');
+    const guardado = leerBuscarEn();
+    if ([BUSCAR_EN_WEB, BUSCAR_EN_WIKIPEDIA, ...documentos.map((d) => d.id)].includes(guardado)) setBuscarEn(guardado);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar
+  }, []);
+
   // Una sola vez aunque React monte el efecto dos veces en desarrollo. Después se quita ?pregunta= de la URL
   // para que recargar la página no la vuelva a enviar. Si no fuera válida, queda en el campo para corregirla.
   const inicialEnviada = useRef(false);
@@ -99,9 +129,7 @@ export function Chat({
     inicialEnviada.current = true;
     window.history.replaceState(null, '', window.location.pathname);
     if (esValida(preguntaInicial)) {
-      const pregunta = normalizarConsulta(preguntaInicial);
-      agregar('usuario', pregunta);
-      void preguntar(pregunta);
+      void preguntar(normalizarConsulta(preguntaInicial));
     } else {
       setTexto(preguntaInicial);
     }
@@ -115,17 +143,24 @@ export function Chat({
   };
 
   function preguntar(pregunta: string) {
-    return consultar({ pregunta, ...(buscarEn ? { documentoId: buscarEn } : {}) });
+    return consultar({ pregunta, ...(buscarEn ? { documentoId: buscarEn } : {}) }, pregunta);
   }
 
   /** RB-41: vuelve a explicar una respuesta con sus mismos fragmentos. */
   function explicar(mensajeId: number, modo: ModoExplicar, texto: string) {
     if (pensando) return;
-    agregar('usuario', `Explícalo: ${texto}`);
-    void consultar({ explicar: { mensajeId, modo } });
+    void consultar({ explicar: { mensajeId, modo } }, `Explícalo: ${texto}`);
   }
 
-  async function consultar(cuerpoConsulta: Record<string, unknown>) {
+  /** RN-20: una pregunta sin respuesta no se guarda, así que tampoco se queda en la conversación que se ve. */
+  function fallo(codigo: string, mensaje: string, cuerpo: Record<string, unknown>, pregunta: string) {
+    pendiente.current = 'llegada';
+    setMensajes((previos) => (previos.at(-1)?.autor === 'usuario' ? previos.slice(0, -1) : previos));
+    setError({ codigo, mensaje, cuerpo, pregunta });
+  }
+
+  async function consultar(cuerpoConsulta: Record<string, unknown>, pregunta: string) {
+    agregar('usuario', pregunta);
     setError(null);
     setSinGuardar(false);
     setPensando(true);
@@ -142,20 +177,15 @@ export function Chat({
         error?: { codigo?: string; mensaje?: string };
       } | null;
       if (!respuesta.ok || !cuerpo?.ok || !cuerpo.datos) {
-        pendiente.current = 'llegada';
-        setError({
-          codigo: cuerpo?.error?.codigo ?? 'ERROR_LLM',
-          mensaje: cuerpo?.error?.mensaje ?? MENSAJES.ERROR_LLM,
-          cuerpo: cuerpoConsulta,
-        });
+        fallo(cuerpo?.error?.codigo ?? 'ERROR_LLM', cuerpo?.error?.mensaje ?? MENSAJES.ERROR_LLM, cuerpoConsulta, pregunta);
         return;
       }
       agregar('asistente', cuerpo.datos.respuesta, cuerpo.datos.fuentes, cuerpo.datos.explicable ? cuerpo.datos.mensajeId : undefined, cuerpo.datos.origen);
       setConversacionId(cuerpo.datos.conversacionId);
       setSinGuardar(cuerpo.datos.guardada === false);
+      router.refresh(); // el botón Atrás restaura la copia que tenga Next: debe incluir este turno
     } catch {
-      pendiente.current = 'llegada';
-      setError({ codigo: 'SIN_CONEXION', mensaje: 'No se pudo conectar con el servidor.', cuerpo: cuerpoConsulta });
+      fallo('SIN_CONEXION', 'No se pudo conectar con el servidor.', cuerpoConsulta, pregunta);
     } finally {
       setPensando(false);
     }
@@ -180,6 +210,7 @@ export function Chat({
       setMensajes([]);
       setError(null);
       setSinGuardar(false);
+      router.refresh();
     } catch {
       setErrorNueva('No se pudo conectar con el servidor. Intente de nuevo.');
     } finally {
@@ -190,10 +221,8 @@ export function Chat({
   function enviar(evento?: FormEvent) {
     evento?.preventDefault();
     if (pensando || !esValida(texto)) return;
-    const pregunta = normalizarConsulta(texto);
-    agregar('usuario', pregunta);
     setTexto('');
-    void preguntar(pregunta);
+    void preguntar(normalizarConsulta(texto));
   }
 
   function alPresionarTecla(evento: KeyboardEvent<HTMLTextAreaElement>) {
@@ -263,8 +292,9 @@ export function Chat({
       {error && error.codigo !== 'SIN_DOCUMENTOS' && (
         <div className="flex flex-col items-start gap-2">
           <Aviso tipo="error">{error.mensaje}</Aviso>
+          <p className="px-1 text-sm text-texto-suave">Quedó sin respuesta y no se guardó: «{error.pregunta}»</p>
           {!SIN_REINTENTO.includes(error.codigo) && (
-            <Boton variante="secundario" onClick={() => void consultar(error.cuerpo)} disabled={pensando}>
+            <Boton variante="secundario" onClick={() => void consultar(error.cuerpo, error.pregunta)} disabled={pensando}>
               Reintentar
             </Boton>
           )}
@@ -291,7 +321,10 @@ export function Chat({
           id="buscar-en"
           etiqueta="Buscar en"
           value={buscarEn}
-          onChange={(e) => setBuscarEn(e.target.value)}
+          onChange={(e) => {
+            setBuscarEn(e.target.value);
+            recordarBuscarEn(e.target.value);
+          }}
           opciones={[
             { valor: '', texto: 'Todos los documentos' },
             ...documentos.map((d) => ({ valor: d.id, texto: d.nombre })),

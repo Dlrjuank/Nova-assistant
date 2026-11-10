@@ -12,7 +12,7 @@ vi.mock('@/lib/dataService', async () => import('@/lib/datos/wikipedia'));
 import * as rutaLista from '@/app/api/nova/web/fuentes/route';
 import * as rutaFuente from '@/app/api/nova/web/fuentes/[id]/route';
 import { eliminarFuenteWeb, listarFuentesWeb } from '@/lib/datos/wikipedia';
-import { agruparFuentes, tituloDeArticulo } from '@/lib/reglas/fuentesWeb';
+import { agruparFuentes, terminosDeWikipedia, tituloDeArticulo } from '@/lib/reglas/fuentesWeb';
 
 const U = '11111111-1111-4111-8111-111111111111';
 const F = '22222222-2222-4222-8222-222222222222';
@@ -24,6 +24,18 @@ beforeEach(() => {
 });
 
 describe('reglas', () => {
+  it.each([
+    ['cuando es navidad', 'navidad'],
+    ['¿Cuándo se celebra la navidad?', 'celebra la navidad'],
+    ['quien fue simon bolivar', 'simon bolivar'],
+    ['Qué es la fotosíntesis', 'la fotosíntesis'],
+    ['sierra nevada', 'sierra nevada'],
+    ['como agua para chocolate', 'agua para chocolate'],
+    ['qué es', 'qué es'],
+  ])('RB-58: busca "%s" como "%s"', (consulta, terminos) => {
+    expect(terminosDeWikipedia(consulta)).toBe(terminos);
+  });
+
   it('el título sale de la dirección del artículo', () => {
     expect(tituloDeArticulo('https://es.wikipedia.org/wiki/Fotos%C3%ADntesis')).toBe('Fotosíntesis');
     expect(tituloDeArticulo('https://es.wikipedia.org/wiki/Sierra_Nevada_de_Santa_Marta')).toBe('Sierra Nevada de Santa Marta');

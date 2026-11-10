@@ -28,6 +28,10 @@ const MENSAJE_CUOTA =
 // Cuánto se puede esperar la cuota por minuto. Deben caber en el maxDuration de sus rutas (300 s y 60 s).
 const ESPERA_MAXIMA_INDEXAR_MS = 270_000;
 const ESPERA_MAXIMA_CONSULTAR_MS = 25_000;
+// La ruta del Asistente tiene 60 s. Sin estos topes, una llamada que no contesta consume todo ese tiempo.
+const TIEMPO_INTENTO_EMBEDDING_MS = 10_000;
+const TIEMPO_MODELO_PRINCIPAL_MS = 15_000;
+const TIEMPO_RESPONDER_MS = 40_000;
 
 let cliente: GoogleGenAI | undefined;
 function obtenerCliente(): GoogleGenAI {
@@ -53,10 +57,10 @@ function estadoDe(error: unknown): number | undefined {
   return ((error ?? {}) as { status?: number }).status;
 }
 
-/** Saturación momentánea (503 frecuente) o conexión cortada: reintentar puede bastar. */
+/** Saturación momentánea (503 frecuente), conexión cortada o sin respuesta a tiempo: reintentar puede bastar. */
 function esErrorTemporal(error: unknown): boolean {
   const estado = estadoDe(error);
-  return estado === 500 || estado === 503 || (error instanceof TypeError && error.message === 'fetch failed');
+  return estado === 500 || estado === 503 || (error as Error)?.name === 'AbortError' || (error instanceof TypeError && error.message === 'fetch failed');
 }
 
 /** Además de la saturación, una cuota agotada (429): no se reintenta, pero la cuota es por modelo. */
@@ -64,12 +68,12 @@ function ameritaRespaldo(error: unknown): boolean {
   return esErrorTemporal(error) || estadoDe(error) === 429;
 }
 
-async function conReintentos<T>(trabajo: () => Promise<T>): Promise<T> {
+async function conReintentos<T>(trabajo: () => Promise<T>, limite = Infinity): Promise<T> {
   for (const espera of ESPERAS_REINTENTO_MS) {
     try {
       return await trabajo();
     } catch (error) {
-      if (!esErrorTemporal(error)) throw error;
+      if (!esErrorTemporal(error) || Date.now() + espera >= limite) throw error;
       await new Promise((resolver) => setTimeout(resolver, espera));
     }
   }
@@ -86,7 +90,7 @@ function milisegundosDeEspera(error: unknown): number {
 async function conEsperaDeCuota<T>(trabajo: () => Promise<T>, limite: number): Promise<T> {
   for (;;) {
     try {
-      return await conReintentos(trabajo);
+      return await conReintentos(trabajo, limite);
     } catch (error) {
       if (estadoDe(error) !== 429) throw error;
       const espera = milisegundosDeEspera(error);
@@ -103,6 +107,7 @@ async function embeber(
   textos: string[],
   tipo: 'RETRIEVAL_QUERY' | 'RETRIEVAL_DOCUMENT',
   esperaMaximaMs: number,
+  tiempoIntentoMs?: number,
 ): Promise<number[][]> {
   const ai = obtenerCliente();
   const vectores: number[][] = [];
@@ -114,7 +119,7 @@ async function embeber(
           ai.models.embedContent({
             model: MODELO_EMBEDDING,
             contents: textos.slice(i, i + TAMANO_LOTE),
-            config: { outputDimensionality: EMBEDDING_DIMENSIONES, taskType: tipo },
+            config: { outputDimensionality: EMBEDDING_DIMENSIONES, taskType: tipo, ...(tiempoIntentoMs ? { httpOptions: { timeout: tiempoIntentoMs } } : {}) },
           }),
         limite,
       );
@@ -136,12 +141,14 @@ async function embeber(
 
 export const llm: LLMClient = {
   async generarEmbedding(texto) {
-    const [vector] = await embeber([texto], 'RETRIEVAL_QUERY', ESPERA_MAXIMA_CONSULTAR_MS);
+    const [vector] = await embeber([texto], 'RETRIEVAL_QUERY', ESPERA_MAXIMA_CONSULTAR_MS, TIEMPO_INTENTO_EMBEDDING_MS);
     return vector as number[];
   },
 
   generarEmbeddings(textos, opciones) {
-    return embeber(textos, 'RETRIEVAL_DOCUMENT', opciones?.interactivo ? ESPERA_MAXIMA_CONSULTAR_MS : ESPERA_MAXIMA_INDEXAR_MS);
+    return opciones?.interactivo
+      ? embeber(textos, 'RETRIEVAL_DOCUMENT', ESPERA_MAXIMA_CONSULTAR_MS, TIEMPO_INTENTO_EMBEDDING_MS)
+      : embeber(textos, 'RETRIEVAL_DOCUMENT', ESPERA_MAXIMA_INDEXAR_MS);
   },
 
   async responder({ sistema, contexto, pregunta, historial = [] }) {
@@ -151,19 +158,19 @@ export const llm: LLMClient = {
       ...historial.map((m) => ({ role: m.autor === 'usuario' ? 'user' : 'model', parts: [{ text: m.texto }] })),
       { role: 'user', parts: [{ text: `CONTEXTO:\n${contexto || '(sin contexto)'}\n\nPREGUNTA:\n${pregunta}` }] },
     ];
-    const generar = (model: string) =>
-      conReintentos(() =>
-        ai.models.generateContent({
-          model,
-          contents,
-          config: { systemInstruction: sistema, temperature: 0.2 },
-        }),
-      );
+    const limite = Date.now() + TIEMPO_RESPONDER_MS;
+    const generar = (model: string, tiempoMs: number) =>
+      ai.models.generateContent({
+        model,
+        contents,
+        config: { systemInstruction: sistema, temperature: 0.2, httpOptions: { timeout: tiempoMs } },
+      });
     try {
-      const respuesta = await generar(MODELO_CHAT).catch((error: unknown) => {
+      // Un modelo saturado no se recupera en segundos: se pasa al respaldo sin reintentar, y se gastan menos llamadas.
+      const respuesta = await generar(MODELO_CHAT, TIEMPO_MODELO_PRINCIPAL_MS).catch((error: unknown) => {
         if (!ameritaRespaldo(error)) throw error;
-        console.warn(`${MODELO_CHAT} no disponible; se usa ${MODELO_CHAT_RESPALDO}.`);
-        return generar(MODELO_CHAT_RESPALDO);
+        console.warn(`${MODELO_CHAT} no disponible (${estadoDe(error) ?? (error as Error)?.name}); se usa ${MODELO_CHAT_RESPALDO}.`);
+        return conReintentos(() => generar(MODELO_CHAT_RESPALDO, Math.max(limite - Date.now(), 1)), limite);
       });
       const texto = respuesta.text?.trim();
       if (!texto) throw new Error('Respuesta vacía de Gemini');

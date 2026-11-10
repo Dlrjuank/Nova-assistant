@@ -18,6 +18,7 @@ import { completarTarea, crearTarea, eliminarTarea, hayTareasPendientes, listarT
 import { SIN_DOCUMENTOS_RESPUESTA, SIN_RESPUESTA, SIN_TAREAS_PENDIENTES } from '@/lib/llm/prompts';
 import { hoyBogota, sumarDias } from '@/lib/reglas/fechas';
 import { llm } from '@/lib/llm/gemini';
+import { consultarYRegistrar } from '@/lib/datos/conversacion';
 import { responderConFuentesWeb, responderConWikipedia } from '@/lib/datos/consultaWeb';
 import { eliminarFuenteWeb, guardarFuenteWeb, listarFuentesWeb } from '@/lib/datos/wikipedia';
 import { SIN_FUENTES_WEB } from '@/lib/llm/prompts';
@@ -369,12 +370,18 @@ async function main(): Promise<void> {
     marcar((ajena as { codigo?: string }).codigo === 'FUENTE_URL_INVALIDA', 'Paso 15d: un enlace ajeno a Wikipedia se rechaza');
     const conVector = await sql.query<{ n: number }>('SELECT count(*)::int AS n FROM fuentes_web WHERE usuario_id = $1 AND vector IS NOT NULL', [OTRO]);
     marcar(conVector.rows[0]?.n === 1, 'Paso 15e: la fuente queda con su vector de 768 dimensiones');
-    const citada = await responderConFuentesWeb(OTRO, '¿Cada cuánto se cambia el filtro del purificador?');
+    // El mismo camino de la ruta del Asistente, con Gemini real y una fuente guardada.
+    const inicioCitada = Date.now();
+    const citada = await consultarYRegistrar(OTRO, '¿Cada cuánto se cambia el filtro del purificador?', undefined, 'web');
+    const segundosCitada = Math.round((Date.now() - inicioCitada) / 1000);
     marcar(
       /nueve meses|9 meses/i.test(citada.respuesta) && citada.fuentes[0]?.url === URL_FUENTE && citada.fuentes[0]?.etiqueta === 'Prueba Nova purificador · Wikipedia',
       'Paso 15f: "Fuentes web" responde con la fuente y cita su enlace',
       `${citada.respuesta} | ${citada.fuentes.map((f) => f.etiqueta).join(', ')}`,
     );
+    marcar(segundosCitada < 50, 'Paso 15f2: responde antes del corte de 60 s de la ruta', `${segundosCitada} s`);
+    const origenes = await sql.query<{ origen: string }>('SELECT origen FROM mensajes_chat WHERE conversacion_id = $1', [citada.conversacionId]);
+    marcar(citada.guardada === true && origenes.rows.length === 2 && origenes.rows.every((m) => m.origen === 'web'), 'Paso 15f3: el turno queda en el historial con origen "web"');
     const noEsta = await responderConFuentesWeb(OTRO, '¿Cuál es la capital de Mongolia?');
     marcar(noEsta.respuesta === SIN_RESPUESTA && noEsta.fuentes.length === 0, 'Paso 15g: lo que no está en las fuentes -> "No encontré"', noEsta.respuesta);
     const enWikipedia = await responderConWikipedia('qué es la fotosíntesis de las plantas');
