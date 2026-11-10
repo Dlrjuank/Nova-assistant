@@ -773,3 +773,8 @@ Total de fallas: 0
 - **Aviso:** tras 10 s de "Pensando…": `Los textos largos, como un capítulo, pueden tardar hasta un par de minutos. Espera un poco más.`
 - **Prueba real (una llamada):** 60 fragmentos sintéticos (30.219 palabras): el principal contestó en 11 s, sin pasar al respaldo, pero respondió que no encontraba el dato (35 caracteres), así que esta llamada no prueba una respuesta larga. La de 40 s se había medido antes, directamente con la API.
 - **Al cierre:** `npm test` 638/638, `npm run build` correcto, `eslint` sin errores.
+
+#### E10c2 terminada (2026-11-10)
+
+- **Prueba del usuario en la vista previa (PC e iPhone), sin fallas:** Fuentes web con una fuente guardada y su enlace; mensaje de Fuentes web sin resultado; "No encontré esto en tus documentos" en los demás casos; varias preguntas seguidas; "Buscar en" se conserva al cambiar de pestaña y "cuando es navidad" con Wikipedia; el botón Atrás muestra lo mismo que F5; capítulo largo en PC y en iPhone.
+- Queda cerrada E10c2. Sigue E10c3, que empieza solo cuando el usuario lo indique.
