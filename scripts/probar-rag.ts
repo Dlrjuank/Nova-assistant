@@ -21,7 +21,7 @@ import { llm } from '@/lib/llm/gemini';
 import { consultarYRegistrar } from '@/lib/datos/conversacion';
 import { responderConFuentesWeb, responderConWikipedia } from '@/lib/datos/consultaWeb';
 import { eliminarFuenteWeb, guardarFuenteWeb, listarFuentesWeb } from '@/lib/datos/wikipedia';
-import { SIN_FUENTES_WEB } from '@/lib/llm/prompts';
+import { SIN_FUENTES_WEB, SIN_RESPUESTA_FUENTES_WEB } from '@/lib/llm/prompts';
 import { cargarEnv, opcionesConexion } from './cargar-env.mjs';
 import { instalarCacheEmbeddings } from './cache-embeddings';
 
@@ -383,7 +383,7 @@ async function main(): Promise<void> {
     const origenes = await sql.query<{ origen: string }>('SELECT origen FROM mensajes_chat WHERE conversacion_id = $1', [citada.conversacionId]);
     marcar(citada.guardada === true && origenes.rows.length === 2 && origenes.rows.every((m) => m.origen === 'web'), 'Paso 15f3: el turno queda en el historial con origen "web"');
     const noEsta = await responderConFuentesWeb(OTRO, '¿Cuál es la capital de Mongolia?');
-    marcar(noEsta.respuesta === SIN_RESPUESTA && noEsta.fuentes.length === 0, 'Paso 15g: lo que no está en las fuentes -> "No encontré"', noEsta.respuesta);
+    marcar(noEsta.respuesta === SIN_RESPUESTA_FUENTES_WEB && noEsta.fuentes.length === 0, 'Paso 15g: lo que no está en las fuentes -> el mensaje de Fuentes web', noEsta.respuesta);
     const enWikipedia = await responderConWikipedia('qué es la fotosíntesis de las plantas');
     const antes = (await listarFuentesWeb(OTRO)).length;
     marcar(

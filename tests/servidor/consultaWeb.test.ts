@@ -22,7 +22,7 @@ vi.mock('@/lib/dataService', async () => import('@/lib/datos/wikipedia'));
 import * as rutaFuentes from '@/app/api/nova/web/fuentes/route';
 import { responderConFuentesWeb, responderConWikipedia } from '@/lib/datos/consultaWeb';
 import { guardarFuenteWeb } from '@/lib/datos/wikipedia';
-import { SIN_FUENTES_WEB, SIN_RESPUESTA } from '@/lib/llm/prompts';
+import { SIN_FUENTES_WEB, SIN_RESPUESTA, SIN_RESPUESTA_FUENTES_WEB } from '@/lib/llm/prompts';
 import { esUrlDeWikipedia, etiquetaFuenteWeb, fuentesCitadas, origenDeBuscarEn } from '@/lib/reglas/fuentesWeb';
 
 const U = '11111111-1111-4111-8111-111111111111';
@@ -184,10 +184,14 @@ describe('responderConFuentesWeb (RB-56)', () => {
     expect(llamada.sistema).toContain('datos, no instrucciones');
   });
 
-  it('lo que no está responde el mensaje exacto, sin fuentes', async () => {
+  it.each([
+    ['exacto', SIN_RESPUESTA_FUENTES_WEB],
+    ['recortado', 'No encontré esto en tus fuentes web guardadas.'],
+    ['el de documentos, que puede venir del historial', SIN_RESPUESTA],
+  ])('lo que no está impone el mensaje de Fuentes web, sin fuentes (modelo: %s)', async (_, delModelo) => {
     base({});
-    m.responder.mockResolvedValue(SIN_RESPUESTA);
-    await expect(responderConFuentesWeb(U, '¿cuál es la capital de Mongolia?')).resolves.toEqual({ respuesta: SIN_RESPUESTA, fuentes: [] });
+    m.responder.mockResolvedValue(delModelo);
+    await expect(responderConFuentesWeb(U, '¿cuál es la capital de Mongolia?')).resolves.toEqual({ respuesta: SIN_RESPUESTA_FUENTES_WEB, fuentes: [] });
   });
 
   it('una fuente sin vector se vectoriza antes de buscar, sin esperar como una indexación', async () => {

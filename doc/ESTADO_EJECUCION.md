@@ -754,3 +754,13 @@ Total de fallas: 0
 - **`probar:rag`:** el paso 15f usa `consultarYRegistrar` (camino de la ruta) y se agregan 15f2 (menos de 50 s) y 15f3 (origen en el historial). No se repitió la prueba completa: el mismo camino se ejecutó una vez con Gemini real y un usuario temporal, 20 s en "Fuentes web" y 16 s de respuesta en Wikipedia.
 - **Edge** (base real, usuario temporal borrado, el error simulado): 16 de 16.
 - **Al cierre:** `npm test` 620/620, `npm run build` correcto, `eslint` sin errores.
+
+#### E10c2: mensaje de "Fuentes web" y memoria de saturación (aprobados por el usuario, 2026-11-10)
+
+- **RB-56 y B-69:** sin respuesta con "Fuentes web", `No encontré esto en tus fuentes web guardadas. Prueba con "Wikipedia" en "Buscar en".` El servidor lo impone. RN-13 no cambia en los demás casos.
+- **Memoria de saturación (`gemini.ts`):** tras un 503 o un modelo que no contesta (504 o corte propio), durante 5 minutos `responder` empieza por el respaldo. Una cuota agotada (429), un error interno (500) o una conexión cortada no la activan. Si el respaldo falla o se queda sin cuota, responde el principal y la memoria se borra; si ninguno responde, también. Vive en la memoria de cada instancia de Vercel.
+- **504:** con `httpOptions.timeout`, el SDK le avisa el tope a Gemini, que a veces responde 504 poco antes de cortar. Ahora cuenta como "no contestó" y pasa al respaldo.
+- **Respuestas largas:** con 60 fragmentos sintéticos (39.000 palabras, por encima del máximo de RB-40), el principal tardó 40 s y entregó 5.182 tokens: el tope de 15 s la corta y responde el respaldo con los 25 s restantes. Un corte con contexto de 30.000 caracteres o más no activa la memoria. El límite para esos casos queda como propuesta al usuario.
+- **Prueba real con usuario temporal** (borrado): el dato ausente dio el mensaje nuevo con el principal saturado (18 s); la siguiente pregunta fue directo al respaldo (0,7 s de modelo).
+- **`probar:rag`:** el paso 15g compara con el mensaje nuevo; no se repitió la prueba completa.
+- **Al cierre:** `npm test` 634/634, `npm run build` correcto, `eslint` sin errores.

@@ -32,6 +32,12 @@ const ESPERA_MAXIMA_CONSULTAR_MS = 25_000;
 const TIEMPO_INTENTO_EMBEDDING_MS = 10_000;
 const TIEMPO_MODELO_PRINCIPAL_MS = 15_000;
 const TIEMPO_RESPONDER_MS = 40_000;
+// Con un contexto así de largo, tardar no indica saturación: resumir un capítulo puede llevar 40 s.
+const CONTEXTO_LARGO_CARACTERES = 30_000;
+const MEMORIA_SATURACION_MS = 5 * 60_000;
+
+// Vive en la memoria de cada instancia de Vercel: no se comparte entre instancias y se pierde al apagarse.
+let principalSaturadoHasta = 0;
 
 let cliente: GoogleGenAI | undefined;
 function obtenerCliente(): GoogleGenAI {
@@ -51,16 +57,26 @@ function comoErrorLlm(error: unknown): never {
   throw new ErrorDeNegocio('ERROR_LLM');
 }
 
+/** Solo un 503 o un modelo que no contesta. Una cuota agotada o un error interno no recuerdan nada. */
+function indicaSaturacion(error: unknown, contexto: string): boolean {
+  return estadoDe(error) === 503 || (noContesto(error) && contexto.length < CONTEXTO_LARGO_CARACTERES);
+}
+
 const ESPERAS_REINTENTO_MS = [500, 1500]; // cortas: las rutas tienen un tiempo máximo de ejecución
 
 function estadoDe(error: unknown): number | undefined {
   return ((error ?? {}) as { status?: number }).status;
 }
 
+/** El SDK le avisa el tope a Gemini: a veces corta él mismo (AbortError) y a veces responde 504 poco antes. */
+function noContesto(error: unknown): boolean {
+  return estadoDe(error) === 504 || (error as Error)?.name === 'AbortError';
+}
+
 /** Saturación momentánea (503 frecuente), conexión cortada o sin respuesta a tiempo: reintentar puede bastar. */
 function esErrorTemporal(error: unknown): boolean {
   const estado = estadoDe(error);
-  return estado === 500 || estado === 503 || (error as Error)?.name === 'AbortError' || (error instanceof TypeError && error.message === 'fetch failed');
+  return estado === 500 || estado === 503 || noContesto(error) || (error instanceof TypeError && error.message === 'fetch failed');
 }
 
 /** Además de la saturación, una cuota agotada (429): no se reintenta, pero la cuota es por modelo. */
@@ -159,23 +175,33 @@ export const llm: LLMClient = {
       { role: 'user', parts: [{ text: `CONTEXTO:\n${contexto || '(sin contexto)'}\n\nPREGUNTA:\n${pregunta}` }] },
     ];
     const limite = Date.now() + TIEMPO_RESPONDER_MS;
-    const generar = (model: string, tiempoMs: number) =>
-      ai.models.generateContent({
+    const generar = async (model: string, tiempoMs: number) => {
+      const respuesta = await ai.models.generateContent({
         model,
         contents,
         config: { systemInstruction: sistema, temperature: 0.2, httpOptions: { timeout: tiempoMs } },
       });
-    try {
-      // Un modelo saturado no se recupera en segundos: se pasa al respaldo sin reintentar, y se gastan menos llamadas.
-      const respuesta = await generar(MODELO_CHAT, TIEMPO_MODELO_PRINCIPAL_MS).catch((error: unknown) => {
-        if (!ameritaRespaldo(error)) throw error;
-        console.warn(`${MODELO_CHAT} no disponible (${estadoDe(error) ?? (error as Error)?.name}); se usa ${MODELO_CHAT_RESPALDO}.`);
-        return conReintentos(() => generar(MODELO_CHAT_RESPALDO, Math.max(limite - Date.now(), 1)), limite);
-      });
       const texto = respuesta.text?.trim();
       if (!texto) throw new Error('Respuesta vacía de Gemini');
       return texto;
+    };
+    // Con el principal saturado hace poco, se empieza por el respaldo; si este falla, vuelve el principal.
+    const primero = Date.now() < principalSaturadoHasta ? MODELO_CHAT_RESPALDO : MODELO_CHAT;
+    const segundo = primero === MODELO_CHAT ? MODELO_CHAT_RESPALDO : MODELO_CHAT;
+    try {
+      // Un modelo saturado no se recupera en segundos: se pasa al otro sin reintentar, y se gastan menos llamadas.
+      return await generar(primero, TIEMPO_MODELO_PRINCIPAL_MS).catch((error: unknown) => {
+        if (primero === MODELO_CHAT) {
+          if (!ameritaRespaldo(error)) throw error;
+          if (indicaSaturacion(error, contexto)) principalSaturadoHasta = Date.now() + MEMORIA_SATURACION_MS;
+        } else {
+          principalSaturadoHasta = 0;
+        }
+        console.warn(`${primero} no disponible (${estadoDe(error) ?? (error as Error)?.name}); se usa ${segundo}.`);
+        return conReintentos(() => generar(segundo, Math.max(limite - Date.now(), 1)), limite);
+      });
     } catch (error) {
+      principalSaturadoHasta = 0; // ninguno respondió: la próxima pregunta vuelve a probar el principal
       return comoErrorLlm(error);
     }
   },

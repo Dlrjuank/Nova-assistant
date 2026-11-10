@@ -65,6 +65,7 @@ describe('llm.generarEmbeddings', () => {
 
 describe('llm.responder', () => {
   beforeEach(() => {
+    vi.resetModules(); // la memoria de saturación vive en el módulo
     generateContent.mockReset();
     vi.stubEnv('GEMINI_API_KEY', 'clave-de-prueba');
     vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -149,6 +150,87 @@ describe('llm.responder', () => {
     await expect(llm.responder(DATOS)).resolves.toBe('respaldo');
     expect(generateContent).toHaveBeenCalledTimes(2);
     expect(generateContent).toHaveBeenLastCalledWith(expect.objectContaining({ model: MODELO_CHAT_RESPALDO }));
+  });
+
+  describe('memoria de saturación', () => {
+    const modelos = () => generateContent.mock.calls.map((c) => c[0].model);
+    const abortado = () => Object.assign(new Error('aborted'), { name: 'AbortError' });
+    const ok = { text: 'ok' };
+
+    it.each([
+      ['un 503', () => error(503)],
+      ['un modelo que no contesta (corte propio)', abortado],
+      ['un modelo que no contesta (504 de Gemini)', () => error(504)],
+    ])('tras %s, la siguiente pregunta va directo al respaldo', async (_, fallo) => {
+      const { llm } = await import('@/lib/llm/gemini');
+      generateContent.mockRejectedValueOnce(fallo()).mockResolvedValue(ok);
+      await llm.responder(DATOS);
+      generateContent.mockClear();
+      await llm.responder(DATOS);
+      expect(modelos()).toEqual([MODELO_CHAT_RESPALDO]);
+    });
+
+    it.each([
+      ['una cuota agotada', () => error(429)],
+      ['un error interno', () => error(500)],
+      ['una conexión cortada', () => new TypeError('fetch failed')],
+    ])('%s no activa la memoria', async (_, fallo) => {
+      const { llm } = await import('@/lib/llm/gemini');
+      generateContent.mockRejectedValueOnce(fallo()).mockResolvedValue(ok);
+      await llm.responder(DATOS);
+      generateContent.mockClear();
+      await llm.responder(DATOS);
+      expect(modelos()).toEqual([MODELO_CHAT]);
+    });
+
+    it.each([
+      ['corte propio', abortado],
+      ['504', () => error(504)],
+    ])('un %s con un contexto largo cede al respaldo sin activarla: puede ser una respuesta larga', async (_, fallo) => {
+      const { llm } = await import('@/lib/llm/gemini');
+      generateContent.mockRejectedValueOnce(fallo()).mockResolvedValue(ok);
+      await llm.responder({ ...DATOS, contexto: 'x'.repeat(30_000) });
+      generateContent.mockClear();
+      await llm.responder(DATOS);
+      expect(modelos()).toEqual([MODELO_CHAT]);
+    });
+
+    it('dura 5 minutos', async () => {
+      const { llm } = await import('@/lib/llm/gemini');
+      generateContent.mockRejectedValueOnce(error(503)).mockResolvedValue(ok);
+      await llm.responder(DATOS);
+      generateContent.mockClear();
+      const ahora = vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 5 * 60_000 + 1);
+      await llm.responder(DATOS);
+      ahora.mockRestore();
+      expect(modelos()).toEqual([MODELO_CHAT]);
+    });
+
+    it.each([
+      ['sin cuota', () => error(429)],
+      ['con otro error', () => error(404)],
+    ])('con la memoria activa y el respaldo %s, responde el principal y la memoria se borra', async (_, fallo) => {
+      const { llm } = await import('@/lib/llm/gemini');
+      generateContent.mockRejectedValueOnce(error(503)).mockResolvedValueOnce(ok);
+      await llm.responder(DATOS);
+      generateContent.mockReset();
+      generateContent.mockRejectedValueOnce(fallo()).mockResolvedValue({ text: 'del principal' });
+      await expect(llm.responder(DATOS)).resolves.toBe('del principal');
+      expect(modelos()).toEqual([MODELO_CHAT_RESPALDO, MODELO_CHAT]);
+      generateContent.mockClear();
+      await llm.responder(DATOS);
+      expect(modelos()).toEqual([MODELO_CHAT]);
+    });
+
+    it('si ninguno responde, la siguiente pregunta vuelve a probar el principal', async () => {
+      const { llm } = await import('@/lib/llm/gemini');
+      generateContent.mockRejectedValueOnce(error(503)).mockRejectedValueOnce(error(429));
+      await expect(llm.responder(DATOS)).rejects.toMatchObject({ codigo: 'ERROR_LLM' });
+      generateContent.mockReset();
+      generateContent.mockResolvedValue(ok);
+      await llm.responder(DATOS);
+      expect(modelos()).toEqual([MODELO_CHAT]);
+    });
   });
 
   it('un error no temporal no reintenta y sale como ERROR_LLM', async () => {

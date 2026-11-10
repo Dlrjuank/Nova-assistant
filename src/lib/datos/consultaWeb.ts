@@ -1,7 +1,7 @@
 import { FRAGMENTOS_RECUPERADOS } from '@/lib/config/nova';
 import { consultar } from '@/lib/db/conexion';
 import { llm } from '@/lib/llm/gemini';
-import { SIN_FUENTES_WEB, SIN_RESPUESTA, SYSTEM_PROMPT_FUENTES_WEB, type TurnoConversacion } from '@/lib/llm/prompts';
+import { SIN_FUENTES_WEB, SIN_RESPUESTA_FUENTES_WEB, SYSTEM_PROMPT_FUENTES_WEB, type TurnoConversacion } from '@/lib/llm/prompts';
 import { normalizarConsulta, textoDeBusqueda, validarConsulta } from '@/lib/reglas/consulta';
 import { etiquetaFuenteWeb, fuentesCitadas } from '@/lib/reglas/fuentesWeb';
 import type { Fuente, RespuestaAsistente } from './tipos';
@@ -52,6 +52,7 @@ export async function responderConFuentesWeb(usuarioId: string, pregunta: string
     pregunta: preguntaNormal,
     historial,
   });
-  if (respuesta.startsWith(SIN_RESPUESTA)) return { respuesta: SIN_RESPUESTA, fuentes: [] };
+  // El historial puede traer el texto anterior y el modelo a veces recorta el nuevo: el servidor impone el exacto.
+  if (respuesta.startsWith('No encontré esto')) return { respuesta: SIN_RESPUESTA_FUENTES_WEB, fuentes: [] };
   return { respuesta, fuentes: fuentesCitadas(respuesta, entregadas) };
 }
