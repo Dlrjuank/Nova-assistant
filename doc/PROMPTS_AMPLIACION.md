@@ -362,22 +362,42 @@ VERIFICACIÓN: B-51 a B-53; B-43 a B-45 siguen pasando.
 
 ---
 
-## E10c2 · Fuentes web: "Guardar" y consulta desde el Asistente (pedida por el usuario, 2026-11-09)
+## E10c2 · Wikipedia y fuentes guardadas en "Buscar en" (pedida por el usuario, 2026-11-09; rehecha el mismo día)
 
-**Plan:** 5.5, 5.9, 6.14, RB-55, RB-56. **Requisito:** E10c y E10b2.
+**Plan:** 5.5, 5.9, 6.14, 6.17, RB-55, RB-56, RB-58, RB-61. **Requisito:** E10c y E10b2, y `probar:rag` con 0 fallas en la rama y con el código de `master`.
 
 ```text
 OBJETIVO: guardar solo lo que sirve y poder preguntarle al Asistente por eso. "Guardar" va primero: con guardado automático, cada búsqueda de prueba terminaría en las respuestas del Asistente.
 
-TAREA 1. Búsqueda web sin guardar: el resultado trae "Guardar"; POST /api/nova/web/fuentes con la categoría, el tope de 20 y sin duplicar (RB-55). Actualizar A-18 en doc/ACEPTACION.md. Pruebas S-60.
-TAREA 2. Respaldo y migración M18 (fuentes_web.vector y buscar_fuentes_web_usuario). Compatibilidad con master (11.3). Un embedding al guardar; las guardadas antes se vectorizan la primera vez que se busca.
-TAREA 3. "Fuentes web" en el selector "Buscar en": responde solo con las fuentes guardadas y las cita con su enlace (RB-56). Pruebas S-61.
-TAREA 4. probar:rag con Gemini real (pregunta sobre una fuente guardada y su cita).
+TAREA 0. Scripts de prueba: guardar los embeddings fuera de git y reutilizarlos solo si coinciden el texto, el modelo y la dimensión (sección 13). Sin cambios en el código de producción.
+TAREA 1. Respaldo y migraciones M18 (fuentes_web.vector y buscar_fuentes_web_usuario) y M21 (mensajes_chat.origen). Compatibilidad con master (11.3). Historial solo del mismo origen (RB-61). Pruebas S-64.
+TAREA 2. "Wikipedia" en "Buscar en" (RB-58): responde con el resumen y los enlaces, sin guardar. "Guardar fuente" con la categoría, el tope de 20 y sin duplicar (RB-55); POST /api/nova/web/fuentes. Pruebas S-60.
+TAREA 3. "Fuentes web" en "Buscar en": responde solo con las guardadas y las cita con su enlace (RB-56). Un embedding al guardar; las guardadas antes se vectorizan la primera vez que se busca. Pruebas S-61.
+TAREA 4. Fuentes queda con Subir PDF y Fuentes guardadas; ?pestana=web abre Fuentes guardadas. Actualizar A-18 en doc/ACEPTACION.md.
+TAREA 5. probar:rag una sola vez con Gemini real (pregunta sobre una fuente guardada y su cita).
 
-VERIFICACIÓN: B-68 y B-69; A-18 con el botón "Guardar".
+VERIFICACIÓN: B-19, B-68, B-69 y B-71; A-18 con "Guardar fuente".
 ```
 
-**Commit:** `feat(fuentes): guardar fuentes web y consultarlas desde el asistente`
+**Commit:** `feat(fuentes): wikipedia y fuentes guardadas en el asistente`
+
+---
+
+## E10c3 · IA general en "Buscar en" (pedida por el usuario, 2026-11-09)
+
+**Plan:** 5.9, 6.17, RB-59 a RB-61. **Requisito:** E10c2.
+
+```text
+OBJETIVO: poder preguntar algo general sin que parezca salido de los documentos.
+
+TAREA 1. "IA (conocimiento general)" en "Buscar en": solo modelo de chat, sin embeddings y sin documentos, tareas ni fuentes en el prompt (RB-59). Guardar origen "ia". Pruebas S-65 y S-66.
+TAREA 2. Tipo de mensaje propio con la marca exacta "Respuesta general de la IA, sin fuentes. Compruébala si es importante.", sin citas ni "Explicar de otra manera", también al recargar.
+TAREA 3. "Preguntarle a la IA" solo bajo "No encontré" (RB-60). Pruebas S-67.
+
+VERIFICACIÓN: B-72 y B-73.
+```
+
+**Commit:** `feat(asistente): preguntas generales a la IA con marca visible`
 
 ---
 
@@ -459,19 +479,20 @@ VERIFICACIÓN: B-03, B-22 y B-23.
 
 ## E11b · App instalable (PWA) (pedida por el usuario, 2026-11-07)
 
-**Plan:** 5.10, 10. **Requisito:** E11.
+**Plan:** 5.10, 10, RB-62, RB-63. **Requisito:** E11.
 
 ```text
 OBJETIVO: que Nova se pueda agregar a inicio como una app, antes de los recordatorios (en el iPhone, las notificaciones solo funcionan así, iOS 16.4 o más reciente).
 
 TAREA 1. src/app/manifest.ts (nombre "Nova", display standalone, start_url /nova, colores de los tokens), íconos 192, 512, maskable y apple-touch-icon (provisionales; los finales en E20b), metadatos de Apple en el layout. El middleware deja públicos el manifiesto, los íconos y el service worker.
-TAREA 2. public/sw.js mínimo, registrado solo dentro de /nova; sin caché de datos privados.
+TAREA 2. public/sw.js registrado solo dentro de /nova. Primero la red; sin conexión, la última copia de Inicio, Tareas, Calendario del mes actual y capítulos (RB-62). Nunca Asistente, API de escritura ni texto de documentos.
+TAREA 2b. Aviso "Sin conexión · datos de las HH:MM" y controles desactivados. Borrado de la copia según RB-63: cerrar sesión, sesión rechazada por el servidor, otro usuario y 7 días sin respuesta válida. Pruebas S-68 y S-69.
 TAREA 3. Configuración → "Instalar Nova" con la guía para iPhone (Safari › Compartir › Agregar a inicio) y Android (Instalar app o el botón cuando Chrome lo ofrece); si ya está instalada, lo dice.
 
-VERIFICACIÓN: B-55; Lighthouse sin errores de instalabilidad.
+VERIFICACIÓN: B-55, B-74, B-75 y B-76; Lighthouse sin errores de instalabilidad.
 ```
 
-**Commit:** `feat(app): Nova instalable`
+**Commit:** `feat(app): Nova instalable y consulta sin conexión`
 
 ---
 

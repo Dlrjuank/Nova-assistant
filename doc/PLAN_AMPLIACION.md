@@ -17,7 +17,7 @@ Los prompts de ejecución están en `doc/PROMPTS_AMPLIACION.md` (etapas E00 a E2
 9. [El asistente en Semestre](#9-el-asistente-en-semestre)
 10. [API](#10-api)
 11. [Pruebas](#11-pruebas)
-12. [Casos de aceptación B-01 a B-70](#12-casos-de-aceptación-b-01-a-b-70)
+12. [Casos de aceptación B-01 a B-76](#12-casos-de-aceptación-b-01-a-b-76)
 13. [Riesgos y decisiones](#13-riesgos-y-decisiones)
 
 ---
@@ -75,6 +75,9 @@ Los prompts de ejecución están en `doc/PROMPTS_AMPLIACION.md` (etapas E00 a E2
 | X24 | Cuestionarios de selección múltiple desde un documento, capítulo o rango de páginas, con puntaje de 0 a 5 y "Repetir solo las que fallé" (pedido del usuario, 2026-11-09) | E10e |
 | X26 | Fuentes web guardadas: verlas por categoría y eliminarlas (pedido del usuario, 2026-11-09) | E10b2 |
 | X27 | Fuentes web: botón "Guardar" en lugar de guardar siempre, y que el Asistente las consulte citándolas con su enlace (pedido del usuario, 2026-11-09) | E10c2 |
+| X28 | Wikipedia en "Buscar en", con "Guardar fuente" (aprobado por el usuario, 2026-11-09) | E10c2 |
+| X29 | "IA (conocimiento general)" en "Buscar en" y botón "Preguntarle a la IA" cuando no se encuentra en los documentos, con marca visible y sin mezclarse con los documentos (aprobado por el usuario, 2026-11-09) | E10c3 |
+| X30 | Consulta sin conexión, solo lectura: Inicio, Tareas, Calendario y capítulos (aprobado por el usuario, 2026-11-09) | E11b |
 | X25 | Historial de intentos por documento o capítulo y sugerencia de tarea para repasar | E10f |
 
 ### 2.2 Fuera de alcance
@@ -94,6 +97,8 @@ Los prompts de ejecución están en `doc/PROMPTS_AMPLIACION.md` (etapas E00 a E2
   - Respaldo de los recordatorios por correo con Resend (retirado de E11d el 2026-11-09). Enviar a cualquier destinatario exige un dominio verificado, que tiene costo.
   - **Límite de uso por persona:** cuando más personas usen Nova, la cuota de Gemini se comparte entre todos. Idea: un límite por usuario y por día, configurable (por ejemplo, 1 libro grande y 50 preguntas), con un mensaje claro al alcanzarlo, para que nadie gaste el cupo de todos.
   - **Gemini de pago para uso con más personas o en una universidad:** en el plan gratuito, Google usa lo enviado para mejorar sus productos, personas pueden leerlo y sus términos piden no enviar información sensible, confidencial o personal. En el de pago no usa los prompts ni las respuestas para mejorar sus productos.
+  - **Crear o completar tareas sin conexión y sincronizar al volver** (anotado el 2026-11-09, sin planear): unas 2 o 3 etapas medianas (cola de cambios en IndexedDB, identificadores de cliente, reglas de conflicto, categorías y recordatorios sin conexión, pantallas que hoy dependen del servidor). En iPhone solo sincronizaría con la app abierta.
+  - **Búsqueda con Google integrada en Gemini** (descartada por ahora el 2026-11-09): no está disponible en el plan gratuito para los modelos que usa Nova; exige facturación con tarjeta, mostrar las sugerencias de búsqueda y cambiar RB-55. Si algún día se paga, se haría con una clave de un proyecto aparte y alerta de presupuesto.
 - Un segundo proyecto de Supabase.
 
 ## 3. Diseño
@@ -162,7 +167,7 @@ Barra lateral fija a la izquierda con la marca "Nova", las secciones disponibles
 |---|---|---|
 | `/nova` (Asistente) | `/nova` es Inicio; el chat pasa a `/nova/asistente` | A-01 sigue: `/nova` sin sesión → login. El login sigue llevando a `/nova`. |
 | `/nova/documentos`, `/nova/documentos/nuevo` | `/nova/fuentes?pestana=pdf` | Redirección permanente (E10) |
-| `/nova/web` | `/nova/fuentes?pestana=web` | Redirección permanente (E10) |
+| `/nova/web` | `/nova/fuentes?pestana=web` | Redirección permanente (E10); desde E10c2 abre "Fuentes guardadas" |
 
 Las rutas de la API (`/api/nova/...`) que ya existen no cambian de nombre ni de contrato; solo se agregan rutas nuevas.
 
@@ -229,7 +234,7 @@ Desde E02b (RB-30): sin documentos del usuario pero con al menos una tarea pendi
 
 ### 5.5 Fuentes (`/nova/fuentes`)
 
-Pestañas **Subir PDF** (subida e índice de documentos actuales, con eliminar) y **Buscar en la web** (búsqueda en Wikipedia actual), con `?pestana=pdf` (por defecto) o `?pestana=web`. El formulario y la lista "Tus documentos" están en la misma pantalla: al indexar, la lista se actualiza sin salir. **Desde E10c2 una búsqueda no guarda nada por sí sola:** el resultado trae el botón **"Guardar"** y la categoría se usa al guardar (RB-55). Debajo del buscador, **Fuentes guardadas** (E10b2, RB-54): por categoría con su cupo ("General 3/20"), cada una con el nombre del artículo enlazado a Wikipedia, el resumen, la fecha y "Eliminar" con confirmación. A partir de E13, al subir un PDF se puede elegir como categoría una **materia** de Semestre (se guarda en `documentos.materia_id`); la lista muestra la materia.
+Pestañas **Subir PDF** (subida e índice de documentos actuales, con eliminar) y **Buscar en la web** (búsqueda en Wikipedia actual), con `?pestana=pdf` (por defecto) o `?pestana=web`. El formulario y la lista "Tus documentos" están en la misma pantalla: al indexar, la lista se actualiza sin salir. **Desde E10c2 las pestañas son Subir PDF y Fuentes guardadas:** la búsqueda en Wikipedia pasa al Asistente ("Buscar en", RB-58), no guarda nada por sí sola y su resultado trae el botón **"Guardar fuente"**; la categoría se usa al guardar (RB-55). `?pestana=web` abre Fuentes guardadas. **Fuentes guardadas** (E10b2, RB-54): por categoría con su cupo ("General 3/20"), cada una con el nombre del artículo enlazado a Wikipedia, el resumen, la fecha y "Eliminar" con confirmación. A partir de E13, al subir un PDF se puede elegir como categoría una **materia** de Semestre (se guarda en `documentos.materia_id`); la lista muestra la materia.
 
 ### 5.6 Productividad (`/nova/productividad`)
 
@@ -260,14 +265,16 @@ Bloques: **Perfil** (nombre editable, correo de solo lectura, cambiar contraseñ
 - **Páginas (E10b):** al indexar, el texto se extrae página por página. Cada fragmento guarda su página o su rango (por ejemplo 45–46) y toda cita lo muestra: `libro.pdf · p. 45` o `libro.pdf · pp. 45–46` (RB-36). Se usa el número impreso en el libro (las etiquetas de página del PDF) cuando existe; si no, el número de página del PDF.
 - **Capítulos (E10b):** se toman del índice interno del PDF. Si no tiene índice, de los encabezados al comienzo de una página ("Capítulo 3", "Unidad 2", "Tema 4", "Chapter 5"). En Fuentes, cada documento indexado con páginas tiene "Ver capítulos" (`/nova/fuentes/[id]/capitulos`): la lista con su título y sus páginas, o el mensaje de RB-37 si no hay (RB-37).
 - **Libros largos (E10b):** la indexación se hace por partes y se puede reanudar. Cada llamada del navegador procesa una parte, así el porcentaje sube en pantalla. Solo avanza con Fuentes abierta (aviso `Deja esta pantalla abierta hasta que termine.`); si se sale o se bloquea el teléfono, se detiene y sigue al volver, sin perder lo avanzado. **Desde E11c** ya no depende de la pantalla: el aviso de cada minuto termina la indexación en segundo plano (RB-57), y la tarjeta dice `Puedes cerrar esta pantalla: seguirá sola.` Hasta 15 MB (RN-01 no cambia) y 800 páginas (RB-38).
-- **Preguntar por página o capítulo (E10c):** en el Asistente, "¿Qué dice la página 45?", "Resume el capítulo 3" o "Explícame el capítulo de fotosíntesis". Se responde con el texto de esa página o de ese capítulo, no con una búsqueda, y siempre se cita la página (RB-39, RB-40). Un selector "Buscar en" encima del campo permite elegir "Todos los documentos" o un documento; desde E10c2, también "Fuentes web".
+- **Preguntar por página o capítulo (E10c):** en el Asistente, "¿Qué dice la página 45?", "Resume el capítulo 3" o "Explícame el capítulo de fotosíntesis". Se responde con el texto de esa página o de ese capítulo, no con una búsqueda, y siempre se cita la página (RB-39, RB-40). Un selector "Buscar en" encima del campo permite elegir "Todos los documentos" o un documento; desde E10c2, también "Fuentes web" y "Wikipedia"; desde E10c3, "IA (conocimiento general)".
 - **Explicar de otra manera (E10c):** debajo de cada respuesta que cita documentos, las opciones **Más simple**, **Con un ejemplo**, **Paso a paso**, **Resumen corto** y **Con una analogía**. Usan los mismos fragmentos de esa respuesta, sin buscar otra vez, y conservan las citas (RB-41).
+- **IA general (E10c3):** solo cuando el usuario la elige en "Buscar en" o toca **"Preguntarle a la IA"** bajo un "No encontré". La respuesta lleva siempre la marca visible `Respuesta general de la IA, sin fuentes. Compruébala si es importante.`, no tiene citas ni "Explicar de otra manera", y el modelo no recibe documentos ni tareas (RB-59 a RB-61).
 - **Plan de lectura (E10d):** desde "Ver capítulos", elegir capítulos, fecha de inicio y fecha final (o capítulos por semana). Se reparten en los días disponibles y se ve la lista "Leer cap. 3: Título (pp. 45–67)" con su fecha antes de confirmar. Al confirmar, se crea una tarea por capítulo (categoría elegida, RB-33; prioridad 2). Un capítulo que ya está en Tareas se marca y no se repite (RB-42).
 
 ### 5.10 Recordatorios y app instalable (E11b a E11d, pedido del usuario del 2026-11-07)
 
 - **App instalable (E11b):**
-  - Manifiesto con nombre "Nova", ícono y pantalla completa sin la barra del navegador (`display: standalone`), y un service worker solo para notificaciones. No guarda datos privados sin conexión.
+  - Manifiesto con nombre "Nova", ícono y pantalla completa sin la barra del navegador (`display: standalone`), y un service worker para notificaciones y para la consulta sin conexión.
+  - **Sin conexión, solo lectura** (decisión del usuario del 2026-11-09, que reemplaza la regla anterior de no guardar datos privados): Inicio, Tareas, Calendario del mes actual y capítulos muestran la última copia, con el aviso `Sin conexión · datos de las {HH:MM}`. Asistente, indexar PDF, cuestionarios, búsqueda web y crear, completar, editar o eliminar quedan desactivados (RB-62). La copia queda en el dispositivo y se borra según RB-63. En iPhone, el sistema puede borrarla si la app no se usa por un tiempo.
   - En Configuración → "Instalar Nova", una guía sencilla:
     - iPhone: Safari › Compartir › Agregar a inicio.
     - Android: menú › Instalar app, o el botón "Instalar" cuando Chrome lo ofrece.
@@ -472,6 +479,10 @@ Columna nueva en `mensajes_chat`: `contexto JSONB NULL`, con `{ fragmentos: uuid
 
 Columna nueva en `documentos`: `inicio_paginas INTEGER[] NULL`, la palabra en que empieza cada página. Como un fragmento cruza páginas, sirve para responder por página solo con el texto de esa página (RB-39). Solo aditiva: un documento indexado antes queda en NULL, limita la cita a la página y avisa que puede incluir texto de las vecinas.
 
+### 6.17 M21 · Origen de los mensajes (E10c2)
+
+Columna nueva en `mensajes_chat`: `origen TEXT NULL`, con `CHECK (origen IN ('web', 'wikipedia', 'ia'))`. NULL significa documentos y tareas, como todo lo anterior. Sirve para que el modelo reciba solo el historial del mismo origen (RB-61) y para mostrar la marca al recargar. Solo aditiva: los INSERT de `master` la dejan en NULL. Hasta E21, `master` no conoce la columna y mostraría esos mensajes como normales si se abre la misma conversación en producción.
+
 ## 7. Reglas de cálculo
 
 Todas en funciones puras de `src/lib/reglas/` (sin red, sin base, sin reloj salvo `fechas.ts`), probadas con Vitest. Notas en centésimas (0 a 500), porcentajes en centésimas de punto (0 a 10000). Los productos se calculan con enteros; la división final y el redondeo, con aritmética exacta sobre esos enteros.
@@ -637,9 +648,15 @@ Los mensajes se usan **textualmente** en la interfaz y en la API. Los de `PLAN_N
 | RB-52 | (E10e) Cuota de Gemini agotada al generar: no se guarda nada a medias | `Se agotó por ahora el cupo gratuito de Gemini. Intenta más tarde.` (`CUOTA_AGOTADA`, 429) |
 | RB-53 | (E10f) Sugerencia de repaso: con 2 o más falladas de un capítulo; se confirma en un diálogo; no se repite si ya hay una tarea pendiente con ese título | `Ya tienes esa tarea de repaso.` |
 | RB-54 | (E10b2) Ver y eliminar las fuentes web propias, con confirmación; eliminar libera el cupo de la categoría (RN-05); una fuente de otro usuario responde como inexistente | Confirmación: `¿Eliminar esta fuente? Se libera su cupo en la categoría. No se puede deshacer.` Ajena o inexistente: `La fuente no existe.` (`FUENTE_NO_ENCONTRADA`, 404) |
-| RB-55 | (E10c2) Una búsqueda web no guarda nada: el resultado trae "Guardar", que guarda el resumen y el enlace del primer artículo en la categoría elegida. El tope de 20 por categoría (RN-05) se revisa al guardar, no al buscar. El servidor solo acepta enlaces de `es.wikipedia.org`. Guardar una misma dirección dos veces en una categoría no la duplica | `Esta fuente ya está guardada en «{categoria}».` · Tope: el mensaje de RN-05 · Enlace ajeno: `La dirección de la fuente no es válida.` |
+| RB-55 | (E10c2) Una búsqueda en Wikipedia no guarda nada: el resultado trae "Guardar fuente", que guarda el resumen y el enlace del primer artículo en la categoría elegida. El tope de 20 por categoría (RN-05) se revisa al guardar, no al buscar. El servidor solo acepta enlaces de `es.wikipedia.org`. Guardar una misma dirección dos veces en una categoría no la duplica | `Esta fuente ya está guardada en «{categoria}».` · Tope: el mensaje de RN-05 · Enlace ajeno: `La dirección de la fuente no es válida.` |
 | RB-56 | (E10c2) Con "Fuentes web" en "Buscar en", el Asistente responde solo con las fuentes web guardadas del usuario (búsqueda vectorial, las 4 más cercanas) y las cita con su enlace, que se puede abrir. Con "Todos los documentos" no las usa: no se mezclan con los PDF. Cada fuente es un embedding al guardarla y la pregunta no gasta llamadas extra | Sin fuentes: `Aún no tienes fuentes web guardadas. Búscalas y guárdalas en Fuentes.` · Sin respuesta: `No encontré esto en tus documentos` (RN-13). Cita: `Fotosíntesis · Wikipedia`, con enlace |
 | RB-57 | (E11c) Indexación en segundo plano: cada minuto, el tick avanza una parte de un libro a medias (el más antiguo, respetando `indexando_hasta`, RB-38). Si Gemini pide esperar por la cuota, no espera: lo intenta en el minuto siguiente. Con la pantalla abierta sigue avanzando desde el navegador, sin repetir partes | Tarjeta: `Puedes cerrar esta pantalla: seguirá sola.` |
+| RB-58 | (E10c2) Con "Wikipedia" en "Buscar en", el Asistente busca en `es.wikipedia.org` como RN-05 y responde con el resumen y los artículos usados, con enlace. No consulta documentos ni tareas. Una frase muy corta recibe el aviso actual de la búsqueda | Sin resultados: el mensaje actual de la búsqueda web |
+| RB-59 | (E10c3) "IA (conocimiento general)" solo responde si el usuario la elige o toca "Preguntarle a la IA". Usa solo el modelo de chat, sin embeddings y sin documentos, tareas ni fuentes en el prompt. No hay citas ni "Explicar de otra manera". Nunca se usa como respaldo automático | Marca exacta, siempre visible, también al recargar: `Respuesta general de la IA, sin fuentes. Compruébala si es importante.` |
+| RB-60 | (E10c3) El botón "Preguntarle a la IA" aparece solo bajo una respuesta "No encontré" (RN-13 o la de un documento elegido). Envía la misma pregunta con el origen IA y deja la respuesta anterior intacta | Botón: `Preguntarle a la IA` |
+| RB-61 | (E10c2, E10c3) Ninguna respuesta mezcla orígenes. El historial que recibe el modelo y la pregunta anterior usada en la búsqueda solo toman mensajes del mismo origen (M21). Documentos y tareas son un origen; Fuentes web, Wikipedia e IA son uno cada uno | — |
+| RB-62 | (E11b) Sin conexión, Inicio, Tareas, Calendario del mes actual y capítulos muestran la última copia válida del usuario. Con conexión, siempre se pide al servidor primero. No se guarda el Asistente, el texto de los documentos ni ninguna respuesta de una acción. Lo que necesita internet o escribe datos queda desactivado | Aviso: `Sin conexión · datos de las {HH:MM}` · Control desactivado: `Necesitas conexión para esto.` · Pantalla sin copia: `Esta pantalla aún no está disponible sin conexión.` |
+| RB-63 | (E11b) La copia sin conexión se borra: al cerrar sesión; si, con conexión, el servidor rechaza la sesión (401, 403 o redirección a `/login`); si inicia sesión otro usuario; y tras 7 días sin una respuesta válida del servidor, porque sin conexión no se puede saber si la sesión venció | — |
 | RB-29 | Editar una tarea: solo pendientes y del usuario; título, categoría, prioridad, fecha límite y horario con las mismas validaciones y mensajes que al crear; estado, minutos y fecha de cierre no se tocan | Los de crear (`PLAN_NOVA.md` 5.1). Tarea completada: `La tarea ya está completada.` (`TAREA_YA_COMPLETADA`, 409). De otro usuario o inexistente: `La tarea no existe.` (`TAREA_NO_ENCONTRADA`, 404) |
 
 Códigos de error nuevos (404 salvo indicación): `CATEGORIA_NO_ENCONTRADA`, `CATEGORIA_DUPLICADA` (409), `MATERIA_NO_ENCONTRADA`, `MATERIA_DUPLICADA` (409), `CORTE_NO_ENCONTRADO`, `COMPONENTE_NO_ENCONTRADO`, `NOTA_NO_ENCONTRADA`, `PORCENTAJES_INVALIDOS` (422, solo RB-10 y los cortes por defecto de Configuración), `CORTES_NO_SE_QUITAN` (422, RB-35), `NOTA_INVALIDA` (422), `META_NO_ENCONTRADA`, `META_DUPLICADA` (409), `PLAN_SIN_TEMAS` (422), `PLAN_SIN_FECHA` (422), `SIN_SYLLABUS` (422), `PLAN_INVALIDO` (502), `PASO_YA_EN_TAREAS` (409).
@@ -727,7 +744,8 @@ Todas con `exigirSesion()` como primera instrucción y el id del usuario de la s
 | `POST /api/nova/intentos/[id]/tarea-repaso` | Crear la tarea de repaso (RB-53) | E10f |
 | `GET /api/nova/web/fuentes`, `DELETE /api/nova/web/fuentes/[id]` | Fuentes web guardadas (RB-54) | E10b2 |
 | `POST /api/nova/web/fuentes` | Guardar el resultado de una búsqueda (RB-55) | E10c2 |
-| `POST /api/nova/consultar` (valor nuevo) | `documentoId: "web"` para consultar las fuentes web (RB-56) | E10c2 |
+| `POST /api/nova/consultar` (valores nuevos) | `documentoId: "web"` para las fuentes web guardadas (RB-56) y `"wikipedia"` para buscar en Wikipedia (RB-58) | E10c2 |
+| `POST /api/nova/consultar` (valor nuevo) | `documentoId: "ia"` para la IA general (RB-59, RB-60) | E10c3 |
 | `GET /api/nova/salud` | Consulta mínima a la base, para el cron diario de Vercel; con `CRON_SECRET` | E21 |
 | `src/app/manifest.ts`, `public/sw.js` | Manifiesto e service worker; públicos (el middleware no los protege) | E11b |
 
@@ -754,6 +772,10 @@ Las rutas que llaman a Gemini declaran `maxDuration = 60`.
   - S-58 y S-59 (E10f): comparación entre intentos sin contar los repasos; capítulos con 2 o más falladas.
   - S-60 y S-61 (E10c2): solo se aceptan enlaces de `es.wikipedia.org`; etiqueta y enlace de la cita de una fuente web.
   - S-62 y S-63 (E11c, RB-57): el tick elige el libro más antiguo y disponible; con cuota agotada no espera y lo deja para el minuto siguiente.
+  - S-64 (E10c2, E10c3, RB-61): el historial solo toma mensajes del mismo origen.
+  - S-65 y S-66 (E10c3): el prompt de la IA no lleva documentos, tareas ni fuentes y no pide embeddings; la marca se guarda y sale siempre, sin citas.
+  - S-67 (E10c3): "Preguntarle a la IA" solo bajo "No encontré".
+  - S-68 y S-69 (E11b): qué rutas se pueden guardar (Asistente, API de escritura y texto de documentos nunca); cada caso de borrado de RB-63, incluido el de 7 días.
   - S-29 a S-32 (validación del plan: tema no confirmado, fuente inventada, fecha fuera de rango, plan válido).
 - **Contraste**: una prueba lee los tokens de `globals.css` y comprueba ≥ 4,5:1 en cada par texto/fondo, en ambos modos, y para los 8 colores de categoría.
 - **Servidor**: cada ruta nueva prueba 401/403, aislamiento (un id de otro usuario responde como inexistente), validación y contrato.
@@ -780,7 +802,7 @@ Con un `git worktree` de `master` en una carpeta temporal: `npm run probar:rag` 
 
 En cada etapa con interfaz: navegador real a 1280 px y 390 px (sin desplazamiento horizontal, sin errores de página, foco visible) y prueba del usuario en la **vista previa de Vercel** desde su teléfono.
 
-## 12. Casos de aceptación B-01 a B-70
+## 12. Casos de aceptación B-01 a B-76
 
 Se ejecutan en la vista previa de Vercel de `ampliacion`, en computador y en teléfono, y se registran en `doc/ACEPTACION.md` (sección nueva). Antes, se repiten A-01 a A-21 en la vista previa.
 
@@ -804,7 +826,7 @@ Se ejecutan en la vista previa de Vercel de `ampliacion`, en computador y en tel
 | B-16 | Tareas: pestañas Todas, Hoy, Importantes, Completadas | Cada una filtra como dice; la pestaña queda en la URL |
 | B-17 | Tareas: agrupación | Grupos por categoría con color y contador completadas/total |
 | B-18 | En Tareas: crear una categoría con "+ Nueva", filtrar por ella, renombrarla y cambiarle el color desde "⋯" o dejándola presionada, y eliminarla; abrir el menú de General | Sin salir de Tareas; nombre repetido → RB-02; renombrar cambia las tareas y mantiene el filtro; eliminar pide confirmación y pasa sus tareas a General; General dice "Por defecto" y solo cambia de color. Se refleja en Inicio y Calendario cuando existan (E06, E07) |
-| B-19 | Fuentes: las dos pestañas | Subir PDF e índice funcionan como A-06 a A-08 y A-21; Buscar en la web como A-18 (desde E10c2, con el botón "Guardar") |
+| B-19 | Fuentes: las dos pestañas | Subir PDF e índice funcionan como A-06 a A-08 y A-21; Buscar en la web como A-18 (desde E10c2, la búsqueda está en "Buscar en" del Asistente, con "Guardar fuente", y aquí queda Fuentes guardadas) |
 | B-20 | Abrir `/nova/documentos` y `/nova/web` | Redirigen a Fuentes en la pestaña correcta |
 | B-21 | Subir un PDF con una materia como categoría | La lista muestra la materia |
 | B-22 | Configuración: cambiar el nombre y la contraseña | Se guarda; la contraseña nueva sirve para entrar |
@@ -851,9 +873,15 @@ Se ejecutan en la vista previa de Vercel de `ampliacion`, en computador y en tel
 | B-65 | (E10f) Hacer el mismo cuestionario dos veces y abrir el historial | Se ven los intentos por documento y capítulo, y si mejoraste; los repasos dicen "Repaso" |
 | B-66 | (E10f) Fallar 2 preguntas de un capítulo y aceptar la sugerencia; repetirlo | Crea "Repasar cap. N: Título (pp. a–b)" tras confirmar; la segunda vez, RB-53 |
 | B-67 | (E10b2) En "Buscar en la web": buscar una frase, ver la fuente en "Fuentes guardadas" sin recargar y eliminarla; con 20 en una categoría, buscar otra vez | Aparece en su categoría con su enlace y "1/20"; eliminar pide confirmación y la quita; al llegar a 20, el aviso indica que se pueden eliminar abajo, y al eliminar una se puede volver a buscar |
-| B-68 | (E10c2) Buscar una frase y no tocar "Guardar"; buscar otra y guardarla; guardarla otra vez; con 20 en la categoría, buscar y guardar | La primera no aparece en "Fuentes guardadas"; la segunda sí, sin recargar; repetirla avisa que ya está; con 20, la búsqueda funciona y el tope se avisa al guardar (A-18) |
+| B-68 | (E10c2) Con "Wikipedia" en "Buscar en": buscar una frase y no tocar "Guardar fuente"; buscar otra y guardarla; guardarla otra vez; con 20 en la categoría, buscar y guardar | La primera no aparece en "Fuentes guardadas"; la segunda sí, sin recargar; repetirla avisa que ya está; con 20, la búsqueda funciona y el tope se avisa al guardar (A-18) |
 | B-69 | (E10c2) Con "Fuentes web" en "Buscar en": preguntar algo de una fuente guardada y algo que no esté; con "Todos los documentos", preguntar lo mismo; sin fuentes guardadas, preguntar | Responde citando la fuente con su enlace, que abre Wikipedia; lo que no está: "No encontré esto en tus documentos"; con documentos no usa la fuente; sin fuentes, el aviso de RB-56 |
 | B-70 | (E11c) Indexar un libro largo y cerrar la pantalla o bloquear el teléfono; volver unos minutos después | El libro siguió avanzando solo, o ya aparece listo, sin repetir fragmentos |
+| B-71 | (E10c2) Abrir Fuentes y `/nova/web`; volver a una respuesta de Wikipedia al recargar | Fuentes solo tiene Subir PDF y Fuentes guardadas; la dirección antigua abre Fuentes guardadas; la respuesta conserva sus enlaces y no entra en las preguntas siguientes sobre documentos |
+| B-72 | (E10c3) Con "IA (conocimiento general)": preguntar algo general; recargar; luego preguntar sobre un documento con "Todos los documentos" | Sale la marca "Respuesta general de la IA, sin fuentes. Compruébala si es importante.", sin citas ni "Explicar de otra manera", también al recargar; la respuesta sobre el documento cita solo el documento |
+| B-73 | (E10c3) Preguntar algo que no esté en los documentos y tocar "Preguntarle a la IA"; revisar una respuesta con citas | Se conserva el "No encontré" y debajo llega la respuesta con la marca; la respuesta con citas no trae el botón |
+| B-74 | (E11b) Abrir Inicio, Tareas, Calendario y capítulos; activar modo avión y volver a abrir la app | Se ven los datos con `Sin conexión · datos de las HH:MM`; una pantalla que nunca se abrió lo dice |
+| B-75 | (E11b) Sin conexión: intentar usar Asistente, indexar, cuestionarios, búsqueda web, crear, completar, editar y eliminar | Todo aparece desactivado con `Necesitas conexión para esto.`; al volver la conexión, funciona y los datos se actualizan |
+| B-76 | (E11b) Cerrar sesión; luego, con otra sesión, hacer que el servidor la rechace y volver a abrir | En ambos casos ya no se ven los datos guardados sin conexión |
 | B-41 | Editar una tarea pendiente desde Tareas, Inicio y Calendario (título, categoría, prioridad y fecha) | El formulario abre lleno; al guardar, el cambio se ve en las tres pantallas y en su día del Calendario; "Cancelar" no cambia nada |
 | B-42 | Al editar, poner fecha "2026-02-30" y luego prioridad 5 por la API; intentar editar una tarea completada | Mismos mensajes que al crear (A-03, A-04); la completada responde "La tarea ya está completada." y no muestra "Editar" |
 
@@ -873,6 +901,8 @@ Se ejecutan en la vista previa de Vercel de `ampliacion`, en computador y en tel
 | Tareas programadas en Vercel Hobby (una vez al día, imprecisas) | Los recordatorios usan `pg_cron` + `pg_net` de Supabase cada minuto (gratis); `pg_net` está en beta y no reintenta: el tick es idempotente y `db:verificar` revisa `net._http_response` |
 | Supabase gratis pausa el proyecto con poca actividad en 7 días | **Efecto:** con la base pausada, Nova entera deja de funcionar, no solo los recordatorios, y `pg_cron` no corre (es un trabajo dentro de la base; la documentación no lo detalla). Al reanudar, los trabajos siguen configurados y los avisos atrasados más de 30 min se omiten (7.10), no llegan en tropel. **Qué cuenta como actividad:** según Supabase, las peticiones del usuario a la base, incluidas las de la aplicación conectada; bastan unas pocas por día. No está documentado si un trabajo de `pg_cron` por sí solo cuenta. **Cómo se evita:** (1) desde E11c, el tick llega a la aplicación en Vercel y esta consulta la base cada minuto; (2) como eso depende de `pg_cron`, al unir con `master` (E21) se agrega un cron diario de Vercel a `GET /api/nova/salud`, que Hobby sí permite, independiente de la base. Los cron de Vercel solo corren en producción: hasta E21 protege el tick y el uso diario. (3) Supabase avisa por correo antes de pausar: en ese caso, abrir Nova o el panel. (4) Si se pausa: "Resume project" en el panel, con datos y configuración intactos (hasta 1 año) |
 | Sonido de las notificaciones en el iPhone | La web no elige el sonido; iOS decide según sus ajustes. Se comprueba en el iPhone del usuario en E11c y se documenta lo que se ve |
+| Las pruebas agotaron la cuota de producción (2026-11-09) | La cuota de Gemini es por proyecto, con la misma clave en local, vista previa y producción, y se reinicia a medianoche de Pacífico (las 3:00 en Bogotá). Google prohíbe intentar eludir los límites, así que no se crea un segundo proyecto gratis para tener más cuota. Decisión del usuario: las pruebas guardan en el computador, fuera de git, los embeddings ya calculados y solo los reutilizan si coinciden el texto, el modelo y la dimensión. La prueba completa con Gemini real se hace una vez por etapa. Reindexar documentos reales se hace aparte, con cuota disponible |
+| Datos privados en el dispositivo (E11b) | Decisión del usuario del 2026-11-09: copia de solo lectura de tareas, calendario y capítulos, borrada según RB-63. No guardar sesión en un teléfono compartido; la guía de instalación lo dice |
 | Cuota gratuita de Gemini con libros largos | Embeddings gratis: unos 30.000 tokens por minuto y unas 1.000 peticiones al día (cifras de la documentación de Google, a confirmar en AI Studio). Un libro de 400 páginas (unos 210.000 tokens) tarda unos 8 a 10 minutos: por eso se indexa por partes (RB-38). Caben 1 o 2 libros grandes por día y comparten la cuota con las preguntas. Resumir un capítulo es una sola llamada de hasta unas 40.000 palabras; "Explicar de otra manera" es una llamada por toque |
 | Espacio en Supabase gratis (500 MB) | Un libro de 400 páginas ocupa unos 2 a 3 MB (texto, vectores e índice); los PDF se borran de Blob al terminar |
 | Costo de los cuestionarios con la cuota gratis de Gemini | Generar es 1 llamada (2 como máximo) del modelo de chat, sin embeddings; responder, repetir y ver el historial no llaman a Gemini. Entrada aproximada: 10.000 tokens con 5 preguntas, 20.000 con 10 y 40.000 con 20; salida, unos 3.000 con 20. Para el modelo de chat las fuentes dan entre 500 y 1.500 peticiones al día y unos 250.000 tokens por minuto (cifras no oficiales: confirmar en AI Studio). Con la cifra más baja y reintento en todos: unos 250 cuestionarios al día, compartidos con el chat; el modelo de respaldo tiene su propia cuota. En tokens, unos 6 de 20 preguntas por minuto |

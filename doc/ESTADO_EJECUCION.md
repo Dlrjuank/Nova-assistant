@@ -717,3 +717,11 @@ Total de fallas: 0
 - **Sin verificar:** `probar:rag` (en esta rama y con el código de `master`) falló por la cuota diaria de embeddings de Gemini, agotada por las pruebas del día (`EmbedContentRequestsPerDayPerProjectPerModel-FreeTier`). Hay que repetirlo cuando se reinicie la cuota.
 - **Al cierre:** `npm test` 562/562, `npm run build` correcto, `eslint` sin errores.
 
+#### Decisiones de plan (2026-11-09, solo documentos)
+
+- **Cuota en pruebas:** embeddings guardados fuera de git, reutilizados solo si coinciden texto, modelo y dimensión; prueba completa con Gemini real una vez por etapa. El usuario aceptó el plazo de 7 días de RB-63.
+- **Web:** el usuario confirmó que Wikipedia es opcional y que la entrega no la exige; se mantiene por la opción (b). Wikipedia pasa a "Buscar en" con "Guardar fuente" (E10c2, M18 y M21) y se agrega E10c3 con la IA general y la marca "Respuesta general de la IA, sin fuentes. Compruébala si es importante.".
+- **Sin conexión:** solo lectura dentro de E11b (RB-62). La copia se borra según RB-63. Cambia la regla anterior de no guardar datos privados.
+- **Sincronización sin conexión y búsqueda con Google:** solo anotadas (2.2).
+- **Requisito antes de E10c2:** `probar:rag` con 0 fallas en la rama y con el código de `master`.
+
