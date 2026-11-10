@@ -10,6 +10,8 @@ import {
   detectarCapitulos,
   etiquetaDePaginas,
   fragmentarPaginas,
+  inicioDePaginas,
+  soloTextoDePagina,
   validarPaginas,
 } from '@/lib/reglas/libros';
 
@@ -52,6 +54,31 @@ describe('fragmentos por página', () => {
   it('RB-38: hasta 800 páginas, con el número en el mensaje', () => {
     expect(() => validarPaginas(PDF_MAX_PAGINAS)).not.toThrow();
     expect(() => validarPaginas(801)).toThrow('El PDF tiene 801 páginas; el máximo es 800.');
+  });
+});
+
+describe('solo el texto de una página (RB-39)', () => {
+  const paginas = [palabras(300, 'a'), palabras(300, 'b'), palabras(300, 'c')];
+  const inicios = inicioDePaginas(paginas);
+
+  it('calcula dónde empieza cada página, sin contar las vacías', () => {
+    expect(inicios).toEqual([0, 300, 600]);
+    expect(inicioDePaginas(['uno dos', '', ' tres '])).toEqual([0, 2, 2]);
+  });
+
+  it('deja solo las palabras de esa página, de todos sus fragmentos y sin repetir el solapamiento', () => {
+    const fragmentos = fragmentarPaginas(paginas);
+    const dePagina2 = fragmentos.filter((f) => f.paginaInicio <= 2 && f.paginaFin >= 2);
+    const texto = soloTextoDePagina(dePagina2, 2, inicios).map((f) => f.contenido).join(' ');
+    expect(texto.split(' ')).toEqual(paginas[1]?.split(' '));
+  });
+
+  it('la última página llega hasta el final; una página sin texto o fuera del libro queda vacía', () => {
+    const fragmentos = fragmentarPaginas(paginas);
+    expect(soloTextoDePagina(fragmentos, 3, inicios).map((f) => f.contenido).join(' ').split(' ')).toEqual(paginas[2]?.split(' '));
+    const conBlanco = ['uno dos', '', 'tres'];
+    expect(soloTextoDePagina(fragmentarPaginas(conBlanco), 2, inicioDePaginas(conBlanco))).toEqual([]);
+    expect(soloTextoDePagina(fragmentos, 9, inicios)).toEqual([]);
   });
 });
 

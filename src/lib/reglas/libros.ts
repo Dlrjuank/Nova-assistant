@@ -50,6 +50,39 @@ export function citaDePaginas(etiqueta: string): string {
   return etiqueta.includes('–') ? `pp. ${etiqueta}` : `p. ${etiqueta}`;
 }
 
+/** E10c: en qué palabra del documento empieza cada página, con el mismo conteo de `fragmentarPaginas`. */
+export function inicioDePaginas(paginas: readonly string[]): number[] {
+  let palabras = 0;
+  return paginas.map((texto) => {
+    const inicio = palabras;
+    palabras += texto.trim().split(/\s+/).filter((p) => p !== '').length;
+    return inicio;
+  });
+}
+
+/**
+ * RB-39: deja de cada fragmento solo las palabras de la página pedida (`pagina` empieza en 1), sin repetir el
+ * solapamiento entre fragmentos. El fragmento n empieza en la palabra (n − 1) × paso (RN-10).
+ */
+export function soloTextoDePagina<T extends { numero: number; contenido: string }>(fragmentos: readonly T[], pagina: number, inicios: readonly number[]): T[] {
+  const paso = FRAGMENTO_PALABRAS - FRAGMENTO_SOLAPAMIENTO;
+  const desde = inicios[pagina - 1];
+  if (desde === undefined) return [];
+  const hasta = inicios[pagina] ?? Number.POSITIVE_INFINITY;
+  const resultado: T[] = [];
+  let cubierto = desde;
+  for (const f of [...fragmentos].sort((a, b) => a.numero - b.numero)) {
+    const inicio = (f.numero - 1) * paso;
+    const palabras = f.contenido.split(' ');
+    const a = Math.max(cubierto, inicio);
+    const b = Math.min(hasta, inicio + palabras.length);
+    if (a >= b) continue;
+    resultado.push({ ...f, contenido: palabras.slice(a - inicio, b - inicio).join(' ') });
+    cubierto = b;
+  }
+  return resultado;
+}
+
 /** RN-10 sobre las páginas: los mismos trozos que `fragmentar`, y cada uno sabe qué páginas toca su texto. */
 export function fragmentarPaginas(paginas: readonly string[], etiquetas?: Etiquetas): FragmentoLibro[] {
   const palabras: string[] = [];

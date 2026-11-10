@@ -82,6 +82,7 @@ export async function consultar(
         fragmentos: libro.fragmentos.map((f) => f.id),
         ...(libro.continuacion ? { continuacion: libro.continuacion } : {}),
         ...(libro.limitePaginas ? { limitePaginas: libro.limitePaginas } : {}),
+        ...(libro.paginaPdf ? { paginaPdf: libro.paginaPdf } : {}),
       },
     };
   }

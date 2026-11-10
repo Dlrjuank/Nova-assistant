@@ -76,7 +76,9 @@ try {
 
   // 5c) E10c: preguntas reales por página y capítulo, y "Más simple".
   const pagina = await consultarYRegistrar(U, '¿Qué dice la página 10?', undefined, id);
-  marcar(pagina.fuentes.some((f) => /p+\. .*10/.test(f.etiqueta)) && pagina.explicable === true, `Paso 5c: pregunta por página citando ${pagina.fuentes.map((f) => f.etiqueta).join(', ')}`);
+  marcar(pagina.fuentes.map((f) => f.etiqueta).join() === 'prueba-libro.pdf · p. 10' && pagina.explicable === true, `Paso 5c: la cita es solo de la página pedida (${pagina.fuentes.map((f) => f.etiqueta).join(', ')})`);
+  const citasPagina = [...pagina.respuesta.matchAll(/\[pp?\. ([^\]]+)\]/g)].map((m) => m[1] as string);
+  marcar(citasPagina.every((c) => c === '10') && !/página impresa (9|11)\b/.test(pagina.respuesta), `Paso 5c2: sin texto de páginas vecinas (${citasPagina.join(', ')})`);
   const fuera = await consultarYRegistrar(U, '¿Qué dice la página 500?', undefined, id);
   marcar(fuera.respuesta === 'Ese documento tiene 40 páginas.', `Paso 5d: página inexistente: ${fuera.respuesta}`);
   const capitulo = await consultarYRegistrar(U, 'Resume el capítulo 3', undefined, id);

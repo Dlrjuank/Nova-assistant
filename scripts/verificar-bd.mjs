@@ -205,7 +205,8 @@ try {
 
         // m) La búsqueda por usuario solo devuelve fragmentos de sus documentos.
         const q = vec(0);
-        const delDueno = await c.query('SELECT documento_id FROM buscar_fragmentos_usuario($1::vector, 4, $2)', [q, dueno]);
+        // Límite amplio: la cuenta del dueño puede tener documentos reales que compitan con los de prueba.
+        const delDueno = await c.query('SELECT documento_id FROM buscar_fragmentos_usuario($1::vector, 500, $2)', [q, dueno]);
         const delOtro = await c.query('SELECT documento_id FROM buscar_fragmentos_usuario($1::vector, 4, $2)', [q, otro]);
         marcar(
           delDueno.rows.filter((f) => f.documento_id === docId).length === 2 && !delOtro.rows.some((f) => f.documento_id === docId),
@@ -296,6 +297,8 @@ try {
   console.log('== 6f. Contexto de las respuestas (M19)');
   const colContexto = await c.query("SELECT 1 FROM information_schema.columns WHERE table_name = 'mensajes_chat' AND column_name = 'contexto'");
   marcar(colContexto.rowCount === 1, 'columna mensajes_chat.contexto');
+  const colInicios = await c.query("SELECT 1 FROM information_schema.columns WHERE table_name = 'documentos' AND column_name = 'inicio_paginas'");
+  marcar(colInicios.rowCount === 1, 'columna documentos.inicio_paginas (M20)');
   await c.query('ROLLBACK');
 
   console.log(`== 7. Total de fallas: ${fallas}`);

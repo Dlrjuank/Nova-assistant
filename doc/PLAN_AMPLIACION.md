@@ -468,6 +468,10 @@ Columna nueva en `fuentes_web`: `vector vector(768) NULL`, con el embedding de s
 
 Columna nueva en `mensajes_chat`: `contexto JSONB NULL`, con `{ fragmentos: uuid[], continuacion?: { documentoId, orden, desde } }`. Guarda qué fragmentos usó cada respuesta, para "Explicar de otra manera" (RB-41) y para seguir un capítulo por partes (RB-40). No sale al navegador. Solo aditiva: los INSERT de `master` la dejan en NULL.
 
+### 6.16 M20 · Dónde empieza cada página (E10c)
+
+Columna nueva en `documentos`: `inicio_paginas INTEGER[] NULL`, la palabra en que empieza cada página. Como un fragmento cruza páginas, sirve para responder por página solo con el texto de esa página (RB-39). Solo aditiva: un documento indexado antes queda en NULL, limita la cita a la página y avisa que puede incluir texto de las vecinas.
+
 ## 7. Reglas de cálculo
 
 Todas en funciones puras de `src/lib/reglas/` (sin red, sin base, sin reloj salvo `fechas.ts`), probadas con Vitest. Notas en centésimas (0 a 500), porcentajes en centésimas de punto (0 a 10000). Los productos se calculan con enteros; la división final y el redondeo, con aritmética exacta sobre esos enteros.
@@ -616,7 +620,7 @@ Los mensajes se usan **textualmente** en la interfaz y en la API. Los de `PLAN_N
 | RB-36 | (E10b) Cada fragmento de un documento indexado desde E10b guarda su página o rango, y toda cita lo muestra. Número impreso si el PDF lo tiene; si no, el del PDF | En "Fuentes": `libro.pdf · p. 45` o `libro.pdf · pp. 45–46`. Dentro del texto (ajuste del usuario, 2026-11-09), corta y con las páginas seguidas unidas por párrafo: `[p. 45]`, `[pp. 45–46]`; con varios documentos en la respuesta, cada cita conserva su nombre. Al unir o quitar citas se limpian los separadores que queden; si todos los puntos seguidos de una lista tienen la misma cita, queda una sola al final. Documento anterior: `Vuelve a indexar este documento para ver páginas y capítulos.` |
 | RB-37 | (E10b) Capítulos del índice interno del PDF; si no tiene, de encabezados al comienzo de página; si no hay ninguno, no se inventan | `No encontré capítulos en este PDF. Puedes preguntar por página.` |
 | RB-38 | (E10b) Libro de hasta 800 páginas (y 15 MB, RN-01); se indexa por partes y se puede reanudar; mientras tanto no entra en las búsquedas | `El PDF tiene {n} páginas; el máximo es 800.` · Estado: `Indexando… {p} %` |
-| RB-39 | (E10c) Pregunta por página ("página 45", "pág. 45", "p. 45"): se responde con los fragmentos de esa página, sin búsqueda vectorial, y se cita la página. Con varios documentos con páginas y ninguno elegido en "Buscar en", se pregunta cuál | `Ese documento tiene {n} páginas.` · `¿En qué documento? Elígelo en "Buscar en".` |
+| RB-39 | (E10c) Pregunta por página ("página 45", "pág. 45", "p. 45"): se responde solo con el texto de esa página, sin búsqueda vectorial, y la cita no sale de ella. Con varios documentos con páginas y ninguno elegido en "Buscar en", se pregunta cuál | `Ese documento tiene {n} páginas.` · `¿En qué documento? Elígelo en "Buscar en".` |
 | RB-39b | (E10c, ajuste del usuario) Sin respuesta con un documento elegido en "Buscar en" | `No encontré esto en «{documento}». Prueba con "Todos los documentos" en "Buscar en".` |
 | RB-40 | (E10c) Pregunta por capítulo (por número o por título): todos los fragmentos del capítulo, hasta 60 (unas 30.000 palabras) por respuesta; si es más largo, se resume por partes a pedido del usuario | `El capítulo es largo: resumí las páginas {a}–{b}. Escribe "sigue con el resto" para continuar.` Las citas no salen de las páginas del capítulo. · Sin ese capítulo: `No encontré el capítulo {x} en este documento.` |
 | RB-41 | (E10c) "Explicar de otra manera": 5 modos; solo bajo respuestas que citan documentos; usa exactamente los fragmentos de esa respuesta (sin buscar otra vez) y conserva sus citas; cada modo es una llamada a Gemini y queda en el historial | Mensaje del usuario en el historial: `Explícalo: {modo}` |

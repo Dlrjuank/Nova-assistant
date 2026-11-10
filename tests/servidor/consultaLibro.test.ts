@@ -51,7 +51,42 @@ describe('página (RB-39)', () => {
     expect(contextoDe()).not.toContain('texto 1');
     expect(m.responder.mock.calls[0]?.[0].pregunta).toBe('Los fragmentos del contexto son de la página 2 del documento. ¿Qué dice la página 2?');
     expect(r.fuentes).toEqual([{ tipo: 'pdf', etiqueta: 'l.pdf · p. 2' }]);
-    expect(r.contexto).toEqual({ fragmentos: ['f2'] });
+    expect(r.contexto).toEqual({ fragmentos: ['f2'], limitePaginas: '2' });
+  });
+
+  it('a un fragmento que cruza páginas se le deja solo el texto de la pedida, y la cita no sale de ella', async () => {
+    // 3 páginas de 300 palabras: el fragmento 1 cubre las palabras 0–499 (páginas 1 y 2).
+    const palabras = (ini: number, n: number) => Array.from({ length: n }, (_, i) => `w${ini + i}`).join(' ');
+    const f1 = { ...fila(1, '1–2', 1, 2), contenido: palabras(0, 500) };
+    const f2 = { ...fila(2, '2–3', 2, 3), contenido: palabras(450, 450) };
+    base([{ ...LIBRO, inicioPaginas: [0, 300, 600] }], [f1, f2]);
+    m.responder.mockResolvedValue('Dice algo [l.pdf · pp. 1–3].');
+    const r = await consultar(U, '¿Qué dice la página 2?', [], { documentoId: D });
+    const contexto = contextoDe();
+    expect(contexto).toContain('w300 ');
+    expect(contexto).toContain('w599');
+    expect(contexto).not.toMatch(/\bw299\b/);
+    expect(contexto).not.toMatch(/\bw600\b/);
+    expect(contexto.match(/\bw460\b/g)).toHaveLength(1); // sin repetir el solapamiento
+    expect(contexto).toContain('[l.pdf · p. 2]\n');
+    expect(contexto).not.toContain('pp. ');
+    expect(r.respuesta).toBe('Dice algo [p. 2].');
+    expect(r.contexto).toEqual({ fragmentos: ['f1', 'f2'], limitePaginas: '2', paginaPdf: 2 });
+  });
+
+  it('una página en blanco lo dice, sin llamar a Gemini', async () => {
+    base([{ ...LIBRO, inicioPaginas: [0, 2, 2] }], [{ ...fila(1, '1–3', 1, 3), contenido: 'uno dos tres' }]);
+    await expect(consultar(U, '¿Qué dice la página 2?', [], { documentoId: D })).resolves.toEqual({ respuesta: 'La página 2 no tiene texto.', fuentes: [] });
+    expect(m.responder).not.toHaveBeenCalled();
+  });
+
+  it('un documento indexado antes limita la cita y avisa que puede incluir páginas vecinas', async () => {
+    base([LIBRO], [fila(1, '1–2', 1, 2)]);
+    m.responder.mockResolvedValue('Dice algo [l.pdf · pp. 1–2].');
+    const r = await consultar(U, '¿Qué dice la página 2?', [], { documentoId: D });
+    expect(r.respuesta).toContain('Dice algo [p. 2].');
+    expect(r.respuesta).toContain('puede incluir texto de páginas vecinas');
+    expect(r.fuentes).toEqual([{ tipo: 'pdf', etiqueta: 'l.pdf · p. 2' }]);
   });
 
   it('una página que no existe dice cuántas tiene, sin llamar a Gemini', async () => {
@@ -240,6 +275,17 @@ describe('Explicar de otra manera (RB-41)', () => {
     expect(m.responder.mock.calls[0]?.[0].contexto).toContain('[l.pdf · p. 20]');
     expect(r.respuesta).toBe('Fácil [p. 20].');
     expect(JSON.parse((m.txQuery.mock.calls[1]?.[1] as unknown[])[5] as string)).toEqual({ fragmentos: ['f1'], limitePaginas: '20–28' });
+  });
+
+  it('al explicar una página, sigue usando solo su texto', async () => {
+    const f1 = { ...fila(1, '1–2', 1, 2), contenido: 'uno dos tres cuatro', inicio_paginas: [0, 2] };
+    conMensaje({ ...original, contexto: { fragmentos: ['f1'], limitePaginas: '2', paginaPdf: 2 } }, [f1]);
+    m.responder.mockResolvedValue('Fácil [l.pdf · pp. 1–2].');
+    const r = await explicarRespuesta(U, 5, 'simple');
+    const { contexto } = m.responder.mock.calls[0]?.[0] as { contexto: string };
+    expect(contexto).toContain('tres cuatro');
+    expect(contexto).not.toContain('uno dos');
+    expect(r.respuesta).toBe('Fácil [p. 2].');
   });
 
   it('solo mensajes propios; sin fragmentos o ya borrados, no disponible', async () => {

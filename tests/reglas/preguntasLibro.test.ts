@@ -1,7 +1,7 @@
 // @vitest-environment node
 // E10c (S-37 a S-39): reconocer preguntas por página o capítulo.
 import { describe, expect, it } from 'vitest';
-import { buscarCapitulo, detectarCapitulo, detectarPagina, esContinuacion, etiquetaIncluye, MODOS_EXPLICAR } from '@/lib/reglas/preguntasLibro';
+import { buscarCapitulo, detectarCapitulo, detectarPagina, esContinuacion, etiquetaIncluye, MODOS_EXPLICAR, paginaDelPdf } from '@/lib/reglas/preguntasLibro';
 
 describe('página', () => {
   it('reconoce las formas de pedir una página', () => {
@@ -27,6 +27,15 @@ describe('página', () => {
     expect(etiquetaIncluye('4', 45)).toBe(false);
     expect(etiquetaIncluye('ii–1', 1)).toBe(true);
     expect(etiquetaIncluye('ii', 2)).toBe(false);
+  });
+});
+
+describe('página del PDF', () => {
+  it('convierte el número impreso, también en rangos y con romanos', () => {
+    expect(paginaDelPdf({ etiqueta_paginas: '10', pagina_inicio: 12, pagina_fin: 12 }, 10)).toBe(12);
+    expect(paginaDelPdf({ etiqueta_paginas: '9–11', pagina_inicio: 11, pagina_fin: 13 }, 10)).toBe(12);
+    expect(paginaDelPdf({ etiqueta_paginas: 'ii–1', pagina_inicio: 2, pagina_fin: 3 }, 1)).toBe(3);
+    expect(paginaDelPdf({ etiqueta_paginas: null, pagina_inicio: null, pagina_fin: null }, 1)).toBeNull();
   });
 });
 

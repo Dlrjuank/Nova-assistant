@@ -26,9 +26,9 @@ export async function recuperarFragmentosDeDocumento(usuarioId: string, vectorCo
 }
 
 /** RB-41: los fragmentos de una respuesta anterior, si siguen existiendo y son del usuario. */
-export async function fragmentosPorIds(usuarioId: string, ids: string[]): Promise<Array<Omit<Fragmento, 'distancia'>>> {
-  return consultar<Omit<Fragmento, 'distancia'>>(
-    `SELECT f.id, f.documento_id, f.numero, f.contenido, d.nombre_archivo, f.etiqueta_paginas
+export async function fragmentosPorIds(usuarioId: string, ids: string[]): Promise<Array<Omit<Fragmento, 'distancia'> & { inicio_paginas?: number[] | null }>> {
+  return consultar<Omit<Fragmento, 'distancia'> & { inicio_paginas?: number[] | null }>(
+    `SELECT f.id, f.documento_id, f.numero, f.contenido, d.nombre_archivo, f.etiqueta_paginas, d.inicio_paginas
      FROM fragmentos_pdf f JOIN documentos d ON d.id = f.documento_id
      WHERE f.id = ANY($1::uuid[]) AND d.usuario_id = $2
      ORDER BY f.documento_id, f.numero`,

@@ -6,6 +6,7 @@ import { compactarCitas, recortarEtiqueta } from '@/lib/reglas/citas';
 import { normalizarConsulta } from '@/lib/reglas/consulta';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
 import { lineaHoy } from '@/lib/reglas/fechas';
+import { soloTextoDePagina } from '@/lib/reglas/libros';
 import { MODOS_EXPLICAR, type ModoExplicar } from '@/lib/reglas/preguntasLibro';
 import { consultar } from './consulta';
 import { fragmentosPorIds } from './fragmentos';
@@ -139,7 +140,10 @@ export async function explicarRespuesta(usuarioId: string, mensajeId: number, mo
   const encontrados = await fragmentosPorIds(usuarioId, ids);
   if (encontrados.length === 0) throw new ErrorDeNegocio('MENSAJE_NO_ENCONTRADO'); // se eliminó el documento
   const limite = original?.contexto?.limitePaginas;
-  const fragmentos = encontrados.map((f) => (limite && f.etiqueta_paginas ? { ...f, etiqueta_paginas: recortarEtiqueta(f.etiqueta_paginas, limite) } : f));
+  const paginaPdf = original?.contexto?.paginaPdf;
+  const inicios = encontrados[0]?.inicio_paginas;
+  const delContexto = paginaPdf && inicios ? soloTextoDePagina(encontrados, paginaPdf, inicios) : encontrados; // RB-39: solo el texto de esa página
+  const fragmentos = delContexto.map((f) => (limite && f.etiqueta_paginas ? { ...f, etiqueta_paginas: recortarEtiqueta(f.etiqueta_paginas, limite) } : f));
 
   const [pregunta] = await consultarBd<{ texto: string }>(
     `SELECT texto FROM mensajes_chat WHERE conversacion_id = $1 AND id < $2 AND autor = 'usuario' ORDER BY id DESC LIMIT 1`,
@@ -155,6 +159,6 @@ export async function explicarRespuesta(usuarioId: string, mensajeId: number, mo
   return guardarTurno(usuarioId, original.conversacion_id, `Explícalo: ${opcion.texto}`, {
     respuesta: compactarCitas(explicada, { limite }),
     fuentes: original.fuentes,
-    contexto: { fragmentos: ids, ...(limite ? { limitePaginas: limite } : {}) },
+    contexto: { fragmentos: ids, ...(limite ? { limitePaginas: limite } : {}), ...(paginaPdf ? { paginaPdf } : {}) },
   });
 }

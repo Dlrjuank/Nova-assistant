@@ -1,8 +1,9 @@
 import { consultar as consultarBd } from '@/lib/db/conexion';
 import { recortarEtiqueta } from '@/lib/reglas/citas';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
-import { citaDePaginas, MENSAJE_REINDEXAR, MENSAJE_SIN_CAPITULOS } from '@/lib/reglas/libros';
+import { citaDePaginas, MENSAJE_REINDEXAR, MENSAJE_SIN_CAPITULOS, soloTextoDePagina } from '@/lib/reglas/libros';
 import {
+  AVISO_PAGINA_APROXIMADA,
   buscarCapitulo,
   detectarCapitulo,
   detectarPagina,
@@ -10,6 +11,7 @@ import {
   etiquetaIncluye,
   FRAGMENTOS_POR_PARTE,
   MENSAJE_ELEGIR_DOCUMENTO,
+  paginaDelPdf,
   TEXTO_CONTINUAR,
   type PedidoCapitulo,
 } from '@/lib/reglas/preguntasLibro';
@@ -22,17 +24,18 @@ type FilaLibro = Omit<Fragmento, 'distancia'> & { pagina_inicio: number | null; 
 /** Lo que se le entrega al modelo, o la respuesta exacta si no hace falta preguntarle. */
 export type PreguntaDeLibro =
   | { tipo: 'fija'; respuesta: string }
-  | { tipo: 'contexto'; fragmentos: FilaLibro[]; pregunta: string; fuente?: string; aviso?: string; continuacion?: Continuacion; limitePaginas?: string };
+  | { tipo: 'contexto'; fragmentos: FilaLibro[]; pregunta: string; fuente?: string; aviso?: string; continuacion?: Continuacion; limitePaginas?: string; paginaPdf?: number };
 
 interface DocumentoListo {
   id: string;
   nombre: string;
   paginas: number | null;
+  inicioPaginas?: number[] | null;
 }
 
 async function documentosListos(usuarioId: string): Promise<DocumentoListo[]> {
   return consultarBd<DocumentoListo>(
-    'SELECT id, nombre_archivo AS nombre, paginas FROM documentos WHERE usuario_id = $1 AND progreso IS NULL AND num_fragmentos > 0 ORDER BY created_at DESC',
+    'SELECT id, nombre_archivo AS nombre, paginas, inicio_paginas AS "inicioPaginas" FROM documentos WHERE usuario_id = $1 AND progreso IS NULL AND num_fragmentos > 0 ORDER BY created_at DESC',
     [usuarioId],
   );
 }
@@ -121,8 +124,18 @@ export async function resolverPreguntaDeLibro(
     const todos = await fragmentosDe(usuarioId, documento.id);
     const dePagina = todos.filter((f) => f.etiqueta_paginas && etiquetaIncluye(f.etiqueta_paginas, pagina));
     if (dePagina.length === 0) return { tipo: 'fija', respuesta: `Ese documento tiene ${documento.paginas} páginas.` };
+    const etiqueta = String(pagina);
+    const conEtiqueta = <T extends FilaLibro>(f: T): T => ({ ...f, etiqueta_paginas: etiqueta });
     // El texto no dice qué página es: se le indica al modelo, o respondería que no lo encuentra.
-    return { tipo: 'contexto', fragmentos: dePagina, pregunta: `Los fragmentos del contexto son de la página ${pagina} del documento. ${pregunta}` };
+    const preguntaConPagina = `Los fragmentos del contexto son de la página ${pagina} del documento. ${pregunta}`;
+    const paginaPdf = paginaDelPdf(dePagina[0] as FilaLibro, pagina);
+    if (documento.inicioPaginas && paginaPdf !== null) {
+      const soloEsa = soloTextoDePagina(dePagina, paginaPdf, documento.inicioPaginas).map(conEtiqueta);
+      if (soloEsa.length === 0) return { tipo: 'fija', respuesta: `La página ${pagina} no tiene texto.` };
+      return { tipo: 'contexto', fragmentos: soloEsa, pregunta: preguntaConPagina, limitePaginas: etiqueta, paginaPdf };
+    }
+    // Indexado antes de guardar dónde empieza cada página: la cita se limita, y se avisa que el texto puede ser de las vecinas.
+    return { tipo: 'contexto', fragmentos: dePagina.map(conEtiqueta), pregunta: preguntaConPagina, limitePaginas: etiqueta, aviso: AVISO_PAGINA_APROXIMADA };
   }
 
   const { capitulos } = await capitulosDeDocumento(usuarioId, documento.id);

@@ -48,6 +48,17 @@ export function etiquetaIncluye(etiqueta: string, pagina: number): boolean {
   return a === pagina || b === pagina;
 }
 
+/** RB-39: la página del PDF de una página impresa, a partir de un fragmento que la incluye. */
+export function paginaDelPdf(f: { etiqueta_paginas?: string | null; pagina_inicio: number | null; pagina_fin: number | null }, pagina: number): number | null {
+  const [inicio, fin] = (f.etiqueta_paginas ?? '').split('–') as [string, string | undefined];
+  if (/^\d+$/.test(inicio) && f.pagina_inicio !== null) return f.pagina_inicio + (pagina - Number(inicio));
+  if (fin !== undefined && /^\d+$/.test(fin) && f.pagina_fin !== null) return f.pagina_fin - (Number(fin) - pagina);
+  return null;
+}
+
+/** RB-39: documentos indexados antes de guardar dónde empieza cada página. */
+export const AVISO_PAGINA_APROXIMADA = 'Este documento se indexó antes de este ajuste: la respuesta puede incluir texto de páginas vecinas. Vuelve a indexarlo para que sea solo de esta página.';
+
 const CAPITULO_NUMERADO = /^(?:(?:cap[ií]tulo|unidad|tema|lecci[oó]n|m[oó]dulo|chapter)\s+)?(\d{1,3}|[ivxlcdm]{1,7})(?![\p{L}\d])/iu;
 
 /** RB-40: el capítulo pedido. Por número: el que lo diga en su título; si ninguno, el N-ésimo. Por título: capítulos antes que secciones. */

@@ -705,4 +705,15 @@ Total de fallas: 0
 - **Encontrado con Gemini real:** varios rangos con un solo nombre (`[l.pdf · pp. 16–17, 18–19, 19]`), citas seguidas en desorden, y viñetas bajo un punto numerado (son listas distintas). Corregidos.
 - **Verificación con Gemini real:** dos documentos y 7 respuestas (resumen de capítulo, resumen en lista, página, lista de normas, preguntas sobre los dos documentos y "Paso a paso"): sin separadores sueltos, con las listas unidas y cada documento distinguido.
 - **Al cierre:** `npm test` 554/554, `npm run build` correcto, `eslint` sin errores.
+- **Prueba del usuario (teléfono y PC):** sin comas sueltas, la cita de las listas una sola vez y cada cita con su documento, también con "Paso a paso". E10c confirmado.
+
+#### Ajuste de E10c: la pregunta por página usa solo esa página (2026-11-10, pedido del usuario)
+
+- **Problema:** un fragmento cruza páginas, así que "¿Qué dice la página 12?" citaba `[pp. 11–13]` y podía usar texto de las vecinas.
+- **Corrección:** migración M20 (`documentos.inicio_paginas`, respaldo `respaldos/2026-11-10_030959`). Con ella, al modelo solo le llega el texto de la página pedida, sin repetir el solapamiento, y la cita no sale de ella; también en "Explicar de otra manera". Una página en blanco lo dice.
+- **Documentos indexados antes** (`inicio_paginas` en NULL): la cita se limita a la página y la respuesta avisa que puede incluir texto de las vecinas, hasta volver a indexarlos.
+- **Pruebas:** casos nuevos en `tests/reglas/libros.test.ts`, `preguntasLibro.test.ts` y `tests/servidor/consultaLibro.test.ts`. `db:verificar`: la comprobación m) competía con los documentos reales del usuario; se amplió su límite.
+- **Verificación:** `db:verificar` 0 fallas, también con el código de `master`. `probar:libro` con Gemini real 0 fallas: la cita de la página 10 es solo `p. 10` y sin texto de las vecinas.
+- **Sin verificar:** `probar:rag` (en esta rama y con el código de `master`) falló por la cuota diaria de embeddings de Gemini, agotada por las pruebas del día (`EmbedContentRequestsPerDayPerProjectPerModel-FreeTier`). Hay que repetirlo cuando se reinicie la cuota.
+- **Al cierre:** `npm test` 562/562, `npm run build` correcto, `eslint` sin errores.
 

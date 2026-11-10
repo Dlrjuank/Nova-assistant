@@ -7,7 +7,7 @@ import { extraerPdf } from '@/lib/pdf/extraer';
 import { validarTamanoPdf, validarTextoExtraido } from '@/lib/reglas/documento';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
 import { hoyBogota } from '@/lib/reglas/fechas';
-import { detectarCapitulos, fragmentarPaginas, validarPaginas, type FragmentoLibro } from '@/lib/reglas/libros';
+import { detectarCapitulos, fragmentarPaginas, inicioDePaginas, validarPaginas, type FragmentoLibro } from '@/lib/reglas/libros';
 import type { Capitulo, CapitulosDocumento, Documento, ResultadoIndexacion } from './tipos';
 
 /**
@@ -152,9 +152,9 @@ export async function indexarContenido(
   const documentoId = await conTransaccion(async (tx) => {
     const { rows } = await tx.query<{ id: string }>(
       `INSERT INTO documentos
-         (nombre_archivo, categoria, num_fragmentos, fecha_guardado, usuario_id, paginas, progreso, por_indexar, indexando_hasta)
-       VALUES ($1, $2, 0, $3, $4, $5, 0, $6::jsonb, NOW() + make_interval(mins => $7)) RETURNING id`,
-      [d.nombreArchivo, d.categoria?.trim() || CATEGORIA_POR_DEFECTO, hoyBogota(), usuarioId, paginas.length, JSON.stringify(fragmentos), LEASE_MINUTOS],
+         (nombre_archivo, categoria, num_fragmentos, fecha_guardado, usuario_id, paginas, progreso, por_indexar, indexando_hasta, inicio_paginas)
+       VALUES ($1, $2, 0, $3, $4, $5, 0, $6::jsonb, NOW() + make_interval(mins => $7), $8::int[]) RETURNING id`,
+      [d.nombreArchivo, d.categoria?.trim() || CATEGORIA_POR_DEFECTO, hoyBogota(), usuarioId, paginas.length, JSON.stringify(fragmentos), LEASE_MINUTOS, inicioDePaginas(paginas)],
     );
     const id = (rows[0] as { id: string }).id;
     if (capitulos.length > 0) {

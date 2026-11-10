@@ -88,8 +88,10 @@ export interface Continuacion {
 export interface ContextoMensaje {
   fragmentos: string[];
   continuacion?: Continuacion;
-  /** Las páginas del capítulo, para no citar fuera de ellas al volver a explicarlo. */
+  /** Las páginas del capítulo o la página pedida, para no citar fuera de ellas al volver a explicarlo. */
   limitePaginas?: string;
+  /** RB-39: la página del PDF pedida, para volver a usar solo su texto. */
+  paginaPdf?: number;
 }
 
 export interface RespuestaAsistente {
