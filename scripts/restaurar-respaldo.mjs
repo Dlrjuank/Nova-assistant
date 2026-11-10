@@ -7,12 +7,12 @@
 // Todo en una transacción: si algo falla, no queda nada a medias.
 // Funciona también después de E01: las columnas que no están en el CSV (usuario_id) toman su valor
 // por defecto o el del disparador de dueño por defecto.
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import pg from 'pg';
 import { cargarEnv, opcionesConexion } from './cargar-env.mjs';
+import { TABLAS_RESPALDO } from './tablas-respaldo.mjs';
 
-const TABLAS = ['tareas_personales', 'documentos', 'fragmentos_pdf', 'fuentes_web', 'conversaciones', 'mensajes_chat'];
 const LOTE = 200;
 
 const [carpeta, bandera] = process.argv.slice(2);
@@ -22,6 +22,11 @@ if (!carpeta) {
 }
 const confirmar = bandera === '--confirmar';
 const probar = bandera === '--probar';
+
+// Un respaldo anterior puede no traer las tablas agregadas después: esas se dejan como están.
+const TABLAS = TABLAS_RESPALDO.filter((tabla) => existsSync(join(carpeta, `${tabla}.csv`)));
+const omitidas = TABLAS_RESPALDO.filter((tabla) => !TABLAS.includes(tabla));
+if (omitidas.length > 0) console.log(`Este respaldo no trae: ${omitidas.join(', ')}. No se tocan.`);
 
 // CSV como COPY de Postgres: campo vacío sin comillas = NULL; entre comillas = texto (puede tener saltos de línea).
 function leerCsv(texto) {

@@ -6,9 +6,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import pg from 'pg';
 import { cargarEnv, opcionesConexion } from './cargar-env.mjs';
-
-// En orden de dependencias (padres primero); la restauración usa el mismo orden.
-const TABLAS = ['tareas_personales', 'documentos', 'fragmentos_pdf', 'fuentes_web', 'conversaciones', 'mensajes_chat'];
+import { TABLAS_RESPALDO as TABLAS } from './tablas-respaldo.mjs';
 
 cargarEnv();
 const url = process.env.NOVAASSISTANT_POSTGRES_URL_NON_POOLING;
