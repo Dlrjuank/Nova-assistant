@@ -698,3 +698,11 @@ Total de fallas: 0
 - **Con Gemini real:** `probar:libro` y `probar:rag` con 0 fallas; las citas del capítulo 3 quedaron en un solo `[pp. 20–28]`.
 - **Al cierre:** `npm test` 543/543, `npm run build` correcto, `eslint` sin errores.
 
+#### Ajuste de E10c: separadores y listas (2026-11-09, reportado por el usuario)
+
+- **Problema:** al unir citas quedaban comas sueltas ("sus páginas,,,,, [pp. 20–28]") y una lista repetía la misma cita en cada punto.
+- **Corrección** (`src/lib/reglas/citas.ts`): las citas separadas solo por comas, "y" o espacios se tratan como un grupo y se limpian juntas. Se quitan separadores repetidos, paréntesis vacíos y espacios dobles, solo en líneas con citas y sin tocar la marca de lista. Si todos los puntos seguidos de una lista tienen la misma cita, queda una sola al final.
+- **Encontrado con Gemini real:** varios rangos con un solo nombre (`[l.pdf · pp. 16–17, 18–19, 19]`), citas seguidas en desorden, y viñetas bajo un punto numerado (son listas distintas). Corregidos.
+- **Verificación con Gemini real:** dos documentos y 7 respuestas (resumen de capítulo, resumen en lista, página, lista de normas, preguntas sobre los dos documentos y "Paso a paso"): sin separadores sueltos, con las listas unidas y cada documento distinguido.
+- **Al cierre:** `npm test` 554/554, `npm run build` correcto, `eslint` sin errores.
+
