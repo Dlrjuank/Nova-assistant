@@ -152,6 +152,23 @@ describe('llm.responder', () => {
     expect(generateContent).toHaveBeenLastCalledWith(expect.objectContaining({ model: MODELO_CHAT_RESPALDO }));
   });
 
+  it('un texto largo da 75 s al principal y hasta 110 s en total', async () => {
+    const { llm } = await import('@/lib/llm/gemini');
+    generateContent.mockRejectedValueOnce(error(504)).mockResolvedValueOnce({ text: 'respaldo' });
+    await expect(llm.responder({ ...DATOS, contexto: 'x'.repeat(30_000) })).resolves.toBe('respaldo');
+    const [principal, respaldo] = generateContent.mock.calls.map((c) => c[0].config.httpOptions.timeout);
+    expect(principal).toBe(75_000);
+    expect(respaldo).toBeGreaterThan(100_000);
+    expect(respaldo).toBeLessThanOrEqual(110_000);
+  });
+
+  it('una pregunta normal sigue con 15 s', async () => {
+    const { llm } = await import('@/lib/llm/gemini');
+    generateContent.mockResolvedValueOnce({ text: 'ok' });
+    await llm.responder({ ...DATOS, contexto: 'x'.repeat(29_999) });
+    expect(generateContent.mock.calls[0]?.[0].config.httpOptions.timeout).toBe(15_000);
+  });
+
   describe('memoria de saturación', () => {
     const modelos = () => generateContent.mock.calls.map((c) => c[0].model);
     const abortado = () => Object.assign(new Error('aborted'), { name: 'AbortError' });
@@ -193,6 +210,18 @@ describe('llm.responder', () => {
       generateContent.mockClear();
       await llm.responder(DATOS);
       expect(modelos()).toEqual([MODELO_CHAT]);
+    });
+
+    it('un texto largo la ignora y empieza por el principal', async () => {
+      const { llm } = await import('@/lib/llm/gemini');
+      generateContent.mockRejectedValueOnce(error(503)).mockResolvedValue(ok);
+      await llm.responder(DATOS);
+      generateContent.mockClear();
+      await llm.responder({ ...DATOS, contexto: 'x'.repeat(30_000) });
+      expect(modelos()).toEqual([MODELO_CHAT]);
+      generateContent.mockClear();
+      await llm.responder(DATOS);
+      expect(modelos()).toEqual([MODELO_CHAT_RESPALDO]);
     });
 
     it('dura 5 minutos', async () => {

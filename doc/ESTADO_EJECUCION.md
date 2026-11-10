@@ -764,3 +764,12 @@ Total de fallas: 0
 - **Prueba real con usuario temporal** (borrado): el dato ausente dio el mensaje nuevo con el principal saturado (18 s); la siguiente pregunta fue directo al respaldo (0,7 s de modelo).
 - **`probar:rag`:** el paso 15g compara con el mensaje nuevo; no se repitió la prueba completa.
 - **Al cierre:** `npm test` 634/634, `npm run build` correcto, `eslint` sin errores.
+
+#### E10c2: límite para textos largos (aprobado por el usuario, 2026-11-10)
+
+- **`gemini.ts`:** con un contexto de 30.000 caracteres o más (capítulo, "Explicar de otra manera"), el principal tiene 75 s y todo el proceso 110 s, y se ignora la memoria de saturación: siempre empieza el principal. Las preguntas normales siguen con 15 s y 40 s.
+- **`/api/nova/consultar`:** `maxDuration` 120. Es la única ruta que recibe textos largos; las demás siguen en 60. Según la documentación de Vercel, con Fluid Compute el plan Hobby admite hasta 300 s.
+- **Navegador:** el `fetch` del Asistente no tiene tope propio. En Edge, una petición de 130 s a un servidor local llegó completa (200). No se pudo probar Safari del iPhone desde Windows; Vercel mantiene viva la conexión HTTP/2 con PING mientras espera.
+- **Aviso:** tras 10 s de "Pensando…": `Los textos largos, como un capítulo, pueden tardar hasta un par de minutos. Espera un poco más.`
+- **Prueba real (una llamada):** 60 fragmentos sintéticos (30.219 palabras): el principal contestó en 11 s, sin pasar al respaldo, pero respondió que no encontraba el dato (35 caracteres), así que esta llamada no prueba una respuesta larga. La de 40 s se había medido antes, directamente con la API.
+- **Al cierre:** `npm test` 638/638, `npm run build` correcto, `eslint` sin errores.

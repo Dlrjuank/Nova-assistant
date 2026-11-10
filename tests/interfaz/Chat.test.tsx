@@ -1,6 +1,6 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { Chat } from '@/components/nova/Chat';
+import { AVISO_DEMORA, Chat } from '@/components/nova/Chat';
 import { ListaFuentes } from '@/components/nova/ListaFuentes';
 import { MensajeChat } from '@/components/nova/MensajeChat';
 
@@ -140,6 +140,23 @@ describe('Chat', () => {
     escribir('Mi agenda de hoy');
     fireEvent.click(boton());
     expect(await screen.findByText('No se pudo obtener respuesta del asistente. Intenta de nuevo.')).toBeTruthy();
+  });
+
+  it('si la espera pasa de 10 s, avisa que los textos largos pueden tardar', async () => {
+    vi.useFakeTimers();
+    try {
+      vi.stubGlobal('fetch', vi.fn().mockReturnValue(new Promise(() => {})));
+      render(<Chat />);
+      escribir('resume el capitulo 3');
+      fireEvent.click(boton());
+      expect(screen.queryByText(AVISO_DEMORA)).toBeNull();
+      await act(async () => {
+        vi.advanceTimersByTime(10_000);
+      });
+      expect(screen.getByText(AVISO_DEMORA)).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('RN-20: una pregunta en error sale de la conversación, se muestra en el aviso y no refresca', async () => {

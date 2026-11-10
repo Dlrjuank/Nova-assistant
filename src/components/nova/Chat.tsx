@@ -39,6 +39,8 @@ interface ErrorChat {
 // Reintentar no sirve para estos: repetir la misma pregunta daría el mismo error.
 const SIN_REINTENTO = ['CONSULTA_MUY_CORTA', 'CONVERSACION_NO_ENCONTRADA'];
 const CLAVE_BUSCAR_EN = 'nova-buscar-en';
+const ESPERA_AVISO_DEMORA_MS = 10_000;
+export const AVISO_DEMORA = 'Los textos largos, como un capítulo, pueden tardar hasta un par de minutos. Espera un poco más.';
 
 // El almacenamiento puede estar bloqueado: entonces "Buscar en" simplemente no se recuerda.
 function leerBuscarEn(): string {
@@ -95,6 +97,14 @@ export function Chat({
   const ultimoMensaje = useCallback(() => (lista.current?.lastElementChild as HTMLElement | null) ?? null, []);
   const { lejos, bajar, llegoAlgo } = useSeguirConversacion(formulario, ultimoMensaje);
   const pendiente = useRef<'enviada' | 'llegada' | null>(null);
+
+  // Un capítulo o un texto largo puede tardar hasta 110 s en el servidor: se avisa si la espera se alarga.
+  const [demora, setDemora] = useState(false);
+  useEffect(() => {
+    if (!pensando) return setDemora(false);
+    const reloj = setTimeout(() => setDemora(true), ESPERA_AVISO_DEMORA_MS);
+    return () => clearTimeout(reloj);
+  }, [pensando]);
 
   useEffect(() => {
     const accion = pendiente.current;
@@ -277,7 +287,7 @@ export function Chat({
 
       {pensando && (
         <p role="status" className="px-1 text-sm text-texto-suave">
-          Pensando…
+          Pensando…{demora && <span className="block">{AVISO_DEMORA}</span>}
         </p>
       )}
 

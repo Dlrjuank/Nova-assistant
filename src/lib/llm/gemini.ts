@@ -32,8 +32,11 @@ const ESPERA_MAXIMA_CONSULTAR_MS = 25_000;
 const TIEMPO_INTENTO_EMBEDDING_MS = 10_000;
 const TIEMPO_MODELO_PRINCIPAL_MS = 15_000;
 const TIEMPO_RESPONDER_MS = 40_000;
-// Con un contexto así de largo, tardar no indica saturación: resumir un capítulo puede llevar 40 s.
+// Con un contexto así de largo (un capítulo, "Explicar de otra manera"), tardar no indica saturación: resumir
+// un capítulo llevó 40 s. Siempre empieza el principal, con más tiempo; caben en los 120 s de /api/nova/consultar.
 const CONTEXTO_LARGO_CARACTERES = 30_000;
+const TIEMPO_PRINCIPAL_LARGO_MS = 75_000;
+const TIEMPO_RESPONDER_LARGO_MS = 110_000;
 const MEMORIA_SATURACION_MS = 5 * 60_000;
 
 // Vive en la memoria de cada instancia de Vercel: no se comparte entre instancias y se pierde al apagarse.
@@ -174,7 +177,8 @@ export const llm: LLMClient = {
       ...historial.map((m) => ({ role: m.autor === 'usuario' ? 'user' : 'model', parts: [{ text: m.texto }] })),
       { role: 'user', parts: [{ text: `CONTEXTO:\n${contexto || '(sin contexto)'}\n\nPREGUNTA:\n${pregunta}` }] },
     ];
-    const limite = Date.now() + TIEMPO_RESPONDER_MS;
+    const largo = contexto.length >= CONTEXTO_LARGO_CARACTERES;
+    const limite = Date.now() + (largo ? TIEMPO_RESPONDER_LARGO_MS : TIEMPO_RESPONDER_MS);
     const generar = async (model: string, tiempoMs: number) => {
       const respuesta = await ai.models.generateContent({
         model,
@@ -186,11 +190,12 @@ export const llm: LLMClient = {
       return texto;
     };
     // Con el principal saturado hace poco, se empieza por el respaldo; si este falla, vuelve el principal.
-    const primero = Date.now() < principalSaturadoHasta ? MODELO_CHAT_RESPALDO : MODELO_CHAT;
+    // Un texto largo ignora la memoria: el respaldo solo entra si el principal falla o se le acaba el tiempo.
+    const primero = !largo && Date.now() < principalSaturadoHasta ? MODELO_CHAT_RESPALDO : MODELO_CHAT;
     const segundo = primero === MODELO_CHAT ? MODELO_CHAT_RESPALDO : MODELO_CHAT;
     try {
       // Un modelo saturado no se recupera en segundos: se pasa al otro sin reintentar, y se gastan menos llamadas.
-      return await generar(primero, TIEMPO_MODELO_PRINCIPAL_MS).catch((error: unknown) => {
+      return await generar(primero, largo ? TIEMPO_PRINCIPAL_LARGO_MS : TIEMPO_MODELO_PRINCIPAL_MS).catch((error: unknown) => {
         if (primero === MODELO_CHAT) {
           if (!ameritaRespaldo(error)) throw error;
           if (indicaSaturacion(error, contexto)) principalSaturadoHasta = Date.now() + MEMORIA_SATURACION_MS;
