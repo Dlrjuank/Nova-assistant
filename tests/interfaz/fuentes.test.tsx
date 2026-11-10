@@ -1,4 +1,4 @@
-// E10: Fuentes con las pestañas "Subir PDF" y "Buscar en la web", y redirecciones de las rutas anteriores.
+// E10 y E10c2: Fuentes con las pestañas "Subir PDF" y "Fuentes guardadas", y redirecciones de las rutas anteriores.
 import { cleanup, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -56,12 +56,13 @@ describe('Fuentes', () => {
     expect(screen.getAllByRole('button', { name: /Eliminar/ }).length).toBeGreaterThan(0);
   });
 
-  it('"Buscar en la web" muestra el buscador y el aviso, sin leer documentos', async () => {
+  it('E10c2: la pestaña web es "Fuentes guardadas": sin buscador y sin leer documentos', async () => {
     await abrir('web');
     const [pdf, web] = pestanas();
+    expect(web?.textContent).toBe('Fuentes guardadas');
     expect(web?.getAttribute('aria-current')).toBe('page');
     expect(pdf?.getAttribute('aria-current')).toBeNull();
-    expect(screen.getByText(/al proveedor del asistente/)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Buscar en Wikipedia' })).toBeNull();
     expect(screen.queryByLabelText('Archivo PDF')).toBeNull();
     expect(m.listarDocumentos).not.toHaveBeenCalled();
   });
@@ -106,6 +107,7 @@ describe('Fuentes', () => {
     await abrir('web');
     expect(screen.getByRole('heading', { name: 'Fuentes guardadas' })).toBeTruthy();
     expect(screen.getByText(/Aún no has guardado fuentes/)).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Asistente' }).getAttribute('href')).toBe('/nova/asistente');
   });
 
   it('un valor desconocido abre "Subir PDF"', async () => {

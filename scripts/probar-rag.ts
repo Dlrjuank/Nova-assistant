@@ -17,9 +17,15 @@ import { recuperarFragmentos } from '@/lib/datos/fragmentos';
 import { completarTarea, crearTarea, eliminarTarea, hayTareasPendientes, listarTareas } from '@/lib/datos/tareas';
 import { SIN_DOCUMENTOS_RESPUESTA, SIN_RESPUESTA, SIN_TAREAS_PENDIENTES } from '@/lib/llm/prompts';
 import { hoyBogota, sumarDias } from '@/lib/reglas/fechas';
+import { llm } from '@/lib/llm/gemini';
+import { responderConFuentesWeb, responderConWikipedia } from '@/lib/datos/consultaWeb';
+import { eliminarFuenteWeb, guardarFuenteWeb, listarFuentesWeb } from '@/lib/datos/wikipedia';
+import { SIN_FUENTES_WEB } from '@/lib/llm/prompts';
 import { cargarEnv, opcionesConexion } from './cargar-env.mjs';
+import { instalarCacheEmbeddings } from './cache-embeddings';
 
 cargarEnv();
+const resumenEmbeddings = instalarCacheEmbeddings(llm);
 
 const NOMBRE_PDF = 'prueba-nova-rag.pdf';
 
@@ -104,6 +110,8 @@ async function main(): Promise<void> {
   await sql.connect();
   const tareasCreadas: string[] = [];
   const documentosCreados: string[] = [];
+  const URL_FUENTE = 'https://es.wikipedia.org/wiki/Prueba_Nova_purificador';
+  let usuarioFuente: string | undefined;
 
   // Todo se crea a nombre del dueño por defecto (M5), es decir, la cuenta del usuario.
   const { rows: config } = await sql.query<{ valor: string }>(
@@ -345,6 +353,39 @@ async function main(): Promise<void> {
       ajenas.join(', '),
     );
 
+    // E10c2 (RB-55, RB-56, RB-58): con el usuario temporal, para no tocar las fuentes del dueño.
+    const sinFuentes = await responderConFuentesWeb(OTRO, '¿Qué dice mi fuente guardada?');
+    marcar(sinFuentes.respuesta === SIN_FUENTES_WEB && sinFuentes.fuentes.length === 0, 'Paso 15a: sin fuentes guardadas -> el aviso de RB-56', sinFuentes.respuesta);
+    usuarioFuente = OTRO;
+    const guardada = await guardarFuenteWeb(OTRO, {
+      url: URL_FUENTE,
+      resumen: 'El filtro de carbón del purificador Aquaclara se cambia cada nueve meses y su tanque guarda doce litros.',
+      categoria: 'Pruebas',
+    });
+    marcar(guardada.fuentesEnCategoria === 1, 'Paso 15b: "Guardar fuente" guarda en la categoría', `${guardada.categoria}, ${guardada.fuentesEnCategoria}`);
+    const repetida = await guardarFuenteWeb(OTRO, { url: URL_FUENTE, resumen: 'Otra vez.', categoria: 'Pruebas' }).catch((e: { codigo?: string; message?: string }) => e);
+    marcar((repetida as { codigo?: string }).codigo === 'FUENTE_DUPLICADA', 'Paso 15c: la misma dirección no se repite', (repetida as { message?: string }).message ?? '');
+    const ajena = await guardarFuenteWeb(OTRO, { url: 'https://example.com/x', resumen: 'Ajena.' }).catch((e: { codigo?: string }) => e);
+    marcar((ajena as { codigo?: string }).codigo === 'FUENTE_URL_INVALIDA', 'Paso 15d: un enlace ajeno a Wikipedia se rechaza');
+    const conVector = await sql.query<{ n: number }>('SELECT count(*)::int AS n FROM fuentes_web WHERE usuario_id = $1 AND vector IS NOT NULL', [OTRO]);
+    marcar(conVector.rows[0]?.n === 1, 'Paso 15e: la fuente queda con su vector de 768 dimensiones');
+    const citada = await responderConFuentesWeb(OTRO, '¿Cada cuánto se cambia el filtro del purificador?');
+    marcar(
+      /nueve meses|9 meses/i.test(citada.respuesta) && citada.fuentes[0]?.url === URL_FUENTE && citada.fuentes[0]?.etiqueta === 'Prueba Nova purificador · Wikipedia',
+      'Paso 15f: "Fuentes web" responde con la fuente y cita su enlace',
+      `${citada.respuesta} | ${citada.fuentes.map((f) => f.etiqueta).join(', ')}`,
+    );
+    const noEsta = await responderConFuentesWeb(OTRO, '¿Cuál es la capital de Mongolia?');
+    marcar(noEsta.respuesta === SIN_RESPUESTA && noEsta.fuentes.length === 0, 'Paso 15g: lo que no está en las fuentes -> "No encontré"', noEsta.respuesta);
+    const enWikipedia = await responderConWikipedia('qué es la fotosíntesis de las plantas');
+    const antes = (await listarFuentesWeb(OTRO)).length;
+    marcar(
+      enWikipedia.fuentes.length > 0 && enWikipedia.fuentes.every((f) => f.tipo === 'web' && f.url?.startsWith('https://es.wikipedia.org/')) && antes === 1,
+      'Paso 15h: Wikipedia responde con sus artículos y no guarda nada',
+      enWikipedia.fuentes.map((f) => f.etiqueta).join(', '),
+    );
+    for (const f of await listarFuentesWeb(OTRO)) await eliminarFuenteWeb(OTRO, f.id);
+
     const ausente = await consultar(DUENO, '¿Cuál es la capital de Mongolia?');
     marcar(
       ausente.respuesta === SIN_RESPUESTA && ausente.fuentes.length === 0,
@@ -357,6 +398,7 @@ async function main(): Promise<void> {
     // Solo se borra lo que creó esta ejecución.
     await sql.query('DELETE FROM tareas_personales WHERE id = ANY($1::uuid[])', [tareasCreadas]);
     await sql.query('DELETE FROM documentos WHERE id = ANY($1::uuid[])', [documentosCreados]);
+    if (usuarioFuente) await sql.query('DELETE FROM fuentes_web WHERE usuario_id = $1', [usuarioFuente]);
     await sql.end();
     const { error } = await admin.auth.admin.deleteUser(OTRO);
     if (error) marcar(false, 'No se pudo borrar el usuario temporal', `${OTRO}: ${error.message}`);
@@ -364,6 +406,7 @@ async function main(): Promise<void> {
     console.log(`Limpieza: ${tareasCreadas.length} tarea(s) y ${documentosCreados.length} documento(s) borrados`);
   }
 
+  console.log(resumenEmbeddings());
   console.log(`\nTotal de fallas: ${fallas}`);
   process.exit(fallas ? 1 : 0);
 }

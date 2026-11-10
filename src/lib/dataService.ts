@@ -141,7 +141,7 @@ export { calcularProductividad } from '@/lib/datos/productividad';
 export { semanaDeTareas, type Semana } from '@/lib/datos/semana';
 export { mesDeTareas, type Mes } from '@/lib/datos/calendario';
 export { actualizarCategoria, crearCategoria, eliminarCategoria, listarCategorias } from '@/lib/datos/categorias';
-export { buscarEnWikipedia, eliminarFuenteWeb, listarFuentesWeb } from '@/lib/datos/wikipedia';
+export { buscarEnWikipedia, eliminarFuenteWeb, guardarFuenteWeb, listarFuentesWeb } from '@/lib/datos/wikipedia';
 export type {
   Categoria,
   ConversacionActual,
@@ -154,6 +154,7 @@ export type {
   RespuestaAsistente,
   RespuestaConHistorial,
   ResultadoProductividad,
+  FuenteGuardada,
   ResultadoWeb,
   Tarea,
   Capitulo,

@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { EliminarConConfirmacion } from '@/components/nova/EliminarConConfirmacion';
 import type { FuenteWeb } from '@/lib/dataService';
 import { MAX_FUENTES_WEB_POR_CATEGORIA } from '@/lib/config/nova';
@@ -12,7 +13,13 @@ export function FuentesGuardadas({ fuentes }: { fuentes: FuenteWeb[] }) {
         Fuentes guardadas
       </h2>
       {fuentes.length === 0 ? (
-        <p className="text-sm text-texto-suave">Aún no has guardado fuentes. Cada búsqueda con resultados guarda una aquí.</p>
+        <p className="text-sm text-texto-suave">
+          Aún no has guardado fuentes. En el{' '}
+          <Link href="/nova/asistente" className="font-semibold text-acento underline">
+            Asistente
+          </Link>
+          , elige «Wikipedia» en «Buscar en», pregunta y toca «Guardar fuente».
+        </p>
       ) : (
         agruparFuentes(fuentes).map((grupo) => (
           <div key={grupo.categoria} className="flex flex-col gap-2">

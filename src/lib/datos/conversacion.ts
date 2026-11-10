@@ -7,10 +7,12 @@ import { normalizarConsulta } from '@/lib/reglas/consulta';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
 import { lineaHoy } from '@/lib/reglas/fechas';
 import { soloTextoDePagina } from '@/lib/reglas/libros';
+import { BUSCAR_EN_WIKIPEDIA, origenDeBuscarEn, type OrigenMensaje } from '@/lib/reglas/fuentesWeb';
 import { MODOS_EXPLICAR, type ModoExplicar } from '@/lib/reglas/preguntasLibro';
 import { consultar } from './consulta';
+import { responderConFuentesWeb, responderConWikipedia } from './consultaWeb';
 import { fragmentosPorIds } from './fragmentos';
-import type { ContextoMensaje, ConversacionActual, Fuente, MensajeGuardado, RespuestaConHistorial } from './tipos';
+import type { Continuacion, ContextoMensaje, ConversacionActual, Fuente, MensajeGuardado, RespuestaConHistorial } from './tipos';
 
 // RN-20: cada usuario puede tener varias conversaciones; la pantalla muestra la más reciente.
 
@@ -22,11 +24,13 @@ async function ultimaConversacion(usuarioId: string): Promise<string | null> {
   return fila?.id ?? null;
 }
 
+type MensajeConContexto = MensajeGuardado & { contexto?: ContextoMensaje | null };
+
 /** Los últimos `limite` mensajes de una conversación, del más antiguo al más reciente. */
-async function ultimosMensajes(conversacionId: string, limite: number): Promise<Array<MensajeGuardado & { contexto?: ContextoMensaje | null }>> {
-  return consultarBd<MensajeGuardado & { contexto?: ContextoMensaje | null }>(
-    `SELECT id, autor, texto, fuentes, contexto FROM (
-       SELECT id, autor, texto, fuentes, contexto FROM mensajes_chat
+async function ultimosMensajes(conversacionId: string, limite: number): Promise<MensajeConContexto[]> {
+  return consultarBd<MensajeConContexto>(
+    `SELECT id, autor, texto, fuentes, contexto, origen FROM (
+       SELECT id, autor, texto, fuentes, contexto, origen FROM mensajes_chat
        WHERE conversacion_id = $1
        ORDER BY id DESC
        LIMIT $2
@@ -34,6 +38,28 @@ async function ultimosMensajes(conversacionId: string, limite: number): Promise<
      ORDER BY id`,
     [conversacionId, limite],
   );
+}
+
+/** RB-61: el historial que recibe el modelo solo tiene mensajes del mismo origen; null = documentos y tareas. */
+async function mensajesDelOrigen(conversacionId: string, limite: number, origen: OrigenMensaje | null): Promise<MensajeConContexto[]> {
+  return consultarBd<MensajeConContexto>(
+    `SELECT id, autor, texto, fuentes, contexto, origen FROM (
+       SELECT id, autor, texto, fuentes, contexto, origen FROM mensajes_chat
+       WHERE conversacion_id = $1 AND origen IS NOT DISTINCT FROM $3::text
+       ORDER BY id DESC
+       LIMIT $2
+     ) recientes
+     ORDER BY id`,
+    [conversacionId, limite, origen],
+  );
+}
+
+/** RB-40: un capítulo solo sigue si su parte es lo último de la conversación, aunque haya otro origen en medio. */
+async function continuacionVigente(conversacionId: string, ultimo: MensajeConContexto | undefined): Promise<Continuacion | undefined> {
+  const continuacion = ultimo?.contexto?.continuacion;
+  if (!continuacion) return undefined;
+  const [fila] = await consultarBd<{ id: string | number }>('SELECT max(id) AS id FROM mensajes_chat WHERE conversacion_id = $1', [conversacionId]);
+  return fila && Number(fila.id) === Number(ultimo?.id) ? continuacion : undefined;
 }
 
 /** La conversación más reciente del usuario con sus mensajes, o null si nunca ha preguntado. */
@@ -86,15 +112,20 @@ export async function consultarYRegistrar(
   documentoId?: string | undefined,
 ): Promise<RespuestaConHistorial> {
   const id = await resolverConversacion(usuarioId, conversacionId);
-  const previos = await ultimosMensajes(id, CONVERSACION_MENSAJES_CONTEXTO);
+  const origen = origenDeBuscarEn(documentoId); // E10c2: "Fuentes web" y "Wikipedia"
+  const previos = await mensajesDelOrigen(id, CONVERSACION_MENSAJES_CONTEXTO, origen);
   const historial: TurnoConversacion[] = previos.map((m) => ({ autor: m.autor, texto: m.texto }));
-  const continuacion = previos.at(-1)?.contexto?.continuacion; // RB-40: solo justo después de una parte
+  if (origen) {
+    const resultado = origen === BUSCAR_EN_WIKIPEDIA ? await responderConWikipedia(pregunta) : await responderConFuentesWeb(usuarioId, pregunta, historial);
+    return guardarTurno(usuarioId, id, normalizarConsulta(pregunta), resultado, origen);
+  }
+  const continuacion = await continuacionVigente(id, previos.at(-1));
   const resultado = await consultar(usuarioId, pregunta, historial, { documentoId, continuacion });
   return guardarTurno(usuarioId, id, normalizarConsulta(pregunta), resultado);
 }
 
 const SQL_MENSAJE =
-  'INSERT INTO mensajes_chat (conversacion_id, usuario_id, autor, texto, fuentes, contexto) VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb) RETURNING id';
+  'INSERT INTO mensajes_chat (conversacion_id, usuario_id, autor, texto, fuentes, contexto, origen) VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb, $7) RETURNING id';
 
 /** Guarda la pregunta y la respuesta en una transacción. Si falla, la respuesta se entrega igual. */
 async function guardarTurno(
@@ -102,11 +133,12 @@ async function guardarTurno(
   conversacionId: string,
   texto: string,
   { respuesta, fuentes, contexto }: { respuesta: string; fuentes: Fuente[]; contexto?: ContextoMensaje | undefined },
+  origen: OrigenMensaje | null = null,
 ): Promise<RespuestaConHistorial> {
-  const base = { respuesta, fuentes, conversacionId };
+  const base = { respuesta, fuentes, conversacionId, ...(origen ? { origen } : {}) };
   try {
     const mensajeId = await conTransaccion(async (tx) => {
-      await tx.query(SQL_MENSAJE, [conversacionId, usuarioId, 'usuario', texto, '[]', null]);
+      await tx.query(SQL_MENSAJE, [conversacionId, usuarioId, 'usuario', texto, '[]', null, origen]);
       const { rows } = await tx.query<{ id: string | number }>(SQL_MENSAJE, [
         conversacionId,
         usuarioId,
@@ -114,6 +146,7 @@ async function guardarTurno(
         respuesta,
         JSON.stringify(fuentes),
         contexto ? JSON.stringify(contexto) : null,
+        origen,
       ]);
       await tx.query('UPDATE conversaciones SET actualizada_en = now() WHERE id = $1', [conversacionId]);
       return rows[0]?.id;

@@ -2,17 +2,19 @@ import {
   CATEGORIA_POR_DEFECTO,
   LIMITE_LISTADO,
   MAX_FUENTES_WEB_POR_CATEGORIA,
+  WEB_MAX_CARACTERES,
   WEB_RESULTADOS,
   WIKIPEDIA_AGENTE,
   WIKIPEDIA_API,
 } from '@/lib/config/nova';
-import { consultar } from '@/lib/db/conexion';
+import { consultar, conTransaccion } from '@/lib/db/conexion';
 import { llm } from '@/lib/llm/gemini';
 import { SYSTEM_PROMPT_WEB } from '@/lib/llm/prompts';
 import { normalizarConsulta, validarConsulta } from '@/lib/reglas/consulta';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
 import { hoyBogota } from '@/lib/reglas/fechas';
-import type { FuenteWeb, ArticuloWeb, ResultadoWeb } from './tipos';
+import { esUrlDeWikipedia } from '@/lib/reglas/fuentesWeb';
+import type { ArticuloWeb, FuenteGuardada, FuenteWeb, ResultadoWeb } from './tipos';
 
 const TIEMPO_WIKIPEDIA_MS = 10_000;
 const MAX_CARACTERES_EXTRACTO = 2_000; // por artículo: acota los tokens que se envían a Gemini
@@ -28,7 +30,7 @@ async function buscarArticulos(consulta: string): Promise<Articulo[]> {
     format: 'json',
     formatversion: '2',
     generator: 'search',
-    gsrsearch: consulta,
+    gsrsearch: consulta.slice(0, WEB_MAX_CARACTERES),
     gsrlimit: String(WEB_RESULTADOS),
     prop: 'extracts|info',
     exintro: '1',
@@ -61,67 +63,67 @@ async function buscarArticulos(consulta: string): Promise<Articulo[]> {
     }));
 }
 
-/** RN-05 por usuario: el máximo de 20 es por usuario y categoría. */
-async function contarFuentes(usuarioId: string, categoria: string): Promise<number> {
-  const [fila] = await consultar<{ n: number }>(
-    'SELECT COUNT(*)::bigint AS n FROM fuentes_web WHERE usuario_id = $1 AND categoria = $2',
-    [usuarioId, categoria],
-  );
-  return fila?.n ?? 0;
-}
-
-/**
- * CU-06 (RN-02, RN-05). El límite se revisa antes de llamar a Wikipedia y a Gemini, para no gastar cuota
- * en una búsqueda que no se podría guardar, y otra vez al guardar. Sin resultados no se guarda nada.
- */
-export async function buscarEnWikipedia(
-  usuarioId: string,
-  consulta: string,
-  categoria?: string | undefined,
-): Promise<ResultadoWeb> {
+/** CU-06 y RB-58: busca y resume, sin guardar nada (RB-55). */
+export async function buscarEnWikipedia(consulta: string): Promise<ResultadoWeb> {
   validarConsulta(consulta); // RN-02
   const texto = normalizarConsulta(consulta);
-  const cat = categoria?.trim() || CATEGORIA_POR_DEFECTO;
-  if ((await contarFuentes(usuarioId, cat)) >= MAX_FUENTES_WEB_POR_CATEGORIA) throw new ErrorDeNegocio('LIMITE_FUENTES');
-
   const articulos = await buscarArticulos(texto);
-  const articulosWeb = articulos.map(({ titulo, url }) => ({ titulo, url }));
   if (articulos.length === 0) {
-    return {
-      resumen: 'Wikipedia no encontró artículos para esta consulta. Pruebe con otras palabras.',
-      url: '',
-      guardada: false,
-      categoria: cat,
-      articulos: [],
-      fuentesEnCategoria: await contarFuentes(usuarioId, cat),
-    };
+    return { resumen: 'Wikipedia no encontró artículos para esta consulta. Pruebe con otras palabras.', url: '', articulos: [] };
   }
-
   const resumen = await llm.responder({
     sistema: SYSTEM_PROMPT_WEB,
     contexto: articulos.map((a) => `[${a.titulo}]\n${a.extracto || '(sin extracto)'}`).join('\n\n'),
     pregunta: texto,
   });
+  return { resumen, url: articulos[0]?.url as string, articulos: articulos.map(({ titulo, url }) => ({ titulo, url })) };
+}
 
-  // Inserta solo si sigue habiendo cupo: dos búsquedas simultáneas no pueden pasar de 20.
-  // Los casts son necesarios: sin ellos Postgres deduce text y varchar para $1 y rechaza la consulta (42P08).
-  const guardadas = await consultar<{ id: string }>(
-    `INSERT INTO fuentes_web (categoria, url, extracto, fecha_guardado, usuario_id)
-     SELECT $1::varchar, $2::text, $3::text, $4::date, $6::uuid
-     WHERE (SELECT COUNT(*) FROM fuentes_web WHERE usuario_id = $6::uuid AND categoria = $1::varchar) < $5::int
-     RETURNING id`,
-    [cat, articulos[0]?.url, resumen, hoyBogota(), MAX_FUENTES_WEB_POR_CATEGORIA, usuarioId],
+type Consulta = <T>(sql: string, valores: unknown[]) => Promise<T[]>;
+
+/** RN-05 y RB-55: la misma dirección no se repite en una categoría y cada categoría admite 20. */
+async function revisarCupo(consulta: Consulta, usuarioId: string, categoria: string, url: string): Promise<number> {
+  const [fila] = await consulta<{ n: number; repetida: boolean }>(
+    `SELECT COUNT(*)::int AS n, COALESCE(bool_or(url = $3), false) AS repetida
+     FROM fuentes_web WHERE usuario_id = $1 AND categoria = $2`,
+    [usuarioId, categoria, url],
   );
-  if (guardadas.length === 0) throw new ErrorDeNegocio('LIMITE_FUENTES');
+  if (fila?.repetida) throw new ErrorDeNegocio('FUENTE_DUPLICADA', `Esta fuente ya está guardada en «${categoria}».`);
+  if ((fila?.n ?? 0) >= MAX_FUENTES_WEB_POR_CATEGORIA) throw new ErrorDeNegocio('LIMITE_FUENTES');
+  return fila?.n ?? 0;
+}
 
-  return {
-    resumen,
-    url: articulos[0]?.url as string,
-    guardada: true,
-    categoria: cat,
-    articulos: articulosWeb,
-    fuentesEnCategoria: await contarFuentes(usuarioId, cat),
-  };
+/**
+ * RB-55: guarda el resultado de una búsqueda. Primero se revisa sin gastar cuota; dentro de la transacción se revisa
+ * otra vez con un bloqueo por usuario y categoría, para que dos toques seguidos no dupliquen ni pasen de 20.
+ * Si Gemini falla, la fuente se guarda sin vector y se vectoriza al consultarla (M18).
+ */
+export async function guardarFuenteWeb(
+  usuarioId: string,
+  datos: { url: string; resumen: string; categoria?: string | undefined },
+): Promise<FuenteGuardada> {
+  if (!esUrlDeWikipedia(datos.url)) throw new ErrorDeNegocio('FUENTE_URL_INVALIDA');
+  const categoria = datos.categoria?.trim() || CATEGORIA_POR_DEFECTO;
+  await revisarCupo(consultar as Consulta, usuarioId, categoria, datos.url);
+
+  const vector = await llm
+    .generarEmbeddings([datos.resumen], { interactivo: true })
+    .then(([v]) => (v ? JSON.stringify(v) : null))
+    .catch((error: unknown) => {
+      console.warn('La fuente se guarda sin vector:', error instanceof Error ? error.message : error);
+      return null;
+    });
+
+  return conTransaccion(async (tx) => {
+    const consulta: Consulta = async <T>(sql: string, valores: unknown[]) => (await tx.query(sql, valores)).rows as T[];
+    await tx.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`fuentes_web:${usuarioId}:${categoria}`]);
+    const previas = await revisarCupo(consulta, usuarioId, categoria, datos.url);
+    await tx.query(
+      'INSERT INTO fuentes_web (categoria, url, extracto, fecha_guardado, usuario_id, vector) VALUES ($1, $2, $3, $4, $5, $6::vector)',
+      [categoria, datos.url, datos.resumen, hoyBogota(), usuarioId, vector],
+    );
+    return { categoria, fuentesEnCategoria: previas + 1 };
+  });
 }
 
 /** E10b2 (RB-54): las fuentes guardadas del usuario, de la más reciente a la más antigua. */

@@ -11,9 +11,11 @@ import { etiquetaFragmento } from '@/lib/llm/prompts';
 import { extraerPdf } from '@/lib/pdf/extraer';
 import { detectarCapitulos } from '@/lib/reglas/libros';
 import { cargarEnv, opcionesConexion } from './cargar-env.mjs';
+import { instalarCacheEmbeddings } from './cache-embeddings';
 import { generarLibroPdf, libroDeEjemplo } from './pdf-libro';
 
 cargarEnv();
+const resumenEmbeddings = instalarCacheEmbeddings(llm);
 
 async function main() {
 let fallas = 0;
@@ -102,6 +104,7 @@ try {
   await admin.auth.admin.deleteUser(U);
   console.log('usuario temporal y sus documentos borrados');
 }
+console.log(resumenEmbeddings());
 console.log(`Fallas: ${fallas}`);
 process.exit(fallas ? 1 : 0);
 }

@@ -1,4 +1,5 @@
 import type { Fuente } from '@/lib/dataService';
+import { esUrlDeWikipedia } from '@/lib/reglas/fuentesWeb';
 
 export function ListaFuentes({ fuentes }: { fuentes: Fuente[] }) {
   if (fuentes.length === 0) return null;
@@ -11,7 +12,13 @@ export function ListaFuentes({ fuentes }: { fuentes: Fuente[] }) {
             key={f.etiqueta}
             className="break-all rounded-full border border-borde bg-superficie px-2.5 py-0.5 text-xs text-texto-suave"
           >
-            {f.etiqueta}
+            {f.url && esUrlDeWikipedia(f.url) ? (
+              <a href={f.url} target="_blank" rel="noopener noreferrer" className="text-acento underline">
+                {f.etiqueta}
+              </a>
+            ) : (
+              f.etiqueta
+            )}
           </li>
         ))}
       </ul>

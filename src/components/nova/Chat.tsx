@@ -9,9 +9,10 @@ import { Boton } from '@/components/ui/Boton';
 import { CLASE_CONTROL } from '@/components/ui/Campo';
 import { Selector } from '@/components/ui/Selector';
 import type { Fuente, MensajeGuardado, RespuestaConHistorial } from '@/lib/dataService';
-import { esConsultaValida as esValida, normalizarConsulta } from '@/lib/reglas/consulta';
+import { AVISO_BUSQUEDA_CORTA, esConsultaValida as esValida, normalizarConsulta } from '@/lib/reglas/consulta';
 import { MENSAJES } from '@/lib/reglas/errores';
 import { CONSULTA_MAX_CARACTERES } from '@/lib/config/nova';
+import { BUSCAR_EN_WEB, BUSCAR_EN_WIKIPEDIA, type OrigenMensaje } from '@/lib/reglas/fuentesWeb';
 import type { ModoExplicar } from '@/lib/reglas/preguntasLibro';
 import { useSeguirConversacion } from './seguirConversacion';
 
@@ -22,6 +23,8 @@ interface Mensaje {
   fuentes?: Fuente[];
   /** RB-41: id en la base, solo si la respuesta se puede explicar de otra manera. */
   explicableId?: number;
+  /** E10c2 (M21): sin origen, documentos y tareas. */
+  origen?: OrigenMensaje | null;
 }
 
 interface ErrorChat {
@@ -51,7 +54,7 @@ export function Chat({
   documentos?: ReadonlyArray<{ id: string; nombre: string }>;
 }) {
   const [mensajes, setMensajes] = useState<Mensaje[]>(() =>
-    historial.map((m, i) => ({ id: i, autor: m.autor, texto: m.texto, fuentes: m.fuentes, ...(m.explicable ? { explicableId: Number(m.id) } : {}) })),
+    historial.map((m, i) => ({ id: i, autor: m.autor, texto: m.texto, fuentes: m.fuentes, origen: m.origen ?? null, ...(m.explicable ? { explicableId: Number(m.id) } : {}) })),
   );
   const [buscarEn, setBuscarEn] = useState('');
   const [conversacionId, setConversacionId] = useState(idInicial);
@@ -105,10 +108,10 @@ export function Chat({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar
   }, [preguntaInicial]);
 
-  const agregar = (autor: AutorMensaje, contenido: string, fuentes?: Fuente[], explicableId?: number) => {
+  const agregar = (autor: AutorMensaje, contenido: string, fuentes?: Fuente[], explicableId?: number, origen?: OrigenMensaje) => {
     pendiente.current = autor === 'usuario' ? 'enviada' : 'llegada';
     const id = siguienteId.current++;
-    setMensajes((previos) => [...previos, { id, autor, texto: contenido, ...(fuentes ? { fuentes } : {}), ...(explicableId ? { explicableId } : {}) }]);
+    setMensajes((previos) => [...previos, { id, autor, texto: contenido, ...(fuentes ? { fuentes } : {}), ...(explicableId ? { explicableId } : {}), ...(origen ? { origen } : {}) }]);
   };
 
   function preguntar(pregunta: string) {
@@ -147,7 +150,7 @@ export function Chat({
         });
         return;
       }
-      agregar('asistente', cuerpo.datos.respuesta, cuerpo.datos.fuentes, cuerpo.datos.explicable ? cuerpo.datos.mensajeId : undefined);
+      agregar('asistente', cuerpo.datos.respuesta, cuerpo.datos.fuentes, cuerpo.datos.explicable ? cuerpo.datos.mensajeId : undefined, cuerpo.datos.origen);
       setConversacionId(cuerpo.datos.conversacionId);
       setSinGuardar(cuerpo.datos.guardada === false);
     } catch {
@@ -238,6 +241,7 @@ export function Chat({
             {...(m.fuentes ? { fuentes: m.fuentes } : {})}
             {...(m.explicableId ? { alExplicar: (modo: ModoExplicar, nombre: string) => explicar(m.explicableId as number, modo, nombre) } : {})}
             ocupado={pensando}
+            guardable={m.autor === 'asistente' && m.origen === BUSCAR_EN_WIKIPEDIA}
           />
         ))}
       </ul>
@@ -283,14 +287,20 @@ export function Chat({
       )}
 
       <form ref={formulario} onSubmit={enviar} className="flex scroll-mb-24 flex-col gap-2">
-        {documentos.length > 0 && (
-          <Selector
-            id="buscar-en"
-            etiqueta="Buscar en"
-            value={buscarEn}
-            onChange={(e) => setBuscarEn(e.target.value)}
-            opciones={[{ valor: '', texto: 'Todos los documentos' }, ...documentos.map((d) => ({ valor: d.id, texto: d.nombre }))]}
-          />
+        <Selector
+          id="buscar-en"
+          etiqueta="Buscar en"
+          value={buscarEn}
+          onChange={(e) => setBuscarEn(e.target.value)}
+          opciones={[
+            { valor: '', texto: 'Todos los documentos' },
+            ...documentos.map((d) => ({ valor: d.id, texto: d.nombre })),
+            { valor: BUSCAR_EN_WEB, texto: 'Fuentes web' },
+            { valor: BUSCAR_EN_WIKIPEDIA, texto: 'Wikipedia' },
+          ]}
+        />
+        {buscarEn === BUSCAR_EN_WIKIPEDIA && (
+          <p className="text-xs text-texto-suave">Busca en Wikipedia en español. La consulta se envía a Wikipedia y, con los extractos, al proveedor del asistente.</p>
         )}
         <label htmlFor="pregunta" className="text-sm font-medium text-texto">
           Tu pregunta
@@ -308,7 +318,7 @@ export function Chat({
         />
         {demasiadoCorta && (
           <p id="pregunta-error" className="text-xs font-medium text-peligro">
-            {MENSAJES.CONSULTA_MUY_CORTA}
+            {buscarEn === BUSCAR_EN_WIKIPEDIA ? AVISO_BUSQUEDA_CORTA : MENSAJES.CONSULTA_MUY_CORTA}
           </p>
         )}
         <div>

@@ -244,15 +244,15 @@ describe('E10c: Buscar en y Explicar de otra manera', () => {
   const cuerpo = (f: ReturnType<typeof vi.fn>, n = 0) => JSON.parse(f.mock.calls[n]?.[1].body);
   const DOCS = [{ id: '22222222-2222-4222-8222-222222222222', nombre: 'libro.pdf' }];
 
-  it('sin documentos no hay selector; con documentos, por defecto busca en todos', async () => {
+  it('sin documentos también hay selector; con documentos, por defecto busca en todos', async () => {
     const { unmount } = render(<Chat />);
-    expect(screen.queryByLabelText('Buscar en')).toBeNull();
+    expect([...(screen.getByLabelText('Buscar en') as HTMLSelectElement).options].map((o) => o.textContent)).toEqual(['Todos los documentos', 'Fuentes web', 'Wikipedia']);
     unmount();
     const f = vi.fn().mockResolvedValue(ok({ respuesta: 'Hola', fuentes: [], conversacionId: 'c', guardada: true }));
     vi.stubGlobal('fetch', f);
     render(<Chat documentos={DOCS} />);
     const selector = screen.getByLabelText('Buscar en') as HTMLSelectElement;
-    expect([...selector.options].map((o) => o.textContent)).toEqual(['Todos los documentos', 'libro.pdf']);
+    expect([...selector.options].map((o) => o.textContent)).toEqual(['Todos los documentos', 'libro.pdf', 'Fuentes web', 'Wikipedia']);
     escribir('¿Qué dice el libro?');
     fireEvent.click(boton());
     await screen.findByText('Hola');
@@ -306,5 +306,91 @@ describe('E10c: Buscar en y Explicar de otra manera', () => {
   it('el historial guardado también ofrece explicar', () => {
     render(<Chat historial={[{ id: 3, autor: 'asistente', texto: 'Antes', fuentes: [], explicable: true }, { id: 4, autor: 'asistente', texto: 'Otra', fuentes: [] }]} />);
     expect(screen.getAllByRole('group', { name: 'Explicar de otra manera' })).toHaveLength(1);
+  });
+});
+
+describe('E10c2: Wikipedia y fuentes guardadas', () => {
+  const ok = (datos: unknown) => responder({ ok: true, datos });
+  const ARTICULO = 'https://es.wikipedia.org/wiki/Fotos%C3%ADntesis';
+  const FUENTES = [{ tipo: 'web' as const, etiqueta: 'Fotosíntesis · Wikipedia', url: ARTICULO }];
+  const WIKI = { respuesta: 'Proceso de las plantas.', fuentes: FUENTES, conversacionId: 'c', guardada: true, origen: 'wikipedia' };
+  const elegir = (valor: string) => fireEvent.change(screen.getByLabelText('Buscar en'), { target: { value: valor } });
+  const preguntarWikipedia = async () => {
+    elegir('wikipedia');
+    escribir('qué es la fotosíntesis');
+    fireEvent.click(boton());
+    await screen.findByText('Proceso de las plantas.');
+  };
+
+  it('avisa a quién se envía la consulta y usa el aviso de búsqueda corta', () => {
+    render(<Chat />);
+    expect(screen.queryByText(/al proveedor del asistente/)).toBeNull();
+    elegir('wikipedia');
+    expect(screen.getByText(/al proveedor del asistente/)).toBeTruthy();
+    escribir('Colombia');
+    expect(screen.getByText(/Escribe al menos 2 palabras/)).toBeTruthy();
+  });
+
+  it('la respuesta de Wikipedia enlaza el artículo y envía el origen', async () => {
+    const f = vi.fn().mockResolvedValue(ok(WIKI));
+    vi.stubGlobal('fetch', f);
+    render(<Chat />);
+    await preguntarWikipedia();
+    expect(JSON.parse(f.mock.calls[0]?.[1].body).documentoId).toBe('wikipedia');
+    const enlace = screen.getByRole('link', { name: 'Fotosíntesis · Wikipedia' });
+    expect(enlace.getAttribute('href')).toBe(ARTICULO);
+    expect(enlace.getAttribute('rel')).toContain('noopener');
+  });
+
+  it('nada se guarda hasta tocar "Guardar fuente"; luego lo confirma', async () => {
+    const f = vi.fn().mockResolvedValueOnce(ok(WIKI)).mockResolvedValueOnce(ok({ categoria: 'Ciencia', fuentesEnCategoria: 3 }));
+    vi.stubGlobal('fetch', f);
+    render(<Chat />);
+    await preguntarWikipedia();
+    expect(f).toHaveBeenCalledTimes(1);
+    fireEvent.change(screen.getByLabelText('Categoría'), { target: { value: 'Ciencia' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar fuente' }));
+    await screen.findByText('Fuente guardada en «Ciencia» (3 de 20).');
+    expect(f.mock.calls[1]?.[0]).toBe('/api/nova/web/fuentes');
+    expect(JSON.parse(f.mock.calls[1]?.[1].body)).toEqual({ url: ARTICULO, resumen: 'Proceso de las plantas.', categoria: 'Ciencia' });
+    expect(screen.queryByRole('button', { name: 'Guardar fuente' })).toBeNull();
+  });
+
+  it('avisa si ya estaba guardada o si se llenó la categoría', async () => {
+    const f = vi
+      .fn()
+      .mockResolvedValueOnce(ok(WIKI))
+      .mockResolvedValueOnce(responder({ ok: false, error: { codigo: 'FUENTE_DUPLICADA', mensaje: 'Esta fuente ya está guardada en «General».' } }, 409))
+      .mockResolvedValueOnce(responder({ ok: false, error: { codigo: 'LIMITE_FUENTES', mensaje: 'Alcanzó el máximo de 20 fuentes en esta categoría; archive o elimine una.' } }, 409));
+    vi.stubGlobal('fetch', f);
+    render(<Chat />);
+    await preguntarWikipedia();
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar fuente' }));
+    await screen.findByText('Esta fuente ya está guardada en «General».');
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar fuente' }));
+    await screen.findByText(/Alcanzó el máximo de 20/);
+    expect(screen.getByRole('link', { name: 'Ver fuentes guardadas' }).getAttribute('href')).toBe('/nova/fuentes?pestana=web');
+  });
+
+  it('sin artículos no ofrece guardar; una fuente guardada tampoco', async () => {
+    render(
+      <ul>
+        <MensajeChat autor="asistente" texto="Wikipedia no encontró artículos." fuentes={[]} guardable />
+        <MensajeChat autor="asistente" texto="Según la fuente." fuentes={FUENTES} />
+      </ul>,
+    );
+    expect(screen.queryByRole('button', { name: 'Guardar fuente' })).toBeNull();
+  });
+
+  it('al recargar, una respuesta de Wikipedia conserva el enlace y "Guardar fuente"', () => {
+    render(<Chat historial={[{ id: 8, autor: 'asistente', texto: 'Resumen.', fuentes: FUENTES, origen: 'wikipedia' }]} />);
+    expect(screen.getByRole('link', { name: 'Fotosíntesis · Wikipedia' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Guardar fuente' })).toBeTruthy();
+  });
+
+  it('un enlace que no es de Wikipedia se muestra como texto', () => {
+    render(<ListaFuentes fuentes={[{ tipo: 'web', etiqueta: 'Otra · Wikipedia', url: 'javascript:alert(1)' }]} />);
+    expect(screen.queryByRole('link')).toBeNull();
+    expect(screen.getByText('Otra · Wikipedia')).toBeTruthy();
   });
 });

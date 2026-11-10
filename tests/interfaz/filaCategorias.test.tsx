@@ -233,8 +233,8 @@ describe('B-46: el aviso del proveedor solo donde se le pregunta a Nova', () => 
     expect(screen.getByText(AVISO_PROVEEDOR_CORTO)).toBeTruthy();
   });
 
-  it('Productividad no lo lleva y la pestaña Web de Fuentes conserva su subtítulo', () => {
+  it('Productividad no lo lleva y elegir Wikipedia avisa a quién se envía la consulta', () => {
     expect(leer('src/app/nova/productividad/page.tsx')).not.toMatch(/AVISO_PROVEEDOR|proveedor del asistente/);
-    expect(leer('src/app/nova/fuentes/page.tsx')).toContain('al proveedor del asistente');
+    expect(leer('src/components/nova/Chat.tsx')).toContain('al proveedor del asistente');
   });
 });

@@ -18,6 +18,8 @@ export type CodigoError =
   | 'MENSAJE_NO_ENCONTRADO'
   | 'LIMITE_FUENTES'
   | 'FUENTE_NO_ENCONTRADA'
+  | 'FUENTE_DUPLICADA'
+  | 'FUENTE_URL_INVALIDA'
   | 'ERROR_WIKIPEDIA'
   | 'CATEGORIA_NO_ENCONTRADA'
   | 'CATEGORIA_DUPLICADA'
@@ -49,6 +51,8 @@ export const MENSAJES: Record<CodigoError, string> = {
   DOCUMENTO_NO_ENCONTRADO: 'El documento no existe.',
   MENSAJE_NO_ENCONTRADO: 'Esa respuesta ya no se puede explicar de otra manera.',
   FUENTE_NO_ENCONTRADA: 'La fuente no existe.',
+  FUENTE_DUPLICADA: 'Esta fuente ya está guardada en esta categoría.',
+  FUENTE_URL_INVALIDA: 'La dirección de la fuente no es válida.',
   LIMITE_FUENTES: 'Alcanzó el máximo de 20 fuentes en esta categoría; archive o elimine una.',
   ERROR_WIKIPEDIA: 'No se pudo consultar Wikipedia. Intente de nuevo.',
   // PLAN_AMPLIACION sección 8 (RB-02 a RB-04), en tuteo como el resto de la app.
@@ -84,6 +88,8 @@ export const ESTADO_HTTP: Record<CodigoError, number> = {
   MENSAJE_NO_ENCONTRADO: 404,
   LIMITE_FUENTES: 409,
   FUENTE_NO_ENCONTRADA: 404,
+  FUENTE_DUPLICADA: 409,
+  FUENTE_URL_INVALIDA: 422,
   ERROR_WIKIPEDIA: 502,
   CATEGORIA_NO_ENCONTRADA: 404,
   CATEGORIA_DUPLICADA: 409,

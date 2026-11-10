@@ -1,4 +1,3 @@
-import { BuscadorWeb } from '@/components/nova/BuscadorWeb';
 import { FuentesGuardadas } from '@/components/nova/FuentesGuardadas';
 import { IndexacionPendiente } from '@/components/nova/IndexacionPendiente';
 import { SubidorPdf } from '@/components/nova/SubidorPdf';
@@ -12,10 +11,9 @@ import { exigirSesion, listarDocumentos, listarFuentesWeb } from '@/lib/dataServ
 export const dynamic = 'force-dynamic';
 
 const SUBTITULO_PDF = 'Los PDF que el asistente usa para responder.';
-const SUBTITULO_WEB =
-  'Busca en Wikipedia en español: Nova resume los 3 primeros artículos y guarda la fuente. La consulta se envía a Wikipedia y, con los extractos, al proveedor del asistente.';
+const SUBTITULO_WEB = 'Las fuentes de Wikipedia que guardaste desde el Asistente. Las puedes consultar eligiendo «Fuentes web» en «Buscar en».';
 
-/** E10 (PLAN_AMPLIACION 5.5): Documentos y Web en una sola sección. `?pestana=web`; cualquier otro valor, PDF. */
+/** E10 y E10c2 (PLAN_AMPLIACION 5.5): Subir PDF y Fuentes guardadas. `?pestana=web`; cualquier otro valor, PDF. */
 export default async function FuentesPage({ searchParams }: { searchParams: Promise<{ pestana?: string | string[] }> }) {
   const { pestana } = await searchParams;
   const esWeb = pestana === 'web';
@@ -27,7 +25,7 @@ export default async function FuentesPage({ searchParams }: { searchParams: Prom
         etiqueta="Tipo de fuente"
         pestanas={[
           { href: '/nova/fuentes?pestana=pdf', texto: 'Subir PDF', activa: !esWeb },
-          { href: '/nova/fuentes?pestana=web', texto: 'Buscar en la web', activa: esWeb },
+          { href: '/nova/fuentes?pestana=web', texto: 'Fuentes guardadas', activa: esWeb },
         ]}
       />
       {esWeb ? <PestanaWeb /> : <PestanaPdf />}
@@ -38,12 +36,7 @@ export default async function FuentesPage({ searchParams }: { searchParams: Prom
 async function PestanaWeb() {
   const { id } = await exigirSesion();
   const fuentes = await listarFuentesWeb(id); // E10b2 (RB-54)
-  return (
-    <>
-      <BuscadorWeb />
-      <FuentesGuardadas fuentes={fuentes} />
-    </>
-  );
+  return <FuentesGuardadas fuentes={fuentes} />;
 }
 
 async function PestanaPdf() {

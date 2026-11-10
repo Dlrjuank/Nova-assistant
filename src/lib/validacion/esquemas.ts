@@ -24,7 +24,7 @@ export const esquemaConsulta = z
   .object({
     pregunta: z.string().trim().min(1).max(CONSULTA_MAX_CARACTERES).optional(),
     conversacionId: z.uuid().optional(), // sin id, la conversación más reciente del usuario (RN-20)
-    documentoId: z.uuid().optional(), // E10c: "Buscar en"
+    documentoId: z.union([z.uuid(), z.enum(['web', 'wikipedia'])]).optional(), // E10c y E10c2: "Buscar en"
     explicar: z.object({ mensajeId: z.coerce.number().int().positive(), modo: z.enum(['simple', 'ejemplo', 'pasos', 'corto', 'analogia']) }).optional(), // RB-41
   })
   .refine((d) => d.pregunta !== undefined || d.explicar !== undefined);
@@ -56,9 +56,15 @@ export type DatosProductividad = z.infer<typeof esquemaProductividad>;
 
 export const esquemaWeb = z.object({
   consulta: z.string().trim().min(1).max(WEB_MAX_CARACTERES),
-  categoria: z.string().trim().max(80).optional(),
 });
 export type DatosWeb = z.infer<typeof esquemaWeb>;
+
+// RB-55: la dirección la valida el servicio, para devolver el mensaje exacto.
+export const esquemaGuardarFuente = z.object({
+  url: z.string().trim().min(1).max(2000),
+  resumen: z.string().trim().min(1).max(5000),
+  categoria: z.string().trim().max(80).optional(),
+});
 
 // E05: categorías. El color se valida en src/lib/reglas/categorias.ts para devolver el mensaje exacto (RB-03).
 export const esquemaCategoria = z.object({

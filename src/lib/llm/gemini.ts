@@ -10,7 +10,8 @@ import { ErrorDeNegocio } from '@/lib/reglas/errores';
 
 export interface LLMClient {
   generarEmbedding(texto: string): Promise<number[]>;
-  generarEmbeddings(textos: string[]): Promise<number[][]>;
+  /** `interactivo`: desde una ruta de 60 s; espera la cuota por minuto como una consulta, no como una indexación. */
+  generarEmbeddings(textos: string[], opciones?: { interactivo?: boolean }): Promise<number[][]>;
   responder(d: {
     sistema: string;
     contexto: string;
@@ -139,8 +140,8 @@ export const llm: LLMClient = {
     return vector as number[];
   },
 
-  generarEmbeddings(textos) {
-    return embeber(textos, 'RETRIEVAL_DOCUMENT', ESPERA_MAXIMA_INDEXAR_MS);
+  generarEmbeddings(textos, opciones) {
+    return embeber(textos, 'RETRIEVAL_DOCUMENT', opciones?.interactivo ? ESPERA_MAXIMA_CONSULTAR_MS : ESPERA_MAXIMA_INDEXAR_MS);
   },
 
   async responder({ sistema, contexto, pregunta, historial = [] }) {

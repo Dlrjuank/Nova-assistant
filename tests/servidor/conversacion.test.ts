@@ -6,8 +6,11 @@ const m = vi.hoisted(() => ({
   consultar: vi.fn(),
   consultarBd: vi.fn(),
   txQuery: vi.fn(),
+  fuentesWeb: vi.fn(),
+  wikipedia: vi.fn(),
 }));
 vi.mock('@/lib/datos/consulta', () => ({ consultar: m.consultar }));
+vi.mock('@/lib/datos/consultaWeb', () => ({ responderConFuentesWeb: m.fuentesWeb, responderConWikipedia: m.wikipedia }));
 vi.mock('@/lib/db/conexion', () => ({
   consultar: m.consultarBd,
   conTransaccion: async (trabajo: (tx: { query: typeof m.txQuery }) => Promise<unknown>) => trabajo({ query: m.txQuery }),
@@ -47,8 +50,8 @@ describe('historial del chat (RN-20 y RN-21)', () => {
       conversacionId: CONV,
       guardada: true,
     });
-    expect(m.txQuery.mock.calls[0]?.[1]).toEqual([CONV, USUARIO, 'usuario', '¿Cuánto dura?', '[]', null]);
-    expect(m.txQuery.mock.calls[1]?.[1]).toEqual([CONV, USUARIO, 'asistente', 'Dura 24 meses.', JSON.stringify(fuentes), null]);
+    expect(m.txQuery.mock.calls[0]?.[1]).toEqual([CONV, USUARIO, 'usuario', '¿Cuánto dura?', '[]', null, null]);
+    expect(m.txQuery.mock.calls[1]?.[1]).toEqual([CONV, USUARIO, 'asistente', 'Dura 24 meses.', JSON.stringify(fuentes), null, null]);
     expect(m.txQuery.mock.calls[2]?.[0]).toContain('UPDATE conversaciones SET actualizada_en');
   });
 
@@ -64,7 +67,7 @@ describe('historial del chat (RN-20 y RN-21)', () => {
     await consultarYRegistrar(USUARIO, '¿y el segundo?');
 
     const limite = m.consultarBd.mock.calls.find(([sql]) => String(sql).includes('LIMIT $2'))?.[1];
-    expect(limite).toEqual([CONV, 6]);
+    expect(limite).toEqual([CONV, 6, null]);
     expect(m.consultar).toHaveBeenCalledWith(
       USUARIO,
       '¿y el segundo?',
@@ -123,5 +126,69 @@ describe('historial del chat (RN-20 y RN-21)', () => {
     m.consultarBd.mockResolvedValueOnce([]).mockResolvedValueOnce([{ id: 'nueva' }]);
     await expect(crearConversacion(USUARIO)).resolves.toEqual({ id: 'nueva' });
     expect(m.consultarBd.mock.calls[2]?.[1]).toEqual([USUARIO]);
+  });
+});
+
+// S-64 (RB-61): el historial solo toma mensajes del mismo origen.
+describe('origen de los mensajes (E10c2)', () => {
+  const FUENTE = [{ tipo: 'web', etiqueta: 'A · Wikipedia', url: 'https://es.wikipedia.org/wiki/A' }];
+  const sqlHistorial = () => m.consultarBd.mock.calls.find(([sql]) => String(sql).includes('IS NOT DISTINCT FROM'));
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    m.txQuery.mockResolvedValue({ rows: [] });
+  });
+
+  it('una pregunta sobre documentos pide solo el historial sin origen', async () => {
+    base({ conversacion: CONV });
+    m.consultar.mockResolvedValue({ respuesta: 'Sí.', fuentes: [] });
+    await consultarYRegistrar(USUARIO, '¿Cuánto dura la garantía?');
+    expect(sqlHistorial()?.[1]).toEqual([CONV, 6, null]);
+  });
+
+  it('Wikipedia pide su historial, no consulta documentos y guarda el origen en los dos mensajes', async () => {
+    base({ conversacion: CONV });
+    m.wikipedia.mockResolvedValue({ respuesta: 'Resumen.', fuentes: FUENTE });
+    const r = await consultarYRegistrar(USUARIO, 'qué es la fotosíntesis', undefined, 'wikipedia');
+    expect(r).toMatchObject({ respuesta: 'Resumen.', origen: 'wikipedia' });
+    expect(sqlHistorial()?.[1]).toEqual([CONV, 6, 'wikipedia']);
+    expect(m.consultar).not.toHaveBeenCalled();
+    expect(m.txQuery.mock.calls[0]?.[1]?.[6]).toBe('wikipedia');
+    expect(m.txQuery.mock.calls[1]?.[1]?.[6]).toBe('wikipedia');
+  });
+
+  it('Fuentes web recibe el historial de su origen y el dueño de la sesión', async () => {
+    const previos = [{ id: 1, autor: 'usuario', texto: 'antes', fuentes: [], origen: 'web' }];
+    base({ conversacion: CONV, mensajes: previos });
+    m.fuentesWeb.mockResolvedValue({ respuesta: 'Sí.', fuentes: FUENTE });
+    await consultarYRegistrar(USUARIO, '¿y el segundo?', undefined, 'web');
+    expect(m.fuentesWeb).toHaveBeenCalledWith(USUARIO, '¿y el segundo?', [{ autor: 'usuario', texto: 'antes' }]);
+    expect(m.consultar).not.toHaveBeenCalled();
+  });
+
+  it('un capítulo no sigue si después hubo un mensaje de otro origen (RB-40)', async () => {
+    const parte = { id: 4, autor: 'asistente', texto: 'Parte 1', fuentes: [], contexto: { fragmentos: ['f'], continuacion: { documentoId: 'd', orden: 1, desde: 60 } } };
+    m.consultarBd.mockImplementation(async (sql: string) => {
+      if (sql.includes('max(id)')) return [{ id: 9 }];
+      if (sql.includes('LIMIT $2')) return [parte];
+      if (sql.includes('FROM conversaciones')) return [{ id: CONV }];
+      throw new Error(`SQL inesperado: ${sql}`);
+    });
+    m.consultar.mockResolvedValue({ respuesta: 'Sí.', fuentes: [] });
+    await consultarYRegistrar(USUARIO, 'sigue con el resto');
+    expect(m.consultar.mock.calls[0]?.[3]?.continuacion).toBeUndefined();
+  });
+
+  it('un capítulo sigue si su parte es lo último', async () => {
+    const continuacion = { documentoId: 'd', orden: 1, desde: 60 };
+    m.consultarBd.mockImplementation(async (sql: string) => {
+      if (sql.includes('max(id)')) return [{ id: '4' }];
+      if (sql.includes('LIMIT $2')) return [{ id: 4, autor: 'asistente', texto: 'Parte 1', fuentes: [], contexto: { fragmentos: ['f'], continuacion } }];
+      if (sql.includes('FROM conversaciones')) return [{ id: CONV }];
+      throw new Error(`SQL inesperado: ${sql}`);
+    });
+    m.consultar.mockResolvedValue({ respuesta: 'Sí.', fuentes: [] });
+    await consultarYRegistrar(USUARIO, 'sigue con el resto');
+    expect(m.consultar.mock.calls[0]?.[3]?.continuacion).toEqual(continuacion);
   });
 });

@@ -262,7 +262,7 @@ describe('Explicar de otra manera (RB-41)', () => {
     expect(llamada.contexto).toContain('[l.pdf · p. 2]\ntexto 2');
     expect(llamada.pregunta).toContain('palabras más simples');
     expect(llamada.historial).toEqual([{ autor: 'usuario', texto: 'La pregunta original' }, { autor: 'asistente', texto: 'La respuesta' }]);
-    expect(m.txQuery.mock.calls[0]?.[1]).toEqual([CONV, U, 'usuario', 'Explícalo: Más simple', '[]', null]);
+    expect(m.txQuery.mock.calls[0]?.[1]).toEqual([CONV, U, 'usuario', 'Explícalo: Más simple', '[]', null, null]);
     const guardado = m.txQuery.mock.calls[1]?.[1] as unknown[];
     expect(JSON.parse(guardado[4] as string)).toEqual(FUENTES);
     expect(JSON.parse(guardado[5] as string)).toEqual({ fragmentos: ['f2'] }); // sin continuación

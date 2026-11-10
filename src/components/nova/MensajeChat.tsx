@@ -1,3 +1,4 @@
+import { GuardarFuente } from '@/components/nova/GuardarFuente';
 import { ListaFuentes } from '@/components/nova/ListaFuentes';
 import { Boton } from '@/components/ui/Boton';
 import type { Fuente } from '@/lib/dataService';
@@ -12,6 +13,7 @@ export function MensajeChat({
   fuentes = [],
   alExplicar,
   ocupado = false,
+  guardable = false,
 }: {
   autor: AutorMensaje;
   texto: string;
@@ -19,6 +21,8 @@ export function MensajeChat({
   /** RB-41: solo en las respuestas que citan documentos. */
   alExplicar?: ((modo: ModoExplicar, texto: string) => void) | undefined;
   ocupado?: boolean;
+  /** RB-55: solo en las respuestas de Wikipedia con artículos. */
+  guardable?: boolean;
 }) {
   const esUsuario = autor === 'usuario';
   return (
@@ -29,6 +33,7 @@ export function MensajeChat({
       >
         <p className="whitespace-pre-wrap break-words text-texto">{texto}</p>
         <ListaFuentes fuentes={fuentes} />
+        {guardable && fuentes[0]?.url && <GuardarFuente url={fuentes[0].url} resumen={texto} />}
         {alExplicar && (
           <div role="group" aria-label="Explicar de otra manera" className="mt-3 flex flex-wrap gap-1.5">
             {MODOS_EXPLICAR.map((m) => (

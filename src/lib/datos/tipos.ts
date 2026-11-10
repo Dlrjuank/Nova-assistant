@@ -1,3 +1,4 @@
+import type { OrigenMensaje } from '@/lib/reglas/fuentesWeb';
 import type { NivelProductividad } from '@/lib/reglas/productividad';
 
 export type EstadoTarea = 'Pendiente' | 'En Progreso' | 'Completada';
@@ -73,8 +74,10 @@ export interface Fragmento {
 }
 
 export interface Fuente {
-  tipo: 'pdf' | 'tarea';
+  tipo: 'pdf' | 'tarea' | 'web';
   etiqueta: string;
+  /** Solo en las fuentes web (RB-56): el enlace al artículo. */
+  url?: string;
 }
 
 /** RB-40: dónde sigue un capítulo que se responde por partes. */
@@ -106,6 +109,8 @@ export interface RespuestaConHistorial extends Omit<RespuestaAsistente, 'context
   /** E10c: para "Explicar de otra manera" (RB-41). */
   mensajeId?: number;
   explicable?: boolean;
+  /** E10c2 (M21): sin origen, documentos y tareas. */
+  origen?: OrigenMensaje;
 }
 
 export interface MensajeGuardado {
@@ -115,6 +120,8 @@ export interface MensajeGuardado {
   fuentes: Fuente[];
   /** E10c: si la respuesta citó documentos y se puede explicar de otra manera (RB-41). */
   explicable?: boolean;
+  /** E10c2 (M21): null en los mensajes de documentos y tareas. */
+  origen?: OrigenMensaje | null;
 }
 
 export interface ConversacionActual {
@@ -150,10 +157,13 @@ export interface FuenteWeb {
 
 export interface ResultadoWeb {
   resumen: string;
-  url: string; // la del primer resultado: es la que se guarda
-  guardada: boolean; // false si Wikipedia no encontró artículos
-  categoria: string;
+  url: string; // la del primer resultado: es la que se puede guardar; vacía si Wikipedia no encontró artículos
   articulos: ArticuloWeb[]; // los resultados que se usaron para el resumen
+}
+
+/** E10c2 (RB-55): el resultado de "Guardar fuente". */
+export interface FuenteGuardada {
+  categoria: string;
   fuentesEnCategoria: number; // contando la recién guardada (RN-05: máximo 20)
 }
 

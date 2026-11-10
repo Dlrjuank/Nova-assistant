@@ -725,3 +725,20 @@ Total de fallas: 0
 - **Sincronización sin conexión y búsqueda con Google:** solo anotadas (2.2).
 - **Requisito antes de E10c2:** `probar:rag` con 0 fallas en la rama y con el código de `master`.
 
+### E10c2 Ampliación: Wikipedia y fuentes guardadas en "Buscar en"
+
+- **Ahorro de embeddings en las pruebas** (`scripts/cache-embeddings.ts`): solo se reutiliza un vector si coinciden el texto, el modelo y la dimensión, y también el tipo (consulta o documento), porque Gemini da vectores distintos para cada uno. Se guarda en `.cache-pruebas/`, fuera de git, con el hash del texto. Solo lo usan `probar:rag` y `probar:libro`.
+- **Respaldo previo:** `respaldos/2026-11-10_160926`. Antes, `db:respaldar` y `db:restaurar` ya incluían `nova_config`, `categorias` y `capitulos` (commit `da83ed4`).
+- **Migraciones:** M18 (`fuentes_web.vector`, `buscar_fuentes_web_usuario`) y M21 (`mensajes_chat.origen`). No crean tablas: la lista de respaldo no cambia.
+- **Wikipedia (RB-58):** se busca desde "Buscar en" del Asistente y no guarda nada. `POST /api/nova/web` se conserva, solo para buscar.
+- **"Guardar fuente" (RB-55):** en la categoría elegida, solo enlaces de `es.wikipedia.org`, sin repetir y con el tope de 20 al guardar, con bloqueo por usuario y categoría. Si Gemini falla, se guarda sin vector y se vectoriza al consultar.
+- **"Fuentes web" (RB-56):** responde solo con las guardadas y las cita con su enlace.
+- **Cambio de texto en RB-56:** decía "Búscalas y guárdalas en Fuentes", pero la búsqueda pasó al Asistente. Ahora dice: `Aún no tienes fuentes web guardadas. Elige "Wikipedia" en "Buscar en" y guarda las que te sirvan.`
+- **Sin mezclas (RB-61):** el historial del modelo solo toma mensajes del mismo origen. Un capítulo por partes solo sigue si su parte es lo último de la conversación.
+- **Interfaz:** selector "Buscar en" siempre visible, aviso a quién se envía la consulta al elegir Wikipedia, enlaces en "Fuentes" y Fuentes con Subir PDF y Fuentes guardadas. Se quitó `BuscadorWeb`.
+- **`db:verificar`** 0 fallas, con la sección 6g nueva.
+- **Compatibilidad con `master`** (worktree de `d175142`, borrado al terminar): `db:verificar` y `probar:rag` con 0 fallas.
+- **`probar:rag`** con Gemini real, una sola vez en la etapa: 0 fallas, con los pasos 15a a 15h de esta etapa. Embeddings: 4 reutilizados y 11 pedidos.
+- **Navegador real** (Edge, base real, usuario temporal borrado, respuestas del Asistente simuladas para no gastar cuota; 51 de 51): selector, enlace y "Guardar fuente" al recargar, aviso de Wikipedia, confirmación al guardar, Fuentes guardadas, dirección antigua, claro y oscuro a 1280 y 390 px.
+- **`scripts/verificar-bd.mjs`:** su lista `TABLAS` no incluye `nova_config`, `categorias` ni `capitulos`, pero sus secciones 6b, 6c y 6e comprueban que existan y su RLS. Solo les falta el conteo de filas.
+- **Al cierre:** `npm test` 605/605, `npm run build` correcto, `eslint` sin errores.

@@ -299,6 +299,34 @@ try {
   marcar(colContexto.rowCount === 1, 'columna mensajes_chat.contexto');
   const colInicios = await c.query("SELECT 1 FROM information_schema.columns WHERE table_name = 'documentos' AND column_name = 'inicio_paginas'");
   marcar(colInicios.rowCount === 1, 'columna documentos.inicio_paginas (M20)');
+  console.log('== 6g. Fuentes web en el Asistente y origen de los mensajes (M18, M21)');
+  const colVectorWeb = await c.query("SELECT 1 FROM information_schema.columns WHERE table_name = 'fuentes_web' AND column_name = 'vector'");
+  marcar(colVectorWeb.rowCount === 1, 'columna fuentes_web.vector');
+  const fnWeb = await c.query("SELECT 1 FROM pg_proc WHERE proname = 'buscar_fuentes_web_usuario'");
+  marcar(fnWeb.rowCount === 1, 'función buscar_fuentes_web_usuario');
+  const colOrigen = await c.query("SELECT 1 FROM information_schema.columns WHERE table_name = 'mensajes_chat' AND column_name = 'origen'");
+  marcar(colOrigen.rowCount === 1, 'columna mensajes_chat.origen');
+  if (colVectorWeb.rowCount === 1 && fnWeb.rowCount === 1 && colOrigen.rowCount === 1 && dueno) {
+    try {
+      const insFuente = "INSERT INTO fuentes_web (categoria, url, extracto, fecha_guardado, usuario_id, vector) VALUES ('Verificación', $1, 'e', $2, $3, $4::vector) RETURNING id";
+      const cercana = (await c.query(insFuente, ['https://es.wikipedia.org/wiki/A', hoy, dueno, vec(7)])).rows[0].id;
+      await c.query(insFuente, ['https://es.wikipedia.org/wiki/B', hoy, dueno, vec(8)]);
+      await c.query("INSERT INTO fuentes_web (categoria, url, extracto, fecha_guardado, usuario_id) VALUES ('Verificación', 'https://es.wikipedia.org/wiki/C', 'e', $1, $2)", [hoy, dueno]);
+      const halladas = await c.query('SELECT id, url FROM buscar_fuentes_web_usuario($1::vector, 500, $2::uuid)', [vec(7), dueno]);
+      marcar(halladas.rows[0]?.id === cercana, 'ac) la fuente más cercana va primero');
+      marcar(!halladas.rows.some((f) => f.url.endsWith('/C')), 'ad) una fuente sin vector no entra en la búsqueda');
+      const ajenas = await c.query('SELECT id FROM buscar_fuentes_web_usuario($1::vector, 500, $2::uuid)', [vec(7), '00000000-0000-4000-8000-000000000000']);
+      marcar(ajenas.rowCount === 0, 'ae) otro usuario no ve esas fuentes');
+      const convOrigen = (await c.query('INSERT INTO conversaciones (usuario_id) VALUES ($1) RETURNING id', [dueno])).rows[0].id;
+      const insOrigen = "INSERT INTO mensajes_chat (conversacion_id, usuario_id, autor, texto, origen) VALUES ($1, $2, 'usuario', 'x', $3)";
+      await c.query(insOrigen, [convOrigen, dueno, 'wikipedia']);
+      await c.query(insOrigen, [convOrigen, dueno, null]);
+      marcar(true, 'af) origen válido y sin origen se aceptan');
+      await esperaFalla('ag) origen fuera de la lista', '23514', insOrigen, [convOrigen, dueno, 'otro']);
+    } catch (e) {
+      marcar(false, `ac-ag) fuentes web: ${e.message}`);
+    }
+  }
   await c.query('ROLLBACK');
 
   console.log(`== 7. Total de fallas: ${fallas}`);
