@@ -795,3 +795,8 @@ Total de fallas: 0
 
 - **Prueba del usuario en la vista previa (PC y teléfono):** las 8 pruebas de E10c3 salieron bien.
 - **Cambio:** "Preguntarle a la IA" aparece también bajo `No encontré esto en tus fuentes web guardadas. Prueba con "Wikipedia" en "Buscar en".`, solo con origen `web`. Sigue sin salir bajo Wikipedia, la IA, "Explícalo" ni las respuestas con citas. RB-60 y S-67 se actualizaron en el plan.
+
+#### E10c3 terminada (2026-11-12)
+
+- **Prueba del usuario en la vista previa, sin fallas:** las 8 pruebas de E10c3 en PC y teléfono, y las 5 del botón bajo Fuentes web (el botón y la misma pregunta a la IA, sin botón bajo respuestas con enlace ni bajo Wikipedia, y el de documentos como antes).
+- Queda cerrada E10c3. Sigue E10d.
