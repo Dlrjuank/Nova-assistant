@@ -262,6 +262,13 @@ describe('llm.responder', () => {
     });
   });
 
+  it('E10c3: sin contexto, el turno nuevo es solo la pregunta', async () => {
+    const { llm } = await import('@/lib/llm/gemini');
+    generateContent.mockResolvedValueOnce({ text: 'ok' });
+    await llm.responder({ ...DATOS, contexto: '' });
+    expect(generateContent.mock.calls[0]?.[0].contents.at(-1).parts[0].text).toBe(DATOS.pregunta);
+  });
+
   it('un error no temporal no reintenta y sale como ERROR_LLM', async () => {
     const { llm } = await import('@/lib/llm/gemini');
     generateContent.mockRejectedValue(error(404));

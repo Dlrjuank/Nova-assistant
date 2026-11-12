@@ -312,13 +312,13 @@ describe('E10c: Buscar en y Explicar de otra manera', () => {
 
   it('sin documentos también hay selector; con documentos, por defecto busca en todos', async () => {
     const { unmount } = render(<Chat />);
-    expect([...(screen.getByLabelText('Buscar en') as HTMLSelectElement).options].map((o) => o.textContent)).toEqual(['Todos los documentos', 'Fuentes web', 'Wikipedia']);
+    expect([...(screen.getByLabelText('Buscar en') as HTMLSelectElement).options].map((o) => o.textContent)).toEqual(['Todos los documentos', 'Fuentes web', 'Wikipedia', 'IA (conocimiento general)']);
     unmount();
     const f = vi.fn().mockResolvedValue(ok({ respuesta: 'Hola', fuentes: [], conversacionId: 'c', guardada: true }));
     vi.stubGlobal('fetch', f);
     render(<Chat documentos={DOCS} />);
     const selector = screen.getByLabelText('Buscar en') as HTMLSelectElement;
-    expect([...selector.options].map((o) => o.textContent)).toEqual(['Todos los documentos', 'libro.pdf', 'Fuentes web', 'Wikipedia']);
+    expect([...selector.options].map((o) => o.textContent)).toEqual(['Todos los documentos', 'libro.pdf', 'Fuentes web', 'Wikipedia', 'IA (conocimiento general)']);
     escribir('¿Qué dice el libro?');
     fireEvent.click(boton());
     await screen.findByText('Hola');
@@ -458,5 +458,79 @@ describe('E10c2: Wikipedia y fuentes guardadas', () => {
     render(<ListaFuentes fuentes={[{ tipo: 'web', etiqueta: 'Otra · Wikipedia', url: 'javascript:alert(1)' }]} />);
     expect(screen.queryByRole('link')).toBeNull();
     expect(screen.getByText('Otra · Wikipedia')).toBeTruthy();
+  });
+});
+
+describe('E10c3: IA general', () => {
+  const MARCA = 'Respuesta general de la IA, sin fuentes. Compruébala si es importante.';
+  const NO_ENCONTRE = 'No encontré esto en tus documentos';
+  const ok = (datos: unknown) => responder({ ok: true, datos });
+  const IA = { respuesta: 'Un número primo solo se divide entre 1 y sí mismo.', fuentes: [], conversacionId: 'c', guardada: true, origen: 'ia' };
+  const historialNoEncontre = [
+    { id: 1, autor: 'usuario' as const, texto: 'qué es un número primo', fuentes: [] },
+    { id: 2, autor: 'asistente' as const, texto: NO_ENCONTRE, fuentes: [] },
+  ];
+
+  it('con "IA (conocimiento general)" envía "ia" y la respuesta lleva la marca, sin fuentes ni explicar', async () => {
+    const f = vi.fn().mockResolvedValue(ok(IA));
+    vi.stubGlobal('fetch', f);
+    render(<Chat />);
+    fireEvent.change(screen.getByLabelText('Buscar en'), { target: { value: 'ia' } });
+    expect(screen.getByText(/sin tus documentos, tareas ni fuentes/)).toBeTruthy();
+    escribir('qué es un número primo');
+    fireEvent.click(boton());
+    await screen.findByText(IA.respuesta);
+    expect(JSON.parse(f.mock.calls[0]?.[1].body)).toEqual({ pregunta: 'qué es un número primo', documentoId: 'ia' });
+    expect(screen.getByText(MARCA)).toBeTruthy();
+    expect(screen.queryByText('Fuentes')).toBeNull();
+    expect(screen.queryByRole('group', { name: 'Explicar de otra manera' })).toBeNull();
+  });
+
+  it('al recargar, la respuesta de la IA conserva la marca; las demás no la llevan', () => {
+    render(
+      <Chat
+        historial={[
+          { id: 1, autor: 'usuario', texto: 'qué es un número primo', fuentes: [] },
+          { id: 2, autor: 'asistente', texto: IA.respuesta, fuentes: [], origen: 'ia' },
+          { id: 3, autor: 'usuario', texto: 'qué dice mi manual', fuentes: [] },
+          { id: 4, autor: 'asistente', texto: 'Dura 24 meses.', fuentes: [{ tipo: 'pdf', etiqueta: 'manual.pdf · p. 3' }] },
+        ]}
+      />,
+    );
+    expect(screen.getAllByText(MARCA)).toHaveLength(1);
+  });
+
+  it('RB-60: "Preguntarle a la IA" solo bajo el "No encontré"; envía la misma pregunta y deja la anterior', async () => {
+    const f = vi.fn().mockResolvedValue(ok(IA));
+    vi.stubGlobal('fetch', f);
+    render(<Chat historial={[...historialNoEncontre, { id: 3, autor: 'usuario', texto: 'qué dice mi manual', fuentes: [] }, { id: 4, autor: 'asistente', texto: 'Dura 24 meses [manual.pdf · p. 3].', fuentes: [] }]} />);
+    expect(screen.getAllByRole('button', { name: 'Preguntarle a la IA' })).toHaveLength(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Preguntarle a la IA' }));
+    await screen.findByText(IA.respuesta);
+    expect(JSON.parse(f.mock.calls[0]?.[1].body)).toEqual({ pregunta: 'qué es un número primo', documentoId: 'ia' });
+    expect(screen.getByText(NO_ENCONTRE)).toBeTruthy();
+    expect(screen.getByText(MARCA)).toBeTruthy();
+    expect((screen.getByLabelText('Buscar en') as HTMLSelectElement).value).toBe('');
+  });
+
+  it('ya preguntado a la IA, el botón no vuelve a salir al recargar', () => {
+    render(
+      <Chat
+        historial={[
+          ...historialNoEncontre,
+          { id: 3, autor: 'usuario', texto: 'qué es un número primo', fuentes: [], origen: 'ia' },
+          { id: 4, autor: 'asistente', texto: IA.respuesta, fuentes: [], origen: 'ia' },
+        ]}
+      />,
+    );
+    expect(screen.queryByRole('button', { name: 'Preguntarle a la IA' })).toBeNull();
+  });
+
+  it('si la IA falla, el botón vuelve para reintentar', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('An error occurred', { status: 504 })));
+    render(<Chat historial={historialNoEncontre} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Preguntarle a la IA' }));
+    await screen.findByText('Quedó sin respuesta y no se guardó: «qué es un número primo»');
+    expect(screen.getByRole('button', { name: 'Preguntarle a la IA' })).toBeTruthy();
   });
 });

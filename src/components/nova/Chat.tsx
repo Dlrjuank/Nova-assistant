@@ -13,7 +13,8 @@ import type { Fuente, MensajeGuardado, RespuestaConHistorial } from '@/lib/dataS
 import { AVISO_BUSQUEDA_CORTA, esConsultaValida as esValida, normalizarConsulta } from '@/lib/reglas/consulta';
 import { MENSAJES } from '@/lib/reglas/errores';
 import { CONSULTA_MAX_CARACTERES } from '@/lib/config/nova';
-import { BUSCAR_EN_WEB, BUSCAR_EN_WIKIPEDIA, type OrigenMensaje } from '@/lib/reglas/fuentesWeb';
+import { BUSCAR_EN_IA, BUSCAR_EN_WEB, BUSCAR_EN_WIKIPEDIA, type OrigenMensaje } from '@/lib/reglas/fuentesWeb';
+import { ofrecePreguntarIa } from '@/lib/reglas/iaGeneral';
 import type { ModoExplicar } from '@/lib/reglas/preguntasLibro';
 import { useSeguirConversacion } from './seguirConversacion';
 
@@ -127,7 +128,7 @@ export function Chat({
   useEffect(() => {
     if (preguntaInicial) return recordarBuscarEn('');
     const guardado = leerBuscarEn();
-    if ([BUSCAR_EN_WEB, BUSCAR_EN_WIKIPEDIA, ...documentos.map((d) => d.id)].includes(guardado)) setBuscarEn(guardado);
+    if ([BUSCAR_EN_WEB, BUSCAR_EN_WIKIPEDIA, BUSCAR_EN_IA, ...documentos.map((d) => d.id)].includes(guardado)) setBuscarEn(guardado);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar
   }, []);
 
@@ -154,6 +155,20 @@ export function Chat({
 
   function preguntar(pregunta: string) {
     return consultar({ pregunta, ...(buscarEn ? { documentoId: buscarEn } : {}) }, pregunta);
+  }
+
+  /** RB-60: la misma pregunta, ahora a la IA general; la respuesta anterior queda intacta. */
+  function preguntarIa(pregunta: string) {
+    if (pensando) return;
+    void consultar({ pregunta, documentoId: BUSCAR_EN_IA }, pregunta);
+  }
+
+  /** RB-60: la pregunta que recibió el "No encontré", si aún no se le preguntó a la IA justo después. */
+  function preguntaParaIa(i: number): string | null {
+    const m = mensajes[i];
+    const anterior = mensajes[i - 1];
+    if (!m || !ofrecePreguntarIa(m) || anterior?.autor !== 'usuario' || anterior.texto.startsWith('Explícalo: ')) return null;
+    return mensajes[i + 1]?.texto === anterior.texto ? null : anterior.texto;
   }
 
   /** RB-41: vuelve a explicar una respuesta con sus mismos fragmentos. */
@@ -272,17 +287,22 @@ export function Chat({
       )}
 
       <ul ref={lista} role="log" aria-label="Conversación con el asistente" className="flex flex-col gap-4">
-        {mensajes.map((m) => (
-          <MensajeChat
-            key={m.id}
-            autor={m.autor}
-            texto={m.texto}
-            {...(m.fuentes ? { fuentes: m.fuentes } : {})}
-            {...(m.explicableId ? { alExplicar: (modo: ModoExplicar, nombre: string) => explicar(m.explicableId as number, modo, nombre) } : {})}
-            ocupado={pensando}
-            guardable={m.autor === 'asistente' && m.origen === BUSCAR_EN_WIKIPEDIA}
-          />
-        ))}
+        {mensajes.map((m, i) => {
+          const paraIa = preguntaParaIa(i);
+          return (
+            <MensajeChat
+              key={m.id}
+              autor={m.autor}
+              texto={m.texto}
+              {...(m.fuentes ? { fuentes: m.fuentes } : {})}
+              {...(m.explicableId ? { alExplicar: (modo: ModoExplicar, nombre: string) => explicar(m.explicableId as number, modo, nombre) } : {})}
+              ocupado={pensando}
+              guardable={m.autor === 'asistente' && m.origen === BUSCAR_EN_WIKIPEDIA}
+              deIa={m.autor === 'asistente' && m.origen === BUSCAR_EN_IA}
+              {...(paraIa ? { alPreguntarIa: () => preguntarIa(paraIa) } : {})}
+            />
+          );
+        })}
       </ul>
 
       {pensando && (
@@ -340,8 +360,12 @@ export function Chat({
             ...documentos.map((d) => ({ valor: d.id, texto: d.nombre })),
             { valor: BUSCAR_EN_WEB, texto: 'Fuentes web' },
             { valor: BUSCAR_EN_WIKIPEDIA, texto: 'Wikipedia' },
+            { valor: BUSCAR_EN_IA, texto: 'IA (conocimiento general)' },
           ]}
         />
+        {buscarEn === BUSCAR_EN_IA && (
+          <p className="text-xs text-texto-suave">Responde la IA con su conocimiento general, sin tus documentos, tareas ni fuentes. Puede equivocarse.</p>
+        )}
         {buscarEn === BUSCAR_EN_WIKIPEDIA && (
           <p className="text-xs text-texto-suave">Busca en Wikipedia en español. La consulta se envía a Wikipedia y, con los extractos, al proveedor del asistente.</p>
         )}

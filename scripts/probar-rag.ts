@@ -19,6 +19,7 @@ import { SIN_DOCUMENTOS_RESPUESTA, SIN_RESPUESTA, SIN_TAREAS_PENDIENTES } from '
 import { hoyBogota, sumarDias } from '@/lib/reglas/fechas';
 import { llm } from '@/lib/llm/gemini';
 import { consultarYRegistrar } from '@/lib/datos/conversacion';
+import { BUSCAR_EN_IA } from '@/lib/reglas/fuentesWeb';
 import { responderConFuentesWeb, responderConWikipedia } from '@/lib/datos/consultaWeb';
 import { eliminarFuenteWeb, guardarFuenteWeb, listarFuentesWeb } from '@/lib/datos/wikipedia';
 import { SIN_FUENTES_WEB, SIN_RESPUESTA_FUENTES_WEB } from '@/lib/llm/prompts';
@@ -392,6 +393,15 @@ async function main(): Promise<void> {
       enWikipedia.fuentes.map((f) => f.etiqueta).join(', '),
     );
     for (const f of await listarFuentesWeb(OTRO)) await eliminarFuenteWeb(OTRO, f.id);
+
+    // E10c3 (RB-59): la IA general responde sin fuentes y queda con su origen.
+    const general = await consultarYRegistrar(OTRO, '¿Qué es un número primo?', undefined, BUSCAR_EN_IA);
+    const origenIa = await sql.query<{ origen: string }>('SELECT origen FROM mensajes_chat WHERE conversacion_id = $1 ORDER BY id DESC LIMIT 2', [general.conversacionId]);
+    marcar(
+      /divi/i.test(general.respuesta) && general.fuentes.length === 0 && origenIa.rows.every((m) => m.origen === 'ia'),
+      'Paso 16: la IA general responde sin fuentes y con origen "ia"',
+      general.respuesta.slice(0, 120),
+    );
 
     const ausente = await consultar(DUENO, '¿Cuál es la capital de Mongolia?');
     marcar(

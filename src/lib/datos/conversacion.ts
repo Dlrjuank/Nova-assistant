@@ -7,9 +7,10 @@ import { normalizarConsulta } from '@/lib/reglas/consulta';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
 import { lineaHoy } from '@/lib/reglas/fechas';
 import { soloTextoDePagina } from '@/lib/reglas/libros';
-import { BUSCAR_EN_WIKIPEDIA, origenDeBuscarEn, type OrigenMensaje } from '@/lib/reglas/fuentesWeb';
+import { BUSCAR_EN_IA, BUSCAR_EN_WIKIPEDIA, origenDeBuscarEn, type OrigenMensaje } from '@/lib/reglas/fuentesWeb';
 import { MODOS_EXPLICAR, type ModoExplicar } from '@/lib/reglas/preguntasLibro';
 import { consultar } from './consulta';
+import { responderConIa } from './consultaIa';
 import { responderConFuentesWeb, responderConWikipedia } from './consultaWeb';
 import { fragmentosPorIds } from './fragmentos';
 import type { Continuacion, ContextoMensaje, ConversacionActual, Fuente, MensajeGuardado, RespuestaConHistorial } from './tipos';
@@ -112,11 +113,16 @@ export async function consultarYRegistrar(
   documentoId?: string | undefined,
 ): Promise<RespuestaConHistorial> {
   const id = await resolverConversacion(usuarioId, conversacionId);
-  const origen = origenDeBuscarEn(documentoId); // E10c2: "Fuentes web" y "Wikipedia"
+  const origen = origenDeBuscarEn(documentoId); // E10c2 y E10c3: "Fuentes web", "Wikipedia" e IA general
   const previos = await mensajesDelOrigen(id, CONVERSACION_MENSAJES_CONTEXTO, origen);
   const historial: TurnoConversacion[] = previos.map((m) => ({ autor: m.autor, texto: m.texto }));
   if (origen) {
-    const resultado = origen === BUSCAR_EN_WIKIPEDIA ? await responderConWikipedia(pregunta) : await responderConFuentesWeb(usuarioId, pregunta, historial);
+    const resultado =
+      origen === BUSCAR_EN_WIKIPEDIA
+        ? await responderConWikipedia(pregunta)
+        : origen === BUSCAR_EN_IA
+          ? await responderConIa(pregunta, historial)
+          : await responderConFuentesWeb(usuarioId, pregunta, historial);
     return guardarTurno(usuarioId, id, normalizarConsulta(pregunta), resultado, origen);
   }
   const continuacion = await continuacionVigente(id, previos.at(-1));

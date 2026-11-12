@@ -24,7 +24,7 @@ export const esquemaConsulta = z
   .object({
     pregunta: z.string().trim().min(1).max(CONSULTA_MAX_CARACTERES).optional(),
     conversacionId: z.uuid().optional(), // sin id, la conversación más reciente del usuario (RN-20)
-    documentoId: z.union([z.uuid(), z.enum(['web', 'wikipedia'])]).optional(), // E10c y E10c2: "Buscar en"
+    documentoId: z.union([z.uuid(), z.enum(['web', 'wikipedia', 'ia'])]).optional(), // E10c, E10c2 y E10c3: "Buscar en"
     explicar: z.object({ mensajeId: z.coerce.number().int().positive(), modo: z.enum(['simple', 'ejemplo', 'pasos', 'corto', 'analogia']) }).optional(), // RB-41
   })
   .refine((d) => d.pregunta !== undefined || d.explicar !== undefined);

@@ -175,7 +175,8 @@ export const llm: LLMClient = {
     // RN-21: los mensajes previos van como turnos; el contexto recuperado acompaña solo a la pregunta nueva.
     const contents = [
       ...historial.map((m) => ({ role: m.autor === 'usuario' ? 'user' : 'model', parts: [{ text: m.texto }] })),
-      { role: 'user', parts: [{ text: `CONTEXTO:\n${contexto || '(sin contexto)'}\n\nPREGUNTA:\n${pregunta}` }] },
+      // E10c3: la IA general no lleva contexto, así que va solo la pregunta.
+      { role: 'user', parts: [{ text: contexto ? `CONTEXTO:\n${contexto}\n\nPREGUNTA:\n${pregunta}` : pregunta }] },
     ];
     const largo = contexto.length >= CONTEXTO_LARGO_CARACTERES;
     const limite = Date.now() + (largo ? TIEMPO_RESPONDER_LARGO_MS : TIEMPO_RESPONDER_MS);

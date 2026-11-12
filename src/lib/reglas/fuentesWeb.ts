@@ -13,10 +13,12 @@ export function tituloDeArticulo(url: string): string {
 /** E10c2: valores especiales de "Buscar en" y de `mensajes_chat.origen` (M21). Sin origen = documentos y tareas. */
 export const BUSCAR_EN_WEB = 'web';
 export const BUSCAR_EN_WIKIPEDIA = 'wikipedia';
-export type OrigenMensaje = typeof BUSCAR_EN_WEB | typeof BUSCAR_EN_WIKIPEDIA;
+export const BUSCAR_EN_IA = 'ia'; // E10c3 (RB-59)
+export type OrigenMensaje = typeof BUSCAR_EN_WEB | typeof BUSCAR_EN_WIKIPEDIA | typeof BUSCAR_EN_IA;
+export const ORIGENES: readonly OrigenMensaje[] = [BUSCAR_EN_WEB, BUSCAR_EN_WIKIPEDIA, BUSCAR_EN_IA];
 
 export function origenDeBuscarEn(documentoId: string | undefined): OrigenMensaje | null {
-  return documentoId === BUSCAR_EN_WEB || documentoId === BUSCAR_EN_WIKIPEDIA ? documentoId : null;
+  return ORIGENES.find((o) => o === documentoId) ?? null;
 }
 
 const INICIO_DE_PREGUNTA = /^¿?\s*(?:qu[eé]|qui[eé]n(?:es)?|cu[aá]ndo|d[oó]nde|c[oó]mo|cu[aá]l(?:es)?|cu[aá]nt[oa]s?)\s+(?:(?:es|son|fue|fueron|era|eran|se|hay|significa)\s+)?/i;

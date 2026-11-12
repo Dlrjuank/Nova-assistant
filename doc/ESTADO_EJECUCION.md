@@ -778,3 +778,15 @@ Total de fallas: 0
 
 - **Prueba del usuario en la vista previa (PC e iPhone), sin fallas:** Fuentes web con una fuente guardada y su enlace; mensaje de Fuentes web sin resultado; "No encontré esto en tus documentos" en los demás casos; varias preguntas seguidas; "Buscar en" se conserva al cambiar de pestaña y "cuando es navidad" con Wikipedia; el botón Atrás muestra lo mismo que F5; capítulo largo en PC y en iPhone.
 - Queda cerrada E10c2. Sigue E10c3, que empieza solo cuando el usuario lo indique.
+
+### E10c3 Ampliación: IA general en "Buscar en"
+
+- **Sin migración:** M21 ya admite `origen = 'ia'`. No hay tablas nuevas, así que la lista de respaldo no cambia y no hizo falta `db:respaldar`.
+- **RB-59:** "IA (conocimiento general)" en "Buscar en" (`documentoId: "ia"`). `responderConIa` (`src/lib/datos/consultaIa.ts`) usa solo `llm.responder` con `SYSTEM_PROMPT_IA` y sin contexto: sin embeddings, documentos, tareas ni fuentes. Sin contexto, `gemini.ts` envía solo la pregunta. Nunca es respaldo automático.
+- **Marca:** `MensajeChat` muestra `Respuesta general de la IA, sin fuentes. Compruébala si es importante.` en toda respuesta con origen `ia`, también al recargar, sin "Fuentes" ni "Explicar de otra manera". Al elegir la IA, un aviso: `Responde la IA con su conocimiento general, sin tus documentos, tareas ni fuentes. Puede equivocarse.`
+- **RB-60:** "Preguntarle a la IA" solo bajo "No encontré esto en tus documentos" o "No encontré esto en «documento»…" (`ofrecePreguntarIa` en `src/lib/reglas/iaGeneral.ts`), no bajo Fuentes web, Wikipedia ni "Explícalo". Envía la misma pregunta con origen `ia`, deja intacta la respuesta anterior y desaparece cuando la pregunta ya se le hizo a la IA. Si la IA falla, vuelve.
+- **RB-61:** la IA recibe solo el historial con origen `ia`.
+- **Pruebas:** S-65 (`tests/servidor/consultaIa.test.ts`, `conversacion.test.ts`), S-66 (marca en `Chat.test.tsx`), S-67 (`tests/reglas/iaGeneral.test.ts`). `probar:rag` suma el paso 16; no se repitió la prueba completa.
+- **Gemini real, una consulta con usuario temporal (borrado):** respondió sin fuentes ni embeddings y guardó los dos mensajes con origen `ia`. Tardó 32 s: el principal no contestó (504) y respondió el respaldo.
+- **Edge** (base real, usuario temporal borrado, respuesta de la IA simulada; 18 de 18): opción en "Buscar en", botón bajo el "No encontré", la misma pregunta con `ia`, la marca al recargar, sin fuentes ni explicar, aviso al elegir la IA, claro y oscuro a 1280 y 390 px.
+- **Al cierre:** `npm test` 655/655, `npm run build` correcto, `eslint` sin errores.

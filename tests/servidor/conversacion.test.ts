@@ -8,7 +8,9 @@ const m = vi.hoisted(() => ({
   txQuery: vi.fn(),
   fuentesWeb: vi.fn(),
   wikipedia: vi.fn(),
+  ia: vi.fn(),
 }));
+vi.mock('@/lib/datos/consultaIa', () => ({ responderConIa: m.ia }));
 vi.mock('@/lib/datos/consulta', () => ({ consultar: m.consultar }));
 vi.mock('@/lib/datos/consultaWeb', () => ({ responderConFuentesWeb: m.fuentesWeb, responderConWikipedia: m.wikipedia }));
 vi.mock('@/lib/db/conexion', () => ({
@@ -164,6 +166,19 @@ describe('origen de los mensajes (E10c2)', () => {
     await consultarYRegistrar(USUARIO, '¿y el segundo?', undefined, 'web');
     expect(m.fuentesWeb).toHaveBeenCalledWith(USUARIO, '¿y el segundo?', [{ autor: 'usuario', texto: 'antes' }]);
     expect(m.consultar).not.toHaveBeenCalled();
+  });
+
+  it('E10c3 (RB-59, RB-61): la IA recibe solo su historial, no consulta nada más y guarda el origen "ia"', async () => {
+    const previos = [{ id: 1, autor: 'usuario', texto: 'antes', fuentes: [], origen: 'ia' }];
+    base({ conversacion: CONV, mensajes: previos });
+    m.ia.mockResolvedValue({ respuesta: 'Un número primo...', fuentes: [] });
+    const r = await consultarYRegistrar(USUARIO, 'qué es un número primo', undefined, 'ia');
+    expect(r).toMatchObject({ respuesta: 'Un número primo...', fuentes: [], origen: 'ia' });
+    expect(sqlHistorial()?.[1]).toEqual([CONV, 6, 'ia']);
+    expect(m.ia).toHaveBeenCalledWith('qué es un número primo', [{ autor: 'usuario', texto: 'antes' }]);
+    for (const otro of [m.consultar, m.fuentesWeb, m.wikipedia]) expect(otro).not.toHaveBeenCalled();
+    expect(m.txQuery.mock.calls[0]?.[1]?.[6]).toBe('ia');
+    expect(m.txQuery.mock.calls[1]?.[1]).toEqual([CONV, USUARIO, 'asistente', 'Un número primo...', '[]', null, 'ia']);
   });
 
   it('un capítulo no sigue si después hubo un mensaje de otro origen (RB-40)', async () => {
