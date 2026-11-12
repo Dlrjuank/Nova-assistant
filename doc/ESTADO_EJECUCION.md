@@ -849,3 +849,8 @@ Total de fallas: 0
 - **Pruebas:** S-58 y S-59 (`tests/reglas/historialCuestionarios.test.ts`), servicio y rutas (`tests/servidor/historialCuestionarios.test.ts` y dos casos nuevos en `cuestionarios.test.ts`), pantallas (`tests/interfaz/HistorialCuestionarios.test.tsx`).
 - **Edge con la base real** (usuario, libro y cuestionario temporales, borrados al final; 18 de 18): enlaces de Fuentes y "Ver capítulos", estado vacío, B-66 (sugerencia, diálogo, tarea con prioridad media, fecha y categoría; la segunda vez "Ya tienes esa tarea de repaso."), dos peticiones a la vez crean una sola tarea (201 y 409), B-65 (Bajaste, Mejoraste sin contar el repaso, "Repaso"), teléfono en oscuro sin desborde y el diálogo como hoja inferior.
 - **Al cierre:** `npm test` 793/793, `npm run build` correcto, `eslint` sin errores.
+
+#### E10f terminada (2026-11-12)
+
+- **Prueba del usuario en la vista previa (PC y teléfono), sin fallas:** las 8 pruebas de E10f, incluidos los enlaces pedidos desde Fuentes y "Ver capítulos".
+- Queda cerrada E10f. Sigue E11, solo cuando el usuario lo indique (pausa pedida por el usuario).
