@@ -234,3 +234,10 @@ export function calcularPuntaje(aciertos: number, total: number): number {
 export function formatearPuntaje(centesimas: number): string {
   return `${Math.trunc(centesimas / 100)},${Math.trunc((centesimas % 100) / 10)}`;
 }
+
+/** "Todo el documento", el título del capítulo o "Páginas 2–4". */
+export function textoAlcance(alcance: 'documento' | 'capitulo' | 'paginas', capitulo: string | null, desde: number | null, hasta: number | null): string {
+  if (alcance === 'capitulo') return capitulo ?? 'Un capítulo';
+  if (alcance === 'paginas') return desde === hasta ? `Página ${desde}` : `Páginas ${desde}–${hasta}`;
+  return 'Todo el documento';
+}

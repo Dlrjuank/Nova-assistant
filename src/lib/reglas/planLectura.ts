@@ -61,10 +61,13 @@ export function numeroEnTitulo(titulo: string): number | null {
   return m ? Number(m[1]) : null;
 }
 
-/** "Leer cap. 3: Los ecosistemas (pp. 45–67)", sin repetir "Capítulo 3" y en 200 caracteres como máximo. */
-export function tituloTareaCapitulo(numero: number, titulo: string, etiquetaPaginas: string): string {
+/**
+ * "Leer cap. 3: Los ecosistemas (pp. 45–67)", sin repetir "Capítulo 3" y en 200 caracteres como máximo.
+ * E10f (RB-53) usa el mismo formato con "Repasar".
+ */
+export function tituloTareaCapitulo(numero: number, titulo: string, etiquetaPaginas: string, verbo: 'Leer' | 'Repasar' = 'Leer'): string {
   const limpio = titulo.trim().replace(PREFIJO_CAPITULO, '').trim() || titulo.trim();
-  const inicio = `Leer cap. ${numero}: `;
+  const inicio = `${verbo} cap. ${numero}: `;
   const paginas = ` (${citaDePaginas(etiquetaPaginas)})`;
   const espacio = MAX_TITULO - inicio.length - paginas.length;
   const recortado = limpio.length > espacio ? `${limpio.slice(0, espacio - 1).trimEnd()}…` : limpio;

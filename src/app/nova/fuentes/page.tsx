@@ -1,7 +1,9 @@
+import Link from 'next/link';
 import { FuentesGuardadas } from '@/components/nova/FuentesGuardadas';
 import { IndexacionPendiente } from '@/components/nova/IndexacionPendiente';
 import { SubidorPdf } from '@/components/nova/SubidorPdf';
 import { TablaDocumentos } from '@/components/nova/TablaDocumentos';
+import { claseBoton } from '@/components/ui/Boton';
 import { EncabezadoPantalla } from '@/components/ui/EncabezadoPantalla';
 import { EstadoVacio } from '@/components/ui/EstadoVacio';
 import { Pestanas } from '@/components/ui/Pestanas';
@@ -58,9 +60,17 @@ async function PestanaPdf() {
       <IndexacionPendiente pendientes={pendientes} />
 
       <section aria-labelledby="titulo-documentos" className="flex flex-col gap-3">
-        <h2 id="titulo-documentos" className="text-base font-semibold text-texto">
-          Tus documentos
-        </h2>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 id="titulo-documentos" className="text-base font-semibold text-texto">
+            Tus documentos
+          </h2>
+          {/* E10f: volver a abrir los cuestionarios ya creados (pedido del usuario). */}
+          {documentos.length > 0 && (
+            <Link href="/nova/cuestionarios" className={`${claseBoton('secundario')} min-h-10`}>
+              Mis cuestionarios
+            </Link>
+          )}
+        </div>
         {documentos.length === 0 ? (
           <EstadoVacio titulo="Aún no hay documentos" descripcion="Indexa un PDF para poder preguntarle al asistente." />
         ) : (

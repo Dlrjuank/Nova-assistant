@@ -144,6 +144,7 @@ export { actualizarCategoria, crearCategoria, eliminarCategoria, listarCategoria
 export { buscarEnWikipedia, eliminarFuenteWeb, guardarFuenteWeb, listarFuentesWeb } from '@/lib/datos/wikipedia';
 export { confirmarPlanLectura, vistaPreviaPlanLectura } from '@/lib/datos/planLectura';
 export { crearCuestionario, empezarIntento, obtenerCuestionario, responderPregunta } from '@/lib/datos/cuestionarios';
+export { crearTareaRepaso, listarCuestionarios } from '@/lib/datos/historialCuestionarios';
 export type {
   Categoria,
   ConversacionActual,
@@ -168,5 +169,10 @@ export type {
   CuestionarioVista,
   PreguntaVista,
   ResultadoRespuesta,
+  SugerenciaRepaso,
+  DocumentoHistorial,
+  CuestionarioHistorial,
+  IntentoHistorial,
+  TareaRepasoCreada,
   ResultadoIndexacion,
 } from '@/lib/datos/tipos';

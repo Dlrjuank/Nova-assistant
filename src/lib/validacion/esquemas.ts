@@ -47,6 +47,13 @@ export const esquemaCrearCuestionario = z.discriminatedUnion('alcance', [
 export const esquemaIdCuestionario = z.uuid();
 export const esquemaEmpezarIntento = z.object({ repasoDe: z.uuid().optional() });
 export const esquemaResponderPregunta = z.object({ preguntaId: z.uuid(), elegida: z.number().int().min(0).max(3) });
+// E10f: historial (filtro opcional por documento) y tarea de repaso (RB-53); la fecha la valida el servicio.
+export const esquemaHistorialCuestionarios = z.object({ documentoId: z.uuid().optional() });
+export const esquemaTareaRepaso = z.object({
+  capituloId: z.uuid(),
+  fecha: z.string().max(10),
+  categoria: z.string().trim().max(80).optional(),
+});
 
 export const esquemaFiltroTareas = z.object({
   estado: z.enum(['Pendiente', 'En Progreso', 'Completada']).optional(),

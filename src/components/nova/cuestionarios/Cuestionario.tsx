@@ -6,11 +6,12 @@ import { useState } from 'react';
 import { Aviso } from '@/components/ui/Aviso';
 import { Boton } from '@/components/ui/Boton';
 import { Tarjeta } from '@/components/ui/Tarjeta';
-import type { CuestionarioVista, PreguntaVista, ResultadoRespuesta } from '@/lib/dataService';
+import type { CuestionarioVista, PreguntaVista, ResultadoRespuesta, SugerenciaRepaso } from '@/lib/dataService';
 import { formatearPuntaje } from '@/lib/reglas/cuestionarios';
 import { MENSAJES } from '@/lib/reglas/errores';
+import { SugerenciasRepaso } from './SugerenciasRepaso';
 
-type Resultado = { aciertos: number; total: number; puntaje: number };
+type Resultado = { aciertos: number; total: number; puntaje: number; sugerencias: SugerenciaRepaso[] };
 
 const LETRAS = ['A', 'B', 'C', 'D'];
 
@@ -47,14 +48,22 @@ function Opcion({ letra, texto, estado, deshabilitada, alElegir }: { letra: stri
 }
 
 /** E10e (5.11): una pregunta por pantalla; cada respuesta se guarda al momento y no se cambia (RB-51). */
-export function Cuestionario({ datos, aviso }: { datos: CuestionarioVista; aviso?: string | undefined }) {
+export function Cuestionario({
+  datos,
+  aviso,
+  categorias = [],
+}: {
+  datos: CuestionarioVista;
+  aviso?: string | undefined;
+  categorias?: ReadonlyArray<{ nombre: string; color: string }>;
+}) {
   const router = useRouter();
   const { intento } = datos;
   const [preguntas, setPreguntas] = useState<PreguntaVista[]>(intento.preguntas);
   const primeraSinResponder = preguntas.findIndex((p) => !p.respuesta);
   const [indice, setIndice] = useState(primeraSinResponder === -1 ? preguntas.length : primeraSinResponder);
   const [resultado, setResultado] = useState<Resultado | null>(
-    intento.terminado && intento.aciertos !== null && intento.puntaje !== null ? { aciertos: intento.aciertos, total: intento.total, puntaje: intento.puntaje } : null,
+    intento.terminado && intento.aciertos !== null && intento.puntaje !== null ? { aciertos: intento.aciertos, total: intento.total, puntaje: intento.puntaje, sugerencias: intento.sugerencias } : null,
   );
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState('');
@@ -102,7 +111,7 @@ export function Cuestionario({ datos, aviso }: { datos: CuestionarioVista; aviso
   const actual = preguntas[indice];
   if (!actual) {
     const falladas = preguntas.filter((p) => p.respuesta && !p.respuesta.acierto);
-    const final = resultado ?? { aciertos: preguntas.filter((p) => p.respuesta?.acierto).length, total: preguntas.length, puntaje: 0 };
+    const final = resultado ?? { aciertos: preguntas.filter((p) => p.respuesta?.acierto).length, total: preguntas.length, puntaje: 0, sugerencias: [] };
     return (
       <div className="flex max-w-3xl flex-col gap-4">
         {encabezado}
@@ -130,6 +139,7 @@ export function Cuestionario({ datos, aviso }: { datos: CuestionarioVista; aviso
             </ol>
           </Tarjeta>
         )}
+        <SugerenciasRepaso intentoId={intento.id} sugerencias={final.sugerencias} categoriaInicial={datos.documento.categoria} categorias={categorias} />
         {error && <Aviso tipo="error">{error}</Aviso>}
         <div className="flex flex-wrap gap-2">
           {falladas.length > 0 && (

@@ -4,7 +4,7 @@ import { Cuestionario } from '@/components/nova/cuestionarios/Cuestionario';
 import { CLASE_FOCO } from '@/components/ui/Boton';
 import { EncabezadoPantalla } from '@/components/ui/EncabezadoPantalla';
 import { EstadoVacio } from '@/components/ui/EstadoVacio';
-import { exigirSesion, obtenerCuestionario, type CuestionarioVista } from '@/lib/dataService';
+import { exigirSesion, listarCategorias, obtenerCuestionario, type CuestionarioVista } from '@/lib/dataService';
 import { ErrorDeNegocio, MENSAJES } from '@/lib/reglas/errores';
 import { esquemaIdCuestionario } from '@/lib/validacion/esquemas';
 
@@ -31,6 +31,9 @@ export default async function CuestionarioPage({
       throw error;
     });
   }
+  // RB-53: el diálogo de la tarea de repaso elige la categoría (RB-33).
+  // Se cargan siempre: la sugerencia también aparece al terminar el intento en esta pantalla.
+  const categorias = datos ? (await listarCategorias(sesion.id)).map((c) => ({ nombre: c.nombre, color: c.color })) : [];
   // RB-49: con parte de las pedidas, se avisa al llegar.
   const obtenidas = Number(uno(parametros.obtenidas));
   const pedidas = Number(uno(parametros.pedidas));
@@ -40,14 +43,14 @@ export default async function CuestionarioPage({
     <>
       <EncabezadoPantalla titulo="Cuestionario" subtitulo={datos ? <span className="break-all">{datos.documento.nombre}</span> : undefined} />
       <Link
-        href={datos ? `/nova/fuentes/${datos.documento.id}/capitulos` : '/nova/fuentes?pestana=pdf'}
+        href={datos ? `/nova/cuestionarios?documento=${datos.documento.id}` : '/nova/cuestionarios'}
         className={`inline-flex items-center gap-1 self-start rounded text-sm font-medium text-acento ${CLASE_FOCO}`}
       >
         <ChevronLeft aria-hidden="true" className="size-4" />
-        {datos ? 'Capítulos' : 'Fuentes'}
+        Cuestionarios
       </Link>
       {datos ? (
-        <Cuestionario key={datos.intento.id} datos={datos} {...(aviso && !datos.intento.repaso ? { aviso } : {})} />
+        <Cuestionario key={datos.intento.id} datos={datos} categorias={categorias} {...(aviso && !datos.intento.repaso ? { aviso } : {})} />
       ) : (
         <EstadoVacio titulo={MENSAJES.CUESTIONARIO_NO_ENCONTRADO} descripcion="Puede que hayas eliminado su documento." />
       )}

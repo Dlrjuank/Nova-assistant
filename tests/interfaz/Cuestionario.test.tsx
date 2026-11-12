@@ -11,11 +11,11 @@ vi.mock('next/navigation', () => ({ useRouter: () => m }));
 const ok = (datos: unknown, status = 200) => new Response(JSON.stringify({ ok: true, datos }), { status });
 const vista = (preguntas: CuestionarioVista['intento']['preguntas'], extra: Partial<CuestionarioVista['intento']> = {}): CuestionarioVista => ({
   id: 'q1',
-  documento: { id: 'd1', nombre: 'libro.pdf' },
+  documento: { id: 'd1', nombre: 'libro.pdf', categoria: 'Biología' },
   alcance: 'Páginas 2–4',
   dificultad: 'media',
   pedidas: 2,
-  intento: { id: 'i1', repaso: false, terminado: false, aciertos: null, total: preguntas.length, puntaje: null, preguntas, ...extra },
+  intento: { id: 'i1', repaso: false, terminado: false, aciertos: null, total: preguntas.length, puntaje: null, preguntas, sugerencias: [], ...extra },
 });
 const P = (id: string, respuesta?: NonNullable<CuestionarioVista['intento']['preguntas'][number]['respuesta']>) => ({
   id,
@@ -65,7 +65,7 @@ describe('Cuestionario', () => {
   });
 
   it('con la última, la explicación primero y luego el resultado con el puntaje y las falladas', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(ok({ ...RESPUESTA, elegida: 2, acierto: true, resultado: { aciertos: 1, total: 2, puntaje: 250 } })));
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(ok({ ...RESPUESTA, elegida: 2, acierto: true, resultado: { aciertos: 1, total: 2, puntaje: 250, sugerencias: [] } })));
     render(<Cuestionario datos={vista([P('1', RESPUESTA), P('2')])} />);
     fireEvent.click(screen.getByRole('button', { name: /c2/ }));
     expect(await screen.findByText('¡Acertaste!')).toBeTruthy();

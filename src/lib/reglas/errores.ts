@@ -38,6 +38,7 @@ export type CodigoError =
   | 'CUOTA_AGOTADA'
   | 'CUESTIONARIO_NO_ENCONTRADO'
   | 'PREGUNTA_NO_ENCONTRADA'
+  | 'TAREA_REPASO_EXISTENTE'
   | 'ERROR_INTERNO';
 
 // Textos de la sección 12.2; los de la sección 5.1 se usan literalmente.
@@ -85,6 +86,8 @@ export const MENSAJES: Record<CodigoError, string> = {
   CUOTA_AGOTADA: 'Se agotó por ahora el cupo gratuito de Gemini. Intenta más tarde.',
   CUESTIONARIO_NO_ENCONTRADO: 'El cuestionario no existe.',
   PREGUNTA_NO_ENCONTRADA: 'La pregunta no existe.',
+  // RB-53 (E10f): sugerencia de repaso.
+  TAREA_REPASO_EXISTENTE: 'Ya tienes esa tarea de repaso.',
   ERROR_INTERNO: 'Ocurrió un error inesperado. Intente de nuevo.',
 };
 
@@ -128,6 +131,7 @@ export const ESTADO_HTTP: Record<CodigoError, number> = {
   CUOTA_AGOTADA: 429,
   CUESTIONARIO_NO_ENCONTRADO: 404,
   PREGUNTA_NO_ENCONTRADA: 404,
+  TAREA_REPASO_EXISTENTE: 409,
   ERROR_INTERNO: 500,
 };
 

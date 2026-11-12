@@ -72,9 +72,17 @@ export interface PreguntaVista {
   respuesta?: { elegida: number; acierto: boolean; correcta: number; explicacion: string; cita: string; fuente: string };
 }
 
+/** E10f (RB-53): un capítulo con 2 o más falladas en el intento; `yaExiste` si hay una tarea sin completar con ese título. */
+export interface SugerenciaRepaso {
+  capituloId: string;
+  titulo: string;
+  falladas: number;
+  yaExiste: boolean;
+}
+
 export interface CuestionarioVista {
   id: string;
-  documento: { id: string; nombre: string };
+  documento: { id: string; nombre: string; categoria: string };
   /** "Todo el documento", el título del capítulo o "Páginas 2–4". */
   alcance: string;
   dificultad: 'facil' | 'media' | 'dificil';
@@ -88,6 +96,8 @@ export interface CuestionarioVista {
     /** Centésimas, 0 a 500 (7.11). */
     puntaje: number | null;
     preguntas: PreguntaVista[];
+    /** Solo en un intento terminado. */
+    sugerencias: SugerenciaRepaso[];
   };
 }
 
@@ -98,8 +108,45 @@ export interface CuestionarioCreado {
 }
 
 export type ResultadoRespuesta = NonNullable<PreguntaVista['respuesta']> & {
-  resultado?: { aciertos: number; total: number; puntaje: number };
+  resultado?: { aciertos: number; total: number; puntaje: number; sugerencias: SugerenciaRepaso[] };
 };
+
+/** E10f (5.11): historial en /nova/cuestionarios. */
+export interface IntentoHistorial {
+  id: string;
+  /** AAAA-MM-DD en Bogotá. */
+  fecha: string;
+  repaso: boolean;
+  terminado: boolean;
+  aciertos: number | null;
+  total: number;
+  puntaje: number | null;
+  /** Con el intento terminado anterior del mismo cuestionario, sin contar los repasos (S-58). */
+  comparacion: 'mejor' | 'igual' | 'peor' | null;
+}
+
+export interface CuestionarioHistorial {
+  id: string;
+  alcance: string;
+  dificultad: 'facil' | 'media' | 'dificil';
+  preguntas: number;
+  /** AAAA-MM-DD en Bogotá. */
+  creadoEn: string;
+  /** Del más reciente al más antiguo. */
+  intentos: IntentoHistorial[];
+}
+
+export interface DocumentoHistorial {
+  id: string;
+  nombre: string;
+  cuestionarios: CuestionarioHistorial[];
+}
+
+export interface TareaRepasoCreada {
+  id: string;
+  titulo: string;
+  categoria: string;
+}
 
 export interface ResultadoPlanLectura {
   creadas: number;

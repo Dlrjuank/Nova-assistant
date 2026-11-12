@@ -51,9 +51,15 @@ export default async function CapitulosPage({ params }: { params: Promise<{ id: 
       <div className="flex flex-wrap items-center justify-between gap-3">
         {volver}
         {!sinPaginas && (
-          <Link href={`/nova/cuestionarios/nuevo?documento=${documento.id}`} className={`${claseBoton('secundario')} min-h-10`}>
-            Crear cuestionario
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            {/* E10f: los cuestionarios de este documento (pedido del usuario). */}
+            <Link href={`/nova/cuestionarios?documento=${documento.id}`} className={`${claseBoton('secundario')} min-h-10`}>
+              Ver cuestionarios
+            </Link>
+            <Link href={`/nova/cuestionarios/nuevo?documento=${documento.id}`} className={`${claseBoton('secundario')} min-h-10`}>
+              Crear cuestionario
+            </Link>
+          </div>
         )}
       </div>
       {capitulos.length === 0 ? (

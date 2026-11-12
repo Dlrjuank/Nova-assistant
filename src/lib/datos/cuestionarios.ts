@@ -13,6 +13,7 @@ import {
   minimoFragmentos,
   minimoPreguntas,
   rangoValido,
+  textoAlcance,
   validarPreguntas,
   type Cantidad,
   type Dificultad,
@@ -20,6 +21,7 @@ import {
 } from '@/lib/reglas/cuestionarios';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
 import { citaDePaginas } from '@/lib/reglas/libros';
+import { sugerenciasDeRepaso, type Consulta } from './historialCuestionarios';
 import type { CuestionarioCreado, CuestionarioVista, PreguntaVista, ResultadoRespuesta } from './tipos';
 
 export type DatosCuestionario = {
@@ -119,12 +121,14 @@ export async function crearCuestionario(usuarioId: string, d: DatosCuestionario)
   const finales = validas.slice(0, d.pedidas);
   if (finales.length < minimoPreguntas(d.pedidas)) throw new ErrorDeNegocio('CONTENIDO_INSUFICIENTE'); // RB-49
 
+  // S-59: la pregunta cuenta para su capítulo de nivel 1; en un cuestionario de un capítulo, ese capítulo (o el que lo contiene).
+  const capituloFijo = capitulo ? (capitulo.nivel === 1 ? capitulo : capituloDePagina(capitulos, capitulo.pagina_inicio)) : undefined;
   const limite = capitulo?.etiqueta_paginas ?? (d.alcance === 'paginas' ? `${d.desde}–${d.hasta}` : undefined);
   const preguntas = finales.map((p) => {
     const f = etiquetados.get(p.fuente) as FilaFragmento & { inicioPalabra: number };
     const exacta = etiquetaDeCita(f, p, documento.inicio_paginas);
     const etiqueta = exacta ?? (f.etiqueta_paginas && limite ? recortarEtiqueta(f.etiqueta_paginas, limite) : f.etiqueta_paginas);
-    return { ...p, ...barajarOpciones(p.opciones, p.correcta), etiqueta, capituloId: capituloDePagina(capitulos, f.pagina_inicio)?.id ?? null };
+    return { ...p, ...barajarOpciones(p.opciones, p.correcta), etiqueta, capituloId: (capituloFijo ?? capituloDePagina(capitulos, f.pagina_inicio))?.id ?? null };
   });
 
   const id = await conTransaccion(async (tx) => {
@@ -188,6 +192,7 @@ export async function obtenerCuestionario(usuarioId: string, id: string): Promis
   const [c] = await consultar<{
     documento_id: string;
     nombre: string;
+    categoria: string;
     alcance: 'documento' | 'capitulo' | 'paginas';
     capitulo: string | null;
     pagina_desde: number | null;
@@ -195,7 +200,7 @@ export async function obtenerCuestionario(usuarioId: string, id: string): Promis
     dificultad: Dificultad;
     pedidas: number;
   }>(
-    `SELECT c.documento_id, d.nombre_archivo AS nombre, c.alcance, cap.titulo AS capitulo, c.pagina_desde, c.pagina_hasta, c.dificultad, c.pedidas
+    `SELECT c.documento_id, d.nombre_archivo AS nombre, d.categoria, c.alcance, cap.titulo AS capitulo, c.pagina_desde, c.pagina_hasta, c.dificultad, c.pedidas
      FROM cuestionarios c
      JOIN documentos d ON d.id = c.documento_id
      LEFT JOIN capitulos cap ON cap.id = c.capitulo_id
@@ -219,12 +224,11 @@ export async function obtenerCuestionario(usuarioId: string, id: string): Promis
   );
   const porId = new Map(filas.map((p) => [p.id, p]));
   const respuestaDe = new Map(respuestas.map((r) => [r.pregunta_id, { elegida: r.elegida, acierto: r.acierto }]));
-  const alcance =
-    c.alcance === 'capitulo' ? (c.capitulo ?? 'Un capítulo') : c.alcance === 'paginas' ? `Páginas ${c.pagina_desde}–${c.pagina_hasta}` : 'Todo el documento';
+  const sugerencias = intento.terminado ? await sugerenciasDeRepaso(consultar as Consulta, usuarioId, intento.id) : [];
   return {
     id,
-    documento: { id: c.documento_id, nombre: c.nombre },
-    alcance,
+    documento: { id: c.documento_id, nombre: c.nombre, categoria: c.categoria },
+    alcance: textoAlcance(c.alcance, c.capitulo, c.pagina_desde, c.pagina_hasta),
     dificultad: c.dificultad,
     pedidas: c.pedidas,
     intento: {
@@ -238,6 +242,7 @@ export async function obtenerCuestionario(usuarioId: string, id: string): Promis
         const p = porId.get(pid);
         return p ? [vistaPregunta(p, c.nombre, respuestaDe.get(pid))] : [];
       }),
+      sugerencias,
     },
   };
 }
@@ -311,7 +316,8 @@ export async function responderPregunta(usuarioId: string, intentoId: string, pr
       const aciertos = todas.filter((r) => r.acierto).length;
       const puntaje = calcularPuntaje(aciertos, intento.total);
       await tx.query('UPDATE intentos_cuestionario SET aciertos = $2, puntaje = $3, terminado_en = COALESCE(terminado_en, now()) WHERE id = $1', [intentoId, aciertos, puntaje]);
-      resultado = { aciertos, total: intento.total, puntaje };
+      const consulta: Consulta = async <T>(sql: string, valores: unknown[]) => (await tx.query(sql, valores)).rows as T[];
+      resultado = { aciertos, total: intento.total, puntaje, sugerencias: await sugerenciasDeRepaso(consulta, usuarioId, intentoId) };
     }
     const vista = vistaPregunta(pregunta, intento.nombre, { elegida: guardada.elegida, acierto: guardada.acierto });
     return { ...(vista.respuesta as NonNullable<PreguntaVista['respuesta']>), ...(resultado ? { resultado } : {}) };

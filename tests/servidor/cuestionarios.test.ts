@@ -145,6 +145,8 @@ describe('crear (RB-48 a RB-52)', () => {
     expect(contenido).not.toContain('[F4]'); // capítulo de las páginas 1–3: fragmentos 1, 2 y 3
     // Sin inicio de páginas, la etiqueta del fragmento recortada al capítulo.
     expect(insertsDe('INSERT INTO preguntas_cuestionario').every(([, v]) => v[8] === '3')).toBe(true);
+    // E10f (S-59): en un cuestionario de un capítulo, las preguntas cuentan para ese capítulo.
+    expect(insertsDe('INSERT INTO preguntas_cuestionario').every(([, v]) => v[9] === 'cap1')).toBe(true);
   });
 
   it('sin cupo en la primera llamada: CUOTA_AGOTADA y nada guardado (RB-52)', async () => {
@@ -237,6 +239,21 @@ describe('responder (RB-51)', () => {
     ]);
     await expect(responderPregunta(U, INT, P1, 1)).resolves.toMatchObject({ acierto: true, resultado: { aciertos: 1, total: 2, puntaje: 250 } });
     expect(insertsDe('UPDATE intentos_cuestionario SET aciertos')[0]?.[1]).toEqual([INT, 1, 250]);
+  });
+
+  it('E10f: con la última, trae las sugerencias de repaso de los capítulos con 2 o más falladas (RB-53)', async () => {
+    intento([
+      { pregunta_id: P2, elegida: 0, acierto: false },
+      { pregunta_id: P1, elegida: 0, acierto: false },
+    ]);
+    const previo = m.txQuery.getMockImplementation() as (sql: string) => Promise<{ rows: unknown[] }>;
+    m.txQuery.mockImplementation(async (sql: string) => {
+      if (sql.includes('FROM respuestas_intento r')) return { rows: [{ capitulo_id: 'cap1' }, { capitulo_id: 'cap1' }] };
+      if (sql.includes('FROM capitulos c')) return { rows: CAPS };
+      return previo(sql);
+    });
+    const r = await responderPregunta(U, INT, P1, 0);
+    expect(r.resultado?.sugerencias).toEqual([{ capituloId: 'cap1', titulo: 'Repasar cap. 1: Uno (pp. 1–3)', falladas: 2, yaExiste: false }]);
   });
 });
 
