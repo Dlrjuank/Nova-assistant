@@ -811,3 +811,8 @@ Total de fallas: 0
 - **Pruebas:** S-40 y S-41 (`tests/reglas/planLectura.test.ts`), servicio y rutas (`tests/servidor/planLectura.test.ts`), pantalla (`tests/interfaz/PlanLectura.test.tsx`).
 - **Edge con la base real** (usuario, documento y capítulos temporales, borrados al final; sin Gemini; 16 de 16): B-54 con 4 capítulos del 16 al 29 de noviembre (19, 22, 26 y 29), la vista previa no crea nada, prioridad 2 y categoría del documento, capítulos marcados, repetirlo da 409 sin duplicar, las tareas en Tareas, Calendario y Mi semana, borrar una tarea libera su capítulo, teléfono en oscuro sin desborde.
 - **Al cierre:** `npm test` 688/688, `npm run build` correcto, `eslint` sin errores.
+
+#### E10d terminada (2026-11-12)
+
+- **Prueba del usuario en la vista previa (PC y teléfono), sin fallas:** las 10 pruebas de E10d. La 7 (por semana) se hizo después de la 9, porque el libro ya tenía todos sus capítulos en Tareas: el bloqueo funcionó y, al borrar una tarea, su capítulo se pudo elegir otra vez.
+- Queda cerrada E10d. Sigue E10e.
