@@ -308,7 +308,7 @@ Bloques: **Perfil** (nombre editable, correo de solo lectura, cambiar contraseñ
   - Cada respuesta se guarda al momento: si se cierra la pantalla, el intento sigue donde iba.
   - La respuesta correcta no llega al navegador hasta que se responde.
 - **Al final:** el puntaje de 0 a 5, los aciertos, las preguntas falladas con su explicación y los botones "Repetir solo las que fallé" y "Hacer de nuevo". Ninguno de los dos llama a Gemini: usan las mismas preguntas.
-- **Historial (E10f, `/nova/cuestionarios`):** intentos por documento y por capítulo, con fecha, dificultad y puntaje, y si mejoraste respecto al intento anterior del mismo cuestionario. Los repasos de falladas se marcan "Repaso" y no cuentan para esa comparación.
+- **Historial (E10f, `/nova/cuestionarios`):** intentos por documento y por capítulo, con fecha, dificultad y puntaje, y si mejoraste respecto al intento anterior del mismo cuestionario. Los repasos de falladas se marcan "Repaso" y no cuentan para esa comparación. Se llega desde Fuentes y desde "Ver capítulos" (este, filtrado por el documento), pedido del usuario del 2026-11-12.
 - **Sugerencia de repaso (E10f):** si en un capítulo fallaste 2 preguntas o más, el resultado ofrece crear la tarea "Repasar cap. 3: Título (pp. 45–67)". Se confirma en un diálogo; nunca se crea sola.
 - **El puntaje no afecta las notas de Semestre.**
 

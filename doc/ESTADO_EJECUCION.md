@@ -830,3 +830,9 @@ Total de fallas: 0
 - **`probar:cuestionario`** (Gemini real, 2 ejecuciones): la primera falló porque los dos modelos estaban saturados (504 y 503), sin guardar nada; la segunda dio 5 de 5 en 7 s con una llamada y encontró el problema de B-60. Tras la corrección no se repitió, para no gastar cuota: la cubren las pruebas automáticas.
 - **Edge** (base real, usuario y libro temporales, crear simulado; 18 de 18): enlaces, formulario y rango inválido, aviso de RB-49, acierto y fallo con texto, respuesta fija y guardada al momento, B-63, teléfono en oscuro con "reducir movimiento", resultado 3,0 de 5, repaso 5,0 y "Hacer de nuevo".
 - **Al cierre:** `npm test` 766/766, `npm run build` correcto, `eslint` sin errores. Dos pruebas de tiempos (`indexacionPendiente` y las de Gemini con reloj simulado) fallaron una vez con la máquina cargada y pasan solas; las de Gemini ahora restauran el reloj siempre.
+
+#### E10e terminada (2026-11-12)
+
+- **Prueba del usuario en la vista previa (PC y teléfono), sin fallas:** las 9 pruebas de E10e. En la 4 volvió al cuestionario con su dirección, porque en Fuentes no había cómo abrir uno ya creado.
+- **Pedido del usuario para E10f:** además de `/nova/cuestionarios`, un enlace a los cuestionarios desde Fuentes y desde "Ver capítulos".
+- Queda cerrada E10e. Sigue E10f.

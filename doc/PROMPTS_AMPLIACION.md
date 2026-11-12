@@ -448,6 +448,7 @@ OBJETIVO: ver si mejoro y convertir lo que fallo en una tarea.
 
 TAREA 1. /nova/cuestionarios: intentos por documento y por capítulo, con fecha, dificultad, puntaje y comparación con el intento anterior; los repasos dicen "Repaso". Pruebas S-58 y S-59.
 TAREA 2. En el resultado, sugerir "Repasar cap. N: Título (pp. a–b)" con 2 o más falladas de un capítulo: diálogo con fecha y categoría (RB-33), sin duplicar (RB-53).
+TAREA 3 (pedida por el usuario, 2026-11-12). Enlace a los cuestionarios desde Fuentes y desde "Ver capítulos", para volver a abrir uno ya creado.
 
 VERIFICACIÓN: B-65 y B-66.
 ```
