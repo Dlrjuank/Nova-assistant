@@ -513,6 +513,22 @@ describe('E10c3: IA general', () => {
     expect((screen.getByLabelText('Buscar en') as HTMLSelectElement).value).toBe('');
   });
 
+  it('también bajo el "No encontré" de Fuentes web, con la misma pregunta', async () => {
+    const f = vi.fn().mockResolvedValue(ok(IA));
+    vi.stubGlobal('fetch', f);
+    render(
+      <Chat
+        historial={[
+          { id: 1, autor: 'usuario', texto: 'cual es la capital de mongolia', fuentes: [], origen: 'web' },
+          { id: 2, autor: 'asistente', texto: 'No encontré esto en tus fuentes web guardadas. Prueba con "Wikipedia" en "Buscar en".', fuentes: [], origen: 'web' },
+        ]}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Preguntarle a la IA' }));
+    await screen.findByText(IA.respuesta);
+    expect(JSON.parse(f.mock.calls[0]?.[1].body)).toEqual({ pregunta: 'cual es la capital de mongolia', documentoId: 'ia' });
+  });
+
   it('ya preguntado a la IA, el botón no vuelve a salir al recargar', () => {
     render(
       <Chat

@@ -21,8 +21,14 @@ describe('ofrecePreguntarIa', () => {
     expect(ofrecePreguntarIa(asistente(texto))).toBe(false);
   });
 
-  it('no aparece bajo otros orígenes ni bajo el usuario', () => {
-    expect(ofrecePreguntarIa(asistente(SIN_RESPUESTA_FUENTES_WEB, 'web'))).toBe(false);
+  it('aparece bajo el "No encontré" de Fuentes web, y solo con ese origen', () => {
+    expect(ofrecePreguntarIa(asistente(SIN_RESPUESTA_FUENTES_WEB, 'web'))).toBe(true);
+    expect(ofrecePreguntarIa(asistente('Según tu fuente, sí [Fotosíntesis · Wikipedia].', 'web'))).toBe(false);
+    expect(ofrecePreguntarIa(asistente(SIN_RESPUESTA_FUENTES_WEB))).toBe(false);
+  });
+
+  it('no aparece bajo Wikipedia, la IA ni el usuario', () => {
+    expect(ofrecePreguntarIa(asistente(SIN_RESPUESTA, 'wikipedia'))).toBe(false);
     expect(ofrecePreguntarIa(asistente(SIN_RESPUESTA, 'ia'))).toBe(false);
     expect(ofrecePreguntarIa({ autor: 'usuario', texto: SIN_RESPUESTA, origen: null })).toBe(false);
   });

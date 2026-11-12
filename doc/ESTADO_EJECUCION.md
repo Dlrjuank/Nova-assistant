@@ -790,3 +790,8 @@ Total de fallas: 0
 - **Gemini real, una consulta con usuario temporal (borrado):** respondió sin fuentes ni embeddings y guardó los dos mensajes con origen `ia`. Tardó 32 s: el principal no contestó (504) y respondió el respaldo.
 - **Edge** (base real, usuario temporal borrado, respuesta de la IA simulada; 18 de 18): opción en "Buscar en", botón bajo el "No encontré", la misma pregunta con `ia`, la marca al recargar, sin fuentes ni explicar, aviso al elegir la IA, claro y oscuro a 1280 y 390 px.
 - **Al cierre:** `npm test` 655/655, `npm run build` correcto, `eslint` sin errores.
+
+#### E10c3: el botón también bajo Fuentes web (pedido por el usuario, 2026-11-12)
+
+- **Prueba del usuario en la vista previa (PC y teléfono):** las 8 pruebas de E10c3 salieron bien.
+- **Cambio:** "Preguntarle a la IA" aparece también bajo `No encontré esto en tus fuentes web guardadas. Prueba con "Wikipedia" en "Buscar en".`, solo con origen `web`. Sigue sin salir bajo Wikipedia, la IA, "Explícalo" ni las respuestas con citas. RB-60 y S-67 se actualizaron en el plan.
