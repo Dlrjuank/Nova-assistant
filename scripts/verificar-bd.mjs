@@ -327,6 +327,48 @@ try {
       marcar(false, `ac-ag) fuentes web: ${e.message}`);
     }
   }
+  console.log('== 6h. Cuestionarios (M17)');
+  const TABLAS_CUESTIONARIO = ['cuestionarios', 'preguntas_cuestionario', 'intentos_cuestionario', 'respuestas_intento'];
+  const rlsCuest = await c.query("SELECT relname, relrowsecurity FROM pg_class WHERE relname = ANY($1) AND relkind = 'r'", [TABLAS_CUESTIONARIO]);
+  for (const t of TABLAS_CUESTIONARIO) {
+    const fila = rlsCuest.rows.find((r) => r.relname === t);
+    marcar(Boolean(fila), `tabla ${t}`);
+    marcar(fila?.relrowsecurity === true, `RLS activo en ${t}`);
+  }
+  if (rlsCuest.rowCount === 4 && dueno) {
+    try {
+      const doc = (await c.query("INSERT INTO documentos (nombre_archivo, fecha_guardado, usuario_id, paginas) VALUES ('cuestionario.pdf', $1, $2, 10) RETURNING id", [hoy, dueno])).rows[0].id;
+      const insCuest = 'INSERT INTO cuestionarios (usuario_id, documento_id, alcance, dificultad, pedidas, pagina_desde, pagina_hasta) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id';
+      const cuest = (await c.query(insCuest, [dueno, doc, 'paginas', 'media', 5, 2, 4])).rows[0].id;
+      const insPreg = 'INSERT INTO preguntas_cuestionario (cuestionario_id, usuario_id, orden, enunciado, opciones, correcta, explicacion, cita_textual) VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7, $8) RETURNING id';
+      const opciones = JSON.stringify(['a', 'b', 'c', 'd']);
+      const preg = (await c.query(insPreg, [cuest, dueno, 1, '¿Uno?', opciones, 2, 'Porque sí.', 'una cita literal del texto'])).rows[0].id;
+      const intento = (await c.query('INSERT INTO intentos_cuestionario (cuestionario_id, usuario_id, preguntas, total) VALUES ($1, $2, ARRAY[$3::uuid], 1) RETURNING id', [cuest, dueno, preg])).rows[0].id;
+      const insResp = 'INSERT INTO respuestas_intento (intento_id, pregunta_id, usuario_id, elegida, acierto) VALUES ($1, $2, $3, $4, $5)';
+      await c.query(insResp, [intento, preg, dueno, 2, true]);
+      marcar(true, 'ah) cuestionario, pregunta, intento y respuesta válidos');
+      const otro = '00000000-0000-4000-8000-000000000000';
+      await esperaFalla('ai) cuestionario de un documento con otro dueño', '23503', insCuest, [otro, doc, 'documento', 'media', 5, null, null]);
+      await esperaFalla('aj) cantidad distinta de 5, 10 o 20', '23514', insCuest, [dueno, doc, 'documento', 'media', 7, null, null]);
+      await esperaFalla('ak) rango de páginas invertido', '23514', insCuest, [dueno, doc, 'paginas', 'media', 5, 4, 2]);
+      await esperaFalla('al) dificultad fuera de la lista', '23514', insCuest, [dueno, doc, 'documento', 'extrema', 5, null, null]);
+      await esperaFalla('am) respuesta correcta fuera de 0 a 3', '23514', insPreg, [cuest, dueno, 5, '¿Dos?', opciones, 4, 'x', 'una cita literal del texto']);
+      await esperaFalla('an) menos de 4 opciones', '23514', insPreg, [cuest, dueno, 3, '¿Tres?', JSON.stringify(['a', 'b', 'c']), 0, 'x', 'una cita literal del texto']);
+      await esperaFalla('ao) orden repetido en el cuestionario', '23505', insPreg, [cuest, dueno, 1, '¿Otra?', opciones, 0, 'x', 'una cita literal del texto']);
+      await esperaFalla('ap) responder dos veces la misma pregunta (RB-51)', '23505', insResp, [intento, preg, dueno, 1, false]);
+      const preg2 = (await c.query(insPreg, [cuest, dueno, 2, '¿Dos?', opciones, 0, 'x', 'una cita literal del texto'])).rows[0].id;
+      await esperaFalla('aq) respuesta con otro dueño', '23503', insResp, [intento, preg2, otro, 1, false]);
+      await esperaFalla('ar) total distinto de las preguntas del intento', '23514', 'INSERT INTO intentos_cuestionario (cuestionario_id, usuario_id, preguntas, total) VALUES ($1, $2, ARRAY[$3::uuid], 2)', [cuest, dueno, preg]);
+      await c.query('DELETE FROM documentos WHERE id = $1', [doc]);
+      const quedan = await c.query(
+        'SELECT (SELECT count(*) FROM cuestionarios WHERE id = $1)::int + (SELECT count(*) FROM preguntas_cuestionario WHERE cuestionario_id = $1)::int + (SELECT count(*) FROM intentos_cuestionario WHERE cuestionario_id = $1)::int + (SELECT count(*) FROM respuestas_intento WHERE intento_id = $2)::int AS n',
+        [cuest, intento],
+      );
+      marcar(quedan.rows[0].n === 0, 'as) al eliminar el documento se borran sus cuestionarios, preguntas, intentos y respuestas');
+    } catch (e) {
+      marcar(false, `ah-as) cuestionarios: ${e.message}`);
+    }
+  }
   await c.query('ROLLBACK');
 
   console.log(`== 7. Total de fallas: ${fallas}`);

@@ -6,7 +6,7 @@ export function EliminarDocumento({ id, nombre }: { id: string; nombre: string }
     <EliminarConConfirmacion
       ruta={`/api/nova/documentos/${id}`}
       etiqueta={`Eliminar documento: ${nombre}`}
-      pregunta="¿Eliminar este documento? El asistente ya no podrá usarlo. No se puede deshacer."
+      pregunta="¿Eliminar este documento? El asistente ya no podrá usarlo y se borrarán sus cuestionarios. No se puede deshacer."
     />
   );
 }

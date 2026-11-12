@@ -64,6 +64,43 @@ export interface PlanLectura {
   yaEnTareas: Array<{ orden: number; titulo: string }>;
 }
 
+/** E10e: lo que ve el navegador de una pregunta. La correcta solo llega después de responderla (RB-50). */
+export interface PreguntaVista {
+  id: string;
+  enunciado: string;
+  opciones: string[];
+  respuesta?: { elegida: number; acierto: boolean; correcta: number; explicacion: string; cita: string; fuente: string };
+}
+
+export interface CuestionarioVista {
+  id: string;
+  documento: { id: string; nombre: string };
+  /** "Todo el documento", el título del capítulo o "Páginas 2–4". */
+  alcance: string;
+  dificultad: 'facil' | 'media' | 'dificil';
+  pedidas: number;
+  intento: {
+    id: string;
+    repaso: boolean;
+    terminado: boolean;
+    aciertos: number | null;
+    total: number;
+    /** Centésimas, 0 a 500 (7.11). */
+    puntaje: number | null;
+    preguntas: PreguntaVista[];
+  };
+}
+
+export interface CuestionarioCreado {
+  id: string;
+  creadas: number;
+  pedidas: number;
+}
+
+export type ResultadoRespuesta = NonNullable<PreguntaVista['respuesta']> & {
+  resultado?: { aciertos: number; total: number; puntaje: number };
+};
+
 export interface ResultadoPlanLectura {
   creadas: number;
   omitidas: number;

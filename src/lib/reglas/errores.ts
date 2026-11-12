@@ -31,6 +31,13 @@ export type CodigoError =
   | 'HORA_FIN_ANTES'
   | 'PLAN_FECHAS_INVERTIDAS'
   | 'CAPITULO_EN_TAREAS'
+  | 'DOCUMENTO_SIN_PAGINAS'
+  | 'DOCUMENTO_INDEXANDO'
+  | 'RANGO_PAGINAS_INVALIDO'
+  | 'CONTENIDO_INSUFICIENTE'
+  | 'CUOTA_AGOTADA'
+  | 'CUESTIONARIO_NO_ENCONTRADO'
+  | 'PREGUNTA_NO_ENCONTRADA'
   | 'ERROR_INTERNO';
 
 // Textos de la sección 12.2; los de la sección 5.1 se usan literalmente.
@@ -70,6 +77,14 @@ export const MENSAJES: Record<CodigoError, string> = {
   // RB-42 (E10d): plan de lectura.
   PLAN_FECHAS_INVERTIDAS: 'La fecha final debe ser igual o posterior a la de inicio.',
   CAPITULO_EN_TAREAS: 'Este capítulo ya está en Tareas.',
+  // RB-48 a RB-52 (E10e): cuestionarios.
+  DOCUMENTO_SIN_PAGINAS: 'Vuelve a indexar este documento para ver páginas y capítulos.',
+  DOCUMENTO_INDEXANDO: 'Espera a que este documento termine de indexarse.',
+  RANGO_PAGINAS_INVALIDO: 'El rango de páginas no es válido.',
+  CONTENIDO_INSUFICIENTE: 'Este contenido no alcanza para un cuestionario. Elige más páginas o menos preguntas.',
+  CUOTA_AGOTADA: 'Se agotó por ahora el cupo gratuito de Gemini. Intenta más tarde.',
+  CUESTIONARIO_NO_ENCONTRADO: 'El cuestionario no existe.',
+  PREGUNTA_NO_ENCONTRADA: 'La pregunta no existe.',
   ERROR_INTERNO: 'Ocurrió un error inesperado. Intente de nuevo.',
 };
 
@@ -106,6 +121,13 @@ export const ESTADO_HTTP: Record<CodigoError, number> = {
   HORA_FIN_ANTES: 422,
   PLAN_FECHAS_INVERTIDAS: 422,
   CAPITULO_EN_TAREAS: 409,
+  DOCUMENTO_SIN_PAGINAS: 422,
+  DOCUMENTO_INDEXANDO: 409,
+  RANGO_PAGINAS_INVALIDO: 422,
+  CONTENIDO_INSUFICIENTE: 422,
+  CUOTA_AGOTADA: 429,
+  CUESTIONARIO_NO_ENCONTRADO: 404,
+  PREGUNTA_NO_ENCONTRADA: 404,
   ERROR_INTERNO: 500,
 };
 

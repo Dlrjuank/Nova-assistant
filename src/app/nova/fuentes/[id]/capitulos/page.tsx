@@ -1,6 +1,6 @@
 import { ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
-import { CLASE_FOCO } from '@/components/ui/Boton';
+import { claseBoton, CLASE_FOCO } from '@/components/ui/Boton';
 import { EncabezadoPantalla } from '@/components/ui/EncabezadoPantalla';
 import { PlanLectura } from '@/components/nova/PlanLectura';
 import { EstadoVacio } from '@/components/ui/EstadoVacio';
@@ -48,7 +48,14 @@ export default async function CapitulosPage({ params }: { params: Promise<{ id: 
   return (
     <>
       <EncabezadoPantalla titulo="Capítulos" subtitulo={<span className="break-all">{documento.nombreArchivo}{documento.paginas ? ` · ${documento.paginas} páginas` : ''}</span>} />
-      {volver}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        {volver}
+        {!sinPaginas && (
+          <Link href={`/nova/cuestionarios/nuevo?documento=${documento.id}`} className={`${claseBoton('secundario')} min-h-10`}>
+            Crear cuestionario
+          </Link>
+        )}
+      </div>
       {capitulos.length === 0 ? (
         <EstadoVacio titulo={sinPaginas ? MENSAJE_REINDEXAR : MENSAJE_SIN_CAPITULOS} />
       ) : (

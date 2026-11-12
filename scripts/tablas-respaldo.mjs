@@ -7,6 +7,11 @@ export const TABLAS_RESPALDO = [
   'documentos',
   'fragmentos_pdf',
   'capitulos', // documentos y tareas_personales
+  // M17 (E10e): cuestionarios y sus intentos
+  'cuestionarios', // documentos y capitulos
+  'preguntas_cuestionario',
+  'intentos_cuestionario', // repaso_de apunta a la misma tabla: se inserta en una sola sentencia
+  'respuestas_intento', // intentos_cuestionario y preguntas_cuestionario
   'fuentes_web',
   'conversaciones',
   'mensajes_chat',

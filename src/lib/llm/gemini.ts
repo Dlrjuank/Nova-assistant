@@ -1,4 +1,4 @@
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, type Schema } from '@google/genai';
 import {
   EMBEDDING_DIMENSIONES,
   MODELO_CHAT,
@@ -18,6 +18,12 @@ export interface LLMClient {
     pregunta: string;
     historial?: TurnoConversacion[] | undefined;
   }): Promise<string>;
+  /**
+   * E10e (9.6): una respuesta en JSON con esquema, con el mismo respaldo y los mismos topes que `responder`.
+   * `tiempoMaximoMs` acorta el presupuesto para que quepa en la ruta. Sin cupo en ninguno de los dos modelos,
+   * CUOTA_AGOTADA (RB-52). El llamador valida el contenido: aquí solo se comprueba que sea JSON.
+   */
+  generarJson(d: { sistema: string; contenido: string; esquema: Schema; tiempoMaximoMs?: number | undefined }): Promise<unknown>;
 }
 
 // El plan gratuito admite 30.000 tokens de embeddings por minuto y 500 palabras pueden pasar de 800 tokens:
@@ -61,8 +67,8 @@ function comoErrorLlm(error: unknown): never {
 }
 
 /** Solo un 503 o un modelo que no contesta. Una cuota agotada o un error interno no recuerdan nada. */
-function indicaSaturacion(error: unknown, contexto: string): boolean {
-  return estadoDe(error) === 503 || (noContesto(error) && contexto.length < CONTEXTO_LARGO_CARACTERES);
+function indicaSaturacion(error: unknown, caracteres: number): boolean {
+  return estadoDe(error) === 503 || (noContesto(error) && caracteres < CONTEXTO_LARGO_CARACTERES);
 }
 
 const ESPERAS_REINTENTO_MS = [500, 1500]; // cortas: las rutas tienen un tiempo máximo de ejecución
@@ -171,44 +177,76 @@ export const llm: LLMClient = {
   },
 
   async responder({ sistema, contexto, pregunta, historial = [] }) {
-    const ai = obtenerCliente();
     // RN-21: los mensajes previos van como turnos; el contexto recuperado acompaña solo a la pregunta nueva.
     const contents = [
       ...historial.map((m) => ({ role: m.autor === 'usuario' ? 'user' : 'model', parts: [{ text: m.texto }] })),
       // E10c3: la IA general no lleva contexto, así que va solo la pregunta.
       { role: 'user', parts: [{ text: contexto ? `CONTEXTO:\n${contexto}\n\nPREGUNTA:\n${pregunta}` : pregunta }] },
     ];
-    const largo = contexto.length >= CONTEXTO_LARGO_CARACTERES;
-    const limite = Date.now() + (largo ? TIEMPO_RESPONDER_LARGO_MS : TIEMPO_RESPONDER_MS);
-    const generar = async (model: string, tiempoMs: number) => {
-      const respuesta = await ai.models.generateContent({
-        model,
-        contents,
-        config: { systemInstruction: sistema, temperature: 0.2, httpOptions: { timeout: tiempoMs } },
-      });
-      const texto = respuesta.text?.trim();
-      if (!texto) throw new Error('Respuesta vacía de Gemini');
-      return texto;
-    };
-    // Con el principal saturado hace poco, se empieza por el respaldo; si este falla, vuelve el principal.
-    // Un texto largo ignora la memoria: el respaldo solo entra si el principal falla o se le acaba el tiempo.
-    const primero = !largo && Date.now() < principalSaturadoHasta ? MODELO_CHAT_RESPALDO : MODELO_CHAT;
-    const segundo = primero === MODELO_CHAT ? MODELO_CHAT_RESPALDO : MODELO_CHAT;
     try {
-      // Un modelo saturado no se recupera en segundos: se pasa al otro sin reintentar, y se gastan menos llamadas.
-      return await generar(primero, largo ? TIEMPO_PRINCIPAL_LARGO_MS : TIEMPO_MODELO_PRINCIPAL_MS).catch((error: unknown) => {
-        if (primero === MODELO_CHAT) {
-          if (!ameritaRespaldo(error)) throw error;
-          if (indicaSaturacion(error, contexto)) principalSaturadoHasta = Date.now() + MEMORIA_SATURACION_MS;
-        } else {
-          principalSaturadoHasta = 0;
-        }
-        console.warn(`${primero} no disponible (${estadoDe(error) ?? (error as Error)?.name}); se usa ${segundo}.`);
-        return conReintentos(() => generar(segundo, Math.max(limite - Date.now(), 1)), limite);
-      });
+      return await conRespaldo(contents, { systemInstruction: sistema, temperature: 0.2 }, contexto.length);
     } catch (error) {
-      principalSaturadoHasta = 0; // ninguno respondió: la próxima pregunta vuelve a probar el principal
       return comoErrorLlm(error);
     }
   },
+
+  async generarJson({ sistema, contenido, esquema, tiempoMaximoMs }) {
+    const config = { systemInstruction: sistema, temperature: 0.4, responseMimeType: 'application/json', responseSchema: esquema };
+    let texto: string;
+    try {
+      texto = await conRespaldo([{ role: 'user', parts: [{ text: contenido }] }], config, contenido.length, tiempoMaximoMs);
+    } catch (error) {
+      if (estadoDe(error) === 429) {
+        console.error('Cuota de Gemini agotada en los dos modelos:', error);
+        throw new ErrorDeNegocio('CUOTA_AGOTADA');
+      }
+      return comoErrorLlm(error);
+    }
+    try {
+      return JSON.parse(texto) as unknown;
+    } catch {
+      console.error('Gemini no devolvió JSON válido.');
+      throw new ErrorDeNegocio('ERROR_LLM');
+    }
+  },
 };
+
+type Turno = { role: string; parts: Array<{ text: string }> };
+
+/**
+ * El modelo principal con un intento y un tope; si está saturado, no contesta o no tiene cupo, el respaldo con el
+ * tiempo que quede. Con el principal saturado hace poco, se empieza por el respaldo, y si este falla vuelve el
+ * principal. Un texto largo ignora esa memoria: el respaldo solo entra si el principal falla o se le acaba el tiempo.
+ * Devuelve el texto o lanza el error del último modelo.
+ */
+async function conRespaldo(contents: Turno[], config: Record<string, unknown>, caracteres: number, tiempoMaximoMs = Infinity): Promise<string> {
+  const ai = obtenerCliente();
+  const largo = caracteres >= CONTEXTO_LARGO_CARACTERES;
+  const limite = Date.now() + Math.min(largo ? TIEMPO_RESPONDER_LARGO_MS : TIEMPO_RESPONDER_MS, tiempoMaximoMs);
+  const generar = async (model: string, tiempoMs: number) => {
+    const respuesta = await ai.models.generateContent({ model, contents, config: { ...config, httpOptions: { timeout: tiempoMs } } });
+    const texto = respuesta.text?.trim();
+    if (!texto) throw new Error('Respuesta vacía de Gemini');
+    return texto;
+  };
+  const primero = !largo && Date.now() < principalSaturadoHasta ? MODELO_CHAT_RESPALDO : MODELO_CHAT;
+  const segundo = primero === MODELO_CHAT ? MODELO_CHAT_RESPALDO : MODELO_CHAT;
+  const tiempoPrimero = Math.max(Math.min(largo ? TIEMPO_PRINCIPAL_LARGO_MS : TIEMPO_MODELO_PRINCIPAL_MS, limite - Date.now()), 1);
+  try {
+    // Un modelo saturado no se recupera en segundos: se pasa al otro sin reintentar, y se gastan menos llamadas.
+    return await generar(primero, tiempoPrimero).catch((error: unknown) => {
+      if (primero === MODELO_CHAT) {
+        if (!ameritaRespaldo(error)) throw error;
+        if (indicaSaturacion(error, caracteres)) principalSaturadoHasta = Date.now() + MEMORIA_SATURACION_MS;
+      } else {
+        principalSaturadoHasta = 0;
+      }
+      if (Date.now() >= limite) throw error;
+      console.warn(`${primero} no disponible (${estadoDe(error) ?? (error as Error)?.name}); se usa ${segundo}.`);
+      return conReintentos(() => generar(segundo, Math.max(limite - Date.now(), 1)), limite);
+    });
+  } catch (error) {
+    principalSaturadoHasta = 0; // ninguno respondió: la próxima pregunta vuelve a probar el principal
+    throw error;
+  }
+}

@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MODELO_CHAT, MODELO_CHAT_RESPALDO } from '@/lib/config/nova';
 
 const generateContent = vi.fn();
@@ -63,7 +63,12 @@ describe('llm.generarEmbeddings', () => {
   });
 });
 
-describe('llm.responder', () => {
+describe('llm.responder', { timeout: 15_000 }, () => {
+  // Un reloj simulado que quede puesto haría fallar en cadena a las pruebas siguientes.
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   beforeEach(() => {
     vi.resetModules(); // la memoria de saturación vive en el módulo
     generateContent.mockReset();
@@ -267,6 +272,42 @@ describe('llm.responder', () => {
     generateContent.mockResolvedValueOnce({ text: 'ok' });
     await llm.responder({ ...DATOS, contexto: '' });
     expect(generateContent.mock.calls[0]?.[0].contents.at(-1).parts[0].text).toBe(DATOS.pregunta);
+  });
+
+  describe('E10e: generarJson', () => {
+    const ESQUEMA = { type: 'ARRAY' } as never;
+
+    it('pide JSON con el esquema y devuelve lo que llega ya interpretado', async () => {
+      const { llm } = await import('@/lib/llm/gemini');
+      generateContent.mockResolvedValueOnce({ text: '[{"enunciado":"¿Uno?"}]' });
+      await expect(llm.generarJson({ sistema: 's', contenido: 'c', esquema: ESQUEMA })).resolves.toEqual([{ enunciado: '¿Uno?' }]);
+      const { config, contents } = generateContent.mock.calls[0]?.[0];
+      expect(config).toMatchObject({ responseMimeType: 'application/json', responseSchema: ESQUEMA, systemInstruction: 's' });
+      expect(contents).toEqual([{ role: 'user', parts: [{ text: 'c' }] }]);
+    });
+
+    it('sin cupo en los dos modelos: CUOTA_AGOTADA con el mensaje exacto (RB-52)', async () => {
+      const { llm } = await import('@/lib/llm/gemini');
+      generateContent.mockRejectedValue(error(429));
+      await expect(llm.generarJson({ sistema: 's', contenido: 'c', esquema: ESQUEMA })).rejects.toMatchObject({
+        codigo: 'CUOTA_AGOTADA',
+        message: 'Se agotó por ahora el cupo gratuito de Gemini. Intenta más tarde.',
+      });
+      expect(generateContent).toHaveBeenCalledTimes(2);
+    });
+
+    it('lo que no es JSON sale como ERROR_LLM', async () => {
+      const { llm } = await import('@/lib/llm/gemini');
+      generateContent.mockResolvedValueOnce({ text: 'no es json' });
+      await expect(llm.generarJson({ sistema: 's', contenido: 'c', esquema: ESQUEMA })).rejects.toMatchObject({ codigo: 'ERROR_LLM' });
+    });
+
+    it('tiempoMaximoMs acorta el tope para que quepa en la ruta', async () => {
+      const { llm } = await import('@/lib/llm/gemini');
+      generateContent.mockResolvedValueOnce({ text: '[]' });
+      await llm.generarJson({ sistema: 's', contenido: 'x'.repeat(40_000), esquema: ESQUEMA, tiempoMaximoMs: 20_000 });
+      expect(generateContent.mock.calls[0]?.[0].config.httpOptions.timeout).toBeLessThanOrEqual(20_000);
+    });
   });
 
   it('un error no temporal no reintenta y sale como ERROR_LLM', async () => {

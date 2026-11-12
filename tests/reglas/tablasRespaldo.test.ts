@@ -10,6 +10,10 @@ describe('tablas del respaldo', () => {
     expect(TABLAS_RESPALDO).toEqual(expect.arrayContaining(['categorias', 'capitulos', 'nova_config']));
   });
 
+  it('M17: incluye las tablas de cuestionarios', () => {
+    expect(TABLAS_RESPALDO).toEqual(expect.arrayContaining(['cuestionarios', 'preguntas_cuestionario', 'intentos_cuestionario', 'respuestas_intento']));
+  });
+
   it('no repite tablas', () => {
     expect(new Set(TABLAS_RESPALDO).size).toBe(TABLAS_RESPALDO.length);
   });
@@ -22,6 +26,12 @@ describe('tablas del respaldo', () => {
     ['documentos', 'capitulos'],
     ['tareas_personales', 'capitulos'],
     ['conversaciones', 'mensajes_chat'],
+    ['documentos', 'cuestionarios'],
+    ['capitulos', 'cuestionarios'],
+    ['cuestionarios', 'preguntas_cuestionario'],
+    ['cuestionarios', 'intentos_cuestionario'],
+    ['intentos_cuestionario', 'respuestas_intento'],
+    ['preguntas_cuestionario', 'respuestas_intento'],
   ])('%s va antes que %s', (padre, hijo) => {
     expect(posicion(padre)).toBeGreaterThanOrEqual(0);
     expect(posicion(padre)).toBeLessThan(posicion(hijo));

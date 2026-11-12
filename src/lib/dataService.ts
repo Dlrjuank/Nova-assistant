@@ -143,6 +143,7 @@ export { mesDeTareas, type Mes } from '@/lib/datos/calendario';
 export { actualizarCategoria, crearCategoria, eliminarCategoria, listarCategorias } from '@/lib/datos/categorias';
 export { buscarEnWikipedia, eliminarFuenteWeb, guardarFuenteWeb, listarFuentesWeb } from '@/lib/datos/wikipedia';
 export { confirmarPlanLectura, vistaPreviaPlanLectura } from '@/lib/datos/planLectura';
+export { crearCuestionario, empezarIntento, obtenerCuestionario, responderPregunta } from '@/lib/datos/cuestionarios';
 export type {
   Categoria,
   ConversacionActual,
@@ -163,5 +164,9 @@ export type {
   CapitulosDocumento,
   PlanLectura,
   ResultadoPlanLectura,
+  CuestionarioCreado,
+  CuestionarioVista,
+  PreguntaVista,
+  ResultadoRespuesta,
   ResultadoIndexacion,
 } from '@/lib/datos/tipos';

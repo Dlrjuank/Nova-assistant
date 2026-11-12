@@ -25,6 +25,11 @@ function Acciones({ d }: { d: Documento }) {
           Ver capítulos
         </Link>
       )}
+      {d.paginas != null && d.progreso == null && (
+        <Link href={`/nova/cuestionarios/nuevo?documento=${d.id}`} aria-label={`Crear cuestionario de ${d.nombreArchivo}`} className={`${claseBoton('secundario')} min-h-9 py-1.5`}>
+          Crear cuestionario
+        </Link>
+      )}
       <EliminarDocumento id={d.id} nombre={d.nombreArchivo} />
     </div>
   );

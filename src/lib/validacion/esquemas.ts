@@ -33,6 +33,21 @@ export const esquemaPlanLectura = z.discriminatedUnion('modo', [
   }),
 ]);
 
+// E10e (RB-48): el rango de páginas se valida contra el documento en el servidor, con el mensaje exacto.
+const comunCuestionario = {
+  documentoId: z.uuid(),
+  pedidas: z.union([z.literal(5), z.literal(10), z.literal(20)]),
+  dificultad: z.enum(['facil', 'media', 'dificil']),
+};
+export const esquemaCrearCuestionario = z.discriminatedUnion('alcance', [
+  z.object({ ...comunCuestionario, alcance: z.literal('documento') }),
+  z.object({ ...comunCuestionario, alcance: z.literal('capitulo'), capitulo: z.number().int().nonnegative() }),
+  z.object({ ...comunCuestionario, alcance: z.literal('paginas'), desde: z.number().int(), hasta: z.number().int() }),
+]);
+export const esquemaIdCuestionario = z.uuid();
+export const esquemaEmpezarIntento = z.object({ repasoDe: z.uuid().optional() });
+export const esquemaResponderPregunta = z.object({ preguntaId: z.uuid(), elegida: z.number().int().min(0).max(3) });
+
 export const esquemaFiltroTareas = z.object({
   estado: z.enum(['Pendiente', 'En Progreso', 'Completada']).optional(),
   fecha: z.string().optional(),

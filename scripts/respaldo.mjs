@@ -35,6 +35,12 @@ try {
   await cliente.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
   const manifiesto = { creado_en: ahora.toISOString(), tablas: {} };
   for (const tabla of TABLAS) {
+    // Antes de la migración que la crea, una tabla de la lista todavía no existe: no hay nada que respaldar.
+    const existe = await cliente.query('SELECT to_regclass($1) IS NOT NULL AS existe', [`public.${tabla}`]);
+    if (!existe.rows[0].existe) {
+      console.log(`${tabla.padEnd(18)} omitida: aún no existe`);
+      continue;
+    }
     const r = await cliente.query({ text: `SELECT * FROM ${tabla} ORDER BY 1`, types: comoTexto });
     const columnas = r.fields.map((f) => f.name);
     const lineas = [columnas.join(',')];
