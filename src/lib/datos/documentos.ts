@@ -211,12 +211,13 @@ export async function continuarIndexacion(
 /** RB-37: los capítulos de un documento del usuario, en orden. */
 export async function capitulosDeDocumento(usuarioId: string, id: string): Promise<CapitulosDocumento> {
   const [documento] = await consultar<CapitulosDocumento['documento']>(
-    'SELECT id, nombre_archivo AS "nombreArchivo", paginas FROM documentos WHERE id = $1 AND usuario_id = $2',
+    'SELECT id, nombre_archivo AS "nombreArchivo", paginas, categoria FROM documentos WHERE id = $1 AND usuario_id = $2',
     [id, usuarioId],
   );
   if (!documento) throw new ErrorDeNegocio('DOCUMENTO_NO_ENCONTRADO');
   const capitulos = await consultar<Capitulo>(
-    `SELECT orden, nivel, titulo, pagina_inicio AS "paginaInicio", pagina_fin AS "paginaFin", etiqueta_paginas AS "etiquetaPaginas"
+    `SELECT orden, nivel, titulo, pagina_inicio AS "paginaInicio", pagina_fin AS "paginaFin", etiqueta_paginas AS "etiquetaPaginas",
+            tarea_id IS NOT NULL AS "enTareas"
      FROM capitulos WHERE documento_id = $1 AND usuario_id = $2 ORDER BY orden`,
     [id, usuarioId],
   );

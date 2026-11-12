@@ -48,11 +48,26 @@ export interface Capitulo {
   paginaInicio: number;
   paginaFin: number;
   etiquetaPaginas: string;
+  /** E10d (RB-42): ya tiene su tarea de lectura. */
+  enTareas: boolean;
 }
 
 export interface CapitulosDocumento {
-  documento: Pick<Documento, 'id' | 'nombreArchivo' | 'paginas'>;
+  documento: Pick<Documento, 'id' | 'nombreArchivo' | 'paginas' | 'categoria'>;
   capitulos: Capitulo[];
+}
+
+/** E10d (RB-42): vista previa del plan de lectura. */
+export interface PlanLectura {
+  categoria: string;
+  tareas: Array<{ orden: number; titulo: string; fechaLimite: string }>;
+  yaEnTareas: Array<{ orden: number; titulo: string }>;
+}
+
+export interface ResultadoPlanLectura {
+  creadas: number;
+  omitidas: number;
+  categoria: string;
 }
 
 export interface ResultadoIndexacion {

@@ -800,3 +800,14 @@ Total de fallas: 0
 
 - **Prueba del usuario en la vista previa, sin fallas:** las 8 pruebas de E10c3 en PC y teléfono, y las 5 del botón bajo Fuentes web (el botón y la misma pregunta a la IA, sin botón bajo respuestas con enlace ni bajo Wikipedia, y el de documentos como antes).
 - Queda cerrada E10c3. Sigue E10d.
+
+### E10d Ampliación: plan de lectura por capítulos
+
+- **Sin migración:** `capitulos.tarea_id` ya existía desde M15, con `ON DELETE SET NULL`. No hay tablas nuevas y no hizo falta `db:respaldar`.
+- **Regla pura (`src/lib/reglas/planLectura.ts`, RB-42):** entre dos fechas, cada capítulo recibe un tramo igual de días y vence el último día de su tramo; el último vence el día final, y si hay más capítulos que días se comparten. Por semana (1 a 20), cada semana desde la fecha de inicio reparte sus capítulos en sus 7 días. Título `Leer cap. N: Título (pp. a–b)`: N sale del título si trae "Capítulo N" (y no se repite), si no, de su posición entre los de nivel 1; máximo 200 caracteres.
+- **Servicio (`src/lib/datos/planLectura.ts`):** la vista previa no escribe nada. Confirmar recalcula con las filas de `capitulos` bloqueadas (`FOR UPDATE`), crea una tarea por capítulo (prioridad 2, categoría con RB-33; por defecto la del documento) y marca `tarea_id`, todo en una transacción. Solo capítulos de nivel 1; los que ya están en Tareas se omiten; si no queda ninguno, `CAPITULO_EN_TAREAS` (409).
+- **Rutas:** `POST /api/nova/documentos/[id]/plan-lectura` (vista previa) y `.../plan-lectura/confirmar` (201). Mensajes exactos: `La fecha final debe ser igual o posterior a la de inicio.` (422) y `Este capítulo ya está en Tareas.`
+- **Pantalla "Ver capítulos" (`PlanLectura`):** casillas en los capítulos de nivel 1, "Elegir todos", "Entre dos fechas" o "Capítulos por semana", fechas con la máscara AAAA-MM-DD, categoría y "Ver plan". La vista previa se quita al cambiar cualquier dato. Al crear: `Se crearon N tareas de lectura en «categoría».` con "Ver en Tareas".
+- **Pruebas:** S-40 y S-41 (`tests/reglas/planLectura.test.ts`), servicio y rutas (`tests/servidor/planLectura.test.ts`), pantalla (`tests/interfaz/PlanLectura.test.tsx`).
+- **Edge con la base real** (usuario, documento y capítulos temporales, borrados al final; sin Gemini; 16 de 16): B-54 con 4 capítulos del 16 al 29 de noviembre (19, 22, 26 y 29), la vista previa no crea nada, prioridad 2 y categoría del documento, capítulos marcados, repetirlo da 409 sin duplicar, las tareas en Tareas, Calendario y Mi semana, borrar una tarea libera su capítulo, teléfono en oscuro sin desborde.
+- **Al cierre:** `npm test` 688/688, `npm run build` correcto, `eslint` sin errores.

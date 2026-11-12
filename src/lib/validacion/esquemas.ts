@@ -15,6 +15,24 @@ export const esquemaTarea = z.object({
 });
 export type DatosTareaEntrada = z.infer<typeof esquemaTarea>;
 
+// E10d (RB-42): las fechas y el reparto los valida src/lib/reglas/planLectura.ts, con los mensajes exactos.
+export const esquemaPlanLectura = z.discriminatedUnion('modo', [
+  z.object({
+    modo: z.literal('fechas'),
+    capitulos: z.array(z.number().int().nonnegative()).min(1).max(300),
+    inicio: z.string().max(10),
+    fin: z.string().max(10),
+    categoria: z.string().trim().max(80).optional(),
+  }),
+  z.object({
+    modo: z.literal('semana'),
+    capitulos: z.array(z.number().int().nonnegative()).min(1).max(300),
+    inicio: z.string().max(10),
+    porSemana: z.number().int().min(1).max(20),
+    categoria: z.string().trim().max(80).optional(),
+  }),
+]);
+
 export const esquemaFiltroTareas = z.object({
   estado: z.enum(['Pendiente', 'En Progreso', 'Completada']).optional(),
   fecha: z.string().optional(),

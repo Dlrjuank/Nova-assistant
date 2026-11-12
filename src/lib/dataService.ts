@@ -142,6 +142,7 @@ export { semanaDeTareas, type Semana } from '@/lib/datos/semana';
 export { mesDeTareas, type Mes } from '@/lib/datos/calendario';
 export { actualizarCategoria, crearCategoria, eliminarCategoria, listarCategorias } from '@/lib/datos/categorias';
 export { buscarEnWikipedia, eliminarFuenteWeb, guardarFuenteWeb, listarFuentesWeb } from '@/lib/datos/wikipedia';
+export { confirmarPlanLectura, vistaPreviaPlanLectura } from '@/lib/datos/planLectura';
 export type {
   Categoria,
   ConversacionActual,
@@ -160,5 +161,7 @@ export type {
   Capitulo,
   FuenteWeb,
   CapitulosDocumento,
+  PlanLectura,
+  ResultadoPlanLectura,
   ResultadoIndexacion,
 } from '@/lib/datos/tipos';
