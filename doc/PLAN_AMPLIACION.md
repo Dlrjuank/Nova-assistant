@@ -17,7 +17,7 @@ Los prompts de ejecución están en `doc/PROMPTS_AMPLIACION.md` (etapas E00 a E2
 9. [El asistente en Semestre](#9-el-asistente-en-semestre)
 10. [API](#10-api)
 11. [Pruebas](#11-pruebas)
-12. [Casos de aceptación B-01 a B-81](#12-casos-de-aceptación-b-01-a-b-81)
+12. [Casos de aceptación B-01 a B-86](#12-casos-de-aceptación-b-01-a-b-86)
 13. [Riesgos y decisiones](#13-riesgos-y-decisiones)
 
 ---
@@ -80,6 +80,7 @@ Los prompts de ejecución están en `doc/PROMPTS_AMPLIACION.md` (etapas E00 a E2
 | X30 | Consulta sin conexión, solo lectura: Inicio, Tareas, Calendario y capítulos (aprobado por el usuario, 2026-11-09) | E11b |
 | X25 | Historial de intentos por documento o capítulo y sugerencia de tarea para repasar | E10f |
 | X31 | Tipos de pregunta en los cuestionarios: selección única, respuesta múltiple, verdadero o falso, completar, pregunta abierta y mixto (sugerido por un amigo del usuario y aprobado por el usuario, 2026-11-13) | E10g |
+| X32 | Crear tareas sin conexión: se guardan en el dispositivo con la marca "Pendiente de enviar" y se envían solas, sin duplicarse, al volver la conexión con Nova abierta; completar, editar y eliminar siguen necesitando conexión (pedido del usuario, 2026-11-13) | E11e |
 
 ### 2.2 Fuera de alcance
 
@@ -98,7 +99,7 @@ Los prompts de ejecución están en `doc/PROMPTS_AMPLIACION.md` (etapas E00 a E2
   - Respaldo de los recordatorios por correo con Resend (retirado de E11d el 2026-11-09). Enviar a cualquier destinatario exige un dominio verificado, que tiene costo.
   - **Límite de uso por persona:** cuando más personas usen Nova, la cuota de Gemini se comparte entre todos. Idea: un límite por usuario y por día, configurable (por ejemplo, 1 libro grande y 50 preguntas), con un mensaje claro al alcanzarlo, para que nadie gaste el cupo de todos.
   - **Gemini de pago para uso con más personas o en una universidad:** en el plan gratuito, Google usa lo enviado para mejorar sus productos, personas pueden leerlo y sus términos piden no enviar información sensible, confidencial o personal. En el de pago no usa los prompts ni las respuestas para mejorar sus productos.
-  - **Crear o completar tareas sin conexión y sincronizar al volver** (anotado el 2026-11-09, sin planear): unas 2 o 3 etapas medianas (cola de cambios en IndexedDB, identificadores de cliente, reglas de conflicto, categorías y recordatorios sin conexión, pantallas que hoy dependen del servidor). En iPhone solo sincronizaría con la app abierta.
+  - **Crear o completar tareas sin conexión y sincronizar al volver** (anotado el 2026-11-09, sin planear): unas 2 o 3 etapas medianas (cola de cambios en IndexedDB, identificadores de cliente, reglas de conflicto, categorías y recordatorios sin conexión, pantallas que hoy dependen del servidor). En iPhone solo sincronizaría con la app abierta. *(El 2026-11-13 entra en el alcance solo **crear**: E11e, X32. Completar, editar y eliminar sin conexión siguen fuera.)*
   - **Búsqueda con Google integrada en Gemini** (descartada por ahora el 2026-11-09): no está disponible en el plan gratuito para los modelos que usa Nova; exige facturación con tarjeta, mostrar las sugerencias de búsqueda y cambiar RB-55. Si algún día se paga, se haría con una clave de un proyecto aparte y alerta de presupuesto.
 - Un segundo proyecto de Supabase.
 
@@ -341,6 +342,19 @@ Se hace después de E11d. Al crear un cuestionario se elige **Tipo de preguntas*
 - **Los cuestionarios que ya existen** son de selección única y siguen funcionando igual.
 - **Costo:** igual que E10e, a lo sumo 2 llamadas a Gemini por cuestionario, y ninguna para calificar (9.7).
 
+### 5.13 Crear tareas sin conexión (E11e, pedido del usuario del 2026-11-13)
+
+Se hace después de E11d. **Solo crear:** completar, editar y eliminar siguen necesitando conexión (RB-62).
+
+- **Dónde se crea:** "Registrar tarea", el botón "+" y "Nueva tarea" de Inicio y del Calendario abren el formulario también sin conexión. Su pantalla se guarda como las de RB-62 (su copia lleva las categorías del usuario). Mismas reglas y mensajes que con conexión (RN-04 a RN-08, RB-33, RB-34, RB-43); el recordatorio se puede elegir.
+- **Al guardar sin conexión** (o si el pedido falla por la red, `esFallaDeRed`): la tarea queda en el dispositivo (IndexedDB), a nombre del usuario y con un identificador propio (`id_cliente`), y se vuelve a la pantalla anterior con `Guardada en este dispositivo. Se enviará cuando vuelva la conexión.` (RB-70).
+- **Cómo se ve:** aparece en Tareas (en su categoría), en Mi semana y Prioridades de hoy de Inicio y en el Calendario (en su día), con la insignia `Pendiente de enviar` y sin casilla para completarla. Solo tiene "Descartar", con confirmación (RB-71). Tareas muestra arriba `{n} tareas pendientes de enviar` mientras haya.
+- **Al volver la conexión con Nova abierta** (o al abrirla con conexión): se envían solas, en el orden en que se crearon, una pestaña a la vez, y el servidor nunca las duplica, aunque se reintente o haya dos pestañas abiertas (RB-72, 7.14). Al terminar: `Se enviaron {n} tareas que creaste sin conexión.` y las pantallas se actualizan. En el iPhone solo se envían con la app abierta (iOS no tiene envío en segundo plano para la web).
+- **Recordatorio:** lo calcula el servidor cuando recibe la tarea (7.10), nunca antes. Si su momento pasó mientras estaba sin conexión, la tarea se guarda igual y se avisa (RB-73).
+- **Si el servidor la rechaza** (por ejemplo, una categoría o una fecha que ya no es válida): queda en el dispositivo como `No se pudo enviar`, con el mensaje exacto del servidor, y los botones "Corregir" (abre el formulario lleno; al guardar se vuelve a enviar) y "Descartar" (RB-74).
+- **Cerrar sesión con tareas sin enviar:** antes de cerrar, se avisa cuántas hay; si se confirma, se borran del dispositivo junto con la copia de RB-63. Las tareas pendientes de otro usuario nunca se envían con la sesión de este (RB-75).
+- **Límite:** 50 tareas pendientes por dispositivo.
+
 ## 6. Modelo de datos
 
 Migraciones nuevas M5 a M13 en `supabase/migrations/`, numeradas después de `20261003136000`. Todas aditivas.
@@ -481,6 +495,8 @@ Columnas nuevas en `tareas_personales`: `hora_inicio TIME NULL` y `hora_fin TIME
   - `pg_cron` y `pg_net` de Supabase llaman cada minuto a `POST /api/nova/recordatorios/tick`, con un secreto guardado en Supabase Vault (`RECORDATORIOS_SECRETO` en Vercel).
   - Se eligió así porque Vercel Hobby solo permite tareas programadas una vez al día y con hasta una hora de imprecisión. Cada minuto exige Vercel Pro (20 USD al mes).
   - Hasta E21, la llamada va a la vista previa con el encabezado de omisión de la protección de Vercel (`x-vercel-protection-bypass`). En E21 pasa a producción.
+  - **Paso a producción (E21, TAREA 6), confirmado con el usuario el 2026-11-13:** cuando `master` ya tenga el código de E11c, `NOVA_TICK_URL` pasa a `https://nova-assistantsm-kappa.vercel.app/api/nova/recordatorios/tick`, se quita `VERCEL_AUTOMATION_BYPASS_SECRET` de `.env.local` y se ejecuta `npm run db:configurar-tick`: Vault queda con la dirección de producción y sin la omisión (el script la borra si la variable no está). Después se revoca la omisión en el proyecto de Vercel y se comprueba en `net._http_response` que las llamadas responden 200. Nunca antes de que producción tenga la ruta: si no, cada minuto respondería 404.
+  - Las suscripciones push son por sitio: las activadas en la vista previa no sirven en producción. Tras el paso, el usuario vuelve a tocar "Activar notificaciones" en cada dispositivo, ya en producción (y reinstala la app desde producción).
 - Solo aditiva: los INSERT de `master` dejan `recordatorio` en NULL.
 - El tick hace una consulta real a la base cada minuto desde la aplicación, y eso cuenta como actividad para la pausa de Supabase (sección 13).
 
@@ -527,6 +543,17 @@ Antes de migrar: `npm run db:respaldar`. Las tablas de M17 ya están en la lista
   - `NOT NULL` de `opciones`, `correcta`, `elegida` y `acierto`: se quita.
   - No se borra ni se cambia ningún dato.
 - Las filas existentes quedan con `tipo = 'unica'`, y sus respuestas reciben `puntos` = 100 o 0 según `acierto` en la misma migración, para que el puntaje se calcule igual. `master` no usa estas tablas.
+
+### 6.19 M23 · Tareas creadas sin conexión (E11e)
+
+Antes de migrar: `npm run db:respaldar`. No hay tablas nuevas.
+
+| Tabla | Cambio | Restricciones |
+|---|---|---|
+| `tareas_personales` | Columna nueva `id_cliente` UUID NULL: el identificador que el dispositivo le dio a una tarea creada sin conexión | Índice único parcial `(usuario_id, id_cliente)` donde `id_cliente IS NOT NULL` |
+
+- Solo aditiva: las tareas creadas con conexión y las de `master` quedan con `id_cliente` en NULL.
+- Lo pendiente vive en el dispositivo (IndexedDB), no en la base: la base solo recibe la tarea cuando se envía.
 
 ## 7. Reglas de cálculo
 
@@ -652,6 +679,18 @@ Se comparan la respuesta escrita y `respuesta_texto` después de normalizarlas:
 
 Son iguales si coinciden después de normalizar. "  FOTOSINTESIS " acierta "fotosíntesis"; "fotosintesis." también; "fotosíntesis y respiración" no.
 
+### 7.14 Enviar las tareas creadas sin conexión (E11e)
+
+- **Identificador:** al guardar sin conexión, el dispositivo le da a la tarea un `id_cliente` (UUID). Ese mismo identificador viaja en cada reintento y al "Corregir".
+- **En el servidor:** `POST /api/nova/tareas` con `idCliente` inserta con `ON CONFLICT (usuario_id, id_cliente) DO NOTHING`; si ya existía, responde con la tarea guardada, sin crear otra ni repetir la categoría nueva ni el recordatorio. Así, un reintento después de un corte, o dos pestañas que envían a la vez, nunca duplican.
+- **En el dispositivo:** una sola pestaña envía a la vez (Web Locks, `navigator.locks`); las demás esperan y luego ven la lista vacía. Se envía al volver la conexión (`online`), al abrir Nova con conexión y cada 30 s mientras queden pendientes.
+- **Resultado de cada envío:**
+  - 200 o 201: se borra del dispositivo.
+  - 4xx de validación (422, 400): queda `No se pudo enviar` con el mensaje del servidor y no se reintenta sola.
+  - 401 o 403: se detiene sin borrar nada; se reintenta cuando vuelva a haber sesión del mismo usuario.
+  - Red o 5xx: queda pendiente y se reintenta.
+- **Cuál usuario:** cada tarea pendiente guarda el id del usuario que la creó y solo se envía con esa sesión.
+
 ## 8. Reglas de negocio y mensajes exactos
 
 Los mensajes se usan **textualmente** en la interfaz y en la API. Los de `PLAN_NOVA.md` (sección 5.1 y 12.2) no cambian.
@@ -727,6 +766,12 @@ Los mensajes se usan **textualmente** en la interfaz y en la API. Los de `PLAN_N
 | RB-67 | (E10g) Completar: el servidor arma la frase con el espacio en blanco a partir de la cita (no confía en el modelo) y compara según 7.13 | Vacía: `Escribe tu respuesta.` |
 | RB-68 | (E10g) Pregunta abierta: la respuesta (1 a 1000 caracteres) se guarda al enviarla y no se cambia; luego se muestran la respuesta modelo, la cita y la página, y el usuario se califica una sola vez. Sin Gemini para calificar | Vacía: `Escribe tu respuesta.` · Indicación: `Compara tu respuesta con la respuesta modelo y califícate.` · Botones: `La tuve bien` · `A medias` · `Mal` |
 | RB-69 | (E10g) Una respuesta que no corresponde al tipo de la pregunta (por ejemplo, un texto para una de selección única, o calificarse sin haber enviado la abierta) se rechaza sin guardar nada. "Repetir solo las que fallé" y la tarea de repaso cuentan como falladas las de menos de 1 punto | `Revise los datos ingresados.` (`DATOS_INVALIDOS`, 400) |
+| RB-70 | (E11e) Crear sin conexión: solo crear, con las mismas reglas y mensajes; la tarea queda en el dispositivo con su `id_cliente`; como máximo 50 pendientes | `Guardada en este dispositivo. Se enviará cuando vuelva la conexión.` · `Ya tienes 50 tareas sin enviar. Conéctate para enviarlas antes de crear más.` |
+| RB-71 | (E11e) Una tarea pendiente se ve en Tareas, Inicio y Calendario con su insignia; no se completa, edita ni elimina: solo se descarta, con confirmación | `Pendiente de enviar` · `{n} tareas pendientes de enviar` · `¿Descartar esta tarea? No se enviará.` |
+| RB-72 | (E11e) Envío al volver la conexión con Nova abierta: en orden de creación, una pestaña a la vez, sin duplicar nunca (7.14) | `Se enviaron {n} tareas que creaste sin conexión.` |
+| RB-73 | (E11e) El recordatorio lo calcula el servidor al recibir la tarea (7.10). Si su momento pasó mientras estaba sin conexión, queda `omitido` y se avisa | `El recordatorio de «{t}» no se enviará: su momento pasó mientras estaba sin conexión.` |
+| RB-74 | (E11e) Si el servidor rechaza una tarea pendiente, queda en el dispositivo con el mensaje exacto del servidor; "Corregir" abre el formulario lleno y la vuelve a enviar con el mismo `id_cliente`; "Descartar" la borra | `No se pudo enviar: {mensaje del servidor}` |
+| RB-75 | (E11e) Cerrar sesión con tareas sin enviar: primero se avisa; al confirmar, se borran del dispositivo con la copia de RB-63. Las de otro usuario nunca se envían con la sesión actual y se borran al detectar otro usuario (RB-63) | `Tienes {n} tareas sin enviar. Si cierras sesión, se borrarán de este dispositivo.` (con 1: `Tienes 1 tarea sin enviar. Si cierras sesión, se borrará de este dispositivo.`) · Botones `Cerrar sesión y borrarlas` y `Cancelar` |
 | RB-63 | (E11b) La copia sin conexión se borra: al cerrar sesión; si, con conexión, el servidor rechaza la sesión (401, 403 o redirección a `/login`); si inicia sesión otro usuario; y tras 7 días sin una respuesta válida del servidor, porque sin conexión no se puede saber si la sesión venció | — |
 | RB-29 | Editar una tarea: solo pendientes y del usuario; título, categoría, prioridad, fecha límite y horario con las mismas validaciones y mensajes que al crear; estado, minutos y fecha de cierre no se tocan | Los de crear (`PLAN_NOVA.md` 5.1). Tarea completada: `La tarea ya está completada.` (`TAREA_YA_COMPLETADA`, 409). De otro usuario o inexistente: `La tarea no existe.` (`TAREA_NO_ENCONTRADA`, 404) |
 
@@ -822,6 +867,7 @@ Todas con `exigirSesion()` como primera instrucción y el id del usuario de la s
 | `POST /api/nova/documentos/[id]/plan-lectura` (vista previa) y `.../plan-lectura/confirmar` | Plan de lectura (RB-42) | E10d |
 | `POST/DELETE /api/nova/notificaciones/suscripcion`, `POST /api/nova/notificaciones/prueba` | Suscripción push del dispositivo y aviso de prueba | E11c |
 | `POST /api/nova/recordatorios/tick` | Envío cada minuto; sin sesión, con `RECORDATORIOS_SECRETO` | E11c |
+| `POST /api/nova/tareas` (campo nuevo) | `idCliente` (UUID, opcional): una tarea creada sin conexión; repetir el envío devuelve la misma tarea (7.14) | E11e |
 | `GET /api/nova/tareas/[id]/ics` | "Agregar a mi calendario" (RB-47) | E11d |
 | `POST/GET /api/nova/cuestionarios` | Generar (`maxDuration = 120`, igual que el Asistente) y listar el historial (`?documentoId=`). Desde E10g, al generar también `tipo` (por defecto `mixto`) | E10e, E10f, E10g |
 | `GET /api/nova/cuestionarios/[id]` | Preguntas sin la respuesta correcta | E10e |
@@ -868,6 +914,11 @@ Las rutas que llaman a Gemini declaran `maxDuration = 60`.
   - S-73 (E10g, RB-64): reparto de mixto en 5, 10 y 20; la segunda llamada pide solo lo que falta de cada tipo; nunca más de 2 llamadas; un tipo de más se descarta.
   - S-74 (E10g, RB-50, RB-68): la vista de cada tipo no trae las correctas, `verdadero`, lo que falta, la respuesta modelo ni la cita antes de responder; una abierta enviada sin calificar trae la respuesta modelo y no cuenta como terminada.
   - S-75 (E10g, RB-69): una respuesta de otro tipo o calificarse sin enviar se rechaza; "Repetir solo las que fallé" incluye las "A medias" y las múltiples parciales; un cuestionario anterior (sin tipo) se responde y califica como antes.
+  - S-76 (E11e, 7.14): crear con el mismo `idCliente` dos veces (también a la vez) deja una sola tarea, una sola categoría nueva y un solo recordatorio; sin `idCliente` todo sigue igual; el `idCliente` de otro usuario no choca.
+  - S-77 (E11e, RB-70): sin conexión el formulario guarda en el dispositivo con las mismas validaciones; el tope de 50; el formulario y su copia están disponibles sin conexión.
+  - S-78 (E11e, RB-72): el envío por resultado (201, 200 ya existía, 422, 401, red); una sola pestaña envía (Web Locks simulado); orden de creación.
+  - S-79 (E11e, RB-73, RB-74): recordatorio pasado al enviar queda omitido con su aviso; "Corregir" reenvía con el mismo `idCliente`.
+  - S-80 (E11e, RB-75): cerrar sesión avisa y borra; las pendientes de otro usuario no se envían.
   - S-68 y S-69 (E11b): qué rutas se pueden guardar (Asistente, API de escritura y texto de documentos nunca); cada caso de borrado de RB-63, incluido el de 7 días.
   - S-29 a S-32 (validación del plan: tema no confirmado, fuente inventada, fecha fuera de rango, plan válido).
 - **Contraste**: una prueba lee los tokens de `globals.css` y comprueba ≥ 4,5:1 en cada par texto/fondo, en ambos modos, y para los 8 colores de categoría.
@@ -895,7 +946,7 @@ Con un `git worktree` de `master` en una carpeta temporal: `npm run probar:rag` 
 
 En cada etapa con interfaz: navegador real a 1280 px y 390 px (sin desplazamiento horizontal, sin errores de página, foco visible) y prueba del usuario en la **vista previa de Vercel** desde su teléfono.
 
-## 12. Casos de aceptación B-01 a B-81
+## 12. Casos de aceptación B-01 a B-86
 
 Se ejecutan en la vista previa de Vercel de `ampliacion`, en computador y en teléfono, y se registran en `doc/ACEPTACION.md` (sección nueva). Antes, se repiten A-01 a A-21 en la vista previa.
 
@@ -970,6 +1021,11 @@ Se ejecutan en la vista previa de Vercel de `ampliacion`, en computador y en tel
 | B-79 | (E10g) Responder una de verdadero o falso cuya afirmación es falsa, y una de completar escribiendo la respuesta en mayúsculas, sin tilde y con espacios de más | La falsa explica qué es lo correcto según la cita; la de completar cuenta como correcta |
 | B-80 | (E10g) En una pregunta abierta: enviar la respuesta, cerrar la pantalla, volver y marcar "A medias" | Al volver se ven la respuesta modelo y los tres botones; vale 0,5; la respuesta y la calificación ya no se pueden cambiar; entra en "Repetir solo las que fallé" |
 | B-81 | (E10g) Crear uno solo de verdadero o falso y otro solo de completar; abrir un cuestionario creado antes de E10g y el historial | Todas las preguntas son del tipo elegido; el anterior funciona igual, como selección única; el historial muestra el tipo de cada cuestionario |
+| B-82 | (E11e) En el iPhone (app instalada), modo avión: crear una tarea de mañana con "1 hora antes" y otra con una categoría nueva | Dice `Guardada en este dispositivo…`; ambas aparecen en Tareas, Inicio y Calendario con `Pendiente de enviar` y sin casilla |
+| B-83 | (E11e) Quitar el modo avión con Nova abierta | Se envían solas: `Se enviaron 2 tareas…`; quedan una sola vez cada una (también con dos pestañas abiertas en el PC), la categoría nueva existe y el recordatorio llega a su hora |
+| B-84 | (E11e) Sin conexión, crear una tarea de hoy con "A la hora" a una hora que pasará antes de volver la conexión; volver | Se guarda en el servidor y avisa `El recordatorio de «…» no se enviará…` |
+| B-85 | (E11e, en la prueba automática de Edge: con las mismas validaciones en el dispositivo y en el servidor, a mano casi no se puede provocar) Una pendiente que el servidor rechaza; tocar "Corregir" en ella y "Descartar" en otra | La rechazada muestra `No se pudo enviar: {mensaje}`; corregida se envía; la descartada desaparece |
+| B-86 | (E11e) Con una tarea sin enviar, tocar "Cerrar sesión" | Avisa `Tienes 1 tarea sin enviar…`; con "Cancelar" no cierra; con "Cerrar sesión y borrarlas", cierra y al volver a entrar ya no está |
 | B-67 | (E10b2) En "Buscar en la web": buscar una frase, ver la fuente en "Fuentes guardadas" sin recargar y eliminarla; con 20 en una categoría, buscar otra vez | Aparece en su categoría con su enlace y "1/20"; eliminar pide confirmación y la quita; al llegar a 20, el aviso indica que se pueden eliminar abajo, y al eliminar una se puede volver a buscar |
 | B-68 | (E10c2) Con "Wikipedia" en "Buscar en": buscar una frase y no tocar "Guardar fuente"; buscar otra y guardarla; guardarla otra vez; con 20 en la categoría, buscar y guardar | La primera no aparece en "Fuentes guardadas"; la segunda sí, sin recargar; repetirla avisa que ya está; con 20, la búsqueda funciona y el tope se avisa al guardar (A-18) |
 | B-69 | (E10c2) Con "Fuentes web" en "Buscar en": preguntar algo de una fuente guardada y algo que no esté; con "Todos los documentos", preguntar lo mismo; sin fuentes guardadas, preguntar | Responde citando la fuente con su enlace, que abre Wikipedia; lo que no está: `No encontré esto en tus fuentes web guardadas. Prueba con "Wikipedia" en "Buscar en".`; con documentos no usa la fuente; sin fuentes, el aviso de RB-56 |
@@ -1008,4 +1064,6 @@ Se ejecutan en la vista previa de Vercel de `ampliacion`, en computador y en tel
 | Privacidad con Gemini gratuito | Los términos del plan gratuito permiten a Google usar el contenido para mejorar sus productos y que personas lo lean, y piden no enviar información sensible, confidencial o personal. Rige desde hoy para preguntas, fragmentos y libros. El aviso de E11 (Configuración → Asistente) debe decirlo con claridad. El plan de pago no los usa para mejorar productos (2.2) |
 | Sesión dentro de la app instalada en el iPhone | Es distinta de la de Safari: se inicia sesión una vez dentro de la app; la guía lo dice |
 | Tamaño de la ampliación | 22 etapas pequeñas (más las agregadas después), cada una con su commit y su prueba; se puede parar en cualquier etapa con todo funcionando |
+| Abrir la app más rápido (anotado para E20b) | Abrir la app mostrando al instante la copia guardada de Inicio con un aviso "Actualizando…" y reemplazarla en su lugar al llegar la respuesta del servidor, con completar, crear y editar desactivados mientras tanto; solo Inicio, con una copia del mismo usuario de menos de 24 h, sin pedidos extra al servidor. Riesgo: por un momento puede verse una tarea ya completada en otro dispositivo, o la copia antes de llevar al inicio de sesión si la sesión venció. Propuesta del 2026-11-13, no hecha por decisión del usuario. Junto con bajar el tiempo de carga de cada pantalla (≈ 550 ms en local; ver `PROMPTS_AMPLIACION.md`, E20b). |
+| Tareas creadas sin conexión (E11e) | Solo crear: completar, editar o eliminar sin conexión obligaría a resolver conflictos con lo que pasó en otro dispositivo. La duplicación se evita en el servidor (`id_cliente` único por usuario), no solo en el dispositivo. En el iPhone el sistema puede borrar los datos de una app web que no se usa en semanas: lo pendiente se puede perder si no se abre Nova con conexión; Tareas lo advierte mientras haya pendientes |
 | Tipos de pregunta (E10g) | La abierta se califica con la autoevaluación del usuario, sin Gemini: es honesta solo si el usuario lo es, y por eso la respuesta modelo y la cita se muestran siempre. La de completar solo acepta lo que falta, con la comparación de 7.13: un sinónimo no cuenta. Verdadero o falso puede salir desbalanceado (9.7) |

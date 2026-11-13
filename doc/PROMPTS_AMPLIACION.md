@@ -536,6 +536,28 @@ VERIFICACIÓN: B-58 y B-59.
 
 ---
 
+## E11e · Crear tareas sin conexión (pedida por el usuario, 2026-11-13)
+
+**Plan:** 5.13, 6.19, 7.14, RB-70 a RB-75. **Requisito:** E11d.
+
+```text
+OBJETIVO: poder anotar una tarea sin conexión y que llegue sola al servidor, una sola vez, cuando vuelva la conexión.
+
+TAREA 1. Respaldo y migración M23 (tareas_personales.id_cliente con índice único parcial por usuario). Compatibilidad con master (11.3).
+TAREA 2. POST /api/nova/tareas acepta idCliente: ON CONFLICT DO NOTHING y, si ya existía, devuelve la misma tarea sin repetir categoría ni recordatorio (7.14). Pruebas S-76.
+TAREA 3. El formulario de nueva tarea, con su copia, disponible sin conexión (RB-62 y la lista del service worker); al guardar sin conexión o con falla de red, la tarea queda en IndexedDB a nombre del usuario, con el tope de 50 (RB-70). Pruebas S-77.
+TAREA 4. Las pendientes en Tareas, Inicio (Mi semana y Prioridades de hoy) y Calendario con la insignia "Pendiente de enviar", sin casilla y con "Descartar" (RB-71).
+TAREA 5. Envío al volver la conexión, al abrir con conexión y cada 30 s mientras queden: en orden, una pestaña a la vez (Web Locks) y según el resultado de 7.14; aviso al terminar y pantallas actualizadas (RB-72). Recordatorio calculado por el servidor y aviso si ya pasó (RB-73). Rechazadas con "Corregir" y "Descartar" (RB-74). Pruebas S-78 y S-79.
+TAREA 6. Cerrar sesión con pendientes: aviso, y al confirmar se borran con la copia de RB-63; las de otro usuario nunca se envían (RB-75). Pruebas S-80.
+TAREA 7. Edge con la base real: crear sin conexión, dos pestañas al volver, rechazo, cerrar sesión. Prueba del usuario en el iPhone (app instalada) y el PC.
+
+VERIFICACIÓN: B-82 a B-86.
+```
+
+**Commit:** `feat(tareas): crear tareas sin conexión`
+
+---
+
 ## E10g · Tipos de pregunta en los cuestionarios (sugerida por un amigo del usuario, aprobada el 2026-11-13)
 
 **Plan:** 5.12, 6.18, 7.12, 7.13, 9.7, RB-64 a RB-69. **Requisito:** E10f. **Se hace después de E11d.**
@@ -764,6 +786,8 @@ Anota en el plan lo que decidas y avísame antes de pasar a la siguiente pantall
 
 **Pendiente anotado el 2026-11-13 (pedido del usuario al cerrar E11b), para E20b o el cierre (E21):** revisar cómo bajar el tiempo de carga de cada pantalla, hoy ≈ 550 ms medidos en local (la señal de carga ya sale al instante). Casi todo es el servidor: la sesión se consulta a Supabase Auth en el middleware y otra vez en la pantalla, y las consultas a la base van en serie. Medición y detalle en `ESTADO_EJECUCION.md`, "E11b: rapidez al cambiar de pestaña".
 
+**Opción anotada el 2026-11-13 para E20b, junto con bajar el tiempo de carga (el usuario decidió no hacerla por ahora):** Abrir la app mostrando al instante la copia guardada de Inicio con un aviso "Actualizando…" y reemplazarla en su lugar al llegar la respuesta del servidor, con completar, crear y editar desactivados mientras tanto; solo Inicio, con una copia del mismo usuario de menos de 24 h, sin pedidos extra al servidor. Riesgo: por un momento puede verse una tarea ya completada en otro dispositivo, o la copia antes de llevar al inicio de sesión si la sesión venció. Propuesta del 2026-11-13, no hecha por decisión del usuario.
+
 ---
 
 ## E21 · Aceptación de la ampliación
@@ -771,12 +795,12 @@ Anota en el plan lo que decidas y avísame antes de pasar a la siguiente pantall
 **Plan:** 12. **Requisito:** E20b.
 
 ```text
-TAREA 1. Agregar a doc/ACEPTACION.md la tabla B-01 a B-70 (columnas como A-01 a A-15) y la nota de repetir A-01 a A-21 en la vista previa.
+TAREA 1. Agregar a doc/ACEPTACION.md la tabla B-01 a B-86 (columnas como A-01 a A-15) y la nota de repetir A-01 a A-21 en la vista previa.
 TAREA 2. Revisión final: sin botones muertos (recorrido de todas las pantallas), sin colores fuera de los tokens, sin textos en inglés, todas las rutas nuevas con exigirSesion y filtro por usuario, ninguna clave en el repositorio.
 TAREA 3. Actualizar README (funciones, pantallas, scripts nuevos) y crear doc/checkpoints/AMPLIACION_COMPLETADA.md.
 TAREA 4. Preparar (sin aplicar) la migración que quita el disparador de dueño por defecto (plan, 6.1): comprueba que no quedan filas sin usuario_id, borra el disparador y asignar_dueno_por_defecto (y nova_config si nada más la usa) y pasa usuario_id a NOT NULL. Se aplica solo al unir ampliacion con master, después de que master tenga el código nuevo; nunca antes, porque rompería el código de master en producción.
-TAREA 5. Recordarle al usuario ejecutar B-01 a B-70 y A-01 a A-21 en la vista previa, en computador y teléfono. La unión de ampliacion con master solo se hace si el usuario la pide, e incluye revisar y aplicar la migración de la TAREA 4.
-TAREA 6. (Recordatorios, E11c) Al unir con master: el trabajo de pg_cron pasa a llamar a la URL de producción, se quita el encabezado de omisión de la protección de la vista previa y se comprueba que las claves VAPID y RECORDATORIOS_SECRETO están en Production. Se agrega el cron diario de Vercel a GET /api/nova/salud con CRON_SECRET (riesgo de pausa de Supabase, plan 13).
+TAREA 5. Recordarle al usuario ejecutar B-01 a B-86 y A-01 a A-21 en la vista previa, en computador y teléfono. La unión de ampliacion con master solo se hace si el usuario la pide, e incluye revisar y aplicar la migración de la TAREA 4.
+TAREA 6. (Recordatorios, E11c; plan 6.12, "Paso a producción") Al unir con master, y solo cuando producción ya tenga el código: NOVA_TICK_URL pasa a https://nova-assistantsm-kappa.vercel.app/api/nova/recordatorios/tick, se quita VERCEL_AUTOMATION_BYPASS_SECRET de .env.local, se ejecuta npm run db:configurar-tick (Vault queda con la dirección de producción y sin la omisión), se revoca la omisión en el proyecto de Vercel, se comprueba en net._http_response que las llamadas responden 200 y que VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY y RECORDATORIOS_SECRETO están en Production. Se le recuerda al usuario reinstalar la app y volver a activar las notificaciones en cada dispositivo, ya en producción (las suscripciones son por sitio). Se agrega el cron diario de Vercel a GET /api/nova/salud con CRON_SECRET (riesgo de pausa de Supabase, plan 13).
 ```
 
 **Commit:** `docs: aceptación de la ampliación`
