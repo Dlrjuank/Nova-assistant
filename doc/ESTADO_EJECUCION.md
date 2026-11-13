@@ -868,3 +868,8 @@ Total de fallas: 0
 - **Pruebas:** reglas (`tests/reglas/preferencias.test.ts`), servicio y rutas (`tests/servidor/configuracion.test.ts`), pantallas (`tests/interfaz/configuracion.test.tsx`), navegación y lista de respaldo actualizadas.
 - **Edge con la base real** (usuario temporal con una tarea con horario y una conversación, borrado al final; 27 de 27): bloques y menú, B-03 (oscuro al momento, guardado, sin parpadeo al volver y tomado de la base en un navegador sin nada guardado), 12 horas en Inicio, Tareas y Calendario, RB-11 y la suma de los cortes, académico guardado, B-22 (nombre en `public.users`, contraseña actual equivocada, la nueva sirve para entrar), B-23 (confirmación, conversaciones y mensajes borrados, chat vacío), teléfono en oscuro sin desborde y "Más", cerrar sesión.
 - **Al cierre:** `npm test` 826/826, `npm run build` correcto, `eslint` sin errores. Sin llamadas a Gemini salvo `probar:rag` de `master`.
+
+#### E11 terminada (2026-11-13)
+
+- **Prueba del usuario en la vista previa (PC y teléfono), sin fallas:** las 8 pruebas de E11.
+- Queda cerrada E11. Sigue E11b.
