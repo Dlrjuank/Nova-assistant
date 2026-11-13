@@ -3,8 +3,10 @@ import type { MetadataRoute } from 'next';
 /**
  * E11b (PLAN_AMPLIACION 5.10): Nova se puede agregar a inicio como una app. Íconos provisionales; los finales
  * llegan con el diseño de E20b. Colores de los tokens del modo claro (globals.css).
+ * Se sirve en /manifest.webmanifest con una ruta propia (no con app/manifest.ts) para enlazarlo con
+ * crossorigin="use-credentials": en la vista previa protegida por Vercel, sin eso se pediría sin sesión.
  */
-export default function manifest(): MetadataRoute.Manifest {
+export function manifiesto(): MetadataRoute.Manifest {
   return {
     id: '/nova',
     name: 'Nova',
