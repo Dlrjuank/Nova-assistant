@@ -365,7 +365,7 @@ CREATE FUNCTION buscar_fragmentos_usuario(consulta vector(768), limite int, usua
 
 | Tabla | Columnas | Restricciones |
 |---|---|---|
-| `preferencias_usuario` | `usuario_id` (PK), `tema` (`claro`/`oscuro`/`automatico`), `nota_aprobar` NUMERIC(3,2) default 3.00, `redondeo` (`truncar`/`redondear`) default `truncar`, `cortes_defecto` INTEGER[] default `{3000,3000,4000}` (centésimas de punto porcentual), `actualizado_en` | `nota_aprobar` entre 0 y 5; cada corte > 0 y suma 10000 |
+| `preferencias_usuario` | `usuario_id` (PK), `tema` (`claro`/`oscuro`/`automatico`), `formato_hora` (`24`/`12`, default `24`; agregado en E11 por el pedido de E06b), `nota_aprobar` NUMERIC(3,2) default 3.00, `redondeo` (`truncar`/`redondear`) default `truncar`, `cortes_defecto` INTEGER[] default `{3000,3000,4000}` (centésimas de punto porcentual), `actualizado_en` | `nota_aprobar` entre 0 y 5; cada corte > 0 y suma 10000 |
 
 Sin fila, se usan los valores por defecto. El nombre del perfil vive en `public.users.full_name` (ya existe). `nota_aprobar` es la nota mínima para aprobar de todas las materias (3,0 por defecto). `cortes_defecto` es solo la plantilla que se propone cuando una materia se divide en cortes (desde 2026-11-07 los cortes son opcionales).
 

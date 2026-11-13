@@ -14,6 +14,10 @@ describe('tablas del respaldo', () => {
     expect(TABLAS_RESPALDO).toEqual(expect.arrayContaining(['cuestionarios', 'preguntas_cuestionario', 'intentos_cuestionario', 'respuestas_intento']));
   });
 
+  it('M7: incluye las preferencias del usuario', () => {
+    expect(TABLAS_RESPALDO).toContain('preferencias_usuario');
+  });
+
   it('no repite tablas', () => {
     expect(new Set(TABLAS_RESPALDO).size).toBe(TABLAS_RESPALDO.length);
   });

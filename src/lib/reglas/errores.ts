@@ -39,6 +39,10 @@ export type CodigoError =
   | 'CUESTIONARIO_NO_ENCONTRADO'
   | 'PREGUNTA_NO_ENCONTRADA'
   | 'TAREA_REPASO_EXISTENTE'
+  | 'NOMBRE_PERFIL_INVALIDO'
+  | 'NOTA_APROBAR_INVALIDA'
+  | 'PORCENTAJE_INVALIDO'
+  | 'CORTES_NO_SUMAN'
   | 'ERROR_INTERNO';
 
 // Textos de la sección 12.2; los de la sección 5.1 se usan literalmente.
@@ -88,6 +92,11 @@ export const MENSAJES: Record<CodigoError, string> = {
   PREGUNTA_NO_ENCONTRADA: 'La pregunta no existe.',
   // RB-53 (E10f): sugerencia de repaso.
   TAREA_REPASO_EXISTENTE: 'Ya tienes esa tarea de repaso.',
+  // E11 (RB-26, RB-11, RB-10, RB-07): Configuración.
+  NOMBRE_PERFIL_INVALIDO: 'Escribe tu nombre.',
+  NOTA_APROBAR_INVALIDA: 'La nota para aprobar debe estar entre 0,0 y 5,0.',
+  PORCENTAJE_INVALIDO: 'El porcentaje debe ser mayor que 0 y como máximo 100.',
+  CORTES_NO_SUMAN: 'Los porcentajes de los cortes deben sumar 100 %.',
   ERROR_INTERNO: 'Ocurrió un error inesperado. Intente de nuevo.',
 };
 
@@ -132,6 +141,10 @@ export const ESTADO_HTTP: Record<CodigoError, number> = {
   CUESTIONARIO_NO_ENCONTRADO: 404,
   PREGUNTA_NO_ENCONTRADA: 404,
   TAREA_REPASO_EXISTENTE: 409,
+  NOMBRE_PERFIL_INVALIDO: 422,
+  NOTA_APROBAR_INVALIDA: 422,
+  PORCENTAJE_INVALIDO: 422,
+  CORTES_NO_SUMAN: 422,
   ERROR_INTERNO: 500,
 };
 

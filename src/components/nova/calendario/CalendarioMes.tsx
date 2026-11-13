@@ -8,6 +8,7 @@ import { PuntoCategoria } from '@/components/nova/InsigniaCategoria';
 import { CasillaTarea, type TareaCasilla } from '@/components/nova/inicio/CasillaTarea';
 import { estaVencida, mesDe } from '@/lib/reglas/calendario';
 import { colorDeCategoria } from '@/lib/reglas/categorias';
+import { useFormatoHora } from '@/components/nova/PreferenciasNova';
 import { formatearHorario } from '@/lib/reglas/horario';
 import { DIAS_CORTOS, nombreDia } from '@/lib/reglas/semana';
 
@@ -45,6 +46,7 @@ export function CalendarioMes({
   /** E09: `?dia=` al volver de editar una tarea; solo si está en la cuadrícula. */
   diaInicial?: string | undefined;
 }) {
+  const formatoHora = useFormatoHora(); // E11: 24 o 12 horas
   const [elegido, setElegido] = useState(() => (diaInicial && semanas.flat().includes(diaInicial) ? diaInicial : mesDe(hoy) === mes ? hoy : `${mes}-01`));
   const color = (t: TareaCalendario) => colorDeCategoria(t.categoria, categorias);
   const tareasDia = porDia[elegido] ?? [];
@@ -168,7 +170,7 @@ export function CalendarioMes({
                             >
                               <PuntoCategoria color={color(t)} className="size-2" />
                               <span className="truncate">
-                                {t.horaInicio ? `${formatearHorario({ horaInicio: t.horaInicio })} ` : ''}
+                                {t.horaInicio ? `${formatearHorario({ horaInicio: t.horaInicio }, formatoHora)} ` : ''}
                                 {t.titulo}
                               </span>
                             </span>

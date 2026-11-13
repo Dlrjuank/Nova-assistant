@@ -7,6 +7,7 @@ import { FormularioMinutos } from '@/components/nova/FormularioMinutos';
 import { InsigniaCategoria } from '@/components/nova/InsigniaCategoria';
 import { InsigniaPrioridad } from '@/components/nova/InsigniaPrioridad';
 import { Insignia } from '@/components/ui/Insignia';
+import { useFormatoHora } from '@/components/nova/PreferenciasNova';
 import { formatearHorario } from '@/lib/reglas/horario';
 
 export interface TareaCasilla {
@@ -42,6 +43,7 @@ export function CasillaTarea({
   /** E09: pantalla a la que vuelve Editar, cuando la dirección actual no basta (día elegido del Calendario). */
   volver?: string | undefined;
 }) {
+  const formatoHora = useFormatoHora(); // E11: 24 o 12 horas
   const [abierto, setAbierto] = useState(false);
   const casilla = useRef<HTMLInputElement>(null);
   const completada = tarea.estado === 'Completada';
@@ -60,7 +62,7 @@ export function CasillaTarea({
       className="mt-0.5 size-5 shrink-0 cursor-pointer accent-acento disabled:cursor-default"
     />
   );
-  const horario = formatearHorario(tarea);
+  const horario = formatearHorario(tarea, formatoHora);
   const titulo = (
     <label
       htmlFor={id}

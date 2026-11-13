@@ -1,5 +1,5 @@
 import { exigirSesion } from '@/lib/auth/sesion';
-import { conversacionActual, crearConversacion } from '@/lib/dataService';
+import { borrarHistorial, conversacionActual, crearConversacion } from '@/lib/dataService';
 import { conManejoDeErrores, responderOk } from '@/lib/http/respuestas';
 
 export const dynamic = 'force-dynamic';
@@ -14,4 +14,10 @@ export const GET = conManejoDeErrores(async () => {
 export const POST = conManejoDeErrores(async () => {
   const { id } = await exigirSesion();
   return responderOk(await crearConversacion(id), 201);
+});
+
+/** E11 (RB-25): borra todo el historial con el asistente. La confirmación la pide la pantalla. */
+export const DELETE = conManejoDeErrores(async () => {
+  const { id } = await exigirSesion();
+  return responderOk(await borrarHistorial(id));
 });

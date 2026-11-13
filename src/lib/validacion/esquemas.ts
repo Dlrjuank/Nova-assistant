@@ -47,6 +47,18 @@ export const esquemaCrearCuestionario = z.discriminatedUnion('alcance', [
 export const esquemaIdCuestionario = z.uuid();
 export const esquemaEmpezarIntento = z.object({ repasoDe: z.uuid().optional() });
 export const esquemaResponderPregunta = z.object({ preguntaId: z.uuid(), elegida: z.number().int().min(0).max(3) });
+// E11 (5.8): cambios de Configuración; las reglas finas (RB-11, RB-26, cortes) las valida el servicio con su mensaje.
+export const esquemaConfiguracion = z
+  .object({
+    nombre: z.string().max(200).optional(),
+    tema: z.enum(['claro', 'oscuro', 'automatico']).optional(),
+    formatoHora: z.enum(['24', '12']).optional(),
+    notaAprobar: z.union([z.string().max(10), z.number()]).optional(),
+    redondeo: z.enum(['truncar', 'redondear']).optional(),
+    cortesDefecto: z.array(z.union([z.string().max(10), z.number()])).min(1).max(6).optional(),
+  })
+  .strict();
+
 // E10f: historial (filtro opcional por documento) y tarea de repaso (RB-53); la fecha la valida el servicio.
 export const esquemaHistorialCuestionarios = z.object({ documentoId: z.uuid().optional() });
 export const esquemaTareaRepaso = z.object({

@@ -145,6 +145,7 @@ export { buscarEnWikipedia, eliminarFuenteWeb, guardarFuenteWeb, listarFuentesWe
 export { confirmarPlanLectura, vistaPreviaPlanLectura } from '@/lib/datos/planLectura';
 export { crearCuestionario, empezarIntento, obtenerCuestionario, responderPregunta } from '@/lib/datos/cuestionarios';
 export { crearTareaRepaso, listarCuestionarios } from '@/lib/datos/historialCuestionarios';
+export { actualizarConfiguracion, borrarHistorial, obtenerConfiguracion, obtenerPreferencias, type Configuracion } from '@/lib/datos/configuracion';
 export type {
   Categoria,
   ConversacionActual,

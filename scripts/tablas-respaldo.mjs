@@ -3,6 +3,7 @@
 export const TABLAS_RESPALDO = [
   'nova_config',
   'categorias',
+  'preferencias_usuario', // M7 (E11)
   'tareas_personales',
   'documentos',
   'fragmentos_pdf',

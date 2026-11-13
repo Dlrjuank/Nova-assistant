@@ -369,6 +369,27 @@ try {
       marcar(false, `ah-as) cuestionarios: ${e.message}`);
     }
   }
+  console.log('== 6i. Preferencias del usuario (M7)');
+  const rlsPref = await c.query("SELECT relrowsecurity FROM pg_class WHERE relname = 'preferencias_usuario' AND relkind = 'r'");
+  marcar(rlsPref.rowCount === 1, 'tabla preferencias_usuario');
+  marcar(rlsPref.rows[0]?.relrowsecurity === true, 'RLS activo en preferencias_usuario');
+  if (rlsPref.rowCount === 1 && dueno) {
+    try {
+      await c.query('DELETE FROM preferencias_usuario WHERE usuario_id = $1', [dueno]);
+      const def = (await c.query('INSERT INTO preferencias_usuario (usuario_id) VALUES ($1) RETURNING tema, formato_hora, nota_aprobar::text AS nota, redondeo, cortes_defecto', [dueno])).rows[0];
+      marcar(def.tema === 'automatico' && def.formato_hora === '24' && def.nota === '3.00' && def.redondeo === 'truncar' && def.cortes_defecto.join(',') === '3000,3000,4000', 'at) valores por defecto (automático, 24 h, 3,00, truncar, 30/30/40)');
+      const upd = 'UPDATE preferencias_usuario SET {c} WHERE usuario_id = $1';
+      await esperaFalla('au) tema fuera de la lista', '23514', upd.replace('{c}', "tema = 'azul'"), [dueno]);
+      await esperaFalla('av) nota para aprobar mayor que 5', '23514', upd.replace('{c}', 'nota_aprobar = 5.5'), [dueno]);
+      await esperaFalla('aw) cortes que no suman 100 %', '23514', upd.replace('{c}', "cortes_defecto = '{3000,3000}'"), [dueno]);
+      await esperaFalla('ax) un corte de 0 %', '23514', upd.replace('{c}', "cortes_defecto = '{0,10000}'"), [dueno]);
+      await esperaFalla('ay) formato de hora fuera de la lista', '23514', upd.replace('{c}', "formato_hora = '13'"), [dueno]);
+      await c.query("UPDATE preferencias_usuario SET cortes_defecto = '{5000,5000}', nota_aprobar = 3.5, formato_hora = '12' WHERE usuario_id = $1", [dueno]);
+      marcar(true, 'az) cambios válidos se aceptan');
+    } catch (e) {
+      marcar(false, `at-az) preferencias: ${e.message}`);
+    }
+  }
   await c.query('ROLLBACK');
 
   console.log(`== 7. Total de fallas: ${fallas}`);

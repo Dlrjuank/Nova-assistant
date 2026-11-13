@@ -1,4 +1,5 @@
 import { ErrorDeNegocio } from './errores';
+import type { FormatoHora } from './preferencias';
 
 /**
  * RB-34 (E06b, pedido del usuario): horario opcional de una tarea. Las horas son 'HH:MM' de 24 horas
@@ -30,16 +31,21 @@ export function validarHorario(inicio?: string | null, fin?: string | null): Hor
   return { horaInicio, horaFin };
 }
 
-/** '08:00' → '8:00' (24 horas, sin cero a la izquierda en la hora, como en la imagen de referencia). */
-export function formatearHora(hora: string): string {
+/**
+ * '08:00' → '8:00' (24 horas, sin cero a la izquierda en la hora, como en la imagen de referencia).
+ * E11: con 12 horas, '08:00' → '8:00 a. m.', '13:30' → '1:30 p. m.', '00:15' → '12:15 a. m.'.
+ */
+export function formatearHora(hora: string, formato: FormatoHora = '24'): string {
   const [h, m] = hora.split(':');
-  return `${Number(h)}:${m}`;
+  const n = Number(h);
+  if (formato === '24') return `${n}:${m}`;
+  return `${n % 12 || 12}:${m} ${n < 12 ? 'a. m.' : 'p. m.'}`;
 }
 
-/** "8:00 – 9:30", "8:00" (solo inicio) o '' (sin horario). En E11 se podrá elegir 12 horas. */
-export function formatearHorario(h: Partial<Horario>): string {
+/** "8:00 – 9:30", "8:00" (solo inicio) o '' (sin horario), en el formato de Configuración (E11). */
+export function formatearHorario(h: Partial<Horario>, formato: FormatoHora = '24'): string {
   if (!h.horaInicio) return '';
-  return h.horaFin ? `${formatearHora(h.horaInicio)} – ${formatearHora(h.horaFin)}` : formatearHora(h.horaInicio);
+  return h.horaFin ? `${formatearHora(h.horaInicio, formato)} – ${formatearHora(h.horaFin, formato)}` : formatearHora(h.horaInicio, formato);
 }
 
 /**
