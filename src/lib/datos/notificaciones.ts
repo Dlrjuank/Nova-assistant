@@ -123,7 +123,9 @@ export async function enviarPrueba(usuarioId: string): Promise<{ enviadas: numbe
     titulo: 'Nova',
     cuerpo: 'Así te llegarán los recordatorios de tus tareas.',
     url: '/nova/configuracion',
-    etiqueta: 'prueba',
+    // Una etiqueta nueva cada vez: en Windows, una notificación que reemplaza a otra de la misma etiqueta no
+    // muestra el aviso emergente (queda solo en el centro de notificaciones).
+    etiqueta: `prueba-${Date.now()}`,
   });
   await registrarEnvio(usuarioId, 'prueba', null, `enviadas ${r.enviadas}, fallidas ${r.fallidas}`);
   if (r.enviadas === 0) throw new ErrorDeNegocio('SIN_NOTIFICACIONES');

@@ -269,6 +269,8 @@ self.addEventListener('push', function (evento) {
       .showNotification(datos.titulo || 'Nova', {
         body: datos.cuerpo || '',
         tag: datos.etiqueta || undefined,
+        // Si reemplaza a una anterior de la misma tarea, que vuelva a avisar (si no, Windows la deja sin aviso).
+        renotify: Boolean(datos.etiqueta),
         icon: '/icons/icono-192.png',
         badge: '/icons/icono-192.png',
         data: { url: R.urlNotificacion(datos.url) },

@@ -10,6 +10,13 @@ import { AVISO_ACTIVAR, AVISO_BLOQUEADAS, AVISO_IPHONE_SIN_INSTALAR } from '@/li
 const NO_SOPORTADO = 'Este navegador no puede recibir notificaciones de Nova.';
 const ACTIVAS = 'Este dispositivo recibe los avisos de Nova.';
 
+/** La de prueba va a todos los dispositivos con notificaciones activas, como los recordatorios. */
+function mensajePrueba(enviadas: number): string {
+  return enviadas === 1
+    ? 'Listo: se envió la notificación de prueba a tu dispositivo.'
+    : `Listo: se envió la notificación de prueba a tus ${enviadas} dispositivos con notificaciones activas.`;
+}
+
 /**
  * E11c (5.10, RB-45): estado de las notificaciones en este dispositivo y el botón "Activar notificaciones". El
  * permiso se pide solo al tocarlo. En el formulario de una tarea aparece al elegir un recordatorio y no dice nada
@@ -50,9 +57,9 @@ export function PanelNotificaciones({ modo }: { modo: 'formulario' | 'configurac
     setOcupado(true);
     try {
       const r = await fetch('/api/nova/notificaciones/prueba', { method: 'POST' });
-      const d = (await r.json().catch(() => null)) as { ok?: boolean; error?: { mensaje?: string } } | null;
+      const d = (await r.json().catch(() => null)) as { ok?: boolean; datos?: { enviadas?: number }; error?: { mensaje?: string } } | null;
       if (!r.ok || !d?.ok) setError(d?.error?.mensaje ?? 'No se pudo enviar la notificación de prueba.');
-      else setPrueba('Listo: la notificación de prueba va en camino.');
+      else setPrueba(mensajePrueba(d.datos?.enviadas ?? 0));
     } catch {
       setError('No se pudo conectar con el servidor. Intenta de nuevo.');
     } finally {

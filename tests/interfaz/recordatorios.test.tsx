@@ -137,7 +137,7 @@ describe('PanelNotificaciones (RB-45)', () => {
     p.fetch.mockImplementation(async () => new Response(JSON.stringify({ ok: true, datos: { enviadas: 1, fallidas: 0 } })));
     render(<PanelNotificaciones modo="configuracion" />);
     fireEvent.click(await screen.findByRole('button', { name: 'Enviar una de prueba' }));
-    expect(await screen.findByText('Listo: la notificación de prueba va en camino.')).toBeTruthy();
+    expect(await screen.findByText('Listo: se envió la notificación de prueba a tu dispositivo.')).toBeTruthy();
     expect(p.fetch).toHaveBeenCalledWith('/api/nova/notificaciones/prueba', { method: 'POST' });
   });
 });

@@ -157,7 +157,7 @@ describe('suscripciones y prueba', () => {
       return [];
     });
     await expect(enviarPrueba(U)).resolves.toEqual({ enviadas: 1, fallidas: 0 });
-    expect(JSON.parse(String(m.enviar.mock.calls[0]?.[1]))).toMatchObject({ titulo: 'Nova', url: '/nova/configuracion' });
+    expect(JSON.parse(String(m.enviar.mock.calls[0]?.[1]))).toMatchObject({ titulo: 'Nova', url: '/nova/configuracion', etiqueta: expect.stringMatching(/^prueba-\d+$/) }); // nueva cada vez: Windows no avisa al reemplazar
     expect(m.consultar.mock.calls.some((c) => String(c[0]).includes('INSERT INTO envios') && c[1]?.[2] === 'prueba')).toBe(true);
   });
 });

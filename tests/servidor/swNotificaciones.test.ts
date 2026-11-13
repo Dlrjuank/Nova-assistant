@@ -54,7 +54,7 @@ describe('service worker: notificaciones (E11c)', () => {
     await sw.push({ titulo: 'Nova', cuerpo: 'Hoy: Pagar', url: '/nova/tareas?tarea=t2', etiqueta: 'tarea-t2' });
     expect(sw.mostradas[0]).toEqual({
       titulo: 'Nova',
-      opciones: expect.objectContaining({ body: 'En 15 min: Clase (10:00 – 11:00)', tag: 'tarea-t1', icon: '/icons/icono-192.png', data: { url: '/nova/tareas?tarea=t1' } }),
+      opciones: expect.objectContaining({ body: 'En 15 min: Clase (10:00 – 11:00)', tag: 'tarea-t1', renotify: true, icon: '/icons/icono-192.png', data: { url: '/nova/tareas?tarea=t1' } }),
     });
     expect(sw.numerito.setAppBadge).toHaveBeenLastCalledWith(2);
   });
