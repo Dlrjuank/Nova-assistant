@@ -957,3 +957,9 @@ Total de fallas: 0
 - **Falla en el PC:** la de prueba llegaba al iPhone y no al PC. En la base: dos suscripciones del usuario sin errores (iPhone por `web.push.apple.com` y Windows por `wns2-bn3p.notify.windows.com`, la de Edge); cada prueba desde las 14:39 y los recordatorios de las 14:40, `enviadas 2, fallidas 0`; el servicio de Windows los aceptó. `pg_cron`: 180 llamadas en 3 horas, todas 200. La entrega a Windows funciona; lo que falta es que el PC muestre la notificación.
 - **Causa en Nova que lo empeora:** todas las de prueba usaban la etiqueta `prueba`, y en Windows una notificación que reemplaza a otra de la misma etiqueta queda en el centro de notificaciones sin aviso emergente. Ahora cada prueba lleva una etiqueta nueva, el service worker usa `renotify` al reemplazar (por ejemplo, la misma tarea) y el mensaje dice a cuántos dispositivos se envió. Lo demás depende de Windows y de Edge (notificaciones de Edge en Windows, No molestar, permiso del sitio en Edge, Edge en segundo plano).
 - **Plan (pedido del usuario):** la opción de abrir con la copia de Inicio queda anotada para E20b, junto con bajar el tiempo de carga (no se hace por ahora). El paso del aviso de cada minuto a producción en E21 queda detallado en el plan 6.12 y en la TAREA 6 de E21. Nueva etapa E11e, después de E11d, solo plan: crear tareas sin conexión (X32, 5.13, 6.19 M23 `id_cliente`, 7.14, RB-70 a RB-75, S-76 a S-80, B-82 a B-86, un riesgo nuevo y el prompt de E11e).
+
+#### E11c terminada (2026-11-13)
+
+- **Prueba del usuario con `11ff305` en el PC:** tras revisar Windows y Edge, la de prueba llega al PC y al iPhone ("a tus 2 dispositivos") y en el PC se ve el aviso emergente. El usuario revisó y aprobó los cambios al plan (E11e y el paso del aviso a producción en E21).
+- **Sin probar por el usuario:** B-70 (libro largo que termina de indexarse solo).
+- Queda cerrada E11c. Sigue E11d.
