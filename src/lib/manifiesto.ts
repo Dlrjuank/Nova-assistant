@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next';
+import { COLOR_FONDO } from '@/lib/tema';
 
 /**
  * E11b (PLAN_AMPLIACION 5.10): Nova se puede agregar a inicio como una app. Íconos provisionales; los finales
@@ -16,8 +17,10 @@ export function manifiesto(): MetadataRoute.Manifest {
     start_url: '/nova',
     scope: '/',
     display: 'standalone',
-    background_color: '#faf6f0',
-    theme_color: '#b4471f',
+    // Pantalla de arranque en Android: el fondo de Nova (el manifiesto no distingue claro y oscuro). En el
+    // iPhone la ponen las imágenes de src/lib/arranque.ts. La barra toma el fondo, como en la app (theme-color).
+    background_color: COLOR_FONDO.claro,
+    theme_color: COLOR_FONDO.claro,
     icons: [
       { src: '/icons/icono-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
       { src: '/icons/icono-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },

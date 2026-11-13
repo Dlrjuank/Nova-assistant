@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
+import { imagenesArranque } from '@/lib/arranque';
 import { COLOR_FONDO, SCRIPT_TEMA } from '@/lib/tema';
 import './globals.css';
 
@@ -9,7 +10,8 @@ export const metadata: Metadata = {
   title: process.env.NEXT_PUBLIC_APP_NAME ?? 'NovaAssistant',
   description: 'Sistema fullstack TypeScript con JSON Database Layer',
   // E11b: al agregarla a inicio en el iPhone, se abre como app, con su ícono y el nombre "Nova".
-  appleWebApp: { capable: true, title: 'Nova', statusBarStyle: 'default' },
+  // Al abrirla, mientras llega la primera respuesta, el fondo de Nova con su ícono en vez de negro.
+  appleWebApp: { capable: true, title: 'Nova', statusBarStyle: 'default', startupImage: imagenesArranque() },
   icons: { apple: '/icons/apple-touch-icon.png' },
 };
 

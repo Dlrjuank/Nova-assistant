@@ -927,3 +927,12 @@ Total de fallas: 0
 - **Prueba del usuario con `c674129` en el iPhone (app instalada) y en el PC, sin fallas:** el esqueleto sale al instante y se siente más ágil; la copia sin conexión se guarda al quedarse 2 segundos, también justo después de iniciar sesión; Editar, Ver capítulos, Crear cuestionario y Abrir funcionan igual.
 - **Pendiente anotado para E20b o el cierre:** bajar el tiempo de carga de cada pantalla (hoy ≈ 550 ms en local).
 - Queda cerrada E11b. Sigue E11c.
+
+#### E11b: pantalla de arranque de la app instalada (2026-11-13, después del cierre)
+
+- **Pedido del usuario:** al abrir la app en el iPhone se queda unos 2 segundos en negro y luego aparece Nova.
+- **Causa:** iOS no usa el `background_color` del manifiesto. Mientras llega la primera respuesta del servidor muestra una imagen `apple-touch-startup-image` del tamaño exacto de la pantalla, y no había ninguna: por eso negro. La espera es la primera respuesta de la función de Vercel: en frío, 2,2 s hasta el primer byte (medido en producción con una ruta sin sesión); en caliente, 0,32 a 0,35 s.
+- **Cambios:** `src/lib/arranque.ts` con los 13 tamaños de iPhone (iOS 16 o más, en vertical) y 26 imágenes en `public/icons/arranque/` (fondo de Nova claro u oscuro con el ícono provisional al centro, 478 KB en total; se descargan solo al agregar a inicio), enlazadas con `appleWebApp.startupImage` según el tema del sistema; el manifiesto usa `COLOR_FONDO.claro` como `background_color` y `theme_color` (Android).
+- **Límite:** la pantalla de arranque sigue el tema del sistema, no el elegido en Nova (antes de abrir no se puede saber); al aparecer Nova ya toma el elegido. iOS guarda las imágenes al agregar a inicio: hay que quitar la app y volver a agregarla.
+- **Propuesta pendiente de aprobación:** mostrar al abrir la copia guardada de Inicio con un aviso y actualizarla al llegar la respuesta del servidor.
+- **Pruebas:** `tests/reglas/arranque.test.ts` (cada imagen existe, mide exacto y tiene el fondo de Nova; consultas sin repetir; manifiesto). En `next start`: 26 etiquetas en el HTML, imágenes públicas. `npm test` 900/900, `npm run build` correcto, `eslint` sin errores.
