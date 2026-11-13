@@ -86,6 +86,7 @@ export function BarraInferior({ email }: { email: string }) {
             <button
               ref={botonMas}
               type="button"
+              data-sin-conexion="permitido" // E11b: la hoja "Más" también se abre sin conexión
               aria-haspopup="dialog"
               aria-expanded={abierta}
               aria-controls="hoja-mas"
@@ -119,7 +120,7 @@ export function BarraInferior({ email }: { email: string }) {
               <h2 id="titulo-hoja-mas" className="text-base font-semibold text-texto">
                 Más secciones
               </h2>
-              <Boton variante="fantasma" onClick={cerrar} className="min-h-9 py-1.5">
+              <Boton variante="fantasma" data-sin-conexion="permitido" onClick={cerrar} className="min-h-9 py-1.5">
                 <X aria-hidden="true" className="size-4" />
                 Cerrar
               </Boton>

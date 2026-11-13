@@ -95,7 +95,7 @@ export function CalendarioMes({
           </h2>
           <div className="flex items-center gap-2">
             {esMesActual ? (
-              <button type="button" onClick={() => elegir(hoy)} className={`${claseBoton('secundario')} min-h-10`}>
+              <button type="button" data-sin-conexion="permitido" onClick={() => elegir(hoy)} className={`${claseBoton('secundario')} min-h-10`}>
                 Hoy
               </button>
             ) : (
@@ -132,6 +132,7 @@ export function CalendarioMes({
                   <div key={fecha} role="gridcell" aria-selected={activo}>
                     <button
                       type="button"
+                      data-sin-conexion="permitido" // E11b: elegir un día solo muestra, se puede sin conexión
                       onClick={() => elegir(fecha)}
                       aria-pressed={activo}
                       aria-label={`${nombreDia(fecha)}${esHoy ? ', hoy' : ''}, ${

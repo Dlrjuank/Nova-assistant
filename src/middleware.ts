@@ -11,7 +11,12 @@ export async function middleware(request: NextRequest) {
     ruta === '/recuperar-contrasena' ||
     ruta === '/restablecer-contrasena' ||
     ruta === '/api/auth/recuperar' ||
-    ruta === '/api/auth/restablecer'
+    ruta === '/api/auth/restablecer' ||
+    // E11b: la app instalable es pública (manifiesto, íconos y service worker).
+    ruta === '/sw.js' ||
+    ruta === '/sw-reglas.js' ||
+    ruta === '/manifest.webmanifest' ||
+    ruta.startsWith('/icons/')
   ) {
     return NextResponse.next();
   }
@@ -53,6 +58,8 @@ export async function middleware(request: NextRequest) {
       }
       return NextResponse.redirect(new URL(sinSesion ? '/login' : '/home', request.url));
     }
+    // E11b (RB-63): el service worker guarda la copia sin conexión a nombre de este usuario; si cambia, la borra.
+    if (esPaginaNova && data.user) response.headers.set('x-nova-usuario', data.user.id);
   }
 
   return response;

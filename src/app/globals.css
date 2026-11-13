@@ -165,3 +165,20 @@ html {
     scroll-behavior: auto !important;
   }
 }
+
+/* E11b (RB-62): sin conexión, lo que escribe datos o necesita internet se ve desactivado. ConexionNova lo
+   bloquea de verdad y dice `Necesitas conexión para esto.`; esto solo lo muestra. */
+html[data-nova-sin-conexion] :is(button, input, select, textarea, summary):not([data-sin-conexion="permitido"]),
+html[data-nova-sin-conexion]
+  :is(
+    a[href^="/nova/asistente"],
+    a[href^="/nova/fuentes"]:not([href$="/capitulos"]),
+    a[href^="/nova/productividad"],
+    a[href^="/nova/configuracion"],
+    a[href^="/nova/cuestionarios"],
+    a[href^="/nova/tareas/"],
+    a[href*="mes="]
+  ) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

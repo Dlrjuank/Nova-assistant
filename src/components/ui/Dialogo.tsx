@@ -67,7 +67,7 @@ export function Dialogo({
             </h2>
             {descripcion && <p className="mt-1 text-sm text-texto-suave">{descripcion}</p>}
           </div>
-          <Boton variante="fantasma" onClick={alCerrar} aria-label="Cerrar" className="min-h-9 shrink-0 px-2 py-1.5">
+          <Boton variante="fantasma" data-sin-conexion="permitido" onClick={alCerrar} aria-label="Cerrar" className="min-h-9 shrink-0 px-2 py-1.5">
             <X aria-hidden="true" className="size-4" />
           </Boton>
         </div>

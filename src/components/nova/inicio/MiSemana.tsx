@@ -73,6 +73,7 @@ export function MiSemana({
         {conTope && (
           <button
             type="button"
+            data-sin-conexion="permitido" // E11b: solo muestra, se puede usar sin conexión
             aria-expanded={abierto}
             aria-controls={`${prefijo}-${fecha}`}
             aria-label={abierto ? `Ver menos tareas del ${nombreDia(fecha)}` : `Ver ${ocultas} ${ocultas === 1 ? 'tarea más' : 'tareas más'} del ${nombreDia(fecha)}`}
@@ -136,6 +137,7 @@ export function MiSemana({
               <button
                 key={fecha}
                 type="button"
+                data-sin-conexion="permitido"
                 aria-pressed={activo}
                 aria-label={`${nombreDia(fecha)}${cantidad ? `, ${cantidad === 1 ? '1 tarea' : `${cantidad} tareas`}` : ', sin tareas'}`}
                 onClick={() => setElegido(fecha)}

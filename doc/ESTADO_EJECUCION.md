@@ -873,3 +873,24 @@ Total de fallas: 0
 
 - **Prueba del usuario en la vista previa (PC y teléfono), sin fallas:** las 8 pruebas de E11.
 - Queda cerrada E11. Sigue E11b.
+
+### Plan: etapa E10g agregada (2026-11-13)
+
+- A pedido del usuario (sugerencia de un amigo): tipos de pregunta en los cuestionarios, para hacer después de E11d. Plan: X31, 5.12, 6.18 (M22), 7.12, 7.13, 9.7, RB-64 a RB-69, S-70 a S-75, B-77 a B-81, un riesgo nuevo en la sección 13 y la ruta de autoevaluación; prompt de E10g antes de E12. Sin código todavía.
+
+### E11b Ampliación: app instalable y consulta sin conexión
+
+- **Sin migración.** Sin llamadas a Gemini.
+- **Instalable:** `src/app/manifest.ts` ("Nova", `standalone`, `start_url` /nova, colores de los tokens), íconos provisionales en `public/icons/` (192, 512, maskable 512 y apple-touch-icon 180, generados con Edge desde un SVG; los finales en E20b), metadatos de Apple y `themeColor` claro/oscuro en el layout raíz. El middleware deja pasar sin sesión el service worker, sus reglas, el manifiesto y los íconos; `next.config.ts` los sirve sin caché.
+- **Service worker (`public/sw.js`, reglas puras en `public/sw-reglas.js`):** registrado desde el layout de Nova (solo en producción) con alcance `/nova`. Páginas: primero la red; con conexión guarda copia de Inicio, Tareas (con sus filtros), el Calendario del mes actual (en Bogotá) y los capítulos; sin conexión, la copia, `Esta pantalla aún no está disponible sin conexión.` o `Necesitas conexión para esto.` en una página mínima con el tema guardado. Archivos estáticos de Next: primero lo guardado (máximo 400). Nunca la API, el Asistente, los pedidos RSC ni el texto de los documentos.
+- **RB-63:** el middleware marca cada página de Nova con `x-nova-usuario`; la copia se borra al cerrar sesión (`POST /api/auth/logout` correcto), con 401/403 de la API de Nova, si una página de Nova redirige (sesión rechazada), si entra otro usuario y tras 7 días sin una respuesta válida.
+- **Pantalla (`ConexionNova`):** `Sin conexión · datos de las HH:MM` (hora de la copia, o de carga si se pierde la conexión con la página abierta, con el formato de Configuración). Sin conexión, un bloqueo global (clic, Enter/Espacio, envío y foco) desactiva todo control y todo enlace a una pantalla sin copia, con `Necesitas conexión para esto.`; lo que solo muestra queda activo con `data-sin-conexion="permitido"` (días de Mi semana y Calendario, "Hoy", "Más" y "Cerrar"). Al volver la conexión, una página que salió de la copia se recarga.
+- **Configuración → "Instalar Nova":** guía para iPhone y Android, botón "Instalar" cuando Chrome lo ofrece (el aviso se guarda en `src/lib/instalacion.ts`), "Nova ya está instalada en este dispositivo." si se abre como app, la sesión propia del iPhone y el aviso del teléfono compartido.
+- **Pruebas:** S-68 y S-69 (`tests/reglas/sinConexion.test.ts`, que también comprueba que el navegador y el service worker deciden lo mismo), el service worker completo con caché y red simuladas (`tests/servidor/serviceWorker.test.ts`) y pantallas (`tests/interfaz/conexion.test.tsx`).
+- **Edge con la base real** (usuario, tarea, documento y capítulo temporales, borrados al final; 26 de 26). Sin conexión de verdad: el script apaga el servidor de prueba.
+  - Instalable: manifiesto, íconos públicos, service worker sin caché, metadatos de Apple, alcance /nova y `Page.getInstallabilityErrors` sin errores (en lugar de Lighthouse, que no está instalado).
+  - B-74 en Inicio, Tareas, Calendario y capítulos, y una pantalla nunca abierta.
+  - B-75: completar desactivado y atenuado; elegir un día sigue; Asistente, Configuración, cuestionarios y Nueva tarea piden conexión; al volver, todo funciona.
+  - B-76: al cerrar sesión y con la sesión rechazada, la copia se borra.
+- **Al cierre:** `npm test` 873/873, `npm run build` correcto, `eslint` sin errores.
+- **Pendiente del usuario:** B-55 en un iPhone y un Android reales (agregar a inicio, pantalla completa, iniciar sesión dentro de la app).
