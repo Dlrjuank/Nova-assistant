@@ -1,6 +1,6 @@
 # Prompts de la ampliación · Nova Assistant
 
-Etapas E00 a E21 (más E02b, E02c, E05b, E06b y E20b, pedidas por el usuario) para ejecutar `doc/PLAN_AMPLIACION.md`, en orden de dependencias. Cada etapa es pequeña, se puede probar sola y termina en un commit en la rama `ampliacion`. Se ejecuta una etapa por vez y se espera la confirmación del usuario antes de la siguiente.
+Etapas E00 a E21 (más E02b, E02c, E05b, E06b y E20b, pedidas por el usuario, y las demás con letra que se agregaron después, como E10g) para ejecutar `doc/PLAN_AMPLIACION.md`, en orden de dependencias. Cada etapa es pequeña, se puede probar sola y termina en un commit en la rama `ampliacion`. Se ejecuta una etapa por vez y se espera la confirmación del usuario antes de la siguiente.
 
 ## Reglas de todas las etapas
 
@@ -533,6 +533,27 @@ VERIFICACIÓN: B-58 y B-59.
 ```
 
 **Commit:** `feat(recordatorios): resumen diario y calendario del teléfono`
+
+---
+
+## E10g · Tipos de pregunta en los cuestionarios (sugerida por un amigo del usuario, aprobada el 2026-11-13)
+
+**Plan:** 5.12, 6.18, 7.12, 7.13, 9.7, RB-64 a RB-69. **Requisito:** E10f. **Se hace después de E11d.**
+
+```text
+OBJETIVO: elegir el tipo de preguntas al crear un cuestionario, sin gastar más llamadas a Gemini.
+
+TAREA 1. npm run db:respaldar y migración M22 (6.18), aditiva: tipo en cuestionarios y preguntas, columnas de cada tipo y de las respuestas, y CHECK por tipo. Las filas existentes quedan como selección única, con sus puntos. db:verificar con las restricciones nuevas y compatibilidad con master.
+TAREA 2. Reglas puras: puntos de cada tipo y puntaje (7.12), comparación de completar (7.13), reparto de mixto (RB-64), validación de cada tipo y frase con _____ armada por el servidor (9.7). Pruebas S-70 a S-73.
+TAREA 3. Generación: un solo pedido con la cantidad de cada tipo y esquema JSON con tipo; segunda llamada solo por lo que falta de cada tipo; como máximo 2.
+TAREA 4. Responder según el tipo (RB-65 a RB-69) y la ruta de autoevaluación de la abierta. La vista no adelanta ninguna respuesta (RB-50). "Repetir solo las que fallé", el historial y la tarea de repaso cuentan como falladas las de menos de 1 punto. Pruebas S-74 y S-75.
+TAREA 5. Pantallas: "Tipo de preguntas" en el formulario (Mixto por defecto); una pantalla por tipo, cómoda en el teléfono; resultado con "a medias"; el tipo en el historial.
+TAREA 6. probar:cuestionario con un mixto de 5 y Gemini real (una sola ejecución).
+
+VERIFICACIÓN: B-77 a B-81, y que los cuestionarios anteriores siguen funcionando igual (B-60 a B-66).
+```
+
+**Commit:** `feat(cuestionarios): tipos de pregunta`
 
 ---
 

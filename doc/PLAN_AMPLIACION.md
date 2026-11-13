@@ -17,7 +17,7 @@ Los prompts de ejecución están en `doc/PROMPTS_AMPLIACION.md` (etapas E00 a E2
 9. [El asistente en Semestre](#9-el-asistente-en-semestre)
 10. [API](#10-api)
 11. [Pruebas](#11-pruebas)
-12. [Casos de aceptación B-01 a B-76](#12-casos-de-aceptación-b-01-a-b-76)
+12. [Casos de aceptación B-01 a B-81](#12-casos-de-aceptación-b-01-a-b-81)
 13. [Riesgos y decisiones](#13-riesgos-y-decisiones)
 
 ---
@@ -79,6 +79,7 @@ Los prompts de ejecución están en `doc/PROMPTS_AMPLIACION.md` (etapas E00 a E2
 | X29 | "IA (conocimiento general)" en "Buscar en" y botón "Preguntarle a la IA" cuando no se encuentra en los documentos, con marca visible y sin mezclarse con los documentos (aprobado por el usuario, 2026-11-09) | E10c3 |
 | X30 | Consulta sin conexión, solo lectura: Inicio, Tareas, Calendario y capítulos (aprobado por el usuario, 2026-11-09) | E11b |
 | X25 | Historial de intentos por documento o capítulo y sugerencia de tarea para repasar | E10f |
+| X31 | Tipos de pregunta en los cuestionarios: selección única, respuesta múltiple, verdadero o falso, completar, pregunta abierta y mixto (sugerido por un amigo del usuario y aprobado por el usuario, 2026-11-13) | E10g |
 
 ### 2.2 Fuera de alcance
 
@@ -312,6 +313,34 @@ Bloques: **Perfil** (nombre editable, correo de solo lectura, cambiar contraseñ
 - **Sugerencia de repaso (E10f):** si en un capítulo fallaste 2 preguntas o más, el resultado ofrece crear la tarea "Repasar cap. 3: Título (pp. 45–67)". Se confirma en un diálogo; nunca se crea sola.
 - **El puntaje no afecta las notas de Semestre.**
 
+### 5.12 Tipos de pregunta (E10g, pedido del usuario del 2026-11-13)
+
+Se hace después de E11d. Al crear un cuestionario se elige **Tipo de preguntas**:
+
+| Tipo | Cómo se responde | Cómo se califica |
+|---|---|---|
+| **Selección única** | 4 opciones (A a D) y una correcta, como en E10e. Se responde al tocar | 1 o 0 |
+| **Respuesta múltiple** | 4 opciones, de las que 2 o 3 son correctas, y la pregunta dice cuántas: `Hay {k} respuestas correctas.` Se marcan las casillas y se toca "Enviar respuesta" | Puntaje parcial (7.12): cada correcta marcada suma, cada incorrecta marcada resta y la pregunta nunca baja de 0 |
+| **Verdadero o falso** | Una afirmación con los botones "Verdadero" y "Falso" | 1 o 0. Si es falsa, la explicación dice qué es lo correcto según la cita |
+| **Completar** | Una frase tomada de la cita con un espacio en blanco (`_____`). Se escribe lo que falta y se toca "Enviar respuesta" | 1 o 0. Se acepta sin importar mayúsculas, tildes ni espacios de más (7.13) |
+| **Pregunta abierta** | Se escribe la respuesta y se toca "Enviar respuesta". Nova muestra la respuesta modelo con la cita y la página, y se marca "La tuve bien", "A medias" o "Mal" | 1, 0,5 o 0, según lo que marca el usuario. No se llama a Gemini para calificar |
+| **Mixto** (por defecto) | Preguntas de los 5 tipos, intercaladas | Cada una según su tipo |
+
+- **Todos los tipos conservan** lo de E10e y E10f:
+  - la cita, la página y la explicación al responder;
+  - la respuesta fija una vez enviada; en la abierta, también la autoevaluación;
+  - "Repetir solo las que fallé" (cuenta como fallada toda pregunta con menos de 1 punto: una abierta "A medias" o una múltiple con puntaje parcial);
+  - el historial de E10f, que muestra también el tipo del cuestionario;
+  - la tarea de repaso, que cuenta las falladas de la misma forma.
+- **Nada se adelanta al navegador:** antes de responder, no llega ninguna respuesta correcta, la palabra que falta ni la respuesta modelo, como en RB-50. Sí llega cuántas son correctas en una múltiple, porque la pregunta lo dice.
+- **En una abierta**, la respuesta queda guardada al enviarla. Si se cierra la pantalla antes de calificarse, al volver se ven la respuesta modelo y los tres botones. El intento termina cuando todas las preguntas tienen respuesta y todas las abiertas están calificadas.
+- **Teléfono:**
+  - Verdadero o falso usa dos botones grandes.
+  - La múltiple usa casillas de todo el ancho, de 56 px de alto como las opciones de E10e.
+  - Completar y abierta usan un campo de texto; la abierta, uno de varias líneas.
+- **Los cuestionarios que ya existen** son de selección única y siguen funcionando igual.
+- **Costo:** igual que E10e, a lo sumo 2 llamadas a Gemini por cuestionario, y ninguna para calificar (9.7).
+
 ## 6. Modelo de datos
 
 Migraciones nuevas M5 a M13 en `supabase/migrations/`, numeradas después de `20261003136000`. Todas aditivas.
@@ -483,6 +512,22 @@ Columna nueva en `documentos`: `inicio_paginas INTEGER[] NULL`, la palabra en qu
 
 Columna nueva en `mensajes_chat`: `origen TEXT NULL`, con `CHECK (origen IN ('web', 'wikipedia', 'ia'))`. NULL significa documentos y tareas, como todo lo anterior. Sirve para que el modelo reciba solo el historial del mismo origen (RB-61) y para mostrar la marca al recargar. Solo aditiva: los INSERT de `master` la dejan en NULL. Hasta E21, `master` no conoce la columna y mostraría esos mensajes como normales si se abre la misma conversación en producción.
 
+### 6.18 M22 · Tipos de pregunta (E10g)
+
+Antes de migrar: `npm run db:respaldar`. Las tablas de M17 ya están en la lista de respaldo y no hay tablas nuevas.
+
+| Tabla | Cambio | Restricciones |
+|---|---|---|
+| `cuestionarios` | Columna nueva `tipo` TEXT NOT NULL DEFAULT `unica` | `tipo` en (`unica`, `multiple`, `vf`, `completar`, `abierta`, `mixto`) |
+| `preguntas_cuestionario` | Columnas nuevas: `tipo` TEXT NOT NULL DEFAULT `unica`, `correctas` SMALLINT[] NULL (múltiple), `verdadero` BOOLEAN NULL (verdadero o falso) y `respuesta_texto` TEXT NULL (completar: lo que falta; abierta: la respuesta modelo). `opciones` y `correcta` pasan a admitir NULL | Un CHECK por tipo: `unica` con 4 opciones y `correcta` de 0 a 3; `multiple` con 4 opciones y de 2 a 3 `correctas` distintas de 0 a 3; `vf` con `verdadero`; `completar` con `respuesta_texto` de 1 a 40 caracteres; `abierta` con `respuesta_texto` de 20 a 400 caracteres |
+| `respuestas_intento` | Columnas nuevas: `elegidas` SMALLINT[] NULL (múltiple), `texto` TEXT NULL (completar y abierta, hasta 1000 caracteres), `autoevaluacion` TEXT NULL (`bien`, `medias`, `mal`) y `puntos` SMALLINT NULL (centésimas de punto de la pregunta, de 0 a 100). `elegida` y `acierto` pasan a admitir NULL | `puntos` de 0 a 100; `acierto` = (`puntos` = 100) cuando hay puntos; en una abierta, `puntos` y `acierto` quedan en NULL hasta la autoevaluación |
+
+- Solo agrega columnas y relaja restricciones:
+  - `CHECK` de 4 opciones: se reemplaza por el CHECK por tipo, que las filas existentes ya cumplen.
+  - `NOT NULL` de `opciones`, `correcta`, `elegida` y `acierto`: se quita.
+  - No se borra ni se cambia ningún dato.
+- Las filas existentes quedan con `tipo = 'unica'`, y sus respuestas reciben `puntos` = 100 o 0 según `acierto` en la misma migración, para que el puntaje se calcule igual. `master` no usa estas tablas.
+
 ## 7. Reglas de cálculo
 
 Todas en funciones puras de `src/lib/reglas/` (sin red, sin base, sin reloj salvo `fechas.ts`), probadas con Vitest. Notas en centésimas (0 a 500), porcentajes en centésimas de punto (0 a 10000). Los productos se calculan con enteros; la división final y el redondeo, con aritmética exacta sobre esos enteros.
@@ -587,6 +632,26 @@ En la zona `America/Bogota`, con la fecha límite `F`, la hora de inicio `H` (si
 
 `puntaje = aciertos × 500 / total`, en centésimas y truncado, y se muestra con un decimal truncado (7 de 10 → 3,5; 2 de 3 → 3,3; 20 de 20 → 5,0). No usa el redondeo académico de Configuración porque no es una nota de Semestre. Un repaso se califica sobre sus propias preguntas.
 
+### 7.12 Puntos de una pregunta y puntaje con tipos (E10g)
+
+- **Puntos de cada pregunta**, en centésimas de 0 a 100:
+  - Única, verdadero o falso y completar: 100 o 0.
+  - Abierta: "La tuve bien" 100, "A medias" 50 y "Mal" 0.
+  - Múltiple, con `k` correctas, `b` correctas marcadas y `m` incorrectas marcadas: `max(0, trunc(100 × (b − m) / k))`. Ejemplos con k = 2: las 2 bien sin errores → 100; 1 bien → 50; las 2 bien y 1 mal → 50; 1 bien y 1 mal → 0. Con k = 3: 2 bien → 66; las 3 bien y 1 mal → 66.
+- **Puntaje del intento** (reemplaza la fórmula de 7.11 sin cambiar sus resultados en selección única): `trunc(Σ puntos × 5 / total)`, en centésimas de 0 a 500, y se muestra con un decimal truncado como en 7.11.
+- **Lo que se guarda en el intento:** `aciertos` cuenta las preguntas con 100 puntos. La pantalla de resultado dice `{a} de {n} bien` y, si hay parciales, `{p} a medias`.
+- **Fallada:** toda pregunta con menos de 100 puntos.
+
+### 7.13 Comparar una respuesta de completar (E10g)
+
+Se comparan la respuesta escrita y `respuesta_texto` después de normalizarlas:
+- se pasan a minúsculas;
+- se quitan las tildes y la diéresis (á, é, í, ó, ú, ü → a, e, i, o, u), pero la ñ se conserva;
+- se quitan los signos de puntuación del principio y del final;
+- los espacios seguidos se dejan en uno.
+
+Son iguales si coinciden después de normalizar. "  FOTOSINTESIS " acierta "fotosíntesis"; "fotosintesis." también; "fotosíntesis y respiración" no.
+
 ## 8. Reglas de negocio y mensajes exactos
 
 Los mensajes se usan **textualmente** en la interfaz y en la API. Los de `PLAN_NOVA.md` (sección 5.1 y 12.2) no cambian.
@@ -656,6 +721,12 @@ Los mensajes se usan **textualmente** en la interfaz y en la API. Los de `PLAN_N
 | RB-60 | (E10c3) El botón "Preguntarle a la IA" aparece solo bajo una respuesta "No encontré" (RN-13, la de un documento elegido o, desde el 2026-11-12 a pedido del usuario, la de Fuentes web de RB-56). Envía la misma pregunta con el origen IA y deja la respuesta anterior intacta | Botón: `Preguntarle a la IA` |
 | RB-61 | (E10c2, E10c3) Ninguna respuesta mezcla orígenes. El historial que recibe el modelo y la pregunta anterior usada en la búsqueda solo toman mensajes del mismo origen (M21). Documentos y tareas son un origen; Fuentes web, Wikipedia e IA son uno cada uno | — |
 | RB-62 | (E11b) Sin conexión, Inicio, Tareas, Calendario del mes actual y capítulos muestran la última copia válida del usuario. Con conexión, siempre se pide al servidor primero. No se guarda el Asistente, el texto de los documentos ni ninguna respuesta de una acción. Lo que necesita internet o escribe datos queda desactivado | Aviso: `Sin conexión · datos de las {HH:MM}` · Control desactivado: `Necesitas conexión para esto.` · Pantalla sin copia: `Esta pantalla aún no está disponible sin conexión.` |
+| RB-64 | (E10g) Tipo de preguntas al crear: `Selección única`, `Respuesta múltiple`, `Verdadero o falso`, `Completar`, `Pregunta abierta` o `Mixto` (por defecto). Mixto reparte las pedidas en partes iguales entre los 5 tipos, en ese orden (5 → 1 de cada uno; 10 → 2; 20 → 4), y las intercala. RB-49 se aplica al total; con parte de las pedidas, se crea y se avisa | Los de RB-49 |
+| RB-65 | (E10g) Respuesta múltiple: se dice cuántas son correctas; se marca al menos una; puntaje parcial de 7.12 | `Hay {k} respuestas correctas.` · Sin marcar: `Marca al menos una opción.` |
+| RB-66 | (E10g) Verdadero o falso: si la afirmación es falsa, la explicación dice qué es lo correcto según la cita (instrucción al modelo; la cita se muestra siempre para comprobarlo) | Botones: `Verdadero` · `Falso` |
+| RB-67 | (E10g) Completar: el servidor arma la frase con el espacio en blanco a partir de la cita (no confía en el modelo) y compara según 7.13 | Vacía: `Escribe tu respuesta.` |
+| RB-68 | (E10g) Pregunta abierta: la respuesta (1 a 1000 caracteres) se guarda al enviarla y no se cambia; luego se muestran la respuesta modelo, la cita y la página, y el usuario se califica una sola vez. Sin Gemini para calificar | Vacía: `Escribe tu respuesta.` · Indicación: `Compara tu respuesta con la respuesta modelo y califícate.` · Botones: `La tuve bien` · `A medias` · `Mal` |
+| RB-69 | (E10g) Una respuesta que no corresponde al tipo de la pregunta (por ejemplo, un texto para una de selección única, o calificarse sin haber enviado la abierta) se rechaza sin guardar nada. "Repetir solo las que fallé" y la tarea de repaso cuentan como falladas las de menos de 1 punto | `Revise los datos ingresados.` (`DATOS_INVALIDOS`, 400) |
 | RB-63 | (E11b) La copia sin conexión se borra: al cerrar sesión; si, con conexión, el servidor rechaza la sesión (401, 403 o redirección a `/login`); si inicia sesión otro usuario; y tras 7 días sin una respuesta válida del servidor, porque sin conexión no se puede saber si la sesión venció | — |
 | RB-29 | Editar una tarea: solo pendientes y del usuario; título, categoría, prioridad, fecha límite y horario con las mismas validaciones y mensajes que al crear; estado, minutos y fecha de cierre no se tocan | Los de crear (`PLAN_NOVA.md` 5.1). Tarea completada: `La tarea ya está completada.` (`TAREA_YA_COMPLETADA`, 409). De otro usuario o inexistente: `La tarea no existe.` (`TAREA_NO_ENCONTRADA`, 404) |
 
@@ -707,6 +778,21 @@ Es una llamada a `gemini-3.1-flash-lite` (con su respaldo) que pide JSON con esq
 
 La cita literal demuestra que la pregunta sale del documento. No demuestra que la opción marcada como correcta lo sea: por eso la explicación y la cita se muestran siempre, para que se pueda comprobar.
 
+### 9.7 Generar preguntas de varios tipos (E10g)
+
+Es la misma llamada de 9.6, con el mismo contexto, mínimo de texto, dificultad y reintento. A lo sumo hay 2 llamadas por cuestionario, y en la segunda se piden solo las que faltan de cada tipo.
+
+1. **El pedido** dice cuántas preguntas quiere de cada tipo (RB-64). El esquema JSON es un solo objeto por pregunta con `tipo` y los campos de cada tipo: `opciones` y `correcta` (única), `opciones` y `correctas` (múltiple), `verdadero` (verdadero o falso) y `respuesta` (completar: la palabra o expresión que falta; abierta: la respuesta modelo). Todas llevan `enunciado` (salvo completar), `explicacion`, `fuente` y `cita_textual`.
+2. **Validación (RB-50 más la de cada tipo):** la fuente y la cita se validan como en 9.6. Además:
+   - **Única:** como en 9.6.
+   - **Múltiple:** 4 opciones distintas y de 2 a 3 `correctas` distintas entre 0 y 3.
+   - **Verdadero o falso:** `verdadero` es booleano y hay explicación.
+   - **Completar:** la respuesta tiene de 1 a 4 palabras y de 3 a 40 caracteres, y aparece completa en la cita (con la comparación de 7.13 y respetando dónde empieza y termina cada palabra). El servidor arma la frase cambiando esa aparición de la cita por `_____`.
+   - **Abierta:** la respuesta modelo tiene de 20 a 400 caracteres.
+   - Una pregunta de un tipo que no se pidió, o de un tipo que ya está completo, se descarta.
+3. **Barajar:** el servidor baraja las opciones de la única y de la múltiple, y conserva cuáles son correctas. Las preguntas se intercalan por tipo.
+4. **Equilibrio en verdadero o falso:** se le pide al modelo que mezcle verdaderas y falsas, pero no se puede exigir. Si todas salen iguales, se aceptan.
+
 ## 10. API
 
 Todas con `exigirSesion()` como primera instrucción y el id del usuario de la sesión. Contrato de respuesta igual que `PLAN_NOVA.md` 12.1.
@@ -737,10 +823,11 @@ Todas con `exigirSesion()` como primera instrucción y el id del usuario de la s
 | `POST/DELETE /api/nova/notificaciones/suscripcion`, `POST /api/nova/notificaciones/prueba` | Suscripción push del dispositivo y aviso de prueba | E11c |
 | `POST /api/nova/recordatorios/tick` | Envío cada minuto; sin sesión, con `RECORDATORIOS_SECRETO` | E11c |
 | `GET /api/nova/tareas/[id]/ics` | "Agregar a mi calendario" (RB-47) | E11d |
-| `POST/GET /api/nova/cuestionarios` | Generar (`maxDuration = 60`) y listar el historial (`?documentoId=`) | E10e, E10f |
+| `POST/GET /api/nova/cuestionarios` | Generar (`maxDuration = 120`, igual que el Asistente) y listar el historial (`?documentoId=`). Desde E10g, al generar también `tipo` (por defecto `mixto`) | E10e, E10f, E10g |
 | `GET /api/nova/cuestionarios/[id]` | Preguntas sin la respuesta correcta | E10e |
 | `POST /api/nova/cuestionarios/[id]/intentos` | Empezar un intento; `repasoDe` para "Repetir solo las que fallé" | E10e |
-| `POST /api/nova/intentos/[id]/respuestas` | Responder; devuelve acierto, correcta, explicación y cita | E10e |
+| `POST /api/nova/intentos/[id]/respuestas` | Responder; devuelve acierto, correcta, explicación y cita. Desde E10g, según el tipo: `elegida`, `elegidas`, `verdadero` o `texto`; devuelve también los puntos de la pregunta | E10e, E10g |
+| `POST /api/nova/intentos/[id]/autoevaluacion` | Calificarse una pregunta abierta ya enviada: `bien`, `medias` o `mal` (RB-68) | E10g |
 | `POST /api/nova/intentos/[id]/tarea-repaso` | Crear la tarea de repaso (RB-53) | E10f |
 | `GET /api/nova/web/fuentes`, `DELETE /api/nova/web/fuentes/[id]` | Fuentes web guardadas (RB-54) | E10b2 |
 | `POST /api/nova/web/fuentes` | Guardar el resultado de una búsqueda (RB-55) | E10c2 |
@@ -775,6 +862,12 @@ Las rutas que llaman a Gemini declaran `maxDuration = 60`.
   - S-64 (E10c2, E10c3, RB-61): el historial solo toma mensajes del mismo origen.
   - S-65 y S-66 (E10c3): el prompt de la IA no lleva documentos, tareas ni fuentes y no pide embeddings; la marca se guarda y sale siempre, sin citas.
   - S-67 (E10c3): "Preguntarle a la IA" solo bajo "No encontré" (documentos, documento elegido o Fuentes web).
+  - S-70 (E10g, 7.12): puntos de la múltiple con k = 2 y k = 3 (los ejemplos de 7.12, marcar todas, nunca menos de 0); puntaje del intento con parciales y abiertas, y el mismo resultado que 7.11 en selección única.
+  - S-71 (E10g, 7.13): completar con mayúsculas, tildes, diéresis, puntuación y espacios de más; la ñ no se confunde con la n; una respuesta con palabras de más no acierta.
+  - S-72 (E10g, 9.7): validación de cada tipo (múltiple con 1 o 4 correctas o repetidas, verdadero o falso sin booleano, completar con una respuesta que no está en la cita o que corta una palabra, abierta con respuesta modelo corta) y la frase con `_____` armada por el servidor.
+  - S-73 (E10g, RB-64): reparto de mixto en 5, 10 y 20; la segunda llamada pide solo lo que falta de cada tipo; nunca más de 2 llamadas; un tipo de más se descarta.
+  - S-74 (E10g, RB-50, RB-68): la vista de cada tipo no trae las correctas, `verdadero`, lo que falta, la respuesta modelo ni la cita antes de responder; una abierta enviada sin calificar trae la respuesta modelo y no cuenta como terminada.
+  - S-75 (E10g, RB-69): una respuesta de otro tipo o calificarse sin enviar se rechaza; "Repetir solo las que fallé" incluye las "A medias" y las múltiples parciales; un cuestionario anterior (sin tipo) se responde y califica como antes.
   - S-68 y S-69 (E11b): qué rutas se pueden guardar (Asistente, API de escritura y texto de documentos nunca); cada caso de borrado de RB-63, incluido el de 7 días.
   - S-29 a S-32 (validación del plan: tema no confirmado, fuente inventada, fecha fuera de rango, plan válido).
 - **Contraste**: una prueba lee los tokens de `globals.css` y comprueba ≥ 4,5:1 en cada par texto/fondo, en ambos modos, y para los 8 colores de categoría.
@@ -791,7 +884,7 @@ Las rutas que llaman a Gemini declaran `maxDuration = 60`.
 - `npm run probar:semestre` (nuevo, E13): crea una materia de prueba completa en la base real, comprueba los cálculos contra valores hechos a mano y borra lo que creó.
 - `npm run probar:libro` (nuevo, E10b y E10c): con un PDF de prueba de unas 40 páginas con índice, comprueba capítulos y páginas, una pregunta por página con su cita, un capítulo y "Más simple" con Gemini real; borra lo que creó.
 - `npm run probar:recordatorios` (nuevo, E11c): crea tareas con recordatorio, llama al tick con un reloj fijo en modo de prueba (sin enviar) y comprueba qué se enviaría y que no se repite; borra lo que creó.
-- `npm run probar:cuestionario` (nuevo, E10e): con Gemini real y el PDF de `probar:libro`, genera 5 preguntas de un capítulo, comprueba que todas pasan RB-50 y que sus páginas están dentro del capítulo; pide 20 preguntas de 2 páginas y comprueba RB-49; borra lo que creó.
+- `npm run probar:cuestionario` (nuevo, E10e): con Gemini real y el PDF de `probar:libro`, genera 5 preguntas de un capítulo, comprueba que todas pasan RB-50 y que sus páginas están dentro del capítulo; pide 20 preguntas de 2 páginas y comprueba RB-49; borra lo que creó. Desde E10g genera un cuestionario mixto de 5 con una sola ejecución (a lo sumo 2 llamadas) y comprueba que cada pregunta pasa la validación de su tipo.
 - `npm run probar:plan` (nuevo, E18): con Gemini real, propone temas desde un PDF de prueba y genera un plan; comprueba que pasa la validación y borra lo que creó.
 
 ### 11.3 Compatibilidad con `master` (después de cada migración)
@@ -802,7 +895,7 @@ Con un `git worktree` de `master` en una carpeta temporal: `npm run probar:rag` 
 
 En cada etapa con interfaz: navegador real a 1280 px y 390 px (sin desplazamiento horizontal, sin errores de página, foco visible) y prueba del usuario en la **vista previa de Vercel** desde su teléfono.
 
-## 12. Casos de aceptación B-01 a B-76
+## 12. Casos de aceptación B-01 a B-81
 
 Se ejecutan en la vista previa de Vercel de `ampliacion`, en computador y en teléfono, y se registran en `doc/ACEPTACION.md` (sección nueva). Antes, se repiten A-01 a A-21 en la vista previa.
 
@@ -872,6 +965,11 @@ Se ejecutan en la vista previa de Vercel de `ampliacion`, en computador y en tel
 | B-64 | (E10e) Terminar con 3 de 5 y "Repetir solo las que fallé" | Puntaje 3,0; el repaso trae solo las 2 falladas y se califica sobre ellas |
 | B-65 | (E10f) Hacer el mismo cuestionario dos veces y abrir el historial | Se ven los intentos por documento y capítulo, y si mejoraste; los repasos dicen "Repaso" |
 | B-66 | (E10f) Fallar 2 preguntas de un capítulo y aceptar la sugerencia; repetirlo | Crea "Repasar cap. N: Título (pp. a–b)" tras confirmar; la segunda vez, RB-53 |
+| B-77 | (E10g) Crear un cuestionario sin cambiar el tipo, de 5 preguntas, de un capítulo | Es mixto: una pregunta de cada tipo, intercaladas, cada una con su cita y su página al responder |
+| B-78 | (E10g) En una de respuesta múltiple con 2 correctas: marcar las 2 correctas y 1 incorrecta | Dice cuántas eran correctas; vale 0,5; queda fija y entra en "Repetir solo las que fallé" |
+| B-79 | (E10g) Responder una de verdadero o falso cuya afirmación es falsa, y una de completar escribiendo la respuesta en mayúsculas, sin tilde y con espacios de más | La falsa explica qué es lo correcto según la cita; la de completar cuenta como correcta |
+| B-80 | (E10g) En una pregunta abierta: enviar la respuesta, cerrar la pantalla, volver y marcar "A medias" | Al volver se ven la respuesta modelo y los tres botones; vale 0,5; la respuesta y la calificación ya no se pueden cambiar; entra en "Repetir solo las que fallé" |
+| B-81 | (E10g) Crear uno solo de verdadero o falso y otro solo de completar; abrir un cuestionario creado antes de E10g y el historial | Todas las preguntas son del tipo elegido; el anterior funciona igual, como selección única; el historial muestra el tipo de cada cuestionario |
 | B-67 | (E10b2) En "Buscar en la web": buscar una frase, ver la fuente en "Fuentes guardadas" sin recargar y eliminarla; con 20 en una categoría, buscar otra vez | Aparece en su categoría con su enlace y "1/20"; eliminar pide confirmación y la quita; al llegar a 20, el aviso indica que se pueden eliminar abajo, y al eliminar una se puede volver a buscar |
 | B-68 | (E10c2) Con "Wikipedia" en "Buscar en": buscar una frase y no tocar "Guardar fuente"; buscar otra y guardarla; guardarla otra vez; con 20 en la categoría, buscar y guardar | La primera no aparece en "Fuentes guardadas"; la segunda sí, sin recargar; repetirla avisa que ya está; con 20, la búsqueda funciona y el tope se avisa al guardar (A-18) |
 | B-69 | (E10c2) Con "Fuentes web" en "Buscar en": preguntar algo de una fuente guardada y algo que no esté; con "Todos los documentos", preguntar lo mismo; sin fuentes guardadas, preguntar | Responde citando la fuente con su enlace, que abre Wikipedia; lo que no está: `No encontré esto en tus fuentes web guardadas. Prueba con "Wikipedia" en "Buscar en".`; con documentos no usa la fuente; sin fuentes, el aviso de RB-56 |
@@ -910,3 +1008,4 @@ Se ejecutan en la vista previa de Vercel de `ampliacion`, en computador y en tel
 | Privacidad con Gemini gratuito | Los términos del plan gratuito permiten a Google usar el contenido para mejorar sus productos y que personas lo lean, y piden no enviar información sensible, confidencial o personal. Rige desde hoy para preguntas, fragmentos y libros. El aviso de E11 (Configuración → Asistente) debe decirlo con claridad. El plan de pago no los usa para mejorar productos (2.2) |
 | Sesión dentro de la app instalada en el iPhone | Es distinta de la de Safari: se inicia sesión una vez dentro de la app; la guía lo dice |
 | Tamaño de la ampliación | 22 etapas pequeñas (más las agregadas después), cada una con su commit y su prueba; se puede parar en cualquier etapa con todo funcionando |
+| Tipos de pregunta (E10g) | La abierta se califica con la autoevaluación del usuario, sin Gemini: es honesta solo si el usuario lo es, y por eso la respuesta modelo y la cita se muestran siempre. La de completar solo acepta lo que falta, con la comparación de 7.13: un sinónimo no cuenta. Verdadero o falso puede salir desbalanceado (9.7) |
