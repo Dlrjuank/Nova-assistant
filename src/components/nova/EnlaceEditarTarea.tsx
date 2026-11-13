@@ -38,7 +38,7 @@ export function EnlaceEditarTarea({
     : `${claseBoton('fantasma')} text-texto`; // no es una acción peligrosa: no comparte color con "Eliminar"
 
   return (
-    <Link href={hrefEditarTarea(id)} onClick={abrir} aria-label={`Editar tarea: ${titulo}`} title="Editar" className={`${clase} ${className}`}>
+    <Link href={hrefEditarTarea(id)} prefetch={false} onClick={abrir} aria-label={`Editar tarea: ${titulo}`} title="Editar" className={`${clase} ${className}`}>
       {soloIcono ? <Pencil aria-hidden="true" className="size-4" /> : 'Editar'}
     </Link>
   );

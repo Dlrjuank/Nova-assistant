@@ -21,12 +21,12 @@ function Acciones({ d }: { d: Documento }) {
   return (
     <div className="flex flex-wrap items-center gap-2 sm:min-w-56">
       {d.paginas != null && d.progreso == null && (
-        <Link href={`/nova/fuentes/${d.id}/capitulos`} aria-label={`Ver capítulos de ${d.nombreArchivo}`} className={`${claseBoton('secundario')} min-h-9 py-1.5`}>
+        <Link href={`/nova/fuentes/${d.id}/capitulos`} prefetch={false} aria-label={`Ver capítulos de ${d.nombreArchivo}`} className={`${claseBoton('secundario')} min-h-9 py-1.5`}>
           Ver capítulos
         </Link>
       )}
       {d.paginas != null && d.progreso == null && (
-        <Link href={`/nova/cuestionarios/nuevo?documento=${d.id}`} aria-label={`Crear cuestionario de ${d.nombreArchivo}`} className={`${claseBoton('secundario')} min-h-9 py-1.5`}>
+        <Link href={`/nova/cuestionarios/nuevo?documento=${d.id}`} prefetch={false} aria-label={`Crear cuestionario de ${d.nombreArchivo}`} className={`${claseBoton('secundario')} min-h-9 py-1.5`}>
           Crear cuestionario
         </Link>
       )}

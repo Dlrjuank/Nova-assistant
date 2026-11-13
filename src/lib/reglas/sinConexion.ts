@@ -9,7 +9,13 @@ export const SIN_COPIA = 'Esta pantalla aún no está disponible sin conexión.'
 /** Marca de un control que solo muestra (elegir un día, abrir "Más", cerrar un diálogo): sigue activo sin conexión. */
 export const ATRIBUTO_PERMITIDO = 'data-sin-conexion';
 
-const CAPITULOS = /^\/nova\/fuentes\/[0-9a-f-]{36}\/capitulos$/i;
+/**
+ * Al navegar con el menú, cuánto tiempo quieta debe estar la pantalla nueva antes de pedirle al service worker que
+ * la guarde: así el pedido no compite con la navegación ni se hace para pantallas por las que solo se pasó.
+ */
+export const ESPERA_GUARDAR_MS = 2000;
+
+const CAPITULOS =/^\/nova\/fuentes\/[0-9a-f-]{36}\/capitulos$/i;
 
 /**
  * E11b: ¿el pedido falló por no tener internet (o no llegar al servidor)? `fetch` lo dice con un TypeError; una

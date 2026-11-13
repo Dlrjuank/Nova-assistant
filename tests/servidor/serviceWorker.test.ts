@@ -158,12 +158,64 @@ describe('service worker: navegar con el menú, sin recargar (corrección de E11
     const sw = entorno();
     sw.red.mockResolvedValueOnce(pagina('Mis tareas'));
     await sw.avisarRuta('/nova/tareas');
+    vi.setSystemTime(new Date('2026-11-13T18:15:00Z')); // la copia ya no es reciente: se vuelve a pedir
     sw.red.mockRejectedValueOnce(new TypeError('Failed to fetch'));
     await sw.avisarRuta('/nova/tareas');
+    expect(sw.red).toHaveBeenCalledTimes(2);
     expect(sw.copias()).toContain('/nova/tareas');
     sw.red.mockResolvedValueOnce({ type: 'opaqueredirect', status: 0, ok: false, headers: new Headers(), clone() { return this; } });
     await sw.avisarRuta('/nova');
     expect(sw.copias()).toEqual([]);
+  });
+});
+
+describe('service worker: no volver a armar una página guardada hace poco (corrección de E11b)', () => {
+  it('con una copia de menos de 5 minutos, el aviso de ruta no pide la página otra vez', async () => {
+    const sw = entorno();
+    sw.red.mockResolvedValueOnce(pagina('Mis tareas'));
+    await sw.avisarRuta('/nova/tareas');
+    vi.setSystemTime(new Date('2026-11-13T18:09:59Z'));
+    await sw.avisarRuta('/nova/tareas');
+    expect(sw.red).toHaveBeenCalledTimes(1);
+    sw.red.mockResolvedValueOnce(pagina('Mis tareas, más nuevas'));
+    vi.setSystemTime(new Date('2026-11-13T18:10:01Z'));
+    await sw.avisarRuta('/nova/tareas');
+    expect(sw.red).toHaveBeenCalledTimes(2);
+    sw.red.mockImplementation(sinRed);
+    const html = (await (await sw.pedir('/nova/tareas'))?.text()) ?? '';
+    expect(html).toContain('Mis tareas, más nuevas');
+    expect(html).toContain('content="2026-11-13T18:10:01.000Z"');
+  });
+
+  it('cada pantalla lleva su propia hora: otra pantalla sí se pide', async () => {
+    const sw = entorno();
+    sw.red.mockResolvedValueOnce(pagina('Mis tareas')).mockResolvedValueOnce(pagina('Calendario'));
+    await sw.avisarRuta('/nova/tareas');
+    await sw.avisarRuta('/nova/calendario');
+    expect(sw.red).toHaveBeenCalledTimes(2);
+  });
+
+  it('una carga completa siempre guarda la respuesta que ya llegó, aunque haya copia reciente', async () => {
+    const sw = entorno();
+    sw.red.mockResolvedValueOnce(pagina('Primera'));
+    await sw.pedir('/nova');
+    vi.setSystemTime(new Date('2026-11-13T18:06:00Z'));
+    sw.red.mockResolvedValueOnce(pagina('Segunda'));
+    await sw.pedir('/nova');
+    sw.red.mockImplementation(sinRed);
+    expect(await (await sw.pedir('/nova'))?.text()).toContain('Segunda');
+  });
+
+  it('una copia sin hora (de la versión anterior) no cuenta como reciente', () => {
+    const reglas: Record<string, unknown> = {};
+    new Function('self', readFileSync(join(process.cwd(), 'public/sw-reglas.js'), 'utf8'))(reglas);
+    const { copiaReciente, COPIA_RECIENTE_MS } = reglas.NovaReglas as { copiaReciente: (t: number, a: Date) => boolean; COPIA_RECIENTE_MS: number };
+    const ahora = new Date('2026-11-13T18:05:00Z');
+    expect(COPIA_RECIENTE_MS).toBe(5 * 60 * 1000);
+    expect(copiaReciente(Number(null), ahora)).toBe(false);
+    expect(copiaReciente(Number.NaN, ahora)).toBe(false);
+    expect(copiaReciente(ahora.getTime() - 1000, ahora)).toBe(true);
+    expect(copiaReciente(ahora.getTime() + 60_000, ahora)).toBe(false); // hora del futuro (reloj cambiado)
   });
 });
 

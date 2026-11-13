@@ -6,6 +6,8 @@
  */
 (function (global) {
   var SIETE_DIAS_MS = 7 * 24 * 60 * 60 * 1000;
+  /** Al navegar con el menú, una copia más nueva que esto no se vuelve a pedir (no se arma la página otra vez). */
+  var COPIA_RECIENTE_MS = 5 * 60 * 1000;
   var CAPITULOS = /^\/nova\/fuentes\/[0-9a-f-]{36}\/capitulos$/i;
 
   /** "2026-11" del momento dado, en Bogotá (igual que el resto de la app). */
@@ -76,6 +78,12 @@
     return typeof ultimaValida !== 'number' || ahora.getTime() - ultimaValida > SIETE_DIAS_MS;
   }
 
+  /** ¿La copia guardada en `guardadaEn` (milisegundos) tiene menos de COPIA_RECIENTE_MS? Sin hora, no. */
+  function copiaReciente(guardadaEn, ahora) {
+    var diferencia = ahora.getTime() - guardadaEn;
+    return typeof guardadaEn === 'number' && isFinite(guardadaEn) && diferencia >= 0 && diferencia < COPIA_RECIENTE_MS;
+  }
+
   /** Marca el HTML guardado con la hora en que se guardó, para el aviso `Sin conexión · datos de las HH:MM`. */
   function marcarCopia(html, guardadoEn) {
     var meta = '<meta name="nova-copia" content="' + new Date(guardadoEn).toISOString() + '">';
@@ -85,6 +93,8 @@
 
   global.NovaReglas = {
     SIETE_DIAS_MS: SIETE_DIAS_MS,
+    COPIA_RECIENTE_MS: COPIA_RECIENTE_MS,
+    copiaReciente: copiaReciente,
     mesActual: mesActual,
     esEstatico: esEstatico,
     esRsc: esRsc,

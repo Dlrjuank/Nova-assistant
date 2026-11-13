@@ -135,7 +135,10 @@ function despues(url, metodo, respuesta, ahora) {
         R.paginaGuardable(url, ahora) && tipo.indexOf('text/html') !== -1
           ? respuesta.text().then(function (html) {
               return caches.open(DATOS).then(function (c) {
-                return c.put(R.clavePagina(url), new Response(R.marcarCopia(html, ahora.getTime()), { headers: { 'Content-Type': 'text/html; charset=utf-8' } }));
+                return c.put(
+                  R.clavePagina(url),
+                  new Response(R.marcarCopia(html, ahora.getTime()), { headers: { 'Content-Type': 'text/html; charset=utf-8', 'x-nova-guardada': String(ahora.getTime()) } }),
+                );
               });
             })
           : Promise.resolve();
@@ -205,6 +208,7 @@ self.addEventListener('fetch', function (evento) {
  * Al moverse con el menú o con un enlace, Next no recarga la página: pide la pantalla con un pedido interno (RSC),
  * que no se guarda porque no es HTML. Por eso ConexionNova avisa la ruta nueva y aquí se pide la página completa
  * para guardar su copia, con las mismas reglas que una carga completa (solo pantallas guardables, RB-63 incluido).
+ * Si ya hay una copia de hace menos de 5 minutos, no se pide: armar la página otra vez le cuesta al servidor.
  */
 function guardarRuta(href) {
   var url;
@@ -215,9 +219,16 @@ function guardarRuta(href) {
   }
   var ahora = new Date();
   if (url.origin !== self.location.origin || !R.paginaGuardable(url, ahora)) return Promise.resolve();
-  return fetch(url.href, { credentials: 'same-origin', redirect: 'manual', headers: { Accept: 'text/html' } })
-    .then(function (respuesta) {
-      return despues(url, 'GET', respuesta, ahora);
+  return caches
+    .open(DATOS)
+    .then(function (c) {
+      return c.match(R.clavePagina(url));
+    })
+    .then(function (copia) {
+      if (copia && R.copiaReciente(Number(copia.headers.get('x-nova-guardada')), ahora)) return;
+      return fetch(url.href, { credentials: 'same-origin', redirect: 'manual', headers: { Accept: 'text/html' } }).then(function (respuesta) {
+        return despues(url, 'GET', respuesta, ahora);
+      });
     })
     .catch(function () {
       // Sin conexión: queda la copia anterior.

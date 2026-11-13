@@ -53,7 +53,7 @@ function TarjetaCuestionario({ c }: { c: CuestionarioHistorial }) {
             Dificultad {NOMBRE_DIFICULTAD[c.dificultad].toLowerCase()} · {c.preguntas} {c.preguntas === 1 ? 'pregunta' : 'preguntas'} · Creado el {formatearFecha(c.creadoEn)}
           </p>
         </div>
-        <Link href={`/nova/cuestionarios/${c.id}`} className={`${claseBoton('secundario')} min-h-10 shrink-0`} aria-label={`Abrir el cuestionario ${c.alcance}`}>
+        <Link href={`/nova/cuestionarios/${c.id}`} prefetch={false} className={`${claseBoton('secundario')} min-h-10 shrink-0`} aria-label={`Abrir el cuestionario ${c.alcance}`}>
           {ultimo && !ultimo.terminado ? 'Continuar' : 'Abrir'}
         </Link>
       </div>

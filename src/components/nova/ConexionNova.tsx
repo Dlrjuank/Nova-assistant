@@ -6,12 +6,16 @@ import { Suspense, useEffect, useRef, useState } from 'react';
 import { useFormatoHora } from '@/components/nova/PreferenciasNova';
 import { guardarEventoInstalar, type EventoInstalar } from '@/lib/instalacion';
 import { formatearHora } from '@/lib/reglas/horario';
-import { bloqueadoSinConexion, NECESITAS_CONEXION, rutaConCopia, textoSinConexion } from '@/lib/reglas/sinConexion';
+import { bloqueadoSinConexion, ESPERA_GUARDAR_MS, NECESITAS_CONEXION, rutaConCopia, textoSinConexion } from '@/lib/reglas/sinConexion';
 
 /**
  * Al moverse con el menú o un enlace, Next cambia de pantalla sin recargar (pedido RSC) y el service worker no ve
  * una carga completa que guardar. Por eso, en cada cambio de ruta a una pantalla guardable, se le pide guardarla.
  * La primera carga ya la guarda el service worker si controla la página; si todavía no la controla, también se pide.
+ *
+ * Para no competir con la navegación, el pedido sale cuando la pantalla nueva ya se mostró, lleva un rato quieta
+ * (ESPERA_GUARDAR_MS) y el navegador está libre; si se cambia de pantalla antes, se cancela. El service worker,
+ * además, no la vuelve a pedir si ya tiene una copia reciente.
  */
 function AvisarRuta({ activa }: { activa: boolean }) {
   const ruta = usePathname() ?? '/nova';
@@ -26,9 +30,28 @@ function AvisarRuta({ activa }: { activa: boolean }) {
     if (esPrimera && navigator.serviceWorker.controller) return;
     const url = new URL(`${ruta}${parametros ? `?${parametros}` : ''}`, window.location.origin);
     if (!rutaConCopia(url, new Date())) return;
-    navigator.serviceWorker.ready
-      .then((registro) => registro.active?.postMessage({ tipo: 'nova-guardar-ruta', url: url.href }))
-      .catch(() => undefined);
+
+    let cancelado = false;
+    let libre: number | undefined;
+    const enviar = () => {
+      if (cancelado || !navigator.onLine) return;
+      // `getRegistration` y no `ready`: tras iniciar sesión la pestaña nació en /login, fuera del alcance, y
+      // `ready` no se resuelve nunca en ella.
+      navigator.serviceWorker
+        .getRegistration('/nova')
+        .then((registro) => registro?.active?.postMessage({ tipo: 'nova-guardar-ruta', url: url.href }))
+        .catch(() => undefined);
+    };
+    const temporizador = window.setTimeout(() => {
+      // Safari no tiene requestIdleCallback: ahí basta la espera.
+      if (typeof window.requestIdleCallback === 'function') libre = window.requestIdleCallback(enviar, { timeout: 3000 });
+      else enviar();
+    }, ESPERA_GUARDAR_MS);
+    return () => {
+      cancelado = true;
+      window.clearTimeout(temporizador);
+      if (libre !== undefined) window.cancelIdleCallback?.(libre);
+    };
   }, [ruta, parametros, activa]);
 
   return null;
