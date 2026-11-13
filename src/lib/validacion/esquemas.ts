@@ -12,6 +12,8 @@ export const esquemaTarea = z.object({
   // RB-34: opcionales; las valida src/lib/reglas/horario.ts para devolver los mensajes exactos.
   horaInicio: z.string().max(8).nullish(),
   horaFin: z.string().max(8).nullish(),
+  // E11c (RB-43): lo valida src/lib/reglas/recordatorios.ts; "" o null = sin recordatorio.
+  recordatorio: z.string().max(12).nullish(),
 });
 export type DatosTareaEntrada = z.infer<typeof esquemaTarea>;
 
@@ -56,6 +58,7 @@ export const esquemaConfiguracion = z
     notaAprobar: z.union([z.string().max(10), z.number()]).optional(),
     redondeo: z.enum(['truncar', 'redondear']).optional(),
     cortesDefecto: z.array(z.union([z.string().max(10), z.number()])).min(1).max(6).optional(),
+    horaRecordatorio: z.string().max(5).optional(),
   })
   .strict();
 
@@ -131,3 +134,11 @@ export const esquemaActualizarCategoria = z
 export type DatosActualizarCategoria = z.infer<typeof esquemaActualizarCategoria>;
 
 export const esquemaIdCategoria = z.uuid();
+
+// E11c: suscripción push del navegador (PushSubscription.toJSON()) y el nombre corto del dispositivo.
+export const esquemaSuscripcion = z.object({
+  endpoint: z.url().max(2000),
+  keys: z.object({ p256dh: z.string().min(1).max(200), auth: z.string().min(1).max(100) }),
+  dispositivo: z.string().max(120).optional(),
+});
+export const esquemaQuitarSuscripcion = z.object({ endpoint: z.url().max(2000) });

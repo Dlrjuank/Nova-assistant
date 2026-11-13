@@ -11,7 +11,8 @@ import { ErrorDeNegocio } from '@/lib/reglas/errores';
 export interface LLMClient {
   generarEmbedding(texto: string): Promise<number[]>;
   /** `interactivo`: desde una ruta de 60 s; espera la cuota por minuto como una consulta, no como una indexación. */
-  generarEmbeddings(textos: string[], opciones?: { interactivo?: boolean }): Promise<number[][]>;
+  /** `sinEsperarCuota` (RB-57): si Gemini pide esperar, falla enseguida; el aviso de cada minuto lo reintenta. */
+  generarEmbeddings(textos: string[], opciones?: { interactivo?: boolean; sinEsperarCuota?: boolean }): Promise<number[][]>;
   responder(d: {
     sistema: string;
     contexto: string;
@@ -36,6 +37,8 @@ const ESPERA_MAXIMA_INDEXAR_MS = 270_000;
 const ESPERA_MAXIMA_CONSULTAR_MS = 25_000;
 // La ruta del Asistente tiene 60 s. Sin estos topes, una llamada que no contesta consume todo ese tiempo.
 const TIEMPO_INTENTO_EMBEDDING_MS = 10_000;
+// RB-57: el aviso de cada minuto tiene 60 s; un lote de 20 fragmentos cabe de sobra.
+const TIEMPO_INTENTO_INDEXAR_SOLO_MS = 30_000;
 const TIEMPO_MODELO_PRINCIPAL_MS = 15_000;
 const TIEMPO_RESPONDER_MS = 40_000;
 // Con un contexto así de largo (un capítulo, "Explicar de otra manera"), tardar no indica saturación: resumir
@@ -171,6 +174,7 @@ export const llm: LLMClient = {
   },
 
   generarEmbeddings(textos, opciones) {
+    if (opciones?.sinEsperarCuota) return embeber(textos, 'RETRIEVAL_DOCUMENT', 0, TIEMPO_INTENTO_INDEXAR_SOLO_MS);
     return opciones?.interactivo
       ? embeber(textos, 'RETRIEVAL_DOCUMENT', ESPERA_MAXIMA_CONSULTAR_MS, TIEMPO_INTENTO_EMBEDDING_MS)
       : embeber(textos, 'RETRIEVAL_DOCUMENT', ESPERA_MAXIMA_INDEXAR_MS);

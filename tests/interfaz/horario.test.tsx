@@ -64,7 +64,7 @@ describe('el horario se ve donde está la tarea', () => {
   it('tabla de Tareas: el horario junto a la fecha límite; sin horario no muestra nada extra', () => {
     const tarea = (id: string, horaInicio: string | null, horaFin: string | null): Tarea => ({
       id, titulo: `T${id}`, categoria: 'General', prioridad: 2, estado: 'Pendiente', minutosInvertidos: 0,
-      fechaLimite: '2099-01-01', fechaCreacion: '2026-11-07', fechaCierre: null, horaInicio, horaFin,
+      fechaLimite: '2099-01-01', fechaCreacion: '2026-11-07', fechaCierre: null, horaInicio, horaFin, recordatorio: null, recordatorioEstado: null,
     });
     render(<TablaTareas tareas={[tarea('1', '14:00', null), tarea('2', null, null)]} />);
     expect(screen.getAllByText('14:00').length).toBeGreaterThan(0);

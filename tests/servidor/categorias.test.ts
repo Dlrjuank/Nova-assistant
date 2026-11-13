@@ -208,7 +208,8 @@ describe('RB-34: crearTarea guarda el horario', () => {
     );
     await crearTarea(U, { titulo: 'Clase', fechaLimite: '2099-01-01', horaInicio: '8:00', horaFin: '09:30' });
     const insertar = m.txQuery.mock.calls.find(([sql]) => String(sql).includes('INSERT INTO tareas_personales'));
-    expect(insertar?.[1]?.slice(-2)).toEqual(['08:00', '09:30']);
+    expect(insertar?.[1]?.slice(6, 8)).toEqual(['08:00', '09:30']);
+    expect(insertar?.[1]?.slice(-3)).toEqual([null, null, null]); // E11c: sin recordatorio
   });
 
   it('un horario inválido no llega a la base, con el mensaje exacto', async () => {

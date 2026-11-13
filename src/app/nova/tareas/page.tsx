@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { FilaCategorias } from '@/components/nova/FilaCategorias';
 import { GruposTareas } from '@/components/nova/GruposTareas';
+import { ResaltarTarea } from '@/components/nova/ResaltarTarea';
 import { claseBoton } from '@/components/ui/Boton';
 import { EncabezadoPantalla } from '@/components/ui/EncabezadoPantalla';
 import { EstadoVacio } from '@/components/ui/EstadoVacio';
@@ -17,9 +18,11 @@ const uno = (v: string | string[] | undefined) => (typeof v === 'string' ? v : u
 export default async function TareasPage({
   searchParams,
 }: {
-  searchParams: Promise<{ vista?: string | string[]; estado?: string | string[]; categoria?: string | string[] }>;
+  searchParams: Promise<{ vista?: string | string[]; estado?: string | string[]; categoria?: string | string[]; tarea?: string | string[] }>;
 }) {
   const parametros = await searchParams;
+  const pedidaResaltar = uno(parametros.tarea);
+  const tareaResaltada = pedidaResaltar && /^[0-9a-f-]{36}$/i.test(pedidaResaltar) ? pedidaResaltar : null;
   // E08: pestaña en ?vista=; los enlaces viejos con ?estado= siguen funcionando (vistaDeParametros).
   const vista = vistaDeParametros(uno(parametros.vista), uno(parametros.estado));
   const hoy = hoyBogota();
@@ -66,6 +69,8 @@ export default async function TareasPage({
       ) : (
         <GruposTareas tareas={tareas} categorias={categorias} hoy={hoy} />
       )}
+      {/* E11c: la notificación de un recordatorio abre Tareas con esa tarea resaltada. */}
+      {tareaResaltada && <ResaltarTarea id={tareaResaltada} />}
     </>
   );
 }

@@ -390,6 +390,43 @@ try {
       marcar(false, `at-az) preferencias: ${e.message}`);
     }
   }
+  console.log('== 6j. Recordatorios (M16)');
+  const tablasM16 = await c.query("SELECT relname, relrowsecurity FROM pg_class WHERE relname IN ('suscripciones_push', 'envios') AND relkind = 'r' ORDER BY relname");
+  marcar(tablasM16.rowCount === 2, 'tablas suscripciones_push y envios');
+  marcar(tablasM16.rows.every((r) => r.relrowsecurity === true), 'RLS activo en suscripciones_push y envios');
+  const cron = await c.query("SELECT schedule FROM cron.job WHERE jobname = 'nova-recordatorios'").catch(() => ({ rowCount: 0, rows: [] }));
+  marcar(cron.rowCount === 1 && cron.rows[0].schedule === '* * * * *', 'pg_cron: aviso nova-recordatorios cada minuto');
+  marcar((await c.query("SELECT 1 FROM pg_proc WHERE proname = 'nova_llamar_tick'")).rowCount === 1, 'función nova_llamar_tick');
+  if (tablasM16.rowCount === 2 && dueno) {
+    try {
+      const t = (await c.query(
+        `INSERT INTO tareas_personales (titulo, fecha_limite, fecha_creacion, usuario_id, hora_inicio) VALUES ('verificar M16', $1, $1, $2, '10:00') RETURNING id`,
+        [hoy, dueno],
+      )).rows[0].id;
+      marcar((await c.query('SELECT recordatorio, recordatorio_en, recordatorio_estado FROM tareas_personales WHERE id = $1', [t])).rows[0].recordatorio === null, 'ba) una tarea sin recordatorio (como las de master) queda en NULL');
+      const upd = 'UPDATE tareas_personales SET {c} WHERE id = $1';
+      await esperaFalla('bb) recordatorio fuera de la lista', '23514', upd.replace('{c}', "recordatorio = '2_dias', recordatorio_en = now(), recordatorio_estado = 'pendiente'"), [t]);
+      await esperaFalla('bc) recordatorio sin su momento', '23514', upd.replace('{c}', "recordatorio = 'a_la_hora'"), [t]);
+      await esperaFalla('bd) estado fuera de la lista', '23514', upd.replace('{c}', "recordatorio = 'a_la_hora', recordatorio_en = now(), recordatorio_estado = 'listo'"), [t]);
+      await esperaFalla('be) 15 min antes sin horario', '23514', upd.replace('{c}', "hora_inicio = NULL, recordatorio = '15_min', recordatorio_en = now(), recordatorio_estado = 'pendiente'"), [t]);
+      await c.query(upd.replace('{c}', "recordatorio = '15_min', recordatorio_en = now(), recordatorio_estado = 'pendiente'"), [t]);
+      marcar(true, 'bf) recordatorio válido con horario');
+      const sus = "INSERT INTO suscripciones_push (usuario_id, endpoint, p256dh, auth) VALUES ($1, $2, 'a', 'b')";
+      await c.query(sus, [dueno, 'https://push.ejemplo/verificar']);
+      await esperaFalla('bg) la misma suscripción dos veces', '23505', sus, [dueno, 'https://push.ejemplo/verificar']);
+      await esperaFalla('bh) suscripción sin https', '23514', sus, [dueno, 'http://push.ejemplo/x']);
+      const res = "INSERT INTO envios (usuario_id, tipo, fecha, resultado) VALUES ($1, $2, $3, 'ok')";
+      await c.query(res, [dueno, 'resumen', hoy]);
+      await esperaFalla('bi) dos resúmenes el mismo día', '23505', res, [dueno, 'resumen', hoy]);
+      await c.query(res, [dueno, 'recordatorio', hoy]);
+      await c.query(res, [dueno, 'recordatorio', hoy]);
+      marcar(true, 'bj) varios recordatorios el mismo día');
+      const pref = (await c.query("INSERT INTO preferencias_usuario (usuario_id) VALUES ($1) ON CONFLICT (usuario_id) DO UPDATE SET tema = preferencias_usuario.tema RETURNING to_char(hora_recordatorio, 'HH24:MI') AS h, resumen_diario, to_char(hora_resumen, 'HH24:MI') AS r", [dueno])).rows[0];
+      marcar(pref.h === '08:00' && pref.resumen_diario === false && pref.r === '07:00', 'bk) preferencias nuevas por defecto (8:00, sin resumen, 7:00)');
+    } catch (e) {
+      marcar(false, `ba-bk) recordatorios: ${e.message}`);
+    }
+  }
   await c.query('ROLLBACK');
 
   console.log(`== 7. Total de fallas: ${fallas}`);

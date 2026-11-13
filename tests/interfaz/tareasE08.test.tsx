@@ -32,6 +32,8 @@ const tarea = (id: string, categoria: string, extra: Partial<Tarea> = {}): Tarea
   fechaCierre: null,
   horaInicio: null,
   horaFin: null,
+  recordatorio: null,
+  recordatorioEstado: null,
   ...extra,
 });
 

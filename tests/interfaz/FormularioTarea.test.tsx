@@ -111,6 +111,7 @@ describe('FormularioTarea', () => {
       fechaLimite: '2026-03-10',
       horaInicio: null,
       horaFin: null,
+      recordatorio: null,
     });
     expect(nav.refresh).toHaveBeenCalled();
   });

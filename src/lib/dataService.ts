@@ -146,6 +146,15 @@ export { confirmarPlanLectura, vistaPreviaPlanLectura } from '@/lib/datos/planLe
 export { crearCuestionario, empezarIntento, obtenerCuestionario, responderPregunta } from '@/lib/datos/cuestionarios';
 export { crearTareaRepaso, listarCuestionarios } from '@/lib/datos/historialCuestionarios';
 export { actualizarConfiguracion, borrarHistorial, obtenerConfiguracion, obtenerPreferencias, type Configuracion } from '@/lib/datos/configuracion';
+export {
+  borrarSuscripcion,
+  clavePublicaPush,
+  contarSuscripciones,
+  enviarPrueba,
+  guardarSuscripcion,
+  procesarRecordatorios,
+} from '@/lib/datos/notificaciones';
+export { avanzarLibroEnSegundoPlano } from '@/lib/datos/documentos';
 export type {
   Categoria,
   ConversacionActual,

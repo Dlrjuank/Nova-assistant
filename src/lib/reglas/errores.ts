@@ -43,6 +43,11 @@ export type CodigoError =
   | 'NOTA_APROBAR_INVALIDA'
   | 'PORCENTAJE_INVALIDO'
   | 'CORTES_NO_SUMAN'
+  | 'RECORDATORIO_INVALIDO'
+  | 'HORA_RECORDATORIO_INVALIDA'
+  | 'SUSCRIPCION_INVALIDA'
+  | 'SIN_NOTIFICACIONES'
+  | 'NOTIFICACIONES_NO_CONFIGURADAS'
   | 'ERROR_INTERNO';
 
 // Textos de la sección 12.2; los de la sección 5.1 se usan literalmente.
@@ -97,6 +102,12 @@ export const MENSAJES: Record<CodigoError, string> = {
   NOTA_APROBAR_INVALIDA: 'La nota para aprobar debe estar entre 0,0 y 5,0.',
   PORCENTAJE_INVALIDO: 'El porcentaje debe ser mayor que 0 y como máximo 100.',
   CORTES_NO_SUMAN: 'Los porcentajes de los cortes deben sumar 100 %.',
+  // E11c (RB-43, RB-45): recordatorios y notificaciones.
+  RECORDATORIO_INVALIDO: 'Ese recordatorio necesita la hora de inicio de la tarea.',
+  HORA_RECORDATORIO_INVALIDA: 'Elige una hora válida para los recordatorios.',
+  SUSCRIPCION_INVALIDA: 'No se pudieron activar las notificaciones en este dispositivo. Intenta de nuevo.',
+  SIN_NOTIFICACIONES: 'Activa las notificaciones para recibir este aviso.',
+  NOTIFICACIONES_NO_CONFIGURADAS: 'Las notificaciones todavía no están disponibles en este servidor.',
   ERROR_INTERNO: 'Ocurrió un error inesperado. Intente de nuevo.',
 };
 
@@ -145,6 +156,11 @@ export const ESTADO_HTTP: Record<CodigoError, number> = {
   NOTA_APROBAR_INVALIDA: 422,
   PORCENTAJE_INVALIDO: 422,
   CORTES_NO_SUMAN: 422,
+  RECORDATORIO_INVALIDO: 422,
+  HORA_RECORDATORIO_INVALIDA: 422,
+  SUSCRIPCION_INVALIDA: 422,
+  SIN_NOTIFICACIONES: 409,
+  NOTIFICACIONES_NO_CONFIGURADAS: 503,
   ERROR_INTERNO: 500,
 };
 

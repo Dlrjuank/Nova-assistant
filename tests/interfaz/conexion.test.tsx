@@ -6,10 +6,11 @@ import { BloqueInstalar } from '@/components/nova/configuracion/BloqueInstalar';
 import { guardarEventoInstalar, type EventoInstalar } from '@/lib/instalacion';
 import { ESPERA_GUARDAR_MS } from '@/lib/reglas/sinConexion';
 
-const nav = vi.hoisted(() => ({ ruta: '/nova', busqueda: '' }));
+const nav = vi.hoisted(() => ({ ruta: '/nova', busqueda: '', push: vi.fn<(url: string) => void>() }));
 vi.mock('next/navigation', () => ({
   usePathname: () => nav.ruta,
   useSearchParams: () => new URLSearchParams(nav.busqueda),
+  useRouter: () => ({ push: (url: string) => nav.push(url) }),
 }));
 
 let enLinea = true;

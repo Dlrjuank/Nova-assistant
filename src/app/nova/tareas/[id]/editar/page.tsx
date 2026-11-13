@@ -57,6 +57,7 @@ export default async function EditarTareaPage({
             fechaLimite: String(tarea.fechaLimite).slice(0, 10),
             horaInicio: tarea.horaInicio,
             horaFin: tarea.horaFin,
+            recordatorio: tarea.recordatorio,
           }}
           volver={destino}
           categorias={categorias.map(({ nombre, color }) => ({ nombre, color }))}

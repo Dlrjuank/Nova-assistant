@@ -3,7 +3,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const m = vi.hoisted(() => ({ consultar: vi.fn(), exigirSesion: vi.fn() }));
-vi.mock('@/lib/db/conexion', () => ({ consultar: m.consultar }));
+// La transacción usa el mismo doble: cada tx.query pasa por consultar.
+vi.mock('@/lib/db/conexion', () => ({
+  consultar: m.consultar,
+  conTransaccion: async (trabajo: (tx: { query: (sql: string, v?: unknown[]) => Promise<{ rows: unknown[] }> }) => Promise<unknown>) =>
+    trabajo({ query: async (sql, v) => ({ rows: (await m.consultar(sql, v)) ?? [] }) }),
+}));
 vi.mock('@/lib/auth/sesion', () => ({ exigirSesion: m.exigirSesion }));
 vi.mock('@/lib/dataService', async () => {
   const configuracion = await import('@/lib/datos/configuracion');
@@ -15,7 +20,7 @@ import * as rutaConversaciones from '@/app/api/nova/conversaciones/route';
 import { actualizarConfiguracion, borrarHistorial, obtenerConfiguracion, obtenerPreferencias } from '@/lib/datos/configuracion';
 
 const U = '11111111-1111-4111-8111-111111111111';
-const FILA = { tema: 'oscuro', formato_hora: '12', nota_aprobar: '3.50', redondeo: 'redondear', cortes_defecto: [5000, 5000] };
+const FILA = { tema: 'oscuro', formato_hora: '12', nota_aprobar: '3.50', redondeo: 'redondear', cortes_defecto: [5000, 5000], hora_recordatorio: '07:30' };
 
 function base(fila: Record<string, unknown> | null = null, nombre = 'Ana') {
   m.consultar.mockImplementation(async (sql: string) => {
@@ -36,7 +41,7 @@ beforeEach(() => {
 describe('leer', () => {
   it('sin fila, los valores por defecto (6.3)', async () => {
     base();
-    await expect(obtenerPreferencias(U)).resolves.toEqual({ tema: 'automatico', formatoHora: '24', notaAprobar: 300, redondeo: 'truncar', cortesDefecto: [3000, 3000, 4000] });
+    await expect(obtenerPreferencias(U)).resolves.toEqual({ tema: 'automatico', formatoHora: '24', notaAprobar: 300, redondeo: 'truncar', cortesDefecto: [3000, 3000, 4000], horaRecordatorio: '08:00' });
     expect(m.consultar.mock.calls[0]?.[1]).toEqual([U]);
   });
 
@@ -44,7 +49,7 @@ describe('leer', () => {
     base(FILA);
     await expect(obtenerConfiguracion(U, 'yo@ejemplo.com')).resolves.toEqual({
       perfil: { nombre: 'Ana', email: 'yo@ejemplo.com' },
-      preferencias: { tema: 'oscuro', formatoHora: '12', notaAprobar: 350, redondeo: 'redondear', cortesDefecto: [5000, 5000] },
+      preferencias: { tema: 'oscuro', formatoHora: '12', notaAprobar: 350, redondeo: 'redondear', cortesDefecto: [5000, 5000], horaRecordatorio: '07:30' },
     });
   });
 });
@@ -58,6 +63,18 @@ describe('guardar', () => {
     expect(sql).toContain('ON CONFLICT (usuario_id) DO UPDATE SET tema = EXCLUDED.tema, nota_aprobar = EXCLUDED.nota_aprobar, cortes_defecto = EXCLUDED.cortes_defecto');
     expect(valores).toEqual([U, 'oscuro', '3.50', [5000, 5000]]);
     expect(escrituras()).toHaveLength(1);
+  });
+
+  it('E11c: la hora fija de los recordatorios se valida y recalcula los de las tareas sin horario', async () => {
+    base();
+    await actualizarConfiguracion(U, 'yo@ejemplo.com', { horaRecordatorio: '18:30' });
+    const [insertar, recalcular] = escrituras() as Array<[string, unknown[]]>;
+    expect(insertar?.[0]).toContain('INSERT INTO preferencias_usuario (usuario_id, hora_recordatorio)');
+    expect(insertar?.[1]).toEqual([U, '18:30']);
+    expect(recalcular?.[0]).toContain('hora_inicio IS NULL');
+    expect(recalcular?.[0]).toContain("recordatorio_estado <> 'enviado'");
+    expect(recalcular?.[1]).toEqual([U, '18:30']);
+    await expect(actualizarConfiguracion(U, 'e', { horaRecordatorio: '25:00' })).rejects.toMatchObject({ codigo: 'HORA_RECORDATORIO_INVALIDA' });
   });
 
   it('el nombre va a public.users, recortado (RB-26)', async () => {

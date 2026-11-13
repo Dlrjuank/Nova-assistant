@@ -211,7 +211,7 @@ describe('selector de color, insignia y tabla', () => {
   it('en la tabla, cada tarea usa el color de su categoría (sin registro, gris)', () => {
     const tarea = (id: string, categoria: string): Tarea => ({
       id, titulo: `T ${id}`, categoria, prioridad: 2, estado: 'Pendiente', minutosInvertidos: 0,
-      fechaLimite: '2099-01-01', fechaCreacion: '2026-11-07', fechaCierre: null, horaInicio: null, horaFin: null,
+      fechaLimite: '2099-01-01', fechaCreacion: '2026-11-07', fechaCierre: null, horaInicio: null, horaFin: null, recordatorio: null, recordatorioEstado: null,
     });
     const { container } = render(<TablaTareas tareas={[tarea('1', 'casa'), tarea('2', 'Sin registrar')]} categorias={CATEGORIAS} />);
     const puntos = [...container.querySelectorAll('table [aria-hidden="true"][class*="bg-cat-"]')].map((p) => p.className);

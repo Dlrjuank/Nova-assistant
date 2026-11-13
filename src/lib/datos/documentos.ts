@@ -68,7 +68,12 @@ const LEASE_MINUTOS = 6; // más que el maxDuration de la ruta: si la función m
  * RB-38: vectoriza y guarda de a un lote hasta terminar o agotar el presupuesto. Cada lote queda guardado
  * antes de seguir, así que un corte solo pierde el lote en curso. Devuelve el progreso (null = terminado).
  */
-async function avanzarIndexacion(documentoId: string, iniciales: Pendiente[], presupuestoMs: number): Promise<number | null> {
+async function avanzarIndexacion(
+  documentoId: string,
+  iniciales: Pendiente[],
+  presupuestoMs: number,
+  opcionesEmbeddings: { sinEsperarCuota?: boolean } = {},
+): Promise<number | null> {
   const limite = Date.now() + presupuestoMs;
   const hechosAntes = (iniciales[0]?.numero ?? 1) - 1;
   const total = hechosAntes + iniciales.length;
@@ -81,7 +86,7 @@ async function avanzarIndexacion(documentoId: string, iniciales: Pendiente[], pr
       let vectores: number[][];
       try {
         // Los embeddings van antes de la transacción para no retener una conexión durante las llamadas a Gemini.
-        vectores = await llm.generarEmbeddings(lote.map((f) => f.contenido));
+        vectores = await llm.generarEmbeddings(lote.map((f) => f.contenido), opcionesEmbeddings);
       } catch (error) {
         // Sin cuota por ahora, pero ya se avanzó: se conserva y se sigue en la próxima llamada.
         if (guardadosAhora > 0 && error instanceof ErrorDeNegocio && error.codigo === 'ERROR_LLM') break;
@@ -206,6 +211,33 @@ export async function continuarIndexacion(
     return actual.progreso === null ? { progreso: null } : { progreso: actual.progreso, ocupado: true };
   }
   return { progreso: await avanzarIndexacion(id, tomado.por_indexar, opciones.presupuestoMs ?? INDEXACION_PRESUPUESTO_MS) };
+}
+
+/**
+ * RB-57 (E11c): el aviso de cada minuto avanza una parte del libro a medias más antiguo que nadie esté indexando
+ * (respeta indexando_hasta, RB-38). Si Gemini pide esperar por la cuota, no espera: lo intenta en el minuto
+ * siguiente. Con la pantalla abierta, el navegador sigue pidiendo partes y no se repiten (el mismo bloqueo).
+ */
+export async function avanzarLibroEnSegundoPlano(): Promise<
+  { documentoId: string; progreso: number | null; esperaCuota?: boolean } | null
+> {
+  const [tomado] = await consultar<{ id: string; por_indexar: Pendiente[]; progreso: number }>(
+    `UPDATE documentos SET indexando_hasta = NOW() + make_interval(mins => $1)
+     WHERE id = (
+       SELECT id FROM documentos
+       WHERE progreso IS NOT NULL AND (indexando_hasta IS NULL OR indexando_hasta < NOW())
+       ORDER BY created_at LIMIT 1 FOR UPDATE SKIP LOCKED
+     ) AND progreso IS NOT NULL AND (indexando_hasta IS NULL OR indexando_hasta < NOW())
+     RETURNING id, por_indexar, progreso`,
+    [LEASE_MINUTOS],
+  );
+  if (!tomado) return null;
+  try {
+    return { documentoId: tomado.id, progreso: await avanzarIndexacion(tomado.id, tomado.por_indexar, 0, { sinEsperarCuota: true }) };
+  } catch (error) {
+    if (error instanceof ErrorDeNegocio && error.codigo === 'ERROR_LLM') return { documentoId: tomado.id, progreso: tomado.progreso, esperaCuota: true };
+    throw error;
+  }
 }
 
 /** RB-37: los capítulos de un documento del usuario, en orden. */

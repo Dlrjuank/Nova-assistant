@@ -12,6 +12,17 @@ import { ErrorDeNegocio, MENSAJES } from '@/lib/reglas/errores';
 import { aplicarMascaraFecha, esFechaISOValida, esFechaPasada, hoyBogota } from '@/lib/reglas/fechas';
 import { validarHorario } from '@/lib/reglas/horario';
 import { normalizarTitulo, resolverPrioridad } from '@/lib/reglas/tarea';
+import { PanelNotificaciones } from '@/components/nova/PanelNotificaciones';
+import { useFormatoHora, useHoraRecordatorio } from '@/components/nova/PreferenciasNova';
+import {
+  AVISO_MOMENTO_PASADO,
+  esRecordatorio,
+  estadoInicial,
+  momentoRecordatorio,
+  opcionesRecordatorio,
+  recordatorioCompatible,
+  type Recordatorio,
+} from '@/lib/reglas/recordatorios';
 
 type Campos = 'titulo' | 'prioridad' | 'fechaLimite' | 'horaInicio' | 'horaFin';
 interface Valores {
@@ -21,6 +32,15 @@ interface Valores {
   fechaLimite: string;
   horaInicio: string;
   horaFin: string;
+  /** E11c (RB-43): '' = sin recordatorio. */
+  recordatorio: Recordatorio | '';
+}
+
+/** RB-43: ¿el recordatorio elegido ya pasó? Solo con la fecha (y la hora, si hay horario) bien escritas. */
+function recordatorioPasado(v: Valores, recordatorio: Recordatorio | '', horaFija: string): boolean {
+  if (!recordatorio || !esFechaISOValida(v.fechaLimite) || (v.horaInicio && !esHoraValida(v.horaInicio))) return false;
+  const momento = momentoRecordatorio({ recordatorio, fechaLimite: v.fechaLimite, horaInicio: v.horaInicio || null, horaFija });
+  return estadoInicial(momento, new Date()) === 'omitido';
 }
 
 const OPCIONES_PRIORIDAD = [
@@ -82,10 +102,13 @@ export function FormularioTarea({
     fechaLimite: string;
     horaInicio?: string | null;
     horaFin?: string | null;
+    recordatorio?: string | null;
   };
   volver?: string;
 } = {}) {
   const router = useRouter();
+  const formatoHora = useFormatoHora();
+  const horaFija = useHoraRecordatorio();
   const [valores, setValores] = useState<Valores>({
     titulo: tarea?.titulo ?? '',
     categoria: tarea?.categoria ?? CATEGORIA_POR_DEFECTO,
@@ -93,7 +116,15 @@ export function FormularioTarea({
     fechaLimite: tarea?.fechaLimite ?? fechaInicial,
     horaInicio: tarea?.horaInicio ?? '',
     horaFin: tarea?.horaFin ?? '',
+    recordatorio: esRecordatorio(tarea?.recordatorio) ? tarea.recordatorio : '',
   });
+  // Sin hora de inicio, "15 min" y "1 hora" no existen: el campo vuelve a "Sin recordatorio".
+  const conHorario = valores.horaInicio !== '';
+  const recordatorio = recordatorioCompatible(valores.recordatorio, conHorario);
+  const opcionesRecordatorioCampo = [
+    { valor: '', texto: 'Sin recordatorio' },
+    ...opcionesRecordatorio(conHorario, horaFija, formatoHora).map((o) => ({ valor: o.valor, texto: o.texto })),
+  ];
   const [tocados, setTocados] = useState<Partial<Record<Campos, boolean>>>({});
   const [enviando, setEnviando] = useState(false);
   const [errorServidor, setErrorServidor] = useState('');
@@ -123,6 +154,7 @@ export function FormularioTarea({
           fechaLimite: valores.fechaLimite,
           horaInicio: valores.horaInicio || null,
           horaFin: valores.horaFin || null,
+          recordatorio: recordatorio || null,
         }),
       });
       const cuerpo = (await respuesta.json()) as { ok: boolean; error?: { mensaje?: string } };
@@ -211,6 +243,19 @@ export function FormularioTarea({
         </div>
         <p className="text-xs text-texto-suave">Puedes poner solo la hora de inicio. Las tareas con hora se ordenan por horario.</p>
       </fieldset>
+
+      {/* E11c (RB-43, RB-45): con horario, desde la hora de inicio; sin horario, a la hora fija de Configuración. */}
+      <div className="flex flex-col gap-3">
+        <Selector
+          id="recordatorio"
+          etiqueta="Recordatorio"
+          opciones={opcionesRecordatorioCampo}
+          value={recordatorio}
+          onChange={(e) => setValores((previo) => ({ ...previo, recordatorio: esRecordatorio(e.target.value) ? e.target.value : '' }))}
+        />
+        {recordatorioPasado(valores, recordatorio, horaFija) && <Aviso tipo="advertencia">{AVISO_MOMENTO_PASADO}</Aviso>}
+        {recordatorio && <PanelNotificaciones modo="formulario" />}
+      </div>
 
       {/* RN-07 permite fechas pasadas: se avisa por si fue un error al escribir, pero no se bloquea. */}
       {esFechaPasada(valores.fechaLimite, hoyBogota()) && (

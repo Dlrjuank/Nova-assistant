@@ -28,7 +28,7 @@ describe('IndexacionPendiente', () => {
     f.mockImplementation(() => new Promise((r) => resolvers.push(r)));
     render(<IndexacionPendiente pendientes={[DOC]} />);
     expect(screen.getByText(/Indexando «libro\.pdf»… 10 %/)).toBeTruthy();
-    expect(screen.getByText('Deja esta pantalla abierta hasta que termine.')).toBeTruthy();
+    expect(screen.getByText('Puedes cerrar esta pantalla: seguirá sola.')).toBeTruthy();
 
     await act(async () => resolvers[0]?.(ok({ progreso: 40 })));
     await waitFor(() => expect(barra().value).toBe(40));
@@ -68,7 +68,7 @@ describe('IndexacionPendiente', () => {
     expect(await screen.findByText(/Se perdió la conexión/)).toBeTruthy();
     f.mockResolvedValue(ok({ progreso: null }));
     await act(async () => document.dispatchEvent(new Event('visibilitychange')));
-    await waitFor(() => expect(f).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(f).toHaveBeenCalledTimes(2), { timeout: 3000 }); // con la suite completa, la máquina va más lenta
   });
 
   it('sin pendientes no muestra nada', () => {

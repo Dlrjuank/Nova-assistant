@@ -26,7 +26,7 @@ const TAREA: Tarea = {
   minutosInvertidos: 0,
   fechaLimite: '2026-03-10',
   fechaCreacion: '2026-03-01',
-  fechaCierre: null, horaInicio: null, horaFin: null,
+  fechaCierre: null, horaInicio: null, horaFin: null, recordatorio: null, recordatorioEstado: null,
 };
 
 describe('insignias', () => {

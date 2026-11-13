@@ -18,7 +18,7 @@ interface Pendiente {
 
 /**
  * E10b (RB-38): indexa por partes los libros que falten, de a uno. Cada llamada hace una parte, así el
- * porcentaje sube en pantalla. Solo avanza con esta pantalla abierta: nadie más pide las partes siguientes.
+ * porcentaje sube en pantalla. Desde E11c (RB-57) también avanza sola: el aviso de cada minuto indexa una parte.
  * Lo que falta queda guardado en la base y se retoma al volver.
  */
 export function IndexacionPendiente({ pendientes }: { pendientes: Pendiente[] }) {
@@ -98,7 +98,7 @@ function Avance({ documento, enCola, alTerminar }: { documento: Pendiente; enCol
         </label>
         <progress id="avance-indexacion" value={avance} max={100} className="h-2 w-full accent-acento" />
       </div>
-      <p className="text-sm font-medium text-texto">Deja esta pantalla abierta hasta que termine.</p>
+      <p className="text-sm font-medium text-texto">Puedes cerrar esta pantalla: seguirá sola.</p>
       <p className="text-xs text-texto-suave">
         Si sales o se bloquea el teléfono, se detiene y sigue cuando vuelvas a Fuentes, sin perder lo avanzado. Entre una parte y otra puede
         pasar hasta un minuto por el límite gratuito de Gemini.

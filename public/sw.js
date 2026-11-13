@@ -6,7 +6,7 @@
  * - Nunca guarda la API, el Asistente, el texto de los documentos ni la respuesta de una acción.
  * - Borra la copia al cerrar sesión, si el servidor rechaza la sesión, si entra otro usuario y tras 7 días sin
  *   una respuesta válida del servidor.
- * E11c le agregará las notificaciones.
+ * E11c: notificaciones de los recordatorios (mostrar, numerito del ícono y abrir la tarea al tocarla).
  */
 importScripts('/sw-reglas.js');
 
@@ -240,4 +240,67 @@ self.addEventListener('message', function (evento) {
   if (!datos) return;
   if (datos.tipo === 'nova-borrar-copia') evento.waitUntil(borrarDatos());
   if (datos.tipo === 'nova-guardar-ruta' && typeof datos.url === 'string') evento.waitUntil(guardarRuta(datos.url));
+});
+
+/* E11c (5.10, RB-44): notificaciones de los recordatorios. */
+
+/** El numerito del ícono cuenta las notificaciones de Nova sin abrir (Badging API, donde exista). */
+function actualizarNumerito() {
+  var nav = self.navigator;
+  if (!nav || typeof nav.setAppBadge !== 'function') return Promise.resolve();
+  return self.registration
+    .getNotifications()
+    .then(function (lista) {
+      return lista.length > 0 ? nav.setAppBadge(lista.length) : nav.clearAppBadge();
+    })
+    .catch(function () {});
+}
+
+self.addEventListener('push', function (evento) {
+  var datos = {};
+  try {
+    datos = evento.data ? evento.data.json() : {};
+  } catch (e) {
+    datos = { cuerpo: evento.data ? evento.data.text() : '' };
+  }
+  // Toda notificación push se muestra (el navegador lo exige); el sonido es el del sistema.
+  evento.waitUntil(
+    self.registration
+      .showNotification(datos.titulo || 'Nova', {
+        body: datos.cuerpo || '',
+        tag: datos.etiqueta || undefined,
+        icon: '/icons/icono-192.png',
+        badge: '/icons/icono-192.png',
+        data: { url: R.urlNotificacion(datos.url) },
+      })
+      .then(actualizarNumerito),
+  );
+});
+
+/**
+ * Al tocarla, abre Nova en la pantalla de la notificación (Tareas con la tarea resaltada). Si Nova ya está
+ * abierta, la trae al frente y le pide ir ahí sin recargar; si no, abre una ventana nueva.
+ */
+self.addEventListener('notificationclick', function (evento) {
+  evento.notification.close();
+  var ruta = R.urlNotificacion(evento.notification.data && evento.notification.data.url);
+  evento.waitUntil(
+    self.clients
+      .matchAll({ type: 'window', includeUncontrolled: true })
+      .then(function (ventanas) {
+        var abierta = ventanas.filter(function (v) {
+          return R.esPaginaNova(new URL(v.url));
+        })[0];
+        if (abierta) {
+          abierta.postMessage({ tipo: 'nova-abrir', url: ruta });
+          return abierta.focus();
+        }
+        return self.clients.openWindow(ruta);
+      })
+      .then(actualizarNumerito, actualizarNumerito),
+  );
+});
+
+self.addEventListener('notificationclose', function (evento) {
+  evento.waitUntil(actualizarNumerito());
 });

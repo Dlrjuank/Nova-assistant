@@ -1,5 +1,6 @@
 import type { OrigenMensaje } from '@/lib/reglas/fuentesWeb';
 import type { NivelProductividad } from '@/lib/reglas/productividad';
+import type { EstadoRecordatorio, Recordatorio } from '@/lib/reglas/recordatorios';
 
 export type EstadoTarea = 'Pendiente' | 'En Progreso' | 'Completada';
 
@@ -11,6 +12,8 @@ export interface DatosTarea {
   /** RB-34: 'HH:MM' de 24 horas, opcionales. */
   horaInicio?: string | null | undefined;
   horaFin?: string | null | undefined;
+  /** E11c (RB-43): null o "" = sin recordatorio. */
+  recordatorio?: string | null | undefined;
 }
 
 export interface Tarea {
@@ -26,6 +29,9 @@ export interface Tarea {
   /** RB-34: 'HH:MM' de 24 horas o null. */
   horaInicio: string | null;
   horaFin: string | null;
+  /** E11c (RB-43). */
+  recordatorio: Recordatorio | null;
+  recordatorioEstado: EstadoRecordatorio | null;
 }
 
 export interface Documento {

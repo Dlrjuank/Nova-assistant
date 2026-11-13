@@ -13,6 +13,9 @@ export const TABLAS_RESPALDO = [
   'preguntas_cuestionario',
   'intentos_cuestionario', // repaso_de apunta a la misma tabla: se inserta en una sola sentencia
   'respuestas_intento', // intentos_cuestionario y preguntas_cuestionario
+  // M16 (E11c): suscripciones push y registro de envíos
+  'suscripciones_push',
+  'envios', // tareas_personales
   'fuentes_web',
   'conversaciones',
   'mensajes_chat',

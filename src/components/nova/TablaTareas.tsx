@@ -8,6 +8,18 @@ import { formatearFecha, formatearMinutos } from '@/lib/formato';
 import { estaVencida } from '@/lib/reglas/calendario';
 import { colorDeCategoria } from '@/lib/reglas/categorias';
 import { HorarioTarea } from '@/components/nova/PreferenciasNova';
+import { Bell } from 'lucide-react';
+
+/** E11c: campanita junto a la fecha si la tarea tiene un recordatorio por enviar. */
+function ConRecordatorio({ tarea }: { tarea: Tarea }) {
+  if (tarea.estado === 'Completada' || tarea.recordatorioEstado !== 'pendiente') return null;
+  return (
+    <span title="Con recordatorio" className="ml-1 inline-flex align-[-2px] text-texto-suave">
+      <Bell aria-hidden="true" className="size-3.5" />
+      <span className="sr-only">, con recordatorio</span>
+    </span>
+  );
+}
 
 const COLUMNAS = ['Título', 'Categoría', 'Prioridad', 'Estado', 'Fecha límite', 'Creada', 'Acciones'];
 
@@ -61,7 +73,7 @@ export function TablaTareas({
           </thead>
           <tbody className="divide-y divide-borde">
             {tareas.map((t) => (
-              <tr key={t.id} className="align-top">
+              <tr key={t.id} data-tarea-id={t.id} className="align-top">
                 <th scope="row" className="px-4 py-3 font-medium break-words text-texto">
                   {t.titulo}
                 </th>
@@ -82,6 +94,7 @@ export function TablaTareas({
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-texto-suave">
                   {formatearFecha(t.fechaLimite)}
+                  <ConRecordatorio tarea={t} />
                   {t.horaInicio && (
                     <span className="block text-xs">
                       <HorarioTarea horaInicio={t.horaInicio} horaFin={t.horaFin} />
@@ -100,7 +113,7 @@ export function TablaTareas({
 
       <ul className="flex flex-col gap-3 sm:hidden">
         {tareas.map((t) => (
-          <li key={t.id} className="rounded-xl border border-borde bg-superficie p-4">
+          <li key={t.id} data-tarea-id={t.id} className="rounded-xl border border-borde bg-superficie p-4">
             <p className="font-semibold text-texto">{t.titulo}</p>
             <div className="mt-2 flex flex-wrap gap-2">
               <InsigniaPrioridad prioridad={t.prioridad} />
@@ -117,6 +130,7 @@ export function TablaTareas({
               <dt className="text-texto-suave">Fecha límite</dt>
               <dd>
                 {formatearFecha(t.fechaLimite)}
+                <ConRecordatorio tarea={t} />
                 {t.horaInicio && (
                   <>
                     {' · '}

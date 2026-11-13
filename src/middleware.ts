@@ -16,7 +16,9 @@ export async function middleware(request: NextRequest) {
     ruta === '/sw.js' ||
     ruta === '/sw-reglas.js' ||
     ruta === '/manifest.webmanifest' ||
-    ruta.startsWith('/icons/')
+    ruta.startsWith('/icons/') ||
+    // E11c: el aviso de cada minuto lo llama Supabase sin sesión; la ruta exige su propio secreto.
+    ruta === '/api/nova/recordatorios/tick'
   ) {
     return NextResponse.next();
   }

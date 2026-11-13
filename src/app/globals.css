@@ -207,3 +207,10 @@ html:has([data-nova-fondo]),
 html:has([data-nova-fondo]) body {
   background: var(--nova-fondo);
 }
+
+/* E11c: la tarea que abrió una notificación queda resaltada unos segundos (ResaltarTarea). Sin animación. */
+[data-resaltada] {
+  outline: 2px solid var(--nova-acento);
+  outline-offset: -2px;
+  background-color: var(--nova-acento-suave);
+}

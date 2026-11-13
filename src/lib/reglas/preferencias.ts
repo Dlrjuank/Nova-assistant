@@ -19,6 +19,8 @@ export interface Preferencias {
   redondeo: Redondeo;
   /** Centésimas de punto porcentual: 3000 = 30 %. */
   cortesDefecto: number[];
+  /** E11c: "HH:MM", la hora de los recordatorios de las tareas sin horario. */
+  horaRecordatorio: string;
 }
 
 export const PREFERENCIAS_POR_DEFECTO: Preferencias = {
@@ -27,6 +29,7 @@ export const PREFERENCIAS_POR_DEFECTO: Preferencias = {
   notaAprobar: 300,
   redondeo: 'truncar',
   cortesDefecto: [3000, 3000, 4000],
+  horaRecordatorio: '08:00',
 };
 
 export const MAX_CORTES = 6;

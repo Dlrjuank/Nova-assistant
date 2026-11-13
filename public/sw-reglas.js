@@ -53,6 +53,7 @@
     var copia = new URL(url.href);
     copia.hash = '';
     copia.searchParams.delete('pregunta');
+    copia.searchParams.delete('tarea'); // E11c: la tarea resaltada por una notificación no es otra pantalla
     copia.searchParams.sort();
     return copia.pathname + copia.search;
   }
@@ -84,6 +85,15 @@
     return typeof guardadaEn === 'number' && isFinite(guardadaEn) && diferencia >= 0 && diferencia < COPIA_RECIENTE_MS;
   }
 
+  /**
+   * E11c: a dónde lleva una notificación. Solo una pantalla de Nova de este mismo sitio (una ruta que empieza con
+   * /nova); cualquier otra cosa lleva a Inicio.
+   */
+  function urlNotificacion(url) {
+    if (typeof url !== 'string' || url.indexOf('//') !== -1 || url.indexOf('\\') !== -1) return '/nova';
+    return url === '/nova' || url.indexOf('/nova/') === 0 || url.indexOf('/nova?') === 0 ? url : '/nova';
+  }
+
   /** Marca el HTML guardado con la hora en que se guardó, para el aviso `Sin conexión · datos de las HH:MM`. */
   function marcarCopia(html, guardadoEn) {
     var meta = '<meta name="nova-copia" content="' + new Date(guardadoEn).toISOString() + '">';
@@ -95,6 +105,7 @@
     SIETE_DIAS_MS: SIETE_DIAS_MS,
     COPIA_RECIENTE_MS: COPIA_RECIENTE_MS,
     copiaReciente: copiaReciente,
+    urlNotificacion: urlNotificacion,
     mesActual: mesActual,
     esEstatico: esEstatico,
     esRsc: esRsc,

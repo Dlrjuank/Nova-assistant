@@ -59,7 +59,7 @@ describe('FormularioTarea en modo edición', () => {
     await waitFor(() => expect(nav.push).toHaveBeenCalledWith('/nova/tareas?vista=hoy'));
     expect(f.mock.calls[0]?.[0]).toBe(`/api/nova/tareas/${ID}`);
     expect(f.mock.calls[0]?.[1].method).toBe('PATCH');
-    expect(JSON.parse(f.mock.calls[0]?.[1].body)).toEqual({ titulo: 'Leer capítulo 2', categoria: 'Universidad', prioridad: 3, fechaLimite: '2026-11-20', horaInicio: '08:00', horaFin: '09:30' });
+    expect(JSON.parse(f.mock.calls[0]?.[1].body)).toEqual({ titulo: 'Leer capítulo 2', categoria: 'Universidad', prioridad: 3, fechaLimite: '2026-11-20', horaInicio: '08:00', horaFin: '09:30', recordatorio: null });
   });
 
   it('"Cancelar" vuelve sin llamar al servidor', () => {

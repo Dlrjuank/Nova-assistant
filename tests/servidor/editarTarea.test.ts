@@ -43,9 +43,10 @@ describe('editarTarea', () => {
     const update = m.tx.query.mock.calls.find((c) => String(c[0]).includes('UPDATE tareas_personales')) ?? [];
     const sql = String(update[0]);
     expect(sql).toContain('WHERE id = $1 AND usuario_id = $2');
-    expect(update[1]).toEqual([T, U, 'Nuevo título', 'Universidad', 3, '2026-12-01', '08:00', '09:30']);
+    expect(update[1]).toEqual([T, U, 'Nuevo título', 'Universidad', 3, '2026-12-01', '08:00', '09:30', null, null, null]);
     const asignaciones = sql.slice(sql.indexOf('SET'), sql.indexOf('WHERE'));
-    for (const intocable of ['estado', 'minutos_invertidos', 'fecha_cierre', 'fecha_creacion', 'usuario_id']) expect(asignaciones).not.toContain(intocable);
+    for (const intocable of ['estado', 'minutos_invertidos', 'fecha_cierre', 'fecha_creacion', 'usuario_id']) expect(asignaciones).not.toMatch(new RegExp(`(^|[\\s,])${intocable} =`));
+    expect(asignaciones).toMatch(/recordatorio = \$9, recordatorio_en = \$10, recordatorio_estado = \$11/); // E11c
     expect(sentencias()[0]).toContain('FOR UPDATE');
   });
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { WifiOff } from 'lucide-react';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { useFormatoHora } from '@/components/nova/PreferenciasNova';
 import { guardarEventoInstalar, type EventoInstalar } from '@/lib/instalacion';
@@ -54,6 +54,28 @@ function AvisarRuta({ activa }: { activa: boolean }) {
     };
   }, [ruta, parametros, activa]);
 
+  return null;
+}
+
+/**
+ * E11c: al tocar una notificación con Nova ya abierta, el service worker la trae al frente y le pide ir a la
+ * pantalla de la notificación (Tareas con la tarea resaltada), sin recargar.
+ */
+function AbrirDesdeNotificacion() {
+  const router = useRouter();
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+    const alMensaje = (e: MessageEvent) => {
+      const datos = e.data as { tipo?: string; url?: string } | null;
+      if (datos?.tipo === 'nova-abrir' && typeof datos.url === 'string' && /^\/nova(\/|\?|$)/.test(datos.url) && !datos.url.includes('//')) {
+        router.push(datos.url);
+      }
+    };
+    const sw = navigator.serviceWorker;
+    if (typeof sw?.addEventListener !== 'function') return;
+    sw.addEventListener('message', alMensaje);
+    return () => sw.removeEventListener('message', alMensaje);
+  }, [router]);
   return null;
 }
 
@@ -144,9 +166,12 @@ export function ConexionNova() {
 
   // Solo con conexión y en producción, igual que el registro del service worker.
   const avisar = (
-    <Suspense fallback={null}>
-      <AvisarRuta activa={!sinConexion && process.env.NODE_ENV === 'production'} />
-    </Suspense>
+    <>
+      <Suspense fallback={null}>
+        <AvisarRuta activa={!sinConexion && process.env.NODE_ENV === 'production'} />
+      </Suspense>
+      <AbrirDesdeNotificacion />
+    </>
   );
   if (!sinConexion) return avisar;
   return (

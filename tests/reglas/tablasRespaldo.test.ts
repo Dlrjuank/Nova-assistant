@@ -18,6 +18,11 @@ describe('tablas del respaldo', () => {
     expect(TABLAS_RESPALDO).toContain('preferencias_usuario');
   });
 
+  it('M16: incluye las suscripciones push y los envíos, después de las tareas', () => {
+    expect(TABLAS_RESPALDO).toEqual(expect.arrayContaining(['suscripciones_push', 'envios']));
+    expect(posicion('tareas_personales')).toBeLessThan(posicion('envios'));
+  });
+
   it('no repite tablas', () => {
     expect(new Set(TABLAS_RESPALDO).size).toBe(TABLAS_RESPALDO.length);
   });
