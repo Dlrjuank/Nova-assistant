@@ -921,3 +921,9 @@ Total de fallas: 0
 - **Después:** la señal aparece en 11 a 27 ms (antes ≈ 555 ms); la pantalla completa, igual que antes en local (≈ 555 ms, es el servidor); 0 a 2 páginas extra del service worker por cada 20 cambios (antes 15); consultas a Supabase Auth desde las pantallas: 8 en 8 cambios (antes 14).
 - **Pruebas:** `tests/interfaz/cargando.test.tsx`; `conexion.test.tsx` con reloj simulado (espera, cancelar al cambiar, sin conexión durante la espera, `ready` que no se resuelve); `serviceWorker.test.ts` con copia reciente, por pantalla, carga completa y copia sin hora. En Edge, `ui_e11b_rapidez.mjs` 13 de 13 (copias tras iniciar sesión con el formulario, esqueleto en 14 ms, sin animación con "reducir movimiento", pasar rápido no pide nada, no repite una copia reciente, sí renueva una vieja, sin pedidos anticipados de Editar); `ui_e11b.mjs` 26 de 26, `ui_e11b_menu.mjs` 11 de 11 (ahora se queda 2,5 s en cada pantalla, como una persona) y `ui_e11b_ios.mjs` 14 de 14.
 - **Al cierre:** `npm test` 897/897, `npm run build` correcto, `eslint` sin errores.
+
+#### E11b terminada (2026-11-13)
+
+- **Prueba del usuario con `c674129` en el iPhone (app instalada) y en el PC, sin fallas:** el esqueleto sale al instante y se siente más ágil; la copia sin conexión se guarda al quedarse 2 segundos, también justo después de iniciar sesión; Editar, Ver capítulos, Crear cuestionario y Abrir funcionan igual.
+- **Pendiente anotado para E20b o el cierre:** bajar el tiempo de carga de cada pantalla (hoy ≈ 550 ms en local).
+- Queda cerrada E11b. Sigue E11c.

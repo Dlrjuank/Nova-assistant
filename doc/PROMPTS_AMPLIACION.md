@@ -762,6 +762,8 @@ Anota en el plan lo que decidas y avísame antes de pasar a la siguiente pantall
 
 **Commits:** uno por pantalla (Inicio, Tareas, Calendario, Asistente, Documentos, Productividad, Web, Configuración y login), cada uno con su vista previa y su lista corta de pruebas en el teléfono.
 
+**Pendiente anotado el 2026-11-13 (pedido del usuario al cerrar E11b), para E20b o el cierre (E21):** revisar cómo bajar el tiempo de carga de cada pantalla, hoy ≈ 550 ms medidos en local (la señal de carga ya sale al instante). Casi todo es el servidor: la sesión se consulta a Supabase Auth en el middleware y otra vez en la pantalla, y las consultas a la base van en serie. Medición y detalle en `ESTADO_EJECUCION.md`, "E11b: rapidez al cambiar de pestaña".
+
 ---
 
 ## E21 · Aceptación de la ampliación
