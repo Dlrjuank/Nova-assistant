@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { claseBoton } from '@/components/ui/Boton';
+import { esFallaDeRed, NECESITAS_CONEXION } from '@/lib/reglas/sinConexion';
 import {
   CLASE_CAMPO_ACCESO,
   CLASE_ENLACE_ACCESO,
@@ -68,8 +69,9 @@ export function LoginForm({ successMessage }: LoginFormProps) {
       }
 
       router.replace('/nova');
-    } catch {
-      setAuthError('No se pudo conectar con Supabase. Revisa la configuración del proyecto.');
+    } catch (error) {
+      // E11b: sin internet (o sin llegar al servidor) no es un problema de configuración.
+      setAuthError(esFallaDeRed(error) ? NECESITAS_CONEXION : 'No se pudo conectar con Supabase. Revisa la configuración del proyecto.');
     } finally {
       setIsSubmitting(false);
     }

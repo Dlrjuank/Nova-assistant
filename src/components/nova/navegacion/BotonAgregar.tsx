@@ -48,7 +48,7 @@ export function BotonAgregar() {
   return (
     <div
       ref={zona}
-      className="fixed right-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-30 flex flex-col items-end gap-3 lg:hidden"
+      className="fixed right-[calc(1rem+env(safe-area-inset-right))] bottom-[calc(5.5rem+var(--nova-seguro-abajo))] z-30 flex flex-col items-end gap-3 lg:hidden"
     >
       {abierto && (
         <ul id="menu-agregar" className="flex flex-col gap-2 rounded-2xl border border-borde bg-superficie p-2 shadow-suave">

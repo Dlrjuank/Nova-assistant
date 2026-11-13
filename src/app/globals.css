@@ -182,3 +182,28 @@ html[data-nova-sin-conexion]
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/*
+ * E11b, app instalada en el iPhone (viewport-fit=cover en el layout raíz):
+ * - El margen inferior de las barras fijas es el área segura (la rayita de inicio) solo en la app instalada;
+ *   en Safari y en el PC queda en 0, como antes de E11b.
+ * - A los lados, el área segura del iPhone en horizontal (en vertical es 0).
+ * - En las pantallas de Nova y de acceso, el fondo de la página (el que se ve detrás de la barra de estado y al
+ *   estirar la página) es el de Nova y no el azul oscuro del estilo anterior.
+ */
+:root {
+  --nova-seguro-abajo: 0px;
+}
+@media (display-mode: standalone) {
+  :root {
+    --nova-seguro-abajo: env(safe-area-inset-bottom, 0px);
+  }
+}
+body {
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+html:has([data-nova-fondo]),
+html:has([data-nova-fondo]) body {
+  background: var(--nova-fondo);
+}

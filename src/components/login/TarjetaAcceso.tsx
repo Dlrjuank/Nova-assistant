@@ -17,7 +17,7 @@ export function TarjetaAcceso({
   pie?: ReactNode;
 }) {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-fondo px-4 py-10 text-texto sm:px-6">
+    <main data-nova-fondo className="flex min-h-screen items-center justify-center bg-fondo px-4 py-10 text-texto sm:px-6">
       <section className="w-full max-w-md rounded-2xl border border-borde bg-superficie p-6 shadow-suave sm:p-9">
         <div className="mb-8">
           <p className="mb-8 inline-flex items-center gap-2 text-lg font-bold tracking-tight text-acento">

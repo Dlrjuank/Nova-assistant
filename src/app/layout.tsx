@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
-import { SCRIPT_TEMA } from '@/lib/tema';
+import { COLOR_FONDO, SCRIPT_TEMA } from '@/lib/tema';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
@@ -14,9 +14,12 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
+  // E11b: en la app instalada del iPhone, la página llega hasta los bordes y cada barra respeta el área segura
+  // (--nova-seguro-abajo en globals.css). En Safari y en el PC ese margen sigue en 0, como antes.
+  viewportFit: 'cover',
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#faf6f0' },
-    { media: '(prefers-color-scheme: dark)', color: '#1a1613' },
+    { media: '(prefers-color-scheme: light)', color: COLOR_FONDO.claro },
+    { media: '(prefers-color-scheme: dark)', color: COLOR_FONDO.oscuro },
   ],
 };
 

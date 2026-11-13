@@ -136,3 +136,34 @@ describe('PasswordResetForm', () => {
     expect(f.mock.calls[0]?.[0]).toBe('/api/auth/restablecer');
   });
 });
+
+describe('sin conexión (corrección de E11b)', () => {
+  const entrar = () => {
+    render(<LoginForm />);
+    escribir('Correo electrónico', 'yo@ejemplo.com');
+    escribir('Contraseña', 'secreta123');
+    fireEvent.click(screen.getByRole('button', { name: 'Iniciar sesión' }));
+  };
+
+  it('al iniciar sesión sin internet dice "Necesitas conexión para esto."', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
+    entrar();
+    expect((await screen.findByRole('alert')).textContent).toBe('Necesitas conexión para esto.');
+  });
+
+  it('el mensaje de configuración queda solo para una respuesta que no se puede leer', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('<html>Error</html>', { status: 500 })));
+    entrar();
+    expect((await screen.findByRole('alert')).textContent).toBe('No se pudo conectar con Supabase. Revisa la configuración del proyecto.');
+  });
+
+  it('al crear cuenta sin internet, igual', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
+    render(<RegisterForm />);
+    escribir('Correo electrónico', 'yo@ejemplo.com');
+    escribir('Contraseña', 'larga12345');
+    escribir('Confirmar contraseña', 'larga12345');
+    fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
+    expect(await screen.findByText('Necesitas conexión para esto.')).toBeTruthy();
+  });
+});

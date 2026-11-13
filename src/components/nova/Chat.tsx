@@ -339,7 +339,7 @@ export function Chat({
         <button
           type="button"
           onClick={() => bajar(true)}
-          className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] left-1/2 z-30 inline-flex -translate-x-1/2 items-center gap-2 rounded-full bg-acento px-4 py-2 text-sm font-semibold text-acento-texto shadow-suave focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento lg:bottom-8 lg:left-[calc(50%+8rem)]"
+          className="fixed bottom-[calc(5.5rem+var(--nova-seguro-abajo))] left-1/2 z-30 inline-flex -translate-x-1/2 items-center gap-2 rounded-full bg-acento px-4 py-2 text-sm font-semibold text-acento-texto shadow-suave focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento lg:bottom-8 lg:left-[calc(50%+8rem)]"
         >
           <ArrowDown aria-hidden="true" className="size-4" />
           Ir al final

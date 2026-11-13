@@ -61,7 +61,7 @@ export function BarraInferior({ email }: { email: string }) {
       <nav
         aria-label="Principal"
         data-barra-inferior
-        className="fixed inset-x-0 bottom-0 z-30 border-t border-borde bg-superficie pb-[env(safe-area-inset-bottom)] lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-borde bg-superficie pb-[var(--nova-seguro-abajo)] lg:hidden"
       >
         <ul className="mx-auto flex max-w-xl items-end gap-1 px-2 pt-1 pb-1">
           {BARRA_INFERIOR.izquierda.map((s) => (
@@ -114,7 +114,7 @@ export function BarraInferior({ email }: { email: string }) {
             role="dialog"
             aria-modal="true"
             aria-labelledby="titulo-hoja-mas"
-            className="absolute inset-x-0 bottom-0 flex flex-col gap-4 rounded-t-2xl bg-superficie px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-suave"
+            className="absolute inset-x-0 bottom-0 flex flex-col gap-4 rounded-t-2xl bg-superficie px-4 pt-4 pb-[calc(1rem+var(--nova-seguro-abajo))] shadow-suave"
           >
             <div className="flex items-center justify-between">
               <h2 id="titulo-hoja-mas" className="text-base font-semibold text-texto">

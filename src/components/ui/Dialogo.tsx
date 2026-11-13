@@ -58,7 +58,7 @@ export function Dialogo({
         role="dialog"
         aria-modal="true"
         aria-labelledby="titulo-dialogo"
-        className="absolute inset-x-0 bottom-0 flex max-h-[85vh] flex-col gap-4 overflow-y-auto rounded-t-2xl bg-superficie px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-suave sm:inset-x-auto sm:top-1/2 sm:bottom-auto sm:left-1/2 sm:w-full sm:max-w-md sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:p-6"
+        className="absolute inset-x-0 bottom-0 flex max-h-[85vh] flex-col gap-4 overflow-y-auto rounded-t-2xl bg-superficie px-4 pt-4 pb-[calc(1rem+var(--nova-seguro-abajo))] shadow-suave sm:inset-x-auto sm:top-1/2 sm:bottom-auto sm:left-1/2 sm:w-full sm:max-w-md sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:p-6"
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">

@@ -133,7 +133,7 @@ export function ConexionNova() {
         <WifiOff aria-hidden="true" className="size-4 shrink-0 text-texto-suave" />
         {textoSinConexion(copia ?? cargadaEn, (h) => formatearHora(h, formato))}
       </p>
-      <div aria-live="assertive" className="pointer-events-none fixed inset-x-0 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-50 flex justify-center px-4 lg:bottom-6">
+      <div aria-live="assertive" className="pointer-events-none fixed inset-x-0 bottom-[calc(6rem+var(--nova-seguro-abajo))] z-50 flex justify-center px-4 lg:bottom-6">
         {aviso && <p className="rounded-xl bg-texto px-4 py-2 text-sm font-medium text-fondo shadow-suave">{aviso}</p>}
       </div>
     </>

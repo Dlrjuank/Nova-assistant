@@ -11,6 +11,14 @@ export const ATRIBUTO_PERMITIDO = 'data-sin-conexion';
 
 const CAPITULOS = /^\/nova\/fuentes\/[0-9a-f-]{36}\/capitulos$/i;
 
+/**
+ * E11b: ¿el pedido falló por no tener internet (o no llegar al servidor)? `fetch` lo dice con un TypeError; una
+ * respuesta que no se puede leer (por ejemplo, un error de configuración del servidor) es otro tipo de error.
+ */
+export function esFallaDeRed(error: unknown, enLinea: boolean = typeof navigator === 'undefined' ? true : navigator.onLine): boolean {
+  return !enLinea || error instanceof TypeError;
+}
+
 /** "2026-11" del momento dado, en Bogotá. */
 export function mesActualBogota(ahora: Date): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota', year: 'numeric', month: '2-digit' }).format(ahora).slice(0, 7);
