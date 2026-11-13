@@ -5,6 +5,12 @@ import { ConexionNova } from '@/components/nova/ConexionNova';
 import { BloqueInstalar } from '@/components/nova/configuracion/BloqueInstalar';
 import { guardarEventoInstalar, type EventoInstalar } from '@/lib/instalacion';
 
+const nav = vi.hoisted(() => ({ ruta: '/nova', busqueda: '' }));
+vi.mock('next/navigation', () => ({
+  usePathname: () => nav.ruta,
+  useSearchParams: () => new URLSearchParams(nav.busqueda),
+}));
+
 let enLinea = true;
 beforeEach(() => {
   enLinea = true;
@@ -103,6 +109,58 @@ describe('ConexionNova', () => {
     expect(evento.defaultPrevented).toBe(true);
     fireEvent.click(screen.getByRole('button', { name: 'Instalar' }));
     expect(evento.prompt).toHaveBeenCalled();
+  });
+});
+
+describe('ConexionNova: guardar al navegar sin recargar (corrección de E11b)', () => {
+  function conServiceWorker(controlada: boolean) {
+    const postMessage = vi.fn();
+    Object.defineProperty(navigator, 'serviceWorker', {
+      configurable: true,
+      value: { controller: controlada ? {} : null, ready: Promise.resolve({ active: { postMessage } }), register: vi.fn().mockResolvedValue({}) },
+    });
+    vi.stubEnv('NODE_ENV', 'production');
+    return postMessage;
+  }
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    Reflect.deleteProperty(navigator, 'serviceWorker');
+  });
+  const ir = (ruta: string, busqueda = '') => {
+    nav.ruta = ruta;
+    nav.busqueda = busqueda;
+  };
+
+  it('en cada cambio de ruta a una pantalla guardable, le pide al service worker guardarla', async () => {
+    const postMessage = conServiceWorker(true);
+    ir('/nova');
+    const { rerender } = render(<ConexionNova />);
+    await Promise.resolve();
+    expect(postMessage).not.toHaveBeenCalled(); // la carga completa ya la guardó el service worker
+    for (const [ruta, busqueda] of [['/nova/tareas', 'vista=hoy'], ['/nova/asistente', ''], ['/nova/calendario', '']] as const) {
+      ir(ruta, busqueda);
+      rerender(<ConexionNova />);
+      await vi.waitFor(() => undefined);
+    }
+    await vi.waitFor(() => expect(postMessage).toHaveBeenCalledTimes(2));
+    expect(postMessage.mock.calls.map(([m]) => m.url)).toEqual([`${location.origin}/nova/tareas?vista=hoy`, `${location.origin}/nova/calendario`]);
+    expect(postMessage.mock.calls[0]?.[0].tipo).toBe('nova-guardar-ruta');
+  });
+
+  it('si el service worker todavía no controla la página, también pide guardar la primera', async () => {
+    const postMessage = conServiceWorker(false);
+    ir('/nova/tareas');
+    render(<ConexionNova />);
+    await vi.waitFor(() => expect(postMessage).toHaveBeenCalledWith({ tipo: 'nova-guardar-ruta', url: `${location.origin}/nova/tareas` }));
+  });
+
+  it('sin conexión no pide nada', async () => {
+    const postMessage = conServiceWorker(false);
+    enLinea = false;
+    ir('/nova/tareas');
+    render(<ConexionNova />);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(postMessage).not.toHaveBeenCalled();
   });
 });
 

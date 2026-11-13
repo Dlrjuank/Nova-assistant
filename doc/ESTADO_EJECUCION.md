@@ -894,3 +894,10 @@ Total de fallas: 0
   - B-76: al cerrar sesión y con la sesión rechazada, la copia se borra.
 - **Al cierre:** `npm test` 873/873, `npm run build` correcto, `eslint` sin errores.
 - **Pendiente del usuario:** B-55 en un iPhone y un Android reales (agregar a inicio, pantalla completa, iniciar sesión dentro de la app).
+
+#### E11b: corrección de la copia al navegar con el menú (2026-11-13)
+
+- **Falla del usuario (prueba 2, PC con F12 › Red › Sin conexión):** casi todas las pantallas decían `Esta pantalla aún no está disponible sin conexión.` aunque se habían abierto antes. Causa: el service worker solo guardaba la copia en una carga completa (`mode: "navigate"`); al moverse con el menú o con un enlace, Next cambia de pantalla con un pedido interno (RSC) que no es HTML y no se guardaba. Solo quedaban las pantallas recargadas con F5. La prueba de Edge no lo vio porque abría cada pantalla con `goto`, que es una carga completa.
+- **Corrección:** `ConexionNova` avisa al service worker (`nova-guardar-ruta`) en cada cambio de ruta a una pantalla guardable, también en la primera carga si el service worker todavía no controla la página; nunca sin conexión ni desde una copia. El service worker pide esa página completa (HTML, con la sesión y sin seguir redirecciones) y la guarda con las mismas reglas (`paginaGuardable`, RB-63 incluido). El Asistente, otro mes del Calendario, la API y otros sitios no se piden.
+- **Pruebas nuevas:** el mensaje del service worker (guardar, reglas, sesión rechazada y sin conexión) en `serviceWorker.test.ts`; el aviso en cada cambio de ruta en `conexion.test.tsx`; y en Edge, `ui_e11b_menu.mjs`, que navega solo con el menú y los enlaces desde la primera visita (comprobado sin ninguna recarga) y luego, con el servidor apagado, abre cada pantalla: 11 de 11. La prueba anterior sigue en 26 de 26.
+- **Al cierre:** `npm test` 879/879, `npm run build` correcto, `eslint` sin errores.

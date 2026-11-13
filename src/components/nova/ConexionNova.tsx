@@ -1,11 +1,38 @@
 'use client';
 
 import { WifiOff } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { usePathname, useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { useFormatoHora } from '@/components/nova/PreferenciasNova';
 import { guardarEventoInstalar, type EventoInstalar } from '@/lib/instalacion';
 import { formatearHora } from '@/lib/reglas/horario';
-import { bloqueadoSinConexion, NECESITAS_CONEXION, textoSinConexion } from '@/lib/reglas/sinConexion';
+import { bloqueadoSinConexion, NECESITAS_CONEXION, rutaConCopia, textoSinConexion } from '@/lib/reglas/sinConexion';
+
+/**
+ * Al moverse con el menú o un enlace, Next cambia de pantalla sin recargar (pedido RSC) y el service worker no ve
+ * una carga completa que guardar. Por eso, en cada cambio de ruta a una pantalla guardable, se le pide guardarla.
+ * La primera carga ya la guarda el service worker si controla la página; si todavía no la controla, también se pide.
+ */
+function AvisarRuta({ activa }: { activa: boolean }) {
+  const ruta = usePathname() ?? '/nova';
+  const parametros = useSearchParams()?.toString() ?? '';
+  const primera = useRef(true);
+
+  useEffect(() => {
+    const esPrimera = primera.current;
+    primera.current = false;
+    // Se mira aquí también: en el primer render el estado de conexión todavía no está leído.
+    if (!activa || !('serviceWorker' in navigator) || !navigator.onLine || horaDeCopia()) return;
+    if (esPrimera && navigator.serviceWorker.controller) return;
+    const url = new URL(`${ruta}${parametros ? `?${parametros}` : ''}`, window.location.origin);
+    if (!rutaConCopia(url, new Date())) return;
+    navigator.serviceWorker.ready
+      .then((registro) => registro.active?.postMessage({ tipo: 'nova-guardar-ruta', url: url.href }))
+      .catch(() => undefined);
+  }, [ruta, parametros, activa]);
+
+  return null;
+}
 
 const ATRIBUTO_HTML = 'data-nova-sin-conexion';
 
@@ -92,9 +119,16 @@ export function ConexionNova() {
     };
   }, [sinConexion]);
 
-  if (!sinConexion) return null;
+  // Solo con conexión y en producción, igual que el registro del service worker.
+  const avisar = (
+    <Suspense fallback={null}>
+      <AvisarRuta activa={!sinConexion && process.env.NODE_ENV === 'production'} />
+    </Suspense>
+  );
+  if (!sinConexion) return avisar;
   return (
     <>
+      {avisar}
       <p role="status" className="flex items-center gap-2 self-start rounded-full bg-superficie-2 px-3 py-1.5 text-sm font-medium text-texto">
         <WifiOff aria-hidden="true" className="size-4 shrink-0 text-texto-suave" />
         {textoSinConexion(copia ?? cargadaEn, (h) => formatearHora(h, formato))}

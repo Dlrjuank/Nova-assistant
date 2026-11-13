@@ -60,8 +60,16 @@ function entorno() {
     return r;
   }
 
+  /** El aviso de ConexionNova al cambiar de pantalla sin recargar. */
+  async function avisarRuta(ruta: string) {
+    const pendientes: Promise<unknown>[] = [];
+    const evento = { data: { tipo: 'nova-guardar-ruta', url: new URL(ruta, ORIGEN).href }, waitUntil: (p: Promise<unknown>) => pendientes.push(p) };
+    for (const f of manejadores.message ?? []) f(evento);
+    await Promise.all(pendientes);
+  }
+
   const copias = () => [...(almacen.get('nova-datos-v1')?.keys() ?? [])].map((k) => new URL(k).pathname + new URL(k).search);
-  return { red, pedir, copias, mensajes };
+  return { red, pedir, avisarRuta, copias, mensajes };
 }
 
 const pagina = (cuerpo: string, usuario = 'u1') =>
@@ -123,6 +131,39 @@ describe('service worker (RB-62)', () => {
     sw.red.mockImplementation(sinRed);
     expect(await (await sw.pedir('/_next/static/chunks/a.js', { modo: 'no-cors' }))?.text()).toBe('js');
     expect(sw.red).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('service worker: navegar con el menú, sin recargar (corrección de E11b)', () => {
+  it('al avisar la ruta, pide la página completa y guarda su copia; sin conexión se ve', async () => {
+    const sw = entorno();
+    sw.red.mockResolvedValueOnce(pagina('Calendario de noviembre'));
+    await sw.avisarRuta('/nova/calendario');
+    const [url, opciones] = sw.red.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe('https://nova.ejemplo/nova/calendario');
+    expect(opciones).toMatchObject({ credentials: 'same-origin', redirect: 'manual' }); // HTML, no RSC
+    expect(sw.copias()).toContain('/nova/calendario');
+    sw.red.mockImplementation(sinRed);
+    expect(await (await sw.pedir('/nova/calendario'))?.text()).toContain('Calendario de noviembre');
+  });
+
+  it('con las mismas reglas: el Asistente, otro mes y la API no se piden ni se guardan', async () => {
+    const sw = entorno();
+    for (const r of ['/nova/asistente', '/nova/calendario?mes=2026-10', '/api/nova/tareas', 'https://otro.sitio/nova']) await sw.avisarRuta(r);
+    expect(sw.red).not.toHaveBeenCalled();
+    expect(sw.copias()).toEqual([]);
+  });
+
+  it('si la sesión fue rechazada (redirección), borra la copia; sin conexión, deja la anterior', async () => {
+    const sw = entorno();
+    sw.red.mockResolvedValueOnce(pagina('Mis tareas'));
+    await sw.avisarRuta('/nova/tareas');
+    sw.red.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    await sw.avisarRuta('/nova/tareas');
+    expect(sw.copias()).toContain('/nova/tareas');
+    sw.red.mockResolvedValueOnce({ type: 'opaqueredirect', status: 0, ok: false, headers: new Headers(), clone() { return this; } });
+    await sw.avisarRuta('/nova');
+    expect(sw.copias()).toEqual([]);
   });
 });
 

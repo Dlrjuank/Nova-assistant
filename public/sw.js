@@ -201,6 +201,32 @@ self.addEventListener('fetch', function (evento) {
   }
 });
 
+/**
+ * Al moverse con el menú o con un enlace, Next no recarga la página: pide la pantalla con un pedido interno (RSC),
+ * que no se guarda porque no es HTML. Por eso ConexionNova avisa la ruta nueva y aquí se pide la página completa
+ * para guardar su copia, con las mismas reglas que una carga completa (solo pantallas guardables, RB-63 incluido).
+ */
+function guardarRuta(href) {
+  var url;
+  try {
+    url = new URL(href);
+  } catch (e) {
+    return Promise.resolve();
+  }
+  var ahora = new Date();
+  if (url.origin !== self.location.origin || !R.paginaGuardable(url, ahora)) return Promise.resolve();
+  return fetch(url.href, { credentials: 'same-origin', redirect: 'manual', headers: { Accept: 'text/html' } })
+    .then(function (respuesta) {
+      return despues(url, 'GET', respuesta, ahora);
+    })
+    .catch(function () {
+      // Sin conexión: queda la copia anterior.
+    });
+}
+
 self.addEventListener('message', function (evento) {
-  if (evento.data && evento.data.tipo === 'nova-borrar-copia') evento.waitUntil(borrarDatos());
+  var datos = evento.data;
+  if (!datos) return;
+  if (datos.tipo === 'nova-borrar-copia') evento.waitUntil(borrarDatos());
+  if (datos.tipo === 'nova-guardar-ruta' && typeof datos.url === 'string') evento.waitUntil(guardarRuta(datos.url));
 });
