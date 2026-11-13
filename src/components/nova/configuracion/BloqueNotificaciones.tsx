@@ -11,12 +11,23 @@ import { MENSAJES } from '@/lib/reglas/errores';
 import { formatearHora } from '@/lib/reglas/horario';
 import type { FormatoHora } from '@/lib/reglas/preferencias';
 import { guardarConfiguracion } from './guardar';
+import { ResumenDiario } from './ResumenDiario';
 
 /**
  * E11c (5.10, RB-45): Configuración → Notificaciones. Este dispositivo (activar, enviar una de prueba, desactivar)
- * y la hora fija de los recordatorios de las tareas sin horario. El resumen diario llega en E11d.
+ * y la hora fija de los recordatorios de las tareas sin horario. E11d: el resumen diario (RB-46).
  */
-export function BloqueNotificaciones({ horaRecordatorio, formatoHora }: { horaRecordatorio: string; formatoHora: FormatoHora }) {
+export function BloqueNotificaciones({
+  horaRecordatorio,
+  formatoHora,
+  resumenDiario = false,
+  horaResumen = '07:00',
+}: {
+  horaRecordatorio: string;
+  formatoHora: FormatoHora;
+  resumenDiario?: boolean;
+  horaResumen?: string;
+}) {
   const router = useRouter();
   const [hora, setHora] = useState(horaRecordatorio);
   const [guardada, setGuardada] = useState(horaRecordatorio);
@@ -73,6 +84,7 @@ export function BloqueNotificaciones({ horaRecordatorio, formatoHora }: { horaRe
         </p>
         {listo && <Aviso tipo="exito">Guardado. Los recordatorios pendientes de tareas sin horario usan la hora nueva.</Aviso>}
       </div>
+      <ResumenDiario activo={resumenDiario} hora={horaResumen} formatoHora={formatoHora} />
     </Tarjeta>
   );
 }

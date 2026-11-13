@@ -1,4 +1,4 @@
-// E11c: prueba los recordatorios contra la base real (regla 7.10, RB-43 a RB-45). Ejecutar: npm run probar:recordatorios
+// E11c y E11d: prueba los recordatorios y el resumen diario contra la base real (7.10, RB-43 a RB-46). Ejecutar: npm run probar:recordatorios
 // Usa un usuario temporal; el procesamiento se limita a ese usuario (no toca los recordatorios de nadie más).
 // No envía notificaciones de verdad: la suscripción de prueba apunta a una dirección local que rechaza la conexión,
 // así que se comprueba qué se marca y cuántas veces, no la entrega. Sin llamadas a Gemini. Al final borra todo.
@@ -6,7 +6,7 @@ import { createECDH, randomBytes } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import pg from 'pg';
 import { actualizarConfiguracion } from '@/lib/datos/configuracion';
-import { guardarSuscripcion, procesarRecordatorios } from '@/lib/datos/notificaciones';
+import { guardarSuscripcion, procesarRecordatorios, procesarResumenes } from '@/lib/datos/notificaciones';
 import { completarTarea, crearTarea, editarTarea } from '@/lib/datos/tareas';
 import { hoyBogota, sumarDias } from '@/lib/reglas/fechas';
 import { cargarEnv, opcionesConexion } from './cargar-env.mjs';
@@ -112,6 +112,28 @@ async function main(): Promise<void> {
     marcar(envio.length === 1, 'queda un registro del envío', envio[0]?.resultado ?? '');
     const sus = (await sql.query<{ ultimo_error: string | null }>('SELECT ultimo_error FROM suscripciones_push WHERE usuario_id = $1', [U])).rows[0];
     marcar(Boolean(sus?.ultimo_error), 'el dispositivo de prueba (que rechaza la conexión) queda con su error anotado');
+
+    // E11d (RB-46): resumen diario. Hay una vencida ("Ya pasó") y un dispositivo de prueba.
+    const resumenes = async () =>
+      (await sql.query<{ resultado: string }>(`SELECT resultado FROM envios WHERE usuario_id = $1 AND tipo = 'resumen' ORDER BY creado_en`, [U])).rows;
+    const apagado = await procesarResumenes(new Date(), { soloUsuario: U });
+    marcar(apagado.enviados + apagado.sinTareas + apagado.omitidos === 0 && (await resumenes()).length === 0, 'con el resumen apagado (por defecto) no se hace nada');
+    const hace2 = horaBogotaEn(-2);
+    const hace45 = horaBogotaEn(-45);
+    if (hace2.fecha !== hoyBogota() || hace45.fecha !== hoyBogota()) {
+      console.log('(se omiten las pruebas del resumen: es casi medianoche en Bogotá)');
+    } else {
+      await actualizarConfiguracion(U, email, { resumenDiario: true, horaResumen: hace2.hora });
+      const [r1, r2] = await Promise.all([procesarResumenes(new Date(), { soloUsuario: U }), procesarResumenes(new Date(), { soloUsuario: U })]);
+      const filas = await resumenes();
+      marcar(r1.enviados + r2.enviados === 1 && filas.length === 1, 'dos avisos a la vez: un solo resumen en el día', `${r1.enviados} + ${r2.enviados}, ${filas[0]?.resultado ?? ''}`);
+      const r3 = await procesarResumenes(new Date(), { soloUsuario: U });
+      marcar(r3.enviados === 0 && (await resumenes()).length === 1, 'el minuto siguiente no lo repite');
+      await sql.query(`DELETE FROM envios WHERE usuario_id = $1 AND tipo = 'resumen'`, [U]);
+      await actualizarConfiguracion(U, email, { horaResumen: hace45.hora });
+      const r4 = await procesarResumenes(new Date(), { soloUsuario: U });
+      marcar(r4.omitidos === 1 && r4.enviados === 0 && (await resumenes())[0]?.resultado === 'omitido: atrasado', 'con más de 30 min de atraso no se envía y queda anotado');
+    }
 
     // Completar cancela.
     const t4 = await crearTarea(U, { titulo: 'Se completa (prueba recordatorios)', fechaLimite: pasado, horaInicio: '09:00', recordatorio: '1_hora' });

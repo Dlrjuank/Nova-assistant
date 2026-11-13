@@ -21,6 +21,8 @@ export const AVISO_MOMENTO_PASADO = 'Ese momento ya pasó: no se enviará el rec
 export const AVISO_IPHONE_SIN_INSTALAR = 'Para recibir avisos en el iPhone, primero agrega Nova a inicio.';
 export const AVISO_BLOQUEADAS = 'Las notificaciones están bloqueadas. Actívalas en los ajustes del teléfono para Nova.';
 export const AVISO_ACTIVAR = 'Activa las notificaciones para recibir este aviso.';
+/** E11d (5.10): sin notificaciones, la otra forma de que el teléfono avise. */
+export const AVISO_USAR_CALENDARIO = 'También puedes guardarla y usar «Agregar a mi calendario» en Tareas, para que te avise el calendario del teléfono.';
 
 const CON_HORARIO: ReadonlyArray<{ valor: Recordatorio; texto: string }> = [
   { valor: 'a_la_hora', texto: 'A la hora' },
@@ -115,4 +117,31 @@ export function recordatorioCompatible(valor: Recordatorio | '', conHorario: boo
 /** La dirección que abre una notificación: Tareas con esa tarea resaltada. */
 export function rutaDeTarea(id: string): string {
   return `/nova/tareas?tarea=${encodeURIComponent(id)}`;
+}
+
+// ── E11d: resumen diario (RB-46) ──────────────────────────────────────────────────────────────────────────
+
+export const HORA_RESUMEN_POR_DEFECTO = '07:00';
+
+/**
+ * RB-46: el texto del resumen, en singular cuando corresponde; la parte en cero no se dice. Sin tareas de hoy
+ * ni vencidas no hay resumen (null).
+ */
+export function textoResumen(hoy: number, vencidas: number): string | null {
+  if (hoy <= 0 && vencidas <= 0) return null;
+  const tareas = `${hoy} ${hoy === 1 ? 'tarea' : 'tareas'}`;
+  if (vencidas <= 0) return `Hoy: ${tareas}`;
+  if (hoy <= 0) return `Hoy: ${vencidas} ${vencidas === 1 ? 'tarea vencida' : 'tareas vencidas'}`;
+  return `Hoy: ${tareas} · ${vencidas} ${vencidas === 1 ? 'vencida' : 'vencidas'}`;
+}
+
+/** "HH:MM" de 24 horas para la hora del resumen. */
+export function validarHoraResumen(hora: unknown): string {
+  if (typeof hora !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(hora)) throw new ErrorDeNegocio('HORA_RESUMEN_INVALIDA');
+  return hora;
+}
+
+/** El instante del resumen de un día: esa fecha a la hora elegida, en Bogotá. */
+export function momentoResumen(fecha: string, hora: string): Date {
+  return enBogota(fecha, hora);
 }

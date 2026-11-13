@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { Aviso } from '@/components/ui/Aviso';
 import { Boton } from '@/components/ui/Boton';
 import { activarNotificaciones, desactivarNotificaciones, estadoNotificaciones, type EstadoNotificaciones } from '@/lib/notificaciones';
-import { AVISO_ACTIVAR, AVISO_BLOQUEADAS, AVISO_IPHONE_SIN_INSTALAR } from '@/lib/reglas/recordatorios';
+import { AVISO_ACTIVAR, AVISO_BLOQUEADAS, AVISO_IPHONE_SIN_INSTALAR, AVISO_USAR_CALENDARIO } from '@/lib/reglas/recordatorios';
 
 const NO_SOPORTADO = 'Este navegador no puede recibir notificaciones de Nova.';
 const ACTIVAS = 'Este dispositivo recibe los avisos de Nova.';
@@ -105,6 +105,7 @@ export function PanelNotificaciones({ modo }: { modo: 'formulario' | 'configurac
           </div>
         </>
       )}
+      {modo === 'formulario' && <p className="text-xs text-texto-suave">{AVISO_USAR_CALENDARIO}</p>}
       {prueba && <Aviso tipo="exito">{prueba}</Aviso>}
       {error && <Aviso tipo="error">{error}</Aviso>}
     </div>

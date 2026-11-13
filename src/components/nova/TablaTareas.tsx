@@ -32,7 +32,7 @@ const ANCHO_GRUPO: Record<string, string> = {
   Estado: 'xl:w-[11.5rem]',
   'Fecha límite': 'xl:w-[7rem]',
   Creada: 'xl:w-[6.5rem]',
-  Acciones: 'xl:w-[17rem]', // "Completar", el ícono de editar y "Eliminar" en la misma línea
+  Acciones: 'xl:w-[17rem]', // "Completar" y los íconos de editar, calendario y eliminar en la misma línea
 };
 
 /**

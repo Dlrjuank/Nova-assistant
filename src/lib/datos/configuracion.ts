@@ -1,5 +1,5 @@
 import { conTransaccion, consultar } from '@/lib/db/conexion';
-import { validarHoraRecordatorio } from '@/lib/reglas/recordatorios';
+import { validarHoraRecordatorio, validarHoraResumen } from '@/lib/reglas/recordatorios';
 import { recalcularRecordatoriosSinHorario } from './tareas';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
 import {
@@ -26,6 +26,8 @@ export interface CambiosConfiguracion {
   redondeo?: Redondeo | undefined;
   cortesDefecto?: Array<string | number> | undefined;
   horaRecordatorio?: string | undefined;
+  resumenDiario?: boolean | undefined;
+  horaResumen?: string | undefined;
 }
 
 interface FilaPreferencias {
@@ -35,6 +37,8 @@ interface FilaPreferencias {
   redondeo: Redondeo;
   cortes_defecto: number[];
   hora_recordatorio: string; // '08:00'
+  resumen_diario: boolean;
+  hora_resumen: string; // '07:00'
 }
 
 const desdeFila = (f: FilaPreferencias): Preferencias => ({
@@ -44,12 +48,15 @@ const desdeFila = (f: FilaPreferencias): Preferencias => ({
   redondeo: f.redondeo,
   cortesDefecto: f.cortes_defecto.map(Number),
   horaRecordatorio: f.hora_recordatorio ?? PREFERENCIAS_POR_DEFECTO.horaRecordatorio,
+  resumenDiario: f.resumen_diario ?? PREFERENCIAS_POR_DEFECTO.resumenDiario,
+  horaResumen: f.hora_resumen ?? PREFERENCIAS_POR_DEFECTO.horaResumen,
 });
 
 /** E11 (6.3): sin fila, los valores por defecto. */
 export async function obtenerPreferencias(usuarioId: string): Promise<Preferencias> {
   const [fila] = await consultar<FilaPreferencias>(
-    `SELECT tema, formato_hora, nota_aprobar, redondeo, cortes_defecto, to_char(hora_recordatorio, 'HH24:MI') AS hora_recordatorio
+    `SELECT tema, formato_hora, nota_aprobar, redondeo, cortes_defecto, to_char(hora_recordatorio, 'HH24:MI') AS hora_recordatorio,
+            resumen_diario, to_char(hora_resumen, 'HH24:MI') AS hora_resumen
      FROM preferencias_usuario WHERE usuario_id = $1`,
     [usuarioId],
   );
@@ -74,6 +81,7 @@ export async function actualizarConfiguracion(usuarioId: string, email: string, 
   const nota = cambios.notaAprobar === undefined ? undefined : validarNotaAprobar(cambios.notaAprobar);
   const cortes = cambios.cortesDefecto === undefined ? undefined : validarCortesDefecto(cambios.cortesDefecto);
   const horaRecordatorio = cambios.horaRecordatorio === undefined ? undefined : validarHoraRecordatorio(cambios.horaRecordatorio);
+  const horaResumen = cambios.horaResumen === undefined ? undefined : validarHoraResumen(cambios.horaResumen);
 
   const columnas: Array<[string, unknown]> = [];
   if (cambios.tema !== undefined) columnas.push(['tema', cambios.tema]);
@@ -82,6 +90,8 @@ export async function actualizarConfiguracion(usuarioId: string, email: string, 
   if (cambios.redondeo !== undefined) columnas.push(['redondeo', cambios.redondeo]);
   if (cortes !== undefined) columnas.push(['cortes_defecto', cortes]);
   if (horaRecordatorio !== undefined) columnas.push(['hora_recordatorio', horaRecordatorio]);
+  if (cambios.resumenDiario !== undefined) columnas.push(['resumen_diario', cambios.resumenDiario]);
+  if (horaResumen !== undefined) columnas.push(['hora_resumen', horaResumen]);
   if (nombre === undefined && columnas.length === 0) throw new ErrorDeNegocio('DATOS_INVALIDOS');
 
   if (nombre !== undefined) await consultar('UPDATE public.users SET full_name = $2 WHERE id = $1', [usuarioId, nombre]);

@@ -153,6 +153,7 @@ export {
   enviarPrueba,
   guardarSuscripcion,
   procesarRecordatorios,
+  procesarResumenes,
 } from '@/lib/datos/notificaciones';
 export { avanzarLibroEnSegundoPlano } from '@/lib/datos/documentos';
 export type {

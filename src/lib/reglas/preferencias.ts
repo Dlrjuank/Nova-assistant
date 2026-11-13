@@ -21,6 +21,10 @@ export interface Preferencias {
   cortesDefecto: number[];
   /** E11c: "HH:MM", la hora de los recordatorios de las tareas sin horario. */
   horaRecordatorio: string;
+  /** E11d (RB-46): resumen diario por notificación, apagado por defecto. */
+  resumenDiario: boolean;
+  /** E11d: "HH:MM", la hora del resumen. */
+  horaResumen: string;
 }
 
 export const PREFERENCIAS_POR_DEFECTO: Preferencias = {
@@ -30,6 +34,8 @@ export const PREFERENCIAS_POR_DEFECTO: Preferencias = {
   redondeo: 'truncar',
   cortesDefecto: [3000, 3000, 4000],
   horaRecordatorio: '08:00',
+  resumenDiario: false,
+  horaResumen: '07:00',
 };
 
 export const MAX_CORTES = 6;

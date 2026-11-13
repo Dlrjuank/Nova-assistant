@@ -21,7 +21,12 @@ export default async function ConfiguracionPage() {
         <BloquePerfil nombre={perfil.nombre} email={perfil.email} />
         <BloqueApariencia tema={preferencias.tema} formatoHora={preferencias.formatoHora} />
         <BloqueAcademico notaAprobar={preferencias.notaAprobar} redondeo={preferencias.redondeo} cortesDefecto={preferencias.cortesDefecto} />
-        <BloqueNotificaciones horaRecordatorio={preferencias.horaRecordatorio} formatoHora={preferencias.formatoHora} />
+        <BloqueNotificaciones
+          horaRecordatorio={preferencias.horaRecordatorio}
+          formatoHora={preferencias.formatoHora}
+          resumenDiario={preferencias.resumenDiario}
+          horaResumen={preferencias.horaResumen}
+        />
         <BloqueAsistente />
         <BloqueInstalar />
         <BloqueSesion />

@@ -20,7 +20,7 @@ import * as rutaConversaciones from '@/app/api/nova/conversaciones/route';
 import { actualizarConfiguracion, borrarHistorial, obtenerConfiguracion, obtenerPreferencias } from '@/lib/datos/configuracion';
 
 const U = '11111111-1111-4111-8111-111111111111';
-const FILA = { tema: 'oscuro', formato_hora: '12', nota_aprobar: '3.50', redondeo: 'redondear', cortes_defecto: [5000, 5000], hora_recordatorio: '07:30' };
+const FILA = { tema: 'oscuro', formato_hora: '12', nota_aprobar: '3.50', redondeo: 'redondear', cortes_defecto: [5000, 5000], hora_recordatorio: '07:30', resumen_diario: true, hora_resumen: '06:30' };
 
 function base(fila: Record<string, unknown> | null = null, nombre = 'Ana') {
   m.consultar.mockImplementation(async (sql: string) => {
@@ -41,7 +41,7 @@ beforeEach(() => {
 describe('leer', () => {
   it('sin fila, los valores por defecto (6.3)', async () => {
     base();
-    await expect(obtenerPreferencias(U)).resolves.toEqual({ tema: 'automatico', formatoHora: '24', notaAprobar: 300, redondeo: 'truncar', cortesDefecto: [3000, 3000, 4000], horaRecordatorio: '08:00' });
+    await expect(obtenerPreferencias(U)).resolves.toEqual({ tema: 'automatico', formatoHora: '24', notaAprobar: 300, redondeo: 'truncar', cortesDefecto: [3000, 3000, 4000], horaRecordatorio: '08:00', resumenDiario: false, horaResumen: '07:00' });
     expect(m.consultar.mock.calls[0]?.[1]).toEqual([U]);
   });
 
@@ -49,12 +49,23 @@ describe('leer', () => {
     base(FILA);
     await expect(obtenerConfiguracion(U, 'yo@ejemplo.com')).resolves.toEqual({
       perfil: { nombre: 'Ana', email: 'yo@ejemplo.com' },
-      preferencias: { tema: 'oscuro', formatoHora: '12', notaAprobar: 350, redondeo: 'redondear', cortesDefecto: [5000, 5000], horaRecordatorio: '07:30' },
+      preferencias: { tema: 'oscuro', formatoHora: '12', notaAprobar: 350, redondeo: 'redondear', cortesDefecto: [5000, 5000], horaRecordatorio: '07:30', resumenDiario: true, horaResumen: '06:30' },
     });
   });
 });
 
 describe('guardar', () => {
+  it('E11d (RB-46): el resumen diario y su hora se guardan; una hora mala no escribe nada', async () => {
+    base();
+    await actualizarConfiguracion(U, 'yo@ejemplo.com', { resumenDiario: true, horaResumen: '06:45' });
+    const [sql, valores] = escrituras()[0] ?? [];
+    expect(String(sql)).toContain('resumen_diario, hora_resumen');
+    expect(valores).toEqual([U, true, '06:45']);
+    m.consultar.mockClear();
+    await expect(actualizarConfiguracion(U, 'yo@ejemplo.com', { resumenDiario: true, horaResumen: '25:00' })).rejects.toMatchObject({ codigo: 'HORA_RESUMEN_INVALIDA' });
+    expect(escrituras()).toEqual([]);
+  });
+
   it('solo lo que llega: crea o actualiza la fila (upsert) del usuario', async () => {
     base();
     await actualizarConfiguracion(U, 'yo@ejemplo.com', { tema: 'oscuro', notaAprobar: '3,5', cortesDefecto: ['50', '50'] });

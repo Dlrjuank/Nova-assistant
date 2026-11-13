@@ -1,4 +1,4 @@
-// E11c (5.10; RB-43, RB-45): campo Recordatorio, panel de notificaciones y la tarea resaltada.
+// E11c (5.10; RB-43, RB-45): campo Recordatorio, panel de notificaciones y la tarea resaltada. E11d: resumen y calendario.
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -9,6 +9,8 @@ import { PanelNotificaciones } from '@/components/nova/PanelNotificaciones';
 import { FormularioTarea } from '@/components/nova/FormularioTarea';
 import { ProveedorPreferencias } from '@/components/nova/PreferenciasNova';
 import { ResaltarTarea } from '@/components/nova/ResaltarTarea';
+import { AccionesTarea } from '@/components/nova/AccionesTarea';
+import { ResumenDiario } from '@/components/nova/configuracion/ResumenDiario';
 
 const escribir = (etiqueta: string, valor: string) => fireEvent.change(screen.getByLabelText(etiqueta), { target: { value: valor } });
 const opciones = () => [...(screen.getByLabelText('Recordatorio') as HTMLSelectElement).options].map((o) => o.text);
@@ -155,5 +157,65 @@ describe('ResaltarTarea', () => {
       vi.advanceTimersByTime(6000);
     });
     expect(t1?.hasAttribute('data-resaltada')).toBe(false);
+  });
+});
+
+describe('E11d · Resumen diario en Configuración (RB-46)', () => {
+  it('apagado, la hora no se edita; al activarlo guarda el resumen y su hora y lo confirma', async () => {
+    const f = vi.fn<(url: string, init?: RequestInit) => Promise<Response>>(async () => new Response(JSON.stringify({ ok: true, datos: {} })));
+    vi.stubGlobal('fetch', f);
+    render(<ResumenDiario activo={false} hora="07:00" formatoHora="24" />);
+    const hora = screen.getByLabelText('Hora del resumen') as HTMLInputElement;
+    expect(hora.disabled).toBe(true);
+    expect((screen.getByRole('button', { name: 'Guardar resumen' }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByLabelText(/Recibir un resumen cada día/));
+    escribir('Hora del resumen', '06:30');
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar resumen' }));
+    expect(await screen.findByText('Guardado. El resumen llegará cada día a las 6:30.')).toBeTruthy();
+    expect(f).toHaveBeenCalledWith('/api/nova/configuracion', expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ resumenDiario: true, horaResumen: '06:30' }) }));
+  });
+
+  it('desactivarlo lo dice; una hora vacía no se envía', async () => {
+    const f = vi.fn(async () => new Response(JSON.stringify({ ok: true, datos: {} })));
+    vi.stubGlobal('fetch', f);
+    render(<ResumenDiario activo hora="07:00" formatoHora="12" />);
+    escribir('Hora del resumen', '');
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar resumen' }));
+    expect(await screen.findByText('Elige una hora válida para el resumen.')).toBeTruthy();
+    expect(f).not.toHaveBeenCalled();
+    escribir('Hora del resumen', '07:00');
+    fireEvent.click(screen.getByLabelText(/Recibir un resumen cada día/));
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar resumen' }));
+    expect(await screen.findByText('Guardado. Ya no recibirás el resumen diario.')).toBeTruthy();
+  });
+});
+
+describe('E11d · "Agregar a mi calendario" (RB-47)', () => {
+  const sinNavegar = (e: Event) => e.preventDefault(); // jsdom no navega
+  beforeEach(() => document.addEventListener('click', sinNavegar));
+  afterEach(() => document.removeEventListener('click', sinNavegar));
+
+  it('en cada tarea pendiente, enlace al .ics; al tocarlo avisa que es una copia', () => {
+    render(<AccionesTarea id="t1" titulo="Clase" completada={false} prefijo="x" />);
+    const enlace = screen.getByRole('link', { name: 'Agregar a mi calendario: Clase' });
+    expect(enlace.getAttribute('href')).toBe('/api/nova/tareas/t1/ics');
+    expect(enlace.hasAttribute('download')).toBe(false); // en el iPhone, sin "download" se abre el Calendario
+    expect(screen.queryByText('Es una copia: si cambias la tarea en Nova, vuelve a agregarla.')).toBeNull();
+    fireEvent.click(enlace);
+    expect(screen.getByRole('status').textContent).toBe('Es una copia: si cambias la tarea en Nova, vuelve a agregarla.');
+  });
+
+  it('en la tabla es un ícono; las completadas no lo tienen', () => {
+    const { rerender } = render(<AccionesTarea id="t1" titulo="Clase" completada={false} prefijo="x" editarSoloIcono />);
+    expect(screen.getByRole('link', { name: 'Agregar a mi calendario: Clase' }).textContent).toBe('');
+    expect(screen.getByRole('button', { name: 'Eliminar tarea: Clase' }).textContent).toBe(''); // también ícono, para caber en una línea
+    rerender(<AccionesTarea id="t1" titulo="Clase" completada prefijo="x" />);
+    expect(screen.queryByRole('link', { name: /Agregar a mi calendario/ })).toBeNull();
+  });
+
+  it('sin notificaciones activas, el formulario también ofrece el calendario del teléfono', async () => {
+    conPush();
+    render(<PanelNotificaciones modo="formulario" />);
+    expect(await screen.findByText('También puedes guardarla y usar «Agregar a mi calendario» en Tareas, para que te avise el calendario del teléfono.')).toBeTruthy();
   });
 });

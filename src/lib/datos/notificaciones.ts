@@ -3,7 +3,7 @@ import { conTransaccion, consultar } from '@/lib/db/conexion';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
 import { hoyBogota } from '@/lib/reglas/fechas';
 import type { FormatoHora } from '@/lib/reglas/preferencias';
-import { decisionEnvio, rutaDeTarea, textoNotificacion, type Recordatorio } from '@/lib/reglas/recordatorios';
+import { decisionEnvio, momentoResumen, rutaDeTarea, textoNotificacion, textoResumen, type Recordatorio } from '@/lib/reglas/recordatorios';
 
 /**
  * E11c (PLAN_AMPLIACION 5.10, 6.12, 7.10; RB-44, RB-45): notificaciones push. Las claves VAPID viven en las
@@ -211,4 +211,66 @@ export async function procesarRecordatorios(
     }
   }
   return { enviados: porEnviar.enviar.length, omitidos: porEnviar.omitidos, sinDispositivo: porEnviar.sinDispositivo };
+}
+
+export interface ResultadoResumenes {
+  enviados: number;
+  sinTareas: number;
+  omitidos: number;
+  sinDispositivo: number;
+}
+
+/** "HH:MM:SS" de Bogotá (UTC−5 todo el año). */
+const horaBogota = (instante: Date) => new Date(instante.getTime() - 5 * 60 * 60 * 1000).toISOString().slice(11, 19);
+
+/**
+ * E11d (RB-46): el resumen diario. Cada usuario con el resumen activo y su hora ya alcanzada, que aún no tenga el
+ * de hoy, recibe uno: la fila de `envios` se reserva primero (índice único por usuario y día), así que dos avisos a
+ * la vez nunca mandan dos. Se decide una sola vez al día: sin tareas de hoy ni vencidas, sin dispositivos o con
+ * más de 30 min de atraso queda anotado y no se manda nada. Cuenta las pendientes de hoy y las vencidas.
+ */
+export async function procesarResumenes(ahora: Date = new Date(), opciones: { soloUsuario?: string } = {}): Promise<ResultadoResumenes> {
+  const hoy = hoyBogota(ahora);
+  const candidatos = await consultar<{ usuario_id: string; hora_resumen: string; hoy: number; vencidas: number; suscripciones: number }>(
+    `SELECT p.usuario_id, to_char(p.hora_resumen, 'HH24:MI') AS hora_resumen,
+            (SELECT count(*)::int FROM tareas_personales t
+              WHERE t.usuario_id = p.usuario_id AND t.estado <> 'Completada' AND t.fecha_limite = $1::date) AS hoy,
+            (SELECT count(*)::int FROM tareas_personales t
+              WHERE t.usuario_id = p.usuario_id AND t.estado <> 'Completada' AND t.fecha_limite < $1::date) AS vencidas,
+            (SELECT count(*)::int FROM suscripciones_push s WHERE s.usuario_id = p.usuario_id) AS suscripciones
+     FROM preferencias_usuario p
+     WHERE p.resumen_diario AND p.hora_resumen <= $2::time
+       AND NOT EXISTS (SELECT 1 FROM envios e WHERE e.usuario_id = p.usuario_id AND e.tipo = 'resumen' AND e.fecha = $1::date)
+       AND ($3::uuid IS NULL OR p.usuario_id = $3)
+     LIMIT 500`,
+    [hoy, horaBogota(ahora), opciones.soloUsuario ?? null],
+  );
+
+  const r: ResultadoResumenes = { enviados: 0, sinTareas: 0, omitidos: 0, sinDispositivo: 0 };
+  for (const c of candidatos) {
+    const texto = textoResumen(c.hoy, c.vencidas);
+    const atrasado = decisionEnvio(momentoResumen(hoy, c.hora_resumen), ahora) !== 'enviar';
+    const decision = atrasado ? 'omitido: atrasado' : !texto ? 'sin tareas' : c.suscripciones === 0 ? 'sin dispositivo' : 'enviando';
+    const [reservado] = await consultar<{ id: string }>(
+      `INSERT INTO envios (usuario_id, tipo, fecha, resultado) VALUES ($1, 'resumen', $2, $3)
+       ON CONFLICT (usuario_id, tipo, fecha) WHERE tipo = 'resumen' DO NOTHING RETURNING id`,
+      [c.usuario_id, hoy, decision],
+    );
+    if (!reservado) continue; // otro aviso ya lo tomó
+    if (decision === 'omitido: atrasado') r.omitidos++;
+    else if (decision === 'sin tareas') r.sinTareas++;
+    else if (decision === 'sin dispositivo') r.sinDispositivo++;
+    else {
+      let resultado: string;
+      try {
+        const e = await enviarAUsuario(c.usuario_id, { titulo: 'Nova', cuerpo: texto as string, url: '/nova', etiqueta: `resumen-${hoy}` });
+        resultado = `enviadas ${e.enviadas}, fallidas ${e.fallidas}`;
+        r.enviados++;
+      } catch (error) {
+        resultado = `error ${error instanceof Error ? error.message : String(error)}`;
+      }
+      await consultar('UPDATE envios SET resultado = $2 WHERE id = $1', [reservado.id, resultado.slice(0, 200)]).catch(() => {});
+    }
+  }
+  return r;
 }

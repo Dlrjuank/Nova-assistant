@@ -45,6 +45,7 @@ export type CodigoError =
   | 'CORTES_NO_SUMAN'
   | 'RECORDATORIO_INVALIDO'
   | 'HORA_RECORDATORIO_INVALIDA'
+  | 'HORA_RESUMEN_INVALIDA'
   | 'SUSCRIPCION_INVALIDA'
   | 'SIN_NOTIFICACIONES'
   | 'NOTIFICACIONES_NO_CONFIGURADAS'
@@ -105,6 +106,7 @@ export const MENSAJES: Record<CodigoError, string> = {
   // E11c (RB-43, RB-45): recordatorios y notificaciones.
   RECORDATORIO_INVALIDO: 'Ese recordatorio necesita la hora de inicio de la tarea.',
   HORA_RECORDATORIO_INVALIDA: 'Elige una hora válida para los recordatorios.',
+  HORA_RESUMEN_INVALIDA: 'Elige una hora válida para el resumen.',
   SUSCRIPCION_INVALIDA: 'No se pudieron activar las notificaciones en este dispositivo. Intenta de nuevo.',
   SIN_NOTIFICACIONES: 'Activa las notificaciones para recibir este aviso.',
   NOTIFICACIONES_NO_CONFIGURADAS: 'Las notificaciones todavía no están disponibles en este servidor.',
@@ -158,6 +160,7 @@ export const ESTADO_HTTP: Record<CodigoError, number> = {
   CORTES_NO_SUMAN: 422,
   RECORDATORIO_INVALIDO: 422,
   HORA_RECORDATORIO_INVALIDA: 422,
+  HORA_RESUMEN_INVALIDA: 422,
   SUSCRIPCION_INVALIDA: 422,
   SIN_NOTIFICACIONES: 409,
   NOTIFICACIONES_NO_CONFIGURADAS: 503,

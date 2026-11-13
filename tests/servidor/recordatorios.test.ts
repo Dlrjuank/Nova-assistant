@@ -21,7 +21,7 @@ vi.mock('@/lib/db/conexion', () => ({
 }));
 
 import { avanzarLibroEnSegundoPlano } from '@/lib/datos/documentos';
-import { enviarAUsuario, enviarPrueba, guardarSuscripcion, procesarRecordatorios } from '@/lib/datos/notificaciones';
+import { enviarAUsuario, enviarPrueba, guardarSuscripcion, procesarRecordatorios, procesarResumenes } from '@/lib/datos/notificaciones';
 
 const U = '11111111-1111-4111-8111-111111111111';
 const AHORA = new Date('2026-11-20T15:00:00Z');
@@ -189,5 +189,69 @@ describe('S-62 y S-63 · RB-57: indexación en segundo plano', () => {
   it('sin libros a medias no hace nada', async () => {
     await expect(avanzarLibroEnSegundoPlano()).resolves.toBeNull();
     expect(m.generarEmbeddings).not.toHaveBeenCalled();
+  });
+});
+
+describe('RB-46 · procesarResumenes: uno por día, solo con tareas de hoy o vencidas', () => {
+  // 07:05 en Bogotá del 20 de noviembre.
+  const A_LAS_7_05 = new Date('2026-11-20T12:05:00Z');
+  const candidato = (extra: Record<string, unknown> = {}) => ({ usuario_id: U, hora_resumen: '07:00', hoy: 2, vencidas: 1, suscripciones: 1, ...extra });
+
+  function conCandidatos(filas: unknown[], { reservado = true } = {}) {
+    m.consultar.mockImplementation(async (sql: string) => {
+      const s = String(sql);
+      if (s.includes('FROM preferencias_usuario p')) return filas;
+      if (s.includes('INSERT INTO envios')) return reservado ? [{ id: 'e1' }] : [];
+      if (s.includes('FROM suscripciones_push')) return [{ id: 's1', endpoint: 'https://push.ejemplo/1', p256dh: 'p', auth: 'a' }];
+      return [];
+    });
+  }
+  const llamadas = (texto: string) => m.consultar.mock.calls.filter(([sql]) => String(sql).includes(texto));
+
+  it('busca a quienes lo tienen activo, con la hora alcanzada y sin el de hoy; reserva el día antes de enviar', async () => {
+    conCandidatos([candidato()]);
+    await expect(procesarResumenes(A_LAS_7_05)).resolves.toEqual({ enviados: 1, sinTareas: 0, omitidos: 0, sinDispositivo: 0 });
+    const [sql, valores] = llamadas('FROM preferencias_usuario p')[0] ?? [];
+    expect(String(sql)).toContain('p.resumen_diario');
+    expect(String(sql)).toContain("e.tipo = 'resumen' AND e.fecha = $1::date");
+    expect(valores).toEqual(['2026-11-20', '07:05:00', null]);
+    const reserva = llamadas('INSERT INTO envios')[0];
+    expect(String(reserva?.[0])).toContain('ON CONFLICT (usuario_id, tipo, fecha) WHERE tipo = \'resumen\' DO NOTHING');
+    expect(reserva?.[1]).toEqual([U, '2026-11-20', 'enviando']);
+    const orden = m.consultar.mock.invocationCallOrder;
+    const iReserva = m.consultar.mock.calls.findIndex(([s]) => String(s).includes('INSERT INTO envios'));
+    expect(orden[iReserva]).toBeLessThan(m.enviar.mock.invocationCallOrder[0] as number);
+    expect(JSON.parse(String(m.enviar.mock.calls[0]?.[1]))).toEqual({ titulo: 'Nova', cuerpo: 'Hoy: 2 tareas · 1 vencida', url: '/nova', etiqueta: 'resumen-2026-11-20' });
+    expect(llamadas('UPDATE envios SET resultado')[0]?.[1]).toEqual(['e1', 'enviadas 1, fallidas 0']);
+  });
+
+  it('si otro aviso ya reservó el día, no envía (nunca dos resúmenes)', async () => {
+    conCandidatos([candidato()], { reservado: false });
+    await expect(procesarResumenes(A_LAS_7_05)).resolves.toEqual({ enviados: 0, sinTareas: 0, omitidos: 0, sinDispositivo: 0 });
+    expect(m.enviar).not.toHaveBeenCalled();
+  });
+
+  it('sin tareas de hoy ni vencidas, sin dispositivos o con más de 30 min de atraso: lo anota y no envía', async () => {
+    conCandidatos([
+      candidato({ hoy: 0, vencidas: 0 }),
+      candidato({ usuario_id: 'u2', suscripciones: 0 }),
+      candidato({ usuario_id: 'u3', hora_resumen: '06:30' }),
+    ]);
+    await expect(procesarResumenes(A_LAS_7_05)).resolves.toEqual({ enviados: 0, sinTareas: 1, omitidos: 1, sinDispositivo: 1 });
+    expect(llamadas('INSERT INTO envios').map(([, v]) => (v as unknown[])[2])).toEqual(['sin tareas', 'sin dispositivo', 'omitido: atrasado']);
+    expect(m.enviar).not.toHaveBeenCalled();
+  });
+
+  it('solo vencidas: "Hoy: 1 tarea vencida"', async () => {
+    conCandidatos([candidato({ hoy: 0, vencidas: 1 })]);
+    await procesarResumenes(A_LAS_7_05);
+    expect(JSON.parse(String(m.enviar.mock.calls[0]?.[1])).cuerpo).toBe('Hoy: 1 tarea vencida');
+  });
+
+  it('un fallo al enviar queda anotado en el envío del día', async () => {
+    conCandidatos([candidato()]);
+    m.enviar.mockRejectedValue(Object.assign(new Error('caído'), { statusCode: 500 }));
+    await expect(procesarResumenes(A_LAS_7_05)).resolves.toMatchObject({ enviados: 1 });
+    expect(llamadas('UPDATE envios SET resultado')[0]?.[1]).toEqual(['e1', 'enviadas 0, fallidas 1']);
   });
 });

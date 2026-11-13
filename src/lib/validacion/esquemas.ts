@@ -59,6 +59,8 @@ export const esquemaConfiguracion = z
     redondeo: z.enum(['truncar', 'redondear']).optional(),
     cortesDefecto: z.array(z.union([z.string().max(10), z.number()])).min(1).max(6).optional(),
     horaRecordatorio: z.string().max(5).optional(),
+    resumenDiario: z.boolean().optional(),
+    horaResumen: z.string().max(5).optional(),
   })
   .strict();
 
