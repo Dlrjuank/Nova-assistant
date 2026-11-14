@@ -516,6 +516,55 @@ try {
       marcar(false, `bq-ck) tipos de pregunta: ${e.message}`);
     }
   }
+  // M8 (ampliación, E12): Semestre (6.4, RB-05, RB-06, RB-09, RB-10).
+  console.log('== 6m. Semestre (M8)');
+  const TABLAS_SEMESTRE = ['materias', 'cortes', 'componentes', 'notas'];
+  const rlsSemestre = await c.query("SELECT relname, relrowsecurity FROM pg_class WHERE relname = ANY($1) AND relkind = 'r'", [TABLAS_SEMESTRE]);
+  for (const t of TABLAS_SEMESTRE) {
+    const fila = rlsSemestre.rows.find((r) => r.relname === t);
+    marcar(Boolean(fila), `tabla ${t}`);
+    marcar(fila?.relrowsecurity === true, `RLS activo en ${t}`);
+  }
+  const columnaMateria = await c.query("SELECT is_nullable FROM information_schema.columns WHERE table_name = 'documentos' AND column_name = 'materia_id'");
+  marcar(columnaMateria.rows[0]?.is_nullable === 'YES', 'columna documentos.materia_id (opcional)');
+  if (rlsSemestre.rowCount === 4 && dueno) {
+    try {
+      const insMateria = 'INSERT INTO materias (usuario_id, nombre, creditos) VALUES ($1, $2, $3) RETURNING id, usa_cortes';
+      const materia = (await c.query(insMateria, [dueno, 'Verificar Cálculo', 3])).rows[0];
+      marcar(materia.usa_cortes === false, 'cl) una materia nace sin cortes');
+      await esperaFalla('cm) nombre de materia repetido sin distinguir mayúsculas (RB-05)', '23505', insMateria, [dueno, 'verificar cálculo', 2]);
+      await esperaFalla('cn) créditos fuera de 1 a 10 (RB-06)', '23514', insMateria, [dueno, 'Otra', 11]);
+      const otro = '00000000-0000-4000-8000-000000000000';
+      const insCorte = 'INSERT INTO cortes (materia_id, usuario_id, orden, nombre, porcentaje) VALUES ($1, $2, $3, $4, $5) RETURNING id';
+      const corte = (await c.query(insCorte, [materia.id, dueno, 1, 'Corte único', 10000])).rows[0].id;
+      await esperaFalla('co) corte con porcentaje 0', '23514', insCorte, [materia.id, dueno, 2, 'Corte 2', 0]);
+      await esperaFalla('cp) corte de una materia de otro usuario', '23503', insCorte, [materia.id, otro, 2, 'Corte 2', 3000]);
+      await esperaFalla('cq) orden de corte repetido', '23505', insCorte, [materia.id, dueno, 1, 'Corte 1', 3000]);
+      const insComp = 'INSERT INTO componentes (corte_id, usuario_id, orden, nombre, porcentaje) VALUES ($1, $2, $3, $4, $5) RETURNING id';
+      const comp = (await c.query(insComp, [corte, dueno, 1, 'Parcial', 4000])).rows[0].id;
+      await esperaFalla('cr) componente con nombre repetido en el corte', '23505', insComp, [corte, dueno, 2, 'PARCIAL', 2000]);
+      await esperaFalla('cs) componente de más de 100 % (RB-10)', '23514', insComp, [corte, dueno, 2, 'Talleres', 10001]);
+      await c.query(insComp, [corte, dueno, 2, 'Talleres', 9000]);
+      marcar(true, 'ct) componentes que suman más de 100 % se guardan (RB-08 es un aviso)');
+      const insNota = 'INSERT INTO notas (componente_id, usuario_id, orden, nota) VALUES ($1, $2, $3, $4)';
+      await c.query(insNota, [comp, dueno, 1, 375]);
+      await c.query(insNota, [comp, dueno, 2, null]);
+      marcar(true, 'cu) nota 3,75 y una "sin nota"');
+      await esperaFalla('cv) nota 5,5 (RB-09)', '23514', insNota, [comp, dueno, 3, 550]);
+      await esperaFalla('cw) nota de otro usuario', '23503', insNota, [comp, otro, 3, 300]);
+      const doc = (await c.query("INSERT INTO documentos (nombre_archivo, fecha_guardado, usuario_id, materia_id) VALUES ('materia.pdf', $1, $2, $3) RETURNING id", [hoy, dueno, materia.id])).rows[0].id;
+      // La llave es (materia_id, usuario_id): una materia de otro dueño tampoco coincide.
+      await esperaFalla('cx) documento con una materia que no es suya', '23503', "INSERT INTO documentos (nombre_archivo, fecha_guardado, usuario_id, materia_id) VALUES ('x.pdf', $1, $2, $3)", [hoy, dueno, otro]);
+      await c.query('DELETE FROM materias WHERE id = $1', [materia.id]);
+      const tras = await c.query(
+        'SELECT (SELECT count(*) FROM cortes WHERE materia_id = $1)::int + (SELECT count(*) FROM componentes WHERE corte_id = $2)::int + (SELECT count(*) FROM notas WHERE componente_id = $3)::int AS n, (SELECT row(materia_id, usuario_id)::text FROM documentos WHERE id = $4) AS doc',
+        [materia.id, corte, comp, doc],
+      );
+      marcar(tras.rows[0].n === 0 && tras.rows[0].doc === `(,${dueno})`, 'cy) al borrar la materia se borran sus cortes, componentes y notas; el documento queda sin materia y con su dueño');
+    } catch (e) {
+      marcar(false, `cl-cy) semestre: ${e.message}`);
+    }
+  }
   await c.query('ROLLBACK');
 
   console.log(`== 7. Total de fallas: ${fallas}`);

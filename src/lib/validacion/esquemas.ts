@@ -157,3 +157,34 @@ export const esquemaSuscripcion = z.object({
   dispositivo: z.string().max(120).optional(),
 });
 export const esquemaQuitarSuscripcion = z.object({ endpoint: z.url().max(2000) });
+
+// E12 (6.4, RB-05 a RB-10): Semestre. Los números llegan como el texto del campo ("3,75", "40") o como número; las
+// reglas finas y sus mensajes exactos están en src/lib/reglas/notas.ts.
+export const esquemaIdSemestre = z.uuid();
+const numeroOTexto = z.union([z.string().max(20), z.number()]);
+export const esquemaCrearMateria = z.object({
+  nombre: z.string().max(200),
+  creditos: numeroOTexto,
+  docente: z.string().max(300).nullable().optional(),
+});
+export const esquemaEditarMateria = esquemaCrearMateria.partial();
+export const esquemaCortes = z.object({
+  cortes: z
+    .array(
+      z.object({
+        id: z.uuid().optional(),
+        nombre: z.string().max(100),
+        porcentaje: numeroOTexto,
+        fecha: z.string().max(10).nullable().optional(),
+      }),
+    )
+    .max(20),
+});
+export const esquemaAccionCortes = z.object({ accion: z.enum(['dividir', 'quitar']) });
+export const esquemaComponente = z.object({ nombre: z.string().max(200), porcentaje: numeroOTexto });
+export const esquemaEditarComponente = esquemaComponente.partial();
+export const esquemaNota = z.object({
+  nombre: z.string().max(300).nullable().optional(),
+  nota: z.union([z.string().max(20), z.number(), z.null()]).optional(),
+  fecha: z.string().max(10).nullable().optional(),
+});

@@ -5,6 +5,11 @@ export const TABLAS_RESPALDO = [
   'categorias',
   'preferencias_usuario', // M7 (E11)
   'tareas_personales',
+  // M8 (E12): Semestre; documentos.materia_id apunta a materias
+  'materias',
+  'cortes',
+  'componentes',
+  'notas',
   'documentos',
   'fragmentos_pdf',
   'capitulos', // documentos y tareas_personales

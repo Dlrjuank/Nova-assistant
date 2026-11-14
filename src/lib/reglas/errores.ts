@@ -49,6 +49,20 @@ export type CodigoError =
   | 'SUSCRIPCION_INVALIDA'
   | 'SIN_NOTIFICACIONES'
   | 'NOTIFICACIONES_NO_CONFIGURADAS'
+  | 'MATERIA_NO_ENCONTRADA'
+  | 'CORTE_NO_ENCONTRADO'
+  | 'COMPONENTE_NO_ENCONTRADO'
+  | 'NOTA_NO_ENCONTRADA'
+  | 'MATERIA_DUPLICADA'
+  | 'NOMBRE_MATERIA_INVALIDO'
+  | 'CREDITOS_INVALIDOS'
+  | 'NOMBRE_CORTE_INVALIDO'
+  | 'NOMBRE_COMPONENTE_INVALIDO'
+  | 'COMPONENTE_DUPLICADO'
+  | 'NOMBRE_NOTA_INVALIDO'
+  | 'NOTA_INVALIDA'
+  | 'QUITAR_CORTES_INVALIDO'
+  | 'SIN_CORTES'
   | 'ERROR_INTERNO';
 
 // Textos de la sección 12.2; los de la sección 5.1 se usan literalmente.
@@ -110,6 +124,21 @@ export const MENSAJES: Record<CodigoError, string> = {
   SUSCRIPCION_INVALIDA: 'No se pudieron activar las notificaciones en este dispositivo. Intenta de nuevo.',
   SIN_NOTIFICACIONES: 'Activa las notificaciones para recibir este aviso.',
   NOTIFICACIONES_NO_CONFIGURADAS: 'Las notificaciones todavía no están disponibles en este servidor.',
+  // E12 (RB-05, RB-06, RB-09, RB-35): Semestre.
+  MATERIA_NO_ENCONTRADA: 'La materia no existe.',
+  CORTE_NO_ENCONTRADO: 'El corte no existe.',
+  COMPONENTE_NO_ENCONTRADO: 'El componente no existe.',
+  NOTA_NO_ENCONTRADA: 'La nota no existe.',
+  MATERIA_DUPLICADA: 'Ya existe una materia con ese nombre.',
+  NOMBRE_MATERIA_INVALIDO: 'Escribe el nombre de la materia (hasta 80 caracteres).',
+  CREDITOS_INVALIDOS: 'Los créditos deben ser un número entero entre 1 y 10.',
+  NOMBRE_CORTE_INVALIDO: 'Escribe el nombre del corte (hasta 40 caracteres).',
+  NOMBRE_COMPONENTE_INVALIDO: 'Escribe el nombre del componente (hasta 80 caracteres).',
+  COMPONENTE_DUPLICADO: 'Ya existe un componente con ese nombre.',
+  NOMBRE_NOTA_INVALIDO: 'El nombre de la nota puede tener hasta 120 caracteres.',
+  NOTA_INVALIDA: 'La nota debe estar entre 0,0 y 5,0.',
+  QUITAR_CORTES_INVALIDO: 'Para quitar los cortes, deja solo uno.',
+  SIN_CORTES: 'La materia debe tener al menos un corte.',
   ERROR_INTERNO: 'Ocurrió un error inesperado. Intenta de nuevo.',
 };
 
@@ -164,6 +193,20 @@ export const ESTADO_HTTP: Record<CodigoError, number> = {
   SUSCRIPCION_INVALIDA: 422,
   SIN_NOTIFICACIONES: 409,
   NOTIFICACIONES_NO_CONFIGURADAS: 503,
+  MATERIA_NO_ENCONTRADA: 404,
+  CORTE_NO_ENCONTRADO: 404,
+  COMPONENTE_NO_ENCONTRADO: 404,
+  NOTA_NO_ENCONTRADA: 404,
+  MATERIA_DUPLICADA: 409,
+  NOMBRE_MATERIA_INVALIDO: 422,
+  CREDITOS_INVALIDOS: 422,
+  NOMBRE_CORTE_INVALIDO: 422,
+  NOMBRE_COMPONENTE_INVALIDO: 422,
+  COMPONENTE_DUPLICADO: 409,
+  NOMBRE_NOTA_INVALIDO: 422,
+  NOTA_INVALIDA: 422,
+  QUITAR_CORTES_INVALIDO: 409,
+  SIN_CORTES: 409,
   ERROR_INTERNO: 500,
 };
 

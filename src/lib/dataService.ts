@@ -145,6 +145,23 @@ export { buscarEnWikipedia, eliminarFuenteWeb, guardarFuenteWeb, listarFuentesWe
 export { confirmarPlanLectura, vistaPreviaPlanLectura } from '@/lib/datos/planLectura';
 export { autoevaluarPregunta, crearCuestionario, empezarIntento, obtenerCuestionario, responderPregunta } from '@/lib/datos/cuestionarios';
 export { crearTareaRepaso, listarCuestionarios } from '@/lib/datos/historialCuestionarios';
+export {
+  crearComponente,
+  crearMateria,
+  crearNota,
+  dividirEnCortes,
+  editarComponente,
+  editarMateria,
+  editarNota,
+  eliminarComponente,
+  eliminarMateria,
+  eliminarNota,
+  guardarCortes,
+  listarMaterias,
+  obtenerMateria,
+  quitarCortes,
+} from '@/lib/datos/semestre';
+export type { ComponenteMateria, CorteMateria, Materia, NotaRegistrada } from '@/lib/datos/semestre';
 export { actualizarConfiguracion, borrarHistorial, obtenerConfiguracion, obtenerPreferencias, type Configuracion } from '@/lib/datos/configuracion';
 export {
   borrarSuscripcion,
