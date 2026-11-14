@@ -980,3 +980,10 @@ Total de fallas: 0
 - **Causa:** a las 18:42 el resumen estaba activo con una hora de más de 30 minutos antes (probablemente las 7:00 de fábrica, en un primer guardado), así que se anotó como atrasado y reservó el día. Al cambiar la hora a las 18:47 la regla "uno por día" lo bloqueó. Error de diseño: una decisión sin envío no debía impedir una hora nueva el mismo día.
 - **Corrección:** al activar el resumen o cambiar su hora, se borra el anotado de hoy si no llegó a ningún dispositivo (`omitido: atrasado`, `sin tareas`, `sin dispositivo`, errores o `enviadas 0`), dentro de la misma transacción; uno que ya llegó (`enviadas 1` o más) se conserva. Al guardar con una hora que pasó hace más de 30 minutos, la pantalla dice `Guardado. Hoy ya pasó esa hora: el resumen empieza mañana a las {hora}.` (`resumenPuedeLlegarHoy`).
 - **Pruebas:** reglas, configuración e interfaz (con el reloj fijo). `npm run probar:recordatorios` 25 de 25 (tres nuevas: el anotado sin envío se borra al cambiar la hora, con la hora nueva sí llega ese día, uno ya enviado no se borra). `npm test` 993/993, `npm run build` correcto, `eslint` sin errores.
+
+#### E11d terminada (2026-11-13)
+
+- **Prueba del usuario con `47a371d` en el iPhone y el PC, sin fallas:** el resumen llegó a los dos dispositivos a la hora elegida (en `envios`, 19:06, `enviadas 2, fallidas 0`) y abrió Inicio; no llegó un segundo resumen el mismo día; con una hora pasada la pantalla dijo que empieza mañana. "Agregar a mi calendario" ya había salido bien (pruebas 6 a 11).
+- **Sin probar por el usuario:** el día sin tareas (no llega nada).
+- El usuario dejó el resumen desactivado (verificado en la base).
+- Queda cerrada E11d. Sigue E11e.
