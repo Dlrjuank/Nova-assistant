@@ -1031,3 +1031,10 @@ Total de fallas: 0
 - **Pruebas:** `tests/reglas/tiposPregunta.test.ts` (S-70 a S-73), servidor (crear mixto, segunda llamada, S-74, S-75, rutas), interfaz (cada tipo, volver a una abierta sin calificar, resultado, formulario, historial). `npm run probar:cuestionario` con Gemini real, una ejecución, 20 de 20 y 1 llamada: el mixto de 5 salió con una de cada tipo, intercaladas, y la frase de completar armada desde la cita. En Edge (`ui_e10g.mjs`, sin Gemini) 34 de 34: cada tipo a 390 px, volver a la abierta sin calificar, resultado y lo guardado en la base, repetir las falladas, un cuestionario anterior, historial, formulario, 1280 px en oscuro.
 - **Al cierre:** `npm test` 1122/1122, `tsc` y `eslint` sin errores, `npm run build` correcto.
 - **Pendiente:** la prueba del usuario (B-77 a B-81, y que los cuestionarios anteriores siguen igual, B-60 a B-66).
+
+#### E10g terminada (2026-11-14)
+
+- **Prueba del usuario con `c4e451d` en la vista previa, en el iPhone y el PC, sin fallas (las 7):** el mixto trae una de cada tipo con cita y página; la múltiple da puntaje parcial y pide marcar al menos una; verdadero o falso explica lo correcto; completar acepta mayúsculas, sin tildes y con espacios de más; la abierta conserva dónde iba y "A medias" vale 0,5; el resultado y "Repetir solo las que fallé" incluyen las parciales; los cuestionarios anteriores funcionan igual; cada uno muestra su tipo; en el teléfono todo se toca bien, sin zoom ni desplazamiento lateral.
+- El usuario está de acuerdo con dejar el 400 de `OPTIONS /` sin corregir y el favicon para E20b.
+- `doc/PRESENTACION_AMPLIACION.md` es del usuario: no va en los commits.
+- Queda cerrada E10g. Sigue E12.
