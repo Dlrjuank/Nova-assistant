@@ -73,7 +73,8 @@ describe('DetalleMateria', () => {
     const notas = within(screen.getByRole('list', { name: 'Notas de Talleres' }));
     expect(notas.getByText('Taller 1')).toBeTruthy();
     expect(notas.getByText('Sin nota')).toBeTruthy();
-    expect(screen.getByText('3,5')).toBeTruthy();
+    expect(notas.getByText('Taller 1').closest('li')).toBeTruthy();
+    expect(within(screen.getByRole('list', { name: 'Notas de Parcial' })).getByText('3,5')).toBeTruthy();
     expect(screen.getByText(/30 % \+ 30 % \+ 40 %/)).toBeTruthy();
     expect(screen.getByLabelText('Fecha final de la materia')).toBeTruthy();
   });

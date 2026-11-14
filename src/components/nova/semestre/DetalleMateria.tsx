@@ -26,7 +26,8 @@ import {
   validarPorcentaje,
 } from '@/lib/reglas/notas';
 import { MENSAJES } from '@/lib/reglas/errores';
-import { aCentesimas, formatearNota, formatearPorcentaje } from '@/lib/reglas/preferencias';
+import { aCentesimas, formatearNota, formatearPorcentaje, type Redondeo } from '@/lib/reglas/preferencias';
+import { Calculadora } from './Calculadora';
 import { ConDialogo } from './ConDialogo';
 import { FormularioMateria } from './FormularioMateria';
 import { mensajeDe, pedirSemestre, type Resultado } from './peticion';
@@ -441,8 +442,18 @@ function EliminarMateria({ materia }: { materia: Materia }) {
   );
 }
 
-/** E12 (5.7, 6.4): una materia con sus cortes (si los usa), componentes de evaluación y notas. */
-export function DetalleMateria({ materia, plantilla }: { materia: Materia; plantilla: readonly number[] }) {
+/** E12 y E13 (5.7, 6.4): una materia con su calculadora, sus cortes (si los usa), componentes de evaluación y notas. */
+export function DetalleMateria({
+  materia,
+  plantilla,
+  notaAprobar = 300,
+  redondeo = 'truncar',
+}: {
+  materia: Materia;
+  plantilla: readonly number[];
+  notaAprobar?: number;
+  redondeo?: Redondeo;
+}) {
   const router = useRouter();
   const dividir = useGuardar();
   const corteUnico = materia.cortes[0];
@@ -462,6 +473,7 @@ export function DetalleMateria({ materia, plantilla }: { materia: Materia; plant
         </ConDialogo>
         <EliminarMateria materia={materia} />
       </div>
+      <Calculadora materia={materia} notaAprobar={notaAprobar} redondeo={redondeo} />
 
       {!materia.usaCortes && corteUnico ? (
         <>

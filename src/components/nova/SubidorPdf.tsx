@@ -6,6 +6,7 @@ import { useRef, useState, type FormEvent } from 'react';
 import { Aviso } from '@/components/ui/Aviso';
 import { Boton } from '@/components/ui/Boton';
 import { Campo } from '@/components/ui/Campo';
+import { Selector } from '@/components/ui/Selector';
 import { CATEGORIA_POR_DEFECTO } from '@/lib/config/nova';
 import { validarTamanoPdf } from '@/lib/reglas/documento';
 import { ErrorDeNegocio, MENSAJES } from '@/lib/reglas/errores';
@@ -34,11 +35,14 @@ function rutaEnBlob(nombre: string): string {
   return `${base.replace(/^-+|-+$/g, '').slice(0, 100) || 'documento'}.pdf`;
 }
 
-export function SubidorPdf() {
+/** E13 (B-21): con una materia elegida, su nombre es la categoría del documento. */
+export function SubidorPdf({ materias = [] }: { materias?: ReadonlyArray<{ id: string; nombre: string }> }) {
   const router = useRouter();
   const entrada = useRef<HTMLInputElement>(null);
   const [archivo, setArchivo] = useState<File | null>(null);
   const [categoria, setCategoria] = useState(CATEGORIA_POR_DEFECTO);
+  const [materiaId, setMateriaId] = useState('');
+  const materia = materias.find((m) => m.id === materiaId);
   const [etapa, setEtapa] = useState<Etapa>('inicial');
   const [progreso, setProgreso] = useState(0);
   const [error, setError] = useState('');
@@ -85,7 +89,8 @@ export function SubidorPdf() {
         body: JSON.stringify({
           urlBlob,
           nombreArchivo: archivo.name,
-          categoria: categoria.trim() || CATEGORIA_POR_DEFECTO,
+          categoria: materia ? materia.nombre : categoria.trim() || CATEGORIA_POR_DEFECTO,
+          ...(materia ? { materiaId: materia.id } : {}),
         }),
       });
       // Si Vercel corta la función por tiempo, la respuesta no es JSON.
@@ -130,14 +135,26 @@ export function SubidorPdf() {
         />
       </div>
 
+      {materias.length > 0 && (
+        <Selector
+          id="materia"
+          etiqueta="Materia (opcional)"
+          value={materiaId}
+          onChange={(e) => setMateriaId(e.target.value)}
+          disabled={ocupado}
+          opciones={[{ valor: '', texto: 'Ninguna' }, ...materias.map((m) => ({ valor: m.id, texto: m.nombre }))]}
+        />
+      )}
+
       <Campo
         id="categoria"
         etiqueta="Categoría"
-        value={categoria}
+        value={materia ? materia.nombre : categoria}
         onChange={(e) => setCategoria(e.target.value)}
         maxLength={80}
         autoComplete="off"
-        disabled={ocupado}
+        disabled={ocupado || Boolean(materia)}
+        ayuda={materia ? 'Es la de la materia.' : undefined}
       />
 
       {etapa === 'subiendo' && (

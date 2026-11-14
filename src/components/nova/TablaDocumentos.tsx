@@ -1,3 +1,4 @@
+import { GraduationCap } from 'lucide-react';
 import Link from 'next/link';
 import { EliminarDocumento } from '@/components/nova/EliminarDocumento';
 import { claseBoton } from '@/components/ui/Boton';
@@ -36,6 +37,18 @@ function Acciones({ d }: { d: Documento }) {
 }
 
 /** Tabla desde 640 px; por debajo, tarjetas apiladas. */
+/** E13 (B-21): un documento de una materia muestra la materia, con su ícono; los demás, su categoría. */
+function Categoria({ d }: { d: Documento }) {
+  if (!d.materia) return <>{d.categoria}</>;
+  return (
+    <span className="inline-flex items-center gap-1.5 text-texto">
+      <GraduationCap aria-hidden="true" className="size-4 shrink-0 text-acento" />
+      <span className="sr-only">Materia: </span>
+      {d.materia}
+    </span>
+  );
+}
+
 export function TablaDocumentos({ documentos }: { documentos: Documento[] }) {
   return (
     <>
@@ -57,7 +70,9 @@ export function TablaDocumentos({ documentos }: { documentos: Documento[] }) {
                   {d.nombreArchivo}
                   <Nota d={d} />
                 </th>
-                <td className="px-4 py-3 text-texto-suave">{d.categoria}</td>
+                <td className="px-4 py-3 text-texto-suave">
+                  <Categoria d={d} />
+                </td>
                 <td className="px-4 py-3 text-texto-suave">{d.paginas ?? '—'}</td>
                 <td className="whitespace-nowrap px-4 py-3 text-texto-suave">
                   <Estado d={d} />
@@ -78,8 +93,10 @@ export function TablaDocumentos({ documentos }: { documentos: Documento[] }) {
             <p className="break-all font-semibold text-texto">{d.nombreArchivo}</p>
             <Nota d={d} />
             <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
-              <dt className="text-texto-suave">Categoría</dt>
-              <dd>{d.categoria}</dd>
+              <dt className="text-texto-suave">{d.materia ? 'Materia' : 'Categoría'}</dt>
+              <dd>
+                <Categoria d={d} />
+              </dd>
               <dt className="text-texto-suave">Páginas</dt>
               <dd>{d.paginas ?? '—'}</dd>
               <dt className="text-texto-suave">Fragmentos</dt>

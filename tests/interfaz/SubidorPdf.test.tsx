@@ -118,4 +118,23 @@ describe('SubidorPdf', () => {
     expect(await screen.findByText('No se pudo subir el archivo. Intenta de nuevo.')).toBeTruthy();
     expect(f).not.toHaveBeenCalled();
   });
+
+  it("E13 (B-21): con una materia elegida, su nombre es la categoría y se envía su id", async () => {
+    const f = vi.fn().mockResolvedValue(new Response(JSON.stringify({ ok: true, datos: { documentoId: "d", numFragmentos: 3 } }), { status: 201 }));
+    vi.stubGlobal("fetch", f);
+    render(<SubidorPdf materias={[{ id: "m1", nombre: "Cálculo" }]} />);
+    fireEvent.change(screen.getByLabelText("Materia (opcional)"), { target: { value: "m1" } });
+    const categoria = screen.getByLabelText("Categoría") as HTMLInputElement;
+    expect(categoria.value).toBe("Cálculo");
+    expect(categoria.disabled).toBe(true);
+    elegir(archivoDe("guia.pdf"));
+    fireEvent.click(botonIndexar());
+    await waitFor(() => expect(f).toHaveBeenCalled());
+    expect(JSON.parse(f.mock.calls[0]?.[1].body)).toMatchObject({ categoria: "Cálculo", materiaId: "m1" });
+  });
+
+  it("sin materias no aparece el selector", () => {
+    render(<SubidorPdf />);
+    expect(screen.queryByLabelText("Materia (opcional)")).toBeNull();
+  });
 });

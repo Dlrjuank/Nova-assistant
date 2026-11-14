@@ -14,7 +14,7 @@ export default async function CalendarioPage({ searchParams }: { searchParams: P
 
   return (
     <>
-      <EncabezadoPantalla titulo="Calendario" subtitulo="Tus tareas por fecha límite. Toca un día para ver su lista." />
+      <EncabezadoPantalla titulo="Calendario" subtitulo="Tus tareas por fecha límite y las fechas de Semestre. Toca un día para ver su lista." />
       <CalendarioMes
         key={datos.mes}
         mes={datos.mes}
@@ -22,6 +22,7 @@ export default async function CalendarioPage({ searchParams }: { searchParams: P
         hoy={datos.hoy}
         semanas={datos.semanas}
         porDia={datos.porDia}
+        eventos={datos.eventos}
         categorias={categorias}
         anterior={`/nova/calendario?mes=${sumarMeses(datos.mes, -1)}`}
         siguiente={`/nova/calendario?mes=${sumarMeses(datos.mes, 1)}`}

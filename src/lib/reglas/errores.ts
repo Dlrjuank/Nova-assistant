@@ -63,6 +63,7 @@ export type CodigoError =
   | 'NOTA_INVALIDA'
   | 'QUITAR_CORTES_INVALIDO'
   | 'SIN_CORTES'
+  | 'META_INVALIDA'
   | 'ERROR_INTERNO';
 
 // Textos de la sección 12.2; los de la sección 5.1 se usan literalmente.
@@ -139,6 +140,7 @@ export const MENSAJES: Record<CodigoError, string> = {
   NOTA_INVALIDA: 'La nota debe estar entre 0,0 y 5,0.',
   QUITAR_CORTES_INVALIDO: 'Para quitar los cortes, deja solo uno.',
   SIN_CORTES: 'La materia debe tener al menos un corte.',
+  META_INVALIDA: 'La meta debe estar entre 0,1 y 5,0.',
   ERROR_INTERNO: 'Ocurrió un error inesperado. Intenta de nuevo.',
 };
 
@@ -207,6 +209,7 @@ export const ESTADO_HTTP: Record<CodigoError, number> = {
   NOTA_INVALIDA: 422,
   QUITAR_CORTES_INVALIDO: 409,
   SIN_CORTES: 409,
+  META_INVALIDA: 422,
   ERROR_INTERNO: 500,
 };
 

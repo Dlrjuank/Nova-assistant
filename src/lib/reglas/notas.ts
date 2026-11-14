@@ -272,3 +272,84 @@ export function cortesAlDividir(plantilla: readonly number[]): Array<{ orden: nu
 export function puedeQuitarCortes(cantidad: number): boolean {
   return cantidad === 1;
 }
+
+// ---------- 7.5: "¿Cuánto necesito?" (RB-12, RB-18) ----------
+
+export type CuantoNecesito =
+  | { tipo: 'necesitas'; decimas: number }
+  | { tipo: 'asegurado' }
+  | { tipo: 'imposible'; maximo: number }
+  | { tipo: 'definitiva'; nota: number };
+
+const techo = (a: Fraccion) => -piso(fraccion(-a.n, a.d));
+
+/**
+ * 7.5: la nota uniforme x en todo lo pendiente tal que mostrar(A + x × W) ≥ O. El umbral exacto es la décima
+ * mostrada que alcanza O (O si es una décima exacta), menos 0,05 al redondear. x se redondea hacia arriba a la
+ * centésima y se muestra con un decimal hacia arriba, para que alcanzarla garantice el objetivo. Null si los
+ * porcentajes no suman 100 % (7.4).
+ */
+export function cuantoNecesito(c: Calculo, objetivo: number, redondeo: Redondeo): CuantoNecesito | null {
+  if (!c.sumasOk) return null;
+  if (esCero(c.pendiente)) return { tipo: 'definitiva', nota: mostrar(c.actual ?? CERO, redondeo) };
+  const umbral = Math.ceil(objetivo / 10) * 10 - (redondeo === 'redondear' ? 5 : 0);
+  const x = dividir(restar(fraccion(umbral), c.asegurado), c.pendiente); // centésimas
+  if (x.n <= 0n) return { tipo: 'asegurado' };
+  if (x.n > 500n * x.d) return { tipo: 'imposible', maximo: mostrar(maximoAlcanzable(c), redondeo) };
+  const centesimas = Number(techo(x));
+  return { tipo: 'necesitas', decimas: Math.ceil(centesimas / 10) };
+}
+
+/** RB-12, con el objetivo en centésimas. */
+export function textoCuantoNecesito(r: CuantoNecesito, objetivo: number): string {
+  const o = formatearDecimas(Math.ceil(objetivo / 10));
+  switch (r.tipo) {
+    case 'necesitas':
+      return `Necesitas al menos ${formatearDecimas(r.decimas)} en lo que falta para llegar a ${o}.`;
+    case 'asegurado':
+      return `Ya aseguraste ${o}.`;
+    case 'imposible':
+      return `Con lo que falta no es posible llegar a ${o}. Lo máximo que puedes alcanzar es ${formatearDecimas(r.maximo)}.`;
+    case 'definitiva':
+      return `Ya no queda nada por calificar: tu nota definitiva es ${formatearDecimas(r.nota)}.`;
+  }
+}
+
+/** RB-18: meta de nota entre 0,1 y 5,0 (texto del campo o centésimas). */
+export function validarMeta(v: string | number): number {
+  const c = typeof v === 'number' ? v : aCentesimas(v);
+  if (c === null || !Number.isInteger(c) || c < 10 || c > 500) throw new ErrorDeNegocio('META_INVALIDA');
+  return c;
+}
+
+// ---------- 7.6: promedio del semestre ----------
+
+export interface Promedio {
+  /** Σ (nota actual × créditos) / Σ créditos, sobre las materias con al menos una nota; null si ninguna tiene. */
+  actual: Fraccion | null;
+  /** Σ (asegurado × créditos) / Σ créditos, sobre todas las materias; null sin materias. */
+  asegurado: Fraccion | null;
+}
+
+export function promedioSemestre(materias: ReadonlyArray<{ creditos: number; calculo: Calculo }>): Promedio {
+  let sumaActual = CERO;
+  let creditosActual = 0;
+  let sumaAsegurado = CERO;
+  let creditos = 0;
+  for (const m of materias) {
+    const peso = fraccion(m.creditos);
+    sumaAsegurado = sumar(sumaAsegurado, multiplicar(m.calculo.asegurado, peso));
+    creditos += m.creditos;
+    if (m.calculo.actual) {
+      sumaActual = sumar(sumaActual, multiplicar(m.calculo.actual, peso));
+      creditosActual += m.creditos;
+    }
+  }
+  return {
+    actual: creditosActual > 0 ? dividir(sumaActual, fraccion(creditosActual)) : null,
+    asegurado: creditos > 0 ? dividir(sumaAsegurado, fraccion(creditos)) : null,
+  };
+}
+
+/** Un peso (fracción de 1) en porcentaje con hasta dos decimales, redondeado: 0,32 → "32"; 2/15 → "13,33". */
+export const textoPeso = (peso: Fraccion) => formatearPorcentaje(Number(piso(fraccion(peso.n * 20000n + peso.d, peso.d * 2n))));

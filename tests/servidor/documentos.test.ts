@@ -142,6 +142,22 @@ describe('indexarDocumento', () => {
     expect(sentencias().some((s) => s.includes('por_indexar = NULL, progreso = NULL'))).toBe(true);
   });
 
+  it('E13 (B-21): con una materia del usuario, guarda su id y su nombre como categoría; una ajena no indexa nada', async () => {
+    m.extraerPdf.mockResolvedValue(extraido(['Uno']));
+    m.consultar.mockResolvedValueOnce([{ nombre: 'Cálculo' }]);
+    await indexarContenido('u1', new Uint8Array(1), { nombreArchivo: 'a.pdf', categoria: 'Otra', materiaId: 'm1' });
+    expect(m.consultar.mock.calls[0]?.[1]).toEqual(['m1', 'u1']);
+    const documento = m.tx.query.mock.calls.find((c) => String(c[0]).includes('INSERT INTO documentos')) ?? [];
+    expect(documento[1]?.[1]).toBe('Cálculo');
+    expect(documento[1]?.[8]).toBe('m1');
+    m.conTransaccion.mockClear();
+    m.extraerPdf.mockClear();
+    m.consultar.mockResolvedValueOnce([]);
+    await expect(indexarContenido('u1', new Uint8Array(1), { nombreArchivo: 'a.pdf', materiaId: 'ajena' })).rejects.toMatchObject({ codigo: 'MATERIA_NO_ENCONTRADA' });
+    expect(m.conTransaccion).not.toHaveBeenCalled();
+    expect(m.extraerPdf).not.toHaveBeenCalled();
+  });
+
   it('RB-38: cada llamada hace una sola parte, para que la pantalla vea el avance', async () => {
     m.extraerPdf.mockResolvedValue(extraido(paginasPara(25)));
     const r = await indexarContenido('u1', new Uint8Array(1), { nombreArchivo: 'a.pdf' });

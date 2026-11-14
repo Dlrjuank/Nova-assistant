@@ -1,6 +1,7 @@
 import { esMesValido, mesDe, semanasDelMes } from '@/lib/reglas/calendario';
 import { hoyBogota } from '@/lib/reglas/fechas';
 import { tareasPorDia } from '@/lib/reglas/semana';
+import { eventosSemestre, type EventoSemestre } from './semestre';
 import { listarTareas } from './tareas';
 import type { Tarea } from './tipos';
 
@@ -10,8 +11,8 @@ export interface Mes {
   semanas: string[][];
   /** Tareas por día de toda la cuadrícula (también los días de los meses vecinos que se ven). */
   porDia: Record<string, Tarea[]>;
-  /** Fechas de Semestre (cortes y actividades): llegan en E13; hoy siempre vacío, sin datos falsos. */
-  eventos: Record<string, never[]>;
+  /** E13: fechas de Semestre (cortes, fecha final y notas con fecha) por día. */
+  eventos: Record<string, EventoSemestre[]>;
 }
 
 /**
@@ -24,6 +25,7 @@ export async function mesDeTareas(usuarioId: string, mes?: string): Promise<Mes>
   const elegido = mes && esMesValido(mes) ? mes : mesDe(hoy);
   const semanas = semanasDelMes(elegido);
   const dias = semanas.flat();
-  const tareas = await listarTareas(usuarioId, { desde: dias[0], hasta: dias[dias.length - 1] });
-  return { mes: elegido, hoy, semanas, porDia: tareasPorDia(tareas, dias), eventos: {} };
+  const [desde, hasta] = [dias[0] as string, dias[dias.length - 1] as string];
+  const [tareas, eventos] = await Promise.all([listarTareas(usuarioId, { desde, hasta }), eventosSemestre(usuarioId, desde, hasta)]);
+  return { mes: elegido, hoy, semanas, porDia: tareasPorDia(tareas, dias), eventos };
 }

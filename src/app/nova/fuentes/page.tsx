@@ -8,7 +8,7 @@ import { EncabezadoPantalla } from '@/components/ui/EncabezadoPantalla';
 import { EstadoVacio } from '@/components/ui/EstadoVacio';
 import { Pestanas } from '@/components/ui/Pestanas';
 import { Tarjeta } from '@/components/ui/Tarjeta';
-import { exigirSesion, listarDocumentos, listarFuentesWeb } from '@/lib/dataService';
+import { exigirSesion, listarDocumentos, listarFuentesWeb, nombresMaterias } from '@/lib/dataService';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,7 +44,7 @@ async function PestanaWeb() {
 async function PestanaPdf() {
   // El layout ya exige sesión con acceso; aquí hace falta el id para ver solo sus documentos (RB-01).
   const { id } = await exigirSesion();
-  const documentos = await listarDocumentos(id);
+  const [documentos, materias] = await Promise.all([listarDocumentos(id), nombresMaterias(id)]);
   const pendientes = documentos.flatMap((d) => (d.progreso == null ? [] : [{ id: d.id, nombreArchivo: d.nombreArchivo, progreso: d.progreso }]));
 
   return (
@@ -54,7 +54,7 @@ async function PestanaPdf() {
           <h2 className="text-base font-semibold text-texto">Indexar PDF</h2>
           <p className="text-sm text-texto-suave">Solo se admiten PDF con texto seleccionable (no escaneados), de hasta 15 MB y 800 páginas.</p>
         </div>
-        <SubidorPdf />
+        <SubidorPdf materias={materias} />
       </Tarjeta>
 
       <IndexacionPendiente pendientes={pendientes} />

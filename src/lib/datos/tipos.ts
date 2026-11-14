@@ -48,6 +48,8 @@ export interface Documento {
   /** E10b (RB-38): 0 a 99 mientras se indexa por partes; null = terminado. */
   progreso: number | null;
   numCapitulos: number;
+  /** E13 (B-21): el nombre de su materia de Semestre, si tiene. */
+  materia: string | null;
 }
 
 export interface Capitulo {

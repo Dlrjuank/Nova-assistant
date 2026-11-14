@@ -24,12 +24,16 @@ beforeEach(() => {
 
 describe('mesDeTareas', () => {
   it('lee solo las tareas del usuario en el rango de la cuadrícula y ordena cada día', async () => {
-    m.consultarBd.mockResolvedValue([
+    const tareas = [
       tarea('hecha', '2026-11-10', 'Completada', '07:00'),
       tarea('sin hora', '2026-11-10'),
       tarea('9am', '2026-11-10', 'Pendiente', '09:00'),
       tarea('vecino', '2026-10-27'),
-    ]);
+    ];
+    // E13: la segunda consulta trae las fechas de Semestre (cortes y notas).
+    m.consultarBd.mockImplementation(async (sql: string) =>
+      sql.includes('FROM cortes c') ? [{ id: 'c1', tipo: 'corte', fecha: '2026-11-20', materia_id: 'm1', materia: 'Cálculo', nombre: 'Corte 1', usa_cortes: true }] : tareas,
+    );
     const mes = await mesDeTareas(U, '2026-11');
     const [sql, valores] = m.consultarBd.mock.calls[0] ?? [];
     expect(String(sql)).toContain('usuario_id = $1');
@@ -37,7 +41,9 @@ describe('mesDeTareas', () => {
     expect(mes.semanas).toHaveLength(6);
     expect(mes.porDia['2026-11-10']?.map((t) => t.id)).toEqual(['9am', 'sin hora', 'hecha']);
     expect(mes.porDia['2026-10-27']?.map((t) => t.id)).toEqual(['vecino']); // días vecinos visibles
-    expect(mes.eventos).toEqual({}); // Semestre llega en E13: sin datos falsos
+    expect(mes.eventos).toEqual({ '2026-11-20': [{ id: 'c1', tipo: 'corte', fecha: '2026-11-20', titulo: 'Corte 1 · Cálculo', materiaId: 'm1' }] });
+    const eventos = m.consultarBd.mock.calls.find(([sql]) => String(sql).includes('FROM cortes c'));
+    expect(eventos?.[1]).toEqual([U, '2026-10-26', '2026-12-06']); // solo del usuario, en la cuadrícula
   });
 
   it('sin mes o con uno inválido, el mes actual', async () => {

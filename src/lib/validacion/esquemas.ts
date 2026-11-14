@@ -108,6 +108,8 @@ export const esquemaIndexar = z.object({
     }),
   nombreArchivo: z.string().trim().min(1).max(255),
   categoria: z.string().trim().max(80).optional(),
+  // E13 (B-21): la materia del documento; su nombre pasa a ser la categoría.
+  materiaId: z.uuid().optional(),
 });
 export type DatosIndexar = z.infer<typeof esquemaIndexar>;
 

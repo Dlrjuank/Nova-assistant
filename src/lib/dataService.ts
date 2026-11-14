@@ -158,10 +158,11 @@ export {
   eliminarNota,
   guardarCortes,
   listarMaterias,
+  nombresMaterias,
   obtenerMateria,
   quitarCortes,
 } from '@/lib/datos/semestre';
-export type { ComponenteMateria, CorteMateria, Materia, NotaRegistrada } from '@/lib/datos/semestre';
+export type { ComponenteMateria, CorteMateria, EventoSemestre, Materia, NotaRegistrada } from '@/lib/datos/semestre';
 export { actualizarConfiguracion, borrarHistorial, obtenerConfiguracion, obtenerPreferencias, type Configuracion } from '@/lib/datos/configuracion';
 export {
   borrarSuscripcion,

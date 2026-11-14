@@ -106,4 +106,18 @@ describe('CalendarioMes', () => {
     const leyenda = screen.getByRole('list', { name: 'Categorías de este mes' });
     expect(within(leyenda).getAllByRole('listitem').map((li) => li.textContent)).toEqual(['Casa']);
   });
+
+  it("E13 (B-15): un corte y una nota con fecha aparecen en su día con su ícono y enlazan a la materia", () => {
+    const eventos = {
+      "2026-11-10": [
+        { id: "c", tipo: "corte" as const, fecha: "2026-11-10", titulo: "Corte 1 · Cálculo", materiaId: "m1" },
+        { id: "n", tipo: "nota" as const, fecha: "2026-11-10", titulo: "Quiz 1 · Física", materiaId: "m2" },
+      ],
+    };
+    render(<CalendarioMes {...props({})} eventos={eventos} />);
+    fireEvent.click(diaLabel(/^martes 10 de nov., sin tareas, 2 fechas de Semestre$/));
+    const lista = within(screen.getByRole("list", { name: "Fechas de Semestre" }));
+    expect(lista.getByRole("link", { name: /Corte 1 · Cálculo/ }).getAttribute("href")).toBe("/nova/semestre/m1");
+    expect(lista.getByRole("link", { name: /Quiz 1 · Física/ }).getAttribute("href")).toBe("/nova/semestre/m2");
+  });
 });

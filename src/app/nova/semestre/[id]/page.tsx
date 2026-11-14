@@ -11,7 +11,7 @@ import { esquemaIdSemestre } from '@/lib/validacion/esquemas';
 
 export const dynamic = 'force-dynamic';
 
-/** E12 (5.7): una materia. Una de otro usuario se comporta como inexistente (RB-01). */
+/** E12 y E13 (5.7): una materia con su calculadora. Una de otro usuario se comporta como inexistente (RB-01). */
 export default async function MateriaPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const sesion = await exigirSesion();
@@ -23,7 +23,7 @@ export default async function MateriaPage({ params }: { params: Promise<{ id: st
       throw error;
     });
   }
-  const { cortesDefecto } = materia ? await obtenerPreferencias(sesion.id) : { cortesDefecto: [] };
+  const preferencias = materia ? await obtenerPreferencias(sesion.id) : null;
 
   return (
     <>
@@ -35,7 +35,7 @@ export default async function MateriaPage({ params }: { params: Promise<{ id: st
         <ChevronLeft aria-hidden="true" className="size-4" />
         Semestre
       </Link>
-      {materia ? <DetalleMateria materia={materia} plantilla={cortesDefecto} /> : <EstadoVacio titulo="La materia no existe." descripcion="Puede que ya la hayas eliminado." />}
+      {materia ? <DetalleMateria materia={materia} plantilla={preferencias?.cortesDefecto ?? []} notaAprobar={preferencias?.notaAprobar ?? 300} redondeo={preferencias?.redondeo ?? 'truncar'} /> : <EstadoVacio titulo="La materia no existe." descripcion="Puede que ya la hayas eliminado." />}
     </>
   );
 }

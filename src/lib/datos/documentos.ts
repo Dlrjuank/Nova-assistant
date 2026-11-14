@@ -141,9 +141,16 @@ async function avanzarIndexacion(
 export async function indexarContenido(
   usuarioId: string,
   contenido: Uint8Array,
-  d: { nombreArchivo: string; categoria?: string | undefined },
+  d: { nombreArchivo: string; categoria?: string | undefined; materiaId?: string | undefined },
   opciones: { presupuestoMs?: number } = {},
 ): Promise<ResultadoIndexacion> {
+  // E13 (B-21): con una materia del usuario, su nombre es la categoría; una ajena responde como inexistente.
+  let categoria = d.categoria?.trim() || CATEGORIA_POR_DEFECTO;
+  if (d.materiaId) {
+    const [materia] = await consultar<{ nombre: string }>('SELECT nombre FROM materias WHERE id = $1 AND usuario_id = $2', [d.materiaId, usuarioId]);
+    if (!materia) throw new ErrorDeNegocio('MATERIA_NO_ENCONTRADA');
+    categoria = materia.nombre;
+  }
   validarTamanoPdf(contenido.length);
   const extraido = await extraerPdf(contenido);
   // Postgres no admite el carácter NUL en columnas de texto y algunos PDF lo incluyen.
@@ -157,9 +164,9 @@ export async function indexarContenido(
   const documentoId = await conTransaccion(async (tx) => {
     const { rows } = await tx.query<{ id: string }>(
       `INSERT INTO documentos
-         (nombre_archivo, categoria, num_fragmentos, fecha_guardado, usuario_id, paginas, progreso, por_indexar, indexando_hasta, inicio_paginas)
-       VALUES ($1, $2, 0, $3, $4, $5, 0, $6::jsonb, NOW() + make_interval(mins => $7), $8::int[]) RETURNING id`,
-      [d.nombreArchivo, d.categoria?.trim() || CATEGORIA_POR_DEFECTO, hoyBogota(), usuarioId, paginas.length, JSON.stringify(fragmentos), LEASE_MINUTOS, inicioDePaginas(paginas)],
+         (nombre_archivo, categoria, num_fragmentos, fecha_guardado, usuario_id, paginas, progreso, por_indexar, indexando_hasta, inicio_paginas, materia_id)
+       VALUES ($1, $2, 0, $3, $4, $5, 0, $6::jsonb, NOW() + make_interval(mins => $7), $8::int[], $9) RETURNING id`,
+      [d.nombreArchivo, categoria, hoyBogota(), usuarioId, paginas.length, JSON.stringify(fragmentos), LEASE_MINUTOS, inicioDePaginas(paginas), d.materiaId ?? null],
     );
     const id = (rows[0] as { id: string }).id;
     if (capitulos.length > 0) {
@@ -265,6 +272,7 @@ export async function indexarDocumento(usuarioId: string, d: {
   urlBlob: string;
   nombreArchivo: string;
   categoria?: string | undefined;
+  materiaId?: string | undefined;
 }): Promise<ResultadoIndexacion> {
   try {
     const contenido = await descargarPdf(d.urlBlob);
@@ -286,7 +294,8 @@ export async function listarDocumentos(usuarioId: string): Promise<Documento[]> 
        fecha_guardado AS "fechaGuardado",
        paginas,
        progreso,
-       (SELECT count(*)::int FROM capitulos c WHERE c.documento_id = documentos.id) AS "numCapitulos"
+       (SELECT count(*)::int FROM capitulos c WHERE c.documento_id = documentos.id) AS "numCapitulos",
+       (SELECT m.nombre FROM materias m WHERE m.id = documentos.materia_id AND m.usuario_id = documentos.usuario_id) AS materia
      FROM documentos
      WHERE usuario_id = $2
      ORDER BY created_at DESC

@@ -336,3 +336,41 @@ export async function eliminarNota(usuarioId: string, id: string): Promise<{ id:
   if (filas.length === 0) throw new ErrorDeNegocio('NOTA_NO_ENCONTRADA');
   return { id };
 }
+
+/** E13 (5.3, B-15): una fecha de Semestre en el Calendario: un corte (o la fecha final) o una nota con fecha. */
+export interface EventoSemestre {
+  id: string;
+  tipo: 'corte' | 'nota';
+  fecha: string;
+  titulo: string;
+  materiaId: string;
+}
+
+/** E13: los cortes y las notas con fecha del usuario entre `desde` y `hasta` (AAAA-MM-DD), por día. */
+export async function eventosSemestre(usuarioId: string, desde: string, hasta: string): Promise<Record<string, EventoSemestre[]>> {
+  const filas = await consultar<{ id: string; tipo: 'corte' | 'nota'; fecha: string; materia_id: string; materia: string; nombre: string; usa_cortes: boolean }>(
+    `SELECT c.id, 'corte' AS tipo, ${FECHA('c.fecha')} AS fecha, m.id AS materia_id, m.nombre AS materia, c.nombre, m.usa_cortes
+     FROM cortes c JOIN materias m ON m.id = c.materia_id AND m.usuario_id = c.usuario_id
+     WHERE c.usuario_id = $1 AND c.fecha BETWEEN $2::date AND $3::date
+     UNION ALL
+     SELECT n.id, 'nota' AS tipo, ${FECHA('n.fecha')} AS fecha, m.id, m.nombre, COALESCE(n.nombre, k.nombre), m.usa_cortes
+     FROM notas n
+     JOIN componentes k ON k.id = n.componente_id AND k.usuario_id = n.usuario_id
+     JOIN cortes c ON c.id = k.corte_id AND c.usuario_id = k.usuario_id
+     JOIN materias m ON m.id = c.materia_id AND m.usuario_id = c.usuario_id
+     WHERE n.usuario_id = $1 AND n.fecha BETWEEN $2::date AND $3::date
+     ORDER BY fecha, materia, tipo, nombre`,
+    [usuarioId, desde, hasta],
+  );
+  const porDia: Record<string, EventoSemestre[]> = {};
+  for (const f of filas) {
+    const titulo = f.tipo === 'corte' ? (f.usa_cortes ? `${f.nombre} · ${f.materia}` : `Fecha final · ${f.materia}`) : `${f.nombre} · ${f.materia}`;
+    (porDia[f.fecha] ??= []).push({ id: f.id, tipo: f.tipo, fecha: f.fecha, titulo, materiaId: f.materia_id });
+  }
+  return porDia;
+}
+
+/** E13 (B-21): las materias del usuario para elegir al subir un PDF. */
+export async function nombresMaterias(usuarioId: string): Promise<Array<{ id: string; nombre: string }>> {
+  return consultar<{ id: string; nombre: string }>('SELECT id, nombre FROM materias WHERE usuario_id = $1 ORDER BY lower(nombre)', [usuarioId]);
+}

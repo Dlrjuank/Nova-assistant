@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, GraduationCap, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { claseBoton, CLASE_FOCO } from '@/components/ui/Boton';
@@ -13,6 +13,7 @@ import { colorDeCategoria } from '@/lib/reglas/categorias';
 import { useFormatoHora } from '@/components/nova/PreferenciasNova';
 import { formatearHorario } from '@/lib/reglas/horario';
 import { DIAS_CORTOS, nombreDia } from '@/lib/reglas/semana';
+import type { EventoSemestre } from '@/lib/datos/semestre';
 
 export type TareaCalendario = TareaCasilla & { fechaLimite: string };
 
@@ -24,7 +25,8 @@ const MAX_TITULOS = 2;
  * E07 (PLAN_AMPLIACION 5.3): vista mensual (lunes primero) con flechas de mes y "Hoy". Cada día muestra
  * puntos del color de la categoría de sus tareas y, desde 1280 px, el título corto con su hora. Al elegir un
  * día se ve su lista (ya ordenada: pendientes con hora, luego sin hora, completadas al final) y "Agregar"
- * con esa fecha. Las pendientes vencidas llevan una marca sutil.
+ * con esa fecha. Las pendientes vencidas llevan una marca sutil. E13 (B-15): las fechas de Semestre (cortes, fecha
+ * final y notas con fecha) llevan su ícono en el día y enlazan a la materia en la lista del día.
  */
 export function CalendarioMes({
   mes,
@@ -32,6 +34,7 @@ export function CalendarioMes({
   hoy,
   semanas,
   porDia,
+  eventos = {},
   categorias,
   anterior,
   siguiente,
@@ -42,6 +45,8 @@ export function CalendarioMes({
   hoy: string;
   semanas: string[][];
   porDia: Record<string, TareaCalendario[]>;
+  /** E13: fechas de Semestre por día. */
+  eventos?: Record<string, EventoSemestre[]>;
   categorias: ReadonlyArray<{ nombre: string; color: string }>;
   anterior: string;
   siguiente: string;
@@ -52,6 +57,7 @@ export function CalendarioMes({
   const [elegido, setElegido] = useState(() => (diaInicial && semanas.flat().includes(diaInicial) ? diaInicial : mesDe(hoy) === mes ? hoy : `${mes}-01`));
   const color = (t: TareaCalendario) => colorDeCategoria(t.categoria, categorias);
   const tareasDia = porDia[elegido] ?? [];
+  const eventosDia = eventos[elegido] ?? [];
   // E11e (RB-71): las creadas sin conexión, en su día: un punto en la cuadrícula y la fila en la lista del día.
   const { lista: pendientes } = usePendientes();
   const sinEnviarDe = (fecha: string) => pendientes.filter((t) => t.datos.fechaLimite === fecha);
@@ -144,6 +150,7 @@ export function CalendarioMes({
                 const esHoy = fecha === hoy;
                 const activo = fecha === elegido;
                 const pendientes = tareas.filter((t) => t.estado !== 'Completada').length;
+                const fechasSemestre = eventos[fecha] ?? [];
                 return (
                   <div key={fecha} role="gridcell" aria-selected={activo}>
                     <button
@@ -153,7 +160,9 @@ export function CalendarioMes({
                       aria-pressed={activo}
                       aria-label={`${nombreDia(fecha)}${esHoy ? ', hoy' : ''}, ${
                         tareas.length === 0 ? 'sin tareas' : tareas.length === 1 ? '1 tarea' : `${tareas.length} tareas`
-                      }${tareas.length && pendientes !== tareas.length ? ` (${pendientes} ${pendientes === 1 ? 'pendiente' : 'pendientes'})` : ''}`}
+                      }${tareas.length && pendientes !== tareas.length ? ` (${pendientes} ${pendientes === 1 ? 'pendiente' : 'pendientes'})` : ''}${
+                        fechasSemestre.length ? `, ${fechasSemestre.length === 1 ? '1 fecha' : `${fechasSemestre.length} fechas`} de Semestre` : ''
+                      }`}
                       className={`flex h-full min-h-14 w-full flex-col items-stretch gap-1 rounded-xl border p-1 text-left transition-colors duration-150 sm:min-h-20 sm:p-1.5 xl:min-h-24 ${CLASE_FOCO} ${
                         activo ? 'border-acento bg-acento-suave' : 'border-transparent hover:bg-superficie-2'
                       } ${delMes ? '' : 'opacity-60'}`}
@@ -166,16 +175,28 @@ export function CalendarioMes({
                       >
                         {Number(fecha.slice(8, 10))}
                       </span>
-                      {/* Teléfono y tableta: puntos de color. */}
-                      {tareas.length > 0 && (
+                      {/* Teléfono y tableta: puntos de color y el ícono de Semestre. */}
+                      {(tareas.length > 0 || fechasSemestre.length > 0) && (
                         <span aria-hidden="true" className="flex flex-wrap items-center justify-center gap-0.5 sm:justify-start xl:hidden">
+                          {fechasSemestre.length > 0 && <GraduationCap className="size-3.5 text-acento" />}
                           {tareas.slice(0, MAX_PUNTOS).map((t) => (
                             <PuntoCategoria key={t.id} color={color(t)} className={t.estado === 'Completada' ? 'opacity-40' : ''} />
                           ))}
                           {tareas.length > MAX_PUNTOS && <span className="text-xs leading-none font-semibold text-texto-suave">+{tareas.length - MAX_PUNTOS}</span>}
                         </span>
                       )}
-                      {/* Computador ancho: títulos cortos con su hora. */}
+                      {/* Computador ancho: fechas de Semestre y títulos cortos con su hora. */}
+                      {fechasSemestre.length > 0 && (
+                        <span aria-hidden="true" className="hidden min-w-0 flex-col gap-0.5 xl:flex">
+                          {fechasSemestre.slice(0, MAX_TITULOS).map((e) => (
+                            <span key={e.id} className="flex min-w-0 items-center gap-1 text-xs font-medium text-acento">
+                              <GraduationCap className="size-3 shrink-0" />
+                              <span className="truncate">{e.titulo}</span>
+                            </span>
+                          ))}
+                          {fechasSemestre.length > MAX_TITULOS && <span className="text-xs font-semibold text-texto-suave">+{fechasSemestre.length - MAX_TITULOS} de Semestre</span>}
+                        </span>
+                      )}
                       {tareas.length > 0 && (
                         <span aria-hidden="true" className="hidden min-w-0 flex-col gap-0.5 xl:flex">
                           {tareas.slice(0, MAX_TITULOS).map((t) => (
@@ -226,6 +247,23 @@ export function CalendarioMes({
             Agregar
           </Link>
         </div>
+        {eventosDia.length > 0 && (
+          <ul aria-label="Fechas de Semestre" className="flex flex-col gap-1">
+            {eventosDia.map((e) => (
+              <li key={e.id}>
+                <Link
+                  href={`/nova/semestre/${e.materiaId}`}
+                  prefetch={false}
+                  className={`flex min-h-11 items-center gap-2 rounded-xl border border-borde px-3 py-2 text-sm text-texto hover:bg-superficie-2 ${CLASE_FOCO}`}
+                >
+                  <GraduationCap aria-hidden="true" className="size-4 shrink-0 text-acento" />
+                  <span className="min-w-0 flex-1 break-words">{e.titulo}</span>
+                  <span className="shrink-0 text-xs text-texto-suave">{e.tipo === 'corte' ? 'Corte' : 'Nota'}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
         {tareasDia.length === 0 && sinEnviarDia.length === 0 ? (
           <p className="text-sm text-texto-suave">Sin tareas este día.</p>
         ) : (

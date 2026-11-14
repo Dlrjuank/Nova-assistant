@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const m = vi.hoisted(() => ({ exigirSesion: vi.fn(), listarDocumentos: vi.fn(), listarFuentesWeb: vi.fn() }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }), usePathname: () => '/nova/fuentes' }));
 vi.mock('@vercel/blob/client', () => ({ upload: vi.fn() }));
-vi.mock('@/lib/dataService', () => ({ exigirSesion: m.exigirSesion, listarDocumentos: m.listarDocumentos, listarFuentesWeb: m.listarFuentesWeb }));
+vi.mock('@/lib/dataService', () => ({ exigirSesion: m.exigirSesion, listarDocumentos: m.listarDocumentos, listarFuentesWeb: m.listarFuentesWeb, nombresMaterias: async () => [] }));
 
 import FuentesPage from '@/app/nova/fuentes/page';
 import nextConfig from '../../next.config';
