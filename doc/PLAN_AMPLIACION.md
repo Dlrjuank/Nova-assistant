@@ -551,6 +551,7 @@ Antes de migrar: `npm run db:respaldar`. Las tablas de M17 ya están en la lista
   - `NOT NULL` de `opciones`, `correcta`, `elegida` y `acierto`: se quita.
   - No se borra ni se cambia ningún dato.
 - Las filas existentes quedan con `tipo = 'unica'`, y sus respuestas reciben `puntos` = 100 o 0 según `acierto` en la misma migración, para que el puntaje se calcule igual. `master` no usa estas tablas.
+- **Hecho en E10g (2026-11-14):** la respuesta de verdadero o falso se guarda en `elegida` (1 = Verdadero, 0 = Falso), sin columna nueva. En completar, `enunciado` guarda la frase con `_____` que arma el servidor. Restricciones de `respuestas_intento`: `puntos` de 0 a 100 con `acierto` = (`puntos` = 100), o los dos en NULL (abierta sin calificar); la autoevaluación coincide con sus puntos (bien 100, medias 50, mal 0); `elegidas` de 1 a 4 posiciones de 0 a 3; `texto` de 1 a 1000 caracteres; toda respuesta guarda `elegida`, `elegidas` o `texto`.
 
 ### 6.19 M23 · Tareas creadas sin conexión (E11e)
 

@@ -1,6 +1,7 @@
 import { CATEGORIA_POR_DEFECTO } from '@/lib/config/nova';
 import { consultar, conTransaccion } from '@/lib/db/conexion';
 import { textoAlcance, type Dificultad } from '@/lib/reglas/cuestionarios';
+import type { TipoCuestionario } from '@/lib/reglas/tiposPregunta';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
 import { esFechaISOValida, hoyBogota } from '@/lib/reglas/fechas';
 import { capitulosParaRepasar, compararIntentos } from '@/lib/reglas/historialCuestionarios';
@@ -11,7 +12,7 @@ import type { CuestionarioHistorial, DocumentoHistorial, SugerenciaRepaso, Tarea
 export type Consulta = <T>(sql: string, valores: unknown[]) => Promise<T[]>;
 
 /**
- * E10f (RB-53, S-59): los capítulos con 2 o más falladas en el intento, con el título de la tarea de repaso y si
+ * E10f (RB-53, S-59): los capítulos con 2 o más falladas en el intento (E10g: con menos de 1 punto, 7.12), con el título de la tarea de repaso y si
  * ya hay una tarea sin completar con ese título. Sirve dentro o fuera de una transacción.
  */
 export async function sugerenciasDeRepaso(consulta: Consulta, usuarioId: string, intentoId: string): Promise<SugerenciaRepaso[]> {
@@ -20,7 +21,7 @@ export async function sugerenciasDeRepaso(consulta: Consulta, usuarioId: string,
      FROM respuestas_intento r
      JOIN preguntas_cuestionario p ON p.id = r.pregunta_id AND p.usuario_id = r.usuario_id
      JOIN intentos_cuestionario i ON i.id = r.intento_id AND i.usuario_id = r.usuario_id
-     WHERE r.intento_id = $1 AND r.usuario_id = $2 AND NOT r.acierto
+     WHERE r.intento_id = $1 AND r.usuario_id = $2 AND r.puntos < 100
      ORDER BY array_position(i.preguntas, r.pregunta_id)`,
     [intentoId, usuarioId],
   );
@@ -65,6 +66,7 @@ interface FilaHistorial {
   pagina_desde: number | null;
   pagina_hasta: number | null;
   dificultad: Dificultad;
+  tipo: TipoCuestionario;
   preguntas: number;
   creado_en: string;
   creado_dia: string;
@@ -86,7 +88,7 @@ const ORDEN_ALCANCE = { documento: 0, capitulo: 1, paginas: 2 } as const;
 export async function listarCuestionarios(usuarioId: string, documentoId?: string | undefined): Promise<DocumentoHistorial[]> {
   const filas = await consultar<FilaHistorial>(
     `SELECT d.id AS documento_id, d.nombre_archivo AS nombre, q.id AS cuestionario_id, q.alcance, cap.titulo AS capitulo,
-            cap.orden AS capitulo_orden, q.pagina_desde, q.pagina_hasta, q.dificultad, q.creado_en,
+            cap.orden AS capitulo_orden, q.pagina_desde, q.pagina_hasta, q.dificultad, q.tipo, q.creado_en,
             to_char(q.creado_en AT TIME ZONE 'America/Bogota', 'YYYY-MM-DD') AS creado_dia,
             (SELECT count(*)::int FROM preguntas_cuestionario p WHERE p.cuestionario_id = q.id AND p.usuario_id = q.usuario_id) AS preguntas,
             i.id AS intento_id, to_char(i.iniciado_en AT TIME ZONE 'America/Bogota', 'YYYY-MM-DD') AS fecha,
@@ -111,6 +113,7 @@ export async function listarCuestionarios(usuarioId: string, documentoId?: strin
         id: f.cuestionario_id,
         alcance: textoAlcance(f.alcance, f.capitulo, f.pagina_desde, f.pagina_hasta),
         dificultad: f.dificultad,
+        tipo: f.tipo ?? 'unica',
         preguntas: f.preguntas,
         creadoEn: f.creado_dia,
         intentos: [],

@@ -32,6 +32,7 @@ const DOCS: DocumentoHistorial[] = [
       {
         id: 'q1',
         alcance: 'La célula',
+        tipo: 'unica',
         dificultad: 'media',
         preguntas: 5,
         creadoEn: '2026-11-10',
@@ -41,7 +42,7 @@ const DOCS: DocumentoHistorial[] = [
           intento({ id: 'a', puntaje: 300 }),
         ],
       },
-      { id: 'q2', alcance: 'Páginas 3–4', dificultad: 'dificil', preguntas: 10, creadoEn: '2026-11-11', intentos: [intento({ id: 'x', terminado: false, aciertos: null, puntaje: null })] },
+      { id: 'q2', tipo: 'mixto', alcance: 'Páginas 3–4', dificultad: 'dificil', preguntas: 10, creadoEn: '2026-11-11', intentos: [intento({ id: 'x', terminado: false, aciertos: null, puntaje: null })] },
     ],
   },
 ];
@@ -51,7 +52,8 @@ describe('HistorialCuestionarios', () => {
     render(<HistorialCuestionarios documentos={DOCS} />);
     expect(screen.getByRole('heading', { name: 'biologia.pdf' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'La célula' })).toBeTruthy();
-    expect(screen.getByText(/Dificultad media · 5 preguntas/)).toBeTruthy();
+    expect(screen.getByText(/Selección única · Dificultad media · 5 preguntas/)).toBeTruthy(); // E10g: el tipo (B-81)
+    expect(screen.getByText(/Mixto · Dificultad difícil · 10 preguntas/)).toBeTruthy();
     const intentos = within(screen.getAllByRole('list', { name: 'Intentos, del más reciente al más antiguo' })[0] as HTMLElement).getAllByRole('listitem');
     expect(intentos).toHaveLength(3);
     expect(intentos[0]?.textContent).toContain('Mejoraste');

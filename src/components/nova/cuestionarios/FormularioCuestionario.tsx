@@ -10,6 +10,7 @@ import type { CuestionarioCreado } from '@/lib/dataService';
 import { CANTIDADES, DIFICULTADES, NOMBRE_DIFICULTAD, rangoValido, type Cantidad, type Dificultad } from '@/lib/reglas/cuestionarios';
 import { MENSAJES } from '@/lib/reglas/errores';
 import { citaDePaginas } from '@/lib/reglas/libros';
+import { NOMBRE_TIPO, ORDEN_FORMULARIO, TIPO_POR_DEFECTO, type TipoCuestionario } from '@/lib/reglas/tiposPregunta';
 
 type Alcance = 'documento' | 'capitulo' | 'paginas';
 
@@ -41,7 +42,7 @@ function Opciones<T extends string | number>({
   );
 }
 
-/** E10e (5.11, RB-48): alcance, cuántas preguntas y dificultad. La generación puede tardar hasta un par de minutos. */
+/** E10e y E10g (5.11, 5.12, RB-48, RB-64): alcance, tipo, cuántas preguntas y dificultad. La generación puede tardar hasta un par de minutos. */
 export function FormularioCuestionario({
   documento,
   capitulos,
@@ -59,6 +60,7 @@ export function FormularioCuestionario({
   const [hasta, setHasta] = useState(String(Math.min(documento.paginas, 10)));
   const [pedidas, setPedidas] = useState<Cantidad>(5);
   const [dificultad, setDificultad] = useState<Dificultad>('media');
+  const [tipo, setTipo] = useState<TipoCuestionario>(TIPO_POR_DEFECTO);
   const [creando, setCreando] = useState(false);
   const [error, setError] = useState('');
 
@@ -74,6 +76,7 @@ export function FormularioCuestionario({
       documentoId: documento.id,
       pedidas,
       dificultad,
+      tipo,
       alcance,
       ...(alcance === 'capitulo' ? { capitulo: Number(capitulo) } : {}),
       ...(alcance === 'paginas' ? { desde: Number(desde), hasta: Number(hasta) } : {}),
@@ -118,6 +121,8 @@ export function FormularioCuestionario({
           <Campo id="cuestionario-hasta" etiqueta="Hasta la página" type="number" inputMode="numeric" min={1} max={documento.paginas} value={hasta} onChange={(e) => setHasta(e.target.value)} />
         </div>
       )}
+      <Opciones leyenda="Tipo de preguntas" nombre="tipo" valor={tipo} opciones={ORDEN_FORMULARIO.map((t) => ({ valor: t, texto: NOMBRE_TIPO[t] }))} alCambiar={setTipo} />
+      {tipo === 'mixto' && <p className="-mt-3 text-xs text-texto-suave">Preguntas de los 5 tipos, intercaladas.</p>}
       <Opciones leyenda="Cuántas preguntas" nombre="pedidas" valor={pedidas} opciones={CANTIDADES.map((n) => ({ valor: n, texto: String(n) }))} alCambiar={setPedidas} />
       <Opciones leyenda="Dificultad" nombre="dificultad" valor={dificultad} opciones={DIFICULTADES.map((d) => ({ valor: d, texto: NOMBRE_DIFICULTAD[d] }))} alCambiar={setDificultad} />
       <p className="text-xs text-texto-suave">

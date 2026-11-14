@@ -446,6 +446,76 @@ try {
       marcar(false, `bl-bn) id_cliente: ${e.message}`);
     }
   }
+  // M22 (ampliación, E10g): tipos de pregunta (6.18, 7.12, RB-64 a RB-69).
+  console.log('== 6l. Tipos de pregunta (M22)');
+  const columnasM22 = await c.query(
+    `SELECT table_name || '.' || column_name AS c FROM information_schema.columns
+     WHERE (table_name, column_name) IN (('cuestionarios','tipo'),('preguntas_cuestionario','tipo'),('preguntas_cuestionario','correctas'),('preguntas_cuestionario','verdadero'),
+       ('preguntas_cuestionario','respuesta_texto'),('respuestas_intento','elegidas'),('respuestas_intento','texto'),('respuestas_intento','autoevaluacion'),('respuestas_intento','puntos'))`,
+  );
+  marcar(columnasM22.rowCount === 9, `columnas de M22 (${columnasM22.rowCount} de 9)`);
+  const sinPuntos = await c.query('SELECT count(*)::int AS n FROM respuestas_intento WHERE puntos IS NULL AND acierto IS NOT NULL');
+  marcar(sinPuntos.rows[0].n === 0, 'bo) las respuestas anteriores tienen sus puntos según el acierto');
+  const anteriores = await c.query("SELECT count(*)::int AS n FROM preguntas_cuestionario WHERE tipo <> 'unica' AND correcta IS NOT NULL");
+  marcar(anteriores.rows[0].n === 0, 'bp) las preguntas anteriores siguen como selección única');
+  if (columnasM22.rowCount === 9 && dueno) {
+    try {
+      const doc = (await c.query("INSERT INTO documentos (nombre_archivo, fecha_guardado, usuario_id, paginas) VALUES ('tipos.pdf', $1, $2, 10) RETURNING id", [hoy, dueno])).rows[0].id;
+      const insCuest = "INSERT INTO cuestionarios (usuario_id, documento_id, alcance, dificultad, pedidas, tipo) VALUES ($1, $2, 'documento', 'media', 5, $3) RETURNING id";
+      const cuest = (await c.query(insCuest, [dueno, doc, 'mixto'])).rows[0].id;
+      const sinTipo = (await c.query("INSERT INTO cuestionarios (usuario_id, documento_id, alcance, dificultad, pedidas) VALUES ($1, $2, 'documento', 'media', 5) RETURNING tipo", [dueno, doc])).rows[0];
+      marcar(sinTipo.tipo === 'unica', 'bq) un cuestionario creado como antes queda de selección única');
+      await esperaFalla('br) tipo de cuestionario fuera de la lista', '23514', insCuest, [dueno, doc, 'ensayo']);
+      const insPreg = `INSERT INTO preguntas_cuestionario (cuestionario_id, usuario_id, orden, tipo, enunciado, opciones, correcta, correctas, verdadero, respuesta_texto, explicacion, cita_textual)
+                       VALUES ($1, $2, $3, $4, '¿?', $5::jsonb, $6, $7::smallint[], $8, $9, 'x', 'una cita literal del texto') RETURNING id`;
+      const op = JSON.stringify(['a', 'b', 'c', 'd']);
+      const preg = async (orden, tipo, opciones, correcta, correctas, verdadero, texto) =>
+        (await c.query(insPreg, [cuest, dueno, orden, tipo, opciones, correcta, correctas, verdadero, texto])).rows[0].id;
+      const pUnica = await preg(1, 'unica', op, 1, null, null, null);
+      const pMultiple = await preg(2, 'multiple', op, null, [0, 2], null, null);
+      const pVf = await preg(3, 'vf', null, null, null, false, null);
+      const pCompletar = await preg(4, 'completar', null, null, null, null, 'fotosíntesis');
+      const pAbierta = await preg(5, 'abierta', null, null, null, null, 'Una respuesta modelo de más de veinte caracteres.');
+      marcar(true, 'bs) una pregunta válida de cada tipo');
+      const malas = [
+        ['bt) múltiple con una sola correcta', 'multiple', op, null, [1], null, null],
+        ['bu) múltiple con una correcta repetida', 'multiple', op, null, [1, 1], null, null],
+        ['bv) múltiple con 4 correctas', 'multiple', op, null, [0, 1, 2, 3], null, null],
+        ['bw) múltiple con una posición fuera de 0 a 3', 'multiple', op, null, [1, 4], null, null],
+        ['bx) verdadero o falso sin verdadero', 'vf', null, null, null, null, null],
+        ['by) completar con más de 40 caracteres', 'completar', null, null, null, null, 'x'.repeat(41)],
+        ['bz) abierta con una respuesta modelo de menos de 20', 'abierta', null, null, null, null, 'corta'],
+        ['ca) única con correctas de múltiple', 'unica', op, 1, [0, 1], null, null],
+        ['cb) tipo de pregunta fuera de la lista', 'ensayo', null, null, null, null, 'x'],
+      ];
+      for (const [nombre, ...v] of malas) await esperaFalla(nombre, '23514', insPreg, [cuest, dueno, 9, ...v]);
+      const intento = (await c.query('INSERT INTO intentos_cuestionario (cuestionario_id, usuario_id, preguntas, total) VALUES ($1, $2, $3::uuid[], 5) RETURNING id', [
+        cuest,
+        dueno,
+        [pUnica, pMultiple, pVf, pCompletar, pAbierta],
+      ])).rows[0].id;
+      const insResp = 'INSERT INTO respuestas_intento (intento_id, pregunta_id, usuario_id, elegida, elegidas, texto, autoevaluacion, puntos, acierto) VALUES ($1, $2, $3, $4, $5::smallint[], $6, $7, $8, $9)';
+      await c.query(insResp, [intento, pUnica, dueno, 1, null, null, null, 100, true]);
+      await c.query(insResp, [intento, pMultiple, dueno, null, [0, 1, 2], null, null, 50, false]);
+      await c.query(insResp, [intento, pVf, dueno, 0, null, null, null, 100, true]);
+      await c.query(insResp, [intento, pCompletar, dueno, null, null, 'FOTOSINTESIS', null, 100, true]);
+      await c.query(insResp, [intento, pAbierta, dueno, null, null, 'Mi respuesta.', null, null, null]);
+      marcar(true, 'cc) respuestas de cada tipo, la abierta sin calificar (puntos y acierto en NULL)');
+      await c.query("UPDATE respuestas_intento SET autoevaluacion = 'medias', puntos = 50, acierto = false WHERE intento_id = $1 AND pregunta_id = $2", [intento, pAbierta]);
+      marcar(true, 'cd) la abierta calificada "A medias" vale 50');
+      const otraPreg = await preg(6, 'unica', op, 0, null, null, null);
+      const intento2 = (await c.query('INSERT INTO intentos_cuestionario (cuestionario_id, usuario_id, preguntas, total) VALUES ($1, $2, ARRAY[$3::uuid], 1) RETURNING id', [cuest, dueno, otraPreg])).rows[0].id;
+      await esperaFalla('ce) 100 puntos sin acierto', '23514', insResp, [intento2, otraPreg, dueno, 0, null, null, null, 100, false]);
+      await esperaFalla('cf) puntos sin acierto anotado', '23514', insResp, [intento2, otraPreg, dueno, 0, null, null, null, 50, null]);
+      await esperaFalla('cg) puntos fuera de 0 a 100', '23514', insResp, [intento2, otraPreg, dueno, 0, null, null, null, 150, false]);
+      await esperaFalla('ch) "A medias" con 100 puntos', '23514', insResp, [intento2, otraPreg, dueno, null, null, 'x', 'medias', 100, true]);
+      await esperaFalla('ci) texto de más de 1000 caracteres', '23514', insResp, [intento2, otraPreg, dueno, null, null, 'x'.repeat(1001), null, 0, false]);
+      await esperaFalla('cj) marcadas fuera de 0 a 3', '23514', insResp, [intento2, otraPreg, dueno, null, [5], null, null, 0, false]);
+      await esperaFalla('ck) respuesta sin nada respondido', '23514', insResp, [intento2, otraPreg, dueno, null, null, null, null, 0, false]);
+    } catch (e) {
+      marcar(false, `bq-ck) tipos de pregunta: ${e.message}`);
+    }
+  }
   await c.query('ROLLBACK');
 
   console.log(`== 7. Total de fallas: ${fallas}`);

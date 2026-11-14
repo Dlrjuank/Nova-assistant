@@ -143,7 +143,7 @@ export { mesDeTareas, type Mes } from '@/lib/datos/calendario';
 export { actualizarCategoria, crearCategoria, eliminarCategoria, listarCategorias } from '@/lib/datos/categorias';
 export { buscarEnWikipedia, eliminarFuenteWeb, guardarFuenteWeb, listarFuentesWeb } from '@/lib/datos/wikipedia';
 export { confirmarPlanLectura, vistaPreviaPlanLectura } from '@/lib/datos/planLectura';
-export { crearCuestionario, empezarIntento, obtenerCuestionario, responderPregunta } from '@/lib/datos/cuestionarios';
+export { autoevaluarPregunta, crearCuestionario, empezarIntento, obtenerCuestionario, responderPregunta } from '@/lib/datos/cuestionarios';
 export { crearTareaRepaso, listarCuestionarios } from '@/lib/datos/historialCuestionarios';
 export { actualizarConfiguracion, borrarHistorial, obtenerConfiguracion, obtenerPreferencias, type Configuracion } from '@/lib/datos/configuracion';
 export {
@@ -179,6 +179,7 @@ export type {
   CuestionarioCreado,
   CuestionarioVista,
   PreguntaVista,
+  RespuestaVista,
   ResultadoRespuesta,
   SugerenciaRepaso,
   DocumentoHistorial,

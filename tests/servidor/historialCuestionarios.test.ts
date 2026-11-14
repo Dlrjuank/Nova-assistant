@@ -53,6 +53,8 @@ describe('sugerencias de repaso (S-59, RB-53)', () => {
   it('solo los capítulos con 2 o más falladas, con el título numerado', async () => {
     base();
     await expect(sugerenciasDeRepaso(m.consultar as unknown as Consulta, U, INT)).resolves.toEqual([{ capituloId: CAP, titulo: TITULO, falladas: 2, yaExiste: false }]);
+    // E10g (7.12): cuenta como fallada toda pregunta con menos de 1 punto (una parcial o "A medias").
+    expect(String(m.consultar.mock.calls[0]?.[0])).toContain('r.puntos < 100');
     expect(m.consultar.mock.calls[0]?.[1]).toEqual([INT, U]); // solo del dueño
   });
 
@@ -133,7 +135,7 @@ const fila = (o: Record<string, unknown>) => ({
 describe('historial (5.11, S-58)', () => {
   it('por documento y, dentro, el documento completo, los capítulos en orden y luego las páginas; intentos del más reciente', async () => {
     m.consultar.mockResolvedValue([
-      fila({ cuestionario_id: 'qp', alcance: 'paginas', pagina_desde: 3, pagina_hasta: 4, intento_id: 'p1' }),
+      fila({ cuestionario_id: 'qp', tipo: 'mixto', alcance: 'paginas', pagina_desde: 3, pagina_hasta: 4, intento_id: 'p1' }),
       fila({ cuestionario_id: 'qc2', alcance: 'capitulo', capitulo: 'Los tejidos', capitulo_orden: 2, intento_id: 'c21' }),
       fila({ cuestionario_id: 'qc1', alcance: 'capitulo', capitulo: 'La célula', capitulo_orden: 0, intento_id: 'a', puntaje: 200 }),
       fila({ cuestionario_id: 'qc1', alcance: 'capitulo', capitulo: 'La célula', capitulo_orden: 0, intento_id: 'b', repaso: true, puntaje: 500 }),
@@ -151,6 +153,8 @@ describe('historial (5.11, S-58)', () => {
       ['a', false, true, null],
     ]);
     expect(celula?.creadoEn).toBe('2026-11-10');
+    // E10g (B-81): el tipo de cada uno; los anteriores a E10g, de selección única.
+    expect(doc?.cuestionarios.map((c) => c.tipo)).toEqual(['unica', 'unica', 'unica', 'mixto']);
   });
 
   it('solo del usuario, y con ?documentoId= solo de ese documento', async () => {

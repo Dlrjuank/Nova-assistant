@@ -1,3 +1,4 @@
+import type { Autoevaluacion, TipoCuestionario, TipoPregunta } from '@/lib/reglas/tiposPregunta';
 import type { OrigenMensaje } from '@/lib/reglas/fuentesWeb';
 import type { NivelProductividad } from '@/lib/reglas/productividad';
 import type { EstadoRecordatorio, Recordatorio } from '@/lib/reglas/recordatorios';
@@ -72,12 +73,44 @@ export interface PlanLectura {
   yaEnTareas: Array<{ orden: number; titulo: string }>;
 }
 
-/** E10e: lo que ve el navegador de una pregunta. La correcta solo llega después de responderla (RB-50). */
+/**
+ * E10e y E10g: lo que ve el navegador de una pregunta. Nada de la respuesta llega antes de responderla (RB-50): ni
+ * la correcta, ni `verdadero`, ni lo que falta, ni la respuesta modelo, ni la cita. De una múltiple sí llega
+ * cuántas son correctas, porque la pregunta lo dice (RB-65). En completar, el enunciado es la frase con `_____`.
+ */
 export interface PreguntaVista {
   id: string;
+  tipo: TipoPregunta;
   enunciado: string;
-  opciones: string[];
-  respuesta?: { elegida: number; acierto: boolean; correcta: number; explicacion: string; cita: string; fuente: string };
+  /** Única y múltiple. */
+  opciones?: string[];
+  /** Múltiple. */
+  cuantasCorrectas?: number;
+  respuesta?: RespuestaVista;
+}
+
+/** E10g (7.12): lo respondido y la solución de una pregunta, según su tipo. */
+export interface RespuestaVista {
+  /** Centésimas de punto de 0 a 100; null en una abierta que aún no se calificó. */
+  puntos: number | null;
+  acierto: boolean | null;
+  explicacion: string;
+  cita: string;
+  fuente: string;
+  /** Única: la elegida y la correcta. */
+  elegida?: number;
+  correcta?: number;
+  /** Múltiple: las marcadas y las correctas. */
+  elegidas?: number[];
+  correctas?: number[];
+  /** Verdadero o falso: lo respondido y si la afirmación es verdadera. */
+  respondioVerdadero?: boolean;
+  verdadero?: boolean;
+  /** Completar y abierta: lo escrito y lo que faltaba o la respuesta modelo. */
+  texto?: string;
+  respuestaCorrecta?: string;
+  /** Abierta: la calificación del usuario, o null si falta. */
+  autoevaluacion?: Autoevaluacion | null;
 }
 
 /** E10f (RB-53): un capítulo con 2 o más falladas en el intento; `yaExiste` si hay una tarea sin completar con ese título. */
@@ -90,6 +123,8 @@ export interface SugerenciaRepaso {
 
 export interface CuestionarioVista {
   id: string;
+  /** E10g: el tipo elegido al crear; los anteriores son de selección única. */
+  tipo: TipoCuestionario;
   documento: { id: string; nombre: string; categoria: string };
   /** "Todo el documento", el título del capítulo o "Páginas 2–4". */
   alcance: string;
@@ -115,7 +150,7 @@ export interface CuestionarioCreado {
   pedidas: number;
 }
 
-export type ResultadoRespuesta = NonNullable<PreguntaVista['respuesta']> & {
+export type ResultadoRespuesta = RespuestaVista & {
   resultado?: { aciertos: number; total: number; puntaje: number; sugerencias: SugerenciaRepaso[] };
 };
 
@@ -135,6 +170,7 @@ export interface IntentoHistorial {
 
 export interface CuestionarioHistorial {
   id: string;
+  tipo: TipoCuestionario;
   alcance: string;
   dificultad: 'facil' | 'media' | 'dificil';
   preguntas: number;

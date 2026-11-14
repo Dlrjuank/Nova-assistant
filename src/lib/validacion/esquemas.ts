@@ -1,3 +1,4 @@
+import { AUTOEVALUACIONES, TEXTO_ABIERTA_MAX, TIPOS_CUESTIONARIO } from '@/lib/reglas/tiposPregunta';
 import { z } from 'zod';
 import { CONSULTA_MAX_CARACTERES, WEB_MAX_CARACTERES } from '@/lib/config/nova';
 
@@ -42,6 +43,8 @@ const comunCuestionario = {
   documentoId: z.uuid(),
   pedidas: z.union([z.literal(5), z.literal(10), z.literal(20)]),
   dificultad: z.enum(['facil', 'media', 'dificil']),
+  // E10g (RB-64): por defecto, mixto.
+  tipo: z.enum(TIPOS_CUESTIONARIO).optional(),
 };
 export const esquemaCrearCuestionario = z.discriminatedUnion('alcance', [
   z.object({ ...comunCuestionario, alcance: z.literal('documento') }),
@@ -50,7 +53,15 @@ export const esquemaCrearCuestionario = z.discriminatedUnion('alcance', [
 ]);
 export const esquemaIdCuestionario = z.uuid();
 export const esquemaEmpezarIntento = z.object({ repasoDe: z.uuid().optional() });
-export const esquemaResponderPregunta = z.object({ preguntaId: z.uuid(), elegida: z.number().int().min(0).max(3) });
+// E10g (RB-65 a RB-69): según el tipo, `elegida`, `elegidas`, `verdadero` o `texto` (una sola); si no corresponde al tipo, el servicio la rechaza.
+const posicion = z.number().int().min(0).max(3);
+export const esquemaResponderPregunta = z.union([
+  z.object({ preguntaId: z.uuid(), elegida: posicion }).strict(),
+  z.object({ preguntaId: z.uuid(), elegidas: z.array(posicion).min(1).max(4) }).strict(),
+  z.object({ preguntaId: z.uuid(), verdadero: z.boolean() }).strict(),
+  z.object({ preguntaId: z.uuid(), texto: z.string().max(TEXTO_ABIERTA_MAX) }).strict(),
+]);
+export const esquemaAutoevaluacion = z.object({ preguntaId: z.uuid(), calificacion: z.enum(AUTOEVALUACIONES) });
 // E11 (5.8): cambios de Configuración; las reglas finas (RB-11, RB-26, cortes) las valida el servicio con su mensaje.
 export const esquemaConfiguracion = z
   .object({

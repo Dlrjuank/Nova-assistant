@@ -5,10 +5,10 @@ import { esquemaIdCuestionario, esquemaResponderPregunta } from '@/lib/validacio
 
 export const dynamic = 'force-dynamic';
 
-/** E10e (RB-51): responde una pregunta del intento; devuelve si acertó, la correcta, la explicación y la cita. */
+/** E10e y E10g (RB-51, RB-65 a RB-69): responde una pregunta del intento según su tipo; devuelve los puntos, la solución, la explicación y la cita. */
 export const POST = conManejoDeErrores(async (peticion: Request, { params }: { params: Promise<{ id: string }> }) => {
   const sesion = await exigirSesion();
   const id = esquemaIdCuestionario.parse((await params).id);
-  const { preguntaId, elegida } = await leerCuerpo(peticion, esquemaResponderPregunta);
-  return responderOk(await responderPregunta(sesion.id, id, preguntaId, elegida));
+  const { preguntaId, ...respuesta } = await leerCuerpo(peticion, esquemaResponderPregunta);
+  return responderOk(await responderPregunta(sesion.id, id, preguntaId, respuesta));
 });

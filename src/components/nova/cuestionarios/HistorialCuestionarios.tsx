@@ -6,6 +6,7 @@ import type { CuestionarioHistorial, DocumentoHistorial, IntentoHistorial } from
 import { formatearFecha } from '@/lib/formato';
 import { formatearPuntaje, NOMBRE_DIFICULTAD } from '@/lib/reglas/cuestionarios';
 import { TEXTO_COMPARACION } from '@/lib/reglas/historialCuestionarios';
+import { NOMBRE_TIPO } from '@/lib/reglas/tiposPregunta';
 
 const ICONO_COMPARACION = { mejor: TrendingUp, igual: Minus, peor: TrendingDown } as const;
 const COLOR_COMPARACION = { mejor: 'text-exito', igual: 'text-texto-suave', peor: 'text-peligro' } as const;
@@ -50,7 +51,7 @@ function TarjetaCuestionario({ c }: { c: CuestionarioHistorial }) {
         <div className="min-w-0">
           <h3 className="break-words font-semibold text-texto">{c.alcance}</h3>
           <p className="text-sm text-texto-suave">
-            Dificultad {NOMBRE_DIFICULTAD[c.dificultad].toLowerCase()} · {c.preguntas} {c.preguntas === 1 ? 'pregunta' : 'preguntas'} · Creado el {formatearFecha(c.creadoEn)}
+            {NOMBRE_TIPO[c.tipo]} · Dificultad {NOMBRE_DIFICULTAD[c.dificultad].toLowerCase()} · {c.preguntas} {c.preguntas === 1 ? 'pregunta' : 'preguntas'} · Creado el {formatearFecha(c.creadoEn)}
           </p>
         </div>
         <Link href={`/nova/cuestionarios/${c.id}`} prefetch={false} className={`${claseBoton('secundario')} min-h-10 shrink-0`} aria-label={`Abrir el cuestionario ${c.alcance}`}>
@@ -68,7 +69,7 @@ function TarjetaCuestionario({ c }: { c: CuestionarioHistorial }) {
   );
 }
 
-/** E10f (5.11): intentos por documento y por capítulo, con fecha, dificultad, puntaje y si mejoraste. */
+/** E10f y E10g (5.11, 5.12): intentos por documento y por capítulo, con el tipo, la fecha, la dificultad, el puntaje y si mejoraste. */
 export function HistorialCuestionarios({ documentos }: { documentos: readonly DocumentoHistorial[] }) {
   return (
     <div className="flex max-w-3xl flex-col gap-6">

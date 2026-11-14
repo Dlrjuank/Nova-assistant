@@ -1,4 +1,5 @@
 import { FRAGMENTO_PALABRAS, FRAGMENTO_SOLAPAMIENTO } from '@/lib/config/nova';
+import { armarFraseCompletar, esTipoPregunta, TIPOS_PREGUNTA, type TipoPregunta } from './tiposPregunta';
 
 /** E10e (PLAN_AMPLIACION 5.11, 7.11, 9.6, RB-48 a RB-50): cuestionarios. Funciones puras. */
 
@@ -14,6 +15,8 @@ const CITA_MAX = 200;
 const ENUNCIADO_MAX = 400;
 const EXPLICACION_MAX = 400;
 const OPCION_MAX = 300;
+const ABIERTA_MIN = 20;
+const ABIERTA_MAX = 400;
 
 /** 9.6.2 (RB-49): al menos un fragmento por cada 2 preguntas; si no, no se llama a Gemini. */
 export const minimoFragmentos = (pedidas: number) => Math.ceil(pedidas / 2);
@@ -137,10 +140,8 @@ export function ubicarCita(contenido: string, cita: string): { desde: number; ha
   return null;
 }
 
-export interface PreguntaValida {
+interface Comun {
   enunciado: string;
-  opciones: string[];
-  correcta: number;
   explicacion: string;
   fuente: string;
   cita: string;
@@ -148,57 +149,108 @@ export interface PreguntaValida {
   hasta: number;
 }
 
+/** 9.6.5 y 9.7.2: una pregunta que pasó la validación, con los campos de su tipo. En completar, el enunciado es la frase con `_____`. */
+export type PreguntaValida =
+  | (Comun & { tipo: 'unica'; opciones: string[]; correcta: number })
+  | (Comun & { tipo: 'multiple'; opciones: string[]; correctas: number[] })
+  | (Comun & { tipo: 'vf'; verdadero: boolean })
+  | (Comun & { tipo: 'completar'; respuesta: string })
+  | (Comun & { tipo: 'abierta'; respuesta: string });
+
 const normal = (t: string) => t.normalize('NFC').toLowerCase().replace(/\s+/g, ' ').trim();
 const esTexto = (v: unknown): v is string => typeof v === 'string' && v.trim() !== '';
+const esPosicion = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 3;
+const recortar = (t: string, max: number) => (t.length > max ? `${t.slice(0, max - 1).trimEnd()}…` : t);
+
+/** 4 opciones de texto, distintas entre sí. */
+function cuatroOpciones(opciones: unknown): string[] | null {
+  if (!Array.isArray(opciones) || opciones.length !== 4 || !opciones.every((o) => esTexto(o) && o.trim().length <= OPCION_MAX)) return null;
+  const limpias = (opciones as string[]).map((o) => o.trim());
+  return new Set(limpias.map(normal)).size === 4 ? limpias : null;
+}
+
+/** Los campos propios de cada tipo (9.7.2), o null si no cumplen. */
+function camposDeTipo(tipo: TipoPregunta, c: Record<string, unknown>, cita: string): Record<string, unknown> | null {
+  const enunciado = esTexto(c.enunciado) && c.enunciado.trim().length <= ENUNCIADO_MAX ? c.enunciado.trim() : null;
+  switch (tipo) {
+    case 'unica': {
+      const opciones = cuatroOpciones(c.opciones);
+      return enunciado && opciones && esPosicion(c.correcta) ? { enunciado, opciones, correcta: c.correcta } : null;
+    }
+    case 'multiple': {
+      const opciones = cuatroOpciones(c.opciones);
+      const correctas = c.correctas;
+      if (!enunciado || !opciones || !Array.isArray(correctas) || !correctas.every(esPosicion)) return null;
+      const distintas = [...new Set(correctas as number[])].sort((a, b) => a - b);
+      return distintas.length === correctas.length && distintas.length >= 2 && distintas.length <= 3 ? { enunciado, opciones, correctas: distintas } : null;
+    }
+    case 'vf':
+      return enunciado && typeof c.verdadero === 'boolean' ? { enunciado, verdadero: c.verdadero } : null;
+    case 'completar': {
+      if (!esTexto(c.respuesta)) return null;
+      const respuesta = c.respuesta.trim().replace(/\s+/g, ' ');
+      const frase = armarFraseCompletar(cita, respuesta); // RB-67: la arma el servidor, no el modelo
+      return frase ? { enunciado: frase, respuesta } : null;
+    }
+    case 'abierta': {
+      if (!enunciado || !esTexto(c.respuesta)) return null;
+      const respuesta = c.respuesta.trim();
+      return respuesta.length >= ABIERTA_MIN && respuesta.length <= ABIERTA_MAX ? { enunciado, respuesta } : null;
+    }
+  }
+}
 
 /**
- * 9.6.5 (RB-50): descarta lo que no cumple: etiqueta que no se entregó, cita de 20 a 200 caracteres que no está
- * en ese fragmento, opciones que no son 4 distintas, `correcta` fuera de 0 a 3 o enunciado repetido.
+ * 9.6.5 y 9.7.2 (RB-50): descarta lo que no cumple: etiqueta que no se entregó, cita de 20 a 200 caracteres que no
+ * está en ese fragmento, enunciado repetido o campos de su tipo que no cumplen. `cupos` dice cuántas faltan de
+ * cada tipo: una de un tipo que no se pidió, o de uno ya completo, se descarta. Sin `cupos`, todas de selección
+ * única. Si el modelo no dice el tipo y se pidió uno solo, es ese.
  */
 export function validarPreguntas(
   crudas: unknown,
   fragmentos: ReadonlyMap<string, { contenido: string }>,
   enunciadosPrevios: readonly string[] = [],
+  cupos: Partial<Record<TipoPregunta, number>> = { unica: Number.POSITIVE_INFINITY },
 ): PreguntaValida[] {
   if (!Array.isArray(crudas)) return [];
+  const quedan = { ...cupos };
+  const pedidos = TIPOS_PREGUNTA.filter((t) => (cupos[t] ?? 0) > 0);
   const vistos = new Set(enunciadosPrevios.map(normal));
   const validas: PreguntaValida[] = [];
   for (const c of crudas as Array<Record<string, unknown>>) {
     if (!c || typeof c !== 'object') continue;
-    const { enunciado, opciones, correcta, explicacion, fuente, cita_textual: cita } = c;
-    if (!esTexto(enunciado) || enunciado.trim().length > ENUNCIADO_MAX || vistos.has(normal(enunciado))) continue;
-    if (!Array.isArray(opciones) || opciones.length !== 4 || !opciones.every((o) => esTexto(o) && o.trim().length <= OPCION_MAX)) continue;
-    if (new Set((opciones as string[]).map(normal)).size !== 4) continue;
-    if (typeof correcta !== 'number' || !Number.isInteger(correcta) || correcta < 0 || correcta > 3) continue;
+    const tipo = esTipoPregunta(c.tipo) ? c.tipo : c.tipo === undefined && pedidos.length === 1 ? pedidos[0] : undefined;
+    if (!tipo || (quedan[tipo] ?? 0) <= 0) continue;
+    const { explicacion, fuente, cita_textual: cita } = c;
     if (!esTexto(fuente) || !esTexto(cita) || !esTexto(explicacion)) continue;
     const fragmento = fragmentos.get(fuente.trim());
     const citaLimpia = cita.trim();
     if (!fragmento || citaLimpia.length < CITA_MIN || citaLimpia.length > CITA_MAX) continue;
     const lugar = ubicarCita(fragmento.contenido, citaLimpia);
     if (!lugar) continue;
-    vistos.add(normal(enunciado));
-    const textoExplicacion = explicacion.trim();
-    validas.push({
-      enunciado: enunciado.trim(),
-      opciones: (opciones as string[]).map((o) => o.trim()),
-      correcta,
-      explicacion: textoExplicacion.length > EXPLICACION_MAX ? `${textoExplicacion.slice(0, EXPLICACION_MAX - 1).trimEnd()}…` : textoExplicacion,
-      fuente: fuente.trim(),
-      cita: citaLimpia,
-      ...lugar,
-    });
+    const campos = camposDeTipo(tipo, c, citaLimpia);
+    if (!campos || vistos.has(normal(campos.enunciado as string))) continue;
+    vistos.add(normal(campos.enunciado as string));
+    quedan[tipo] = (quedan[tipo] ?? 0) - 1;
+    validas.push({ tipo, ...campos, explicacion: recortar(explicacion.trim(), EXPLICACION_MAX), fuente: fuente.trim(), cita: citaLimpia, ...lugar } as PreguntaValida);
   }
   return validas;
 }
 
 /** 9.6.6: baraja las opciones y conserva cuál es la correcta. `aleatorio` se inyecta en las pruebas. */
 export function barajarOpciones(opciones: readonly string[], correcta: number, aleatorio: () => number = Math.random): { opciones: string[]; correcta: number } {
+  const { opciones: barajadas, correctas } = barajarMultiple(opciones, [correcta], aleatorio);
+  return { opciones: barajadas, correcta: correctas[0] as number };
+}
+
+/** 9.7.3: baraja las opciones de una múltiple y conserva cuáles son correctas (ordenadas). */
+export function barajarMultiple(opciones: readonly string[], correctas: readonly number[], aleatorio: () => number = Math.random): { opciones: string[]; correctas: number[] } {
   const orden = opciones.map((_, i) => i);
   for (let i = orden.length - 1; i > 0; i--) {
     const j = Math.floor(aleatorio() * (i + 1));
     [orden[i], orden[j]] = [orden[j] as number, orden[i] as number];
   }
-  return { opciones: orden.map((i) => opciones[i] as string), correcta: orden.indexOf(correcta) };
+  return { opciones: orden.map((i) => opciones[i] as string), correctas: correctas.map((c) => orden.indexOf(c)).sort((a, b) => a - b) };
 }
 
 /**
@@ -225,7 +277,7 @@ export function etiquetaDeCita(
   return a === b ? String(a) : `${a}–${b}`;
 }
 
-/** 7.11: aciertos × 500 / total, en centésimas y truncado. */
+/** 7.11: aciertos × 500 / total, en centésimas y truncado. Con tipos, `puntajeIntento` (7.12) da lo mismo en selección única. */
 export function calcularPuntaje(aciertos: number, total: number): number {
   return total > 0 ? Math.trunc((aciertos * 500) / total) : 0;
 }
