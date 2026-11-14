@@ -1,6 +1,6 @@
 import type { FormatoHora } from '@/lib/reglas/preferencias';
 import { ErrorDeNegocio } from './errores';
-import { sumarDias } from './fechas';
+import { hoyBogota, sumarDias } from './fechas';
 import { formatearHorario } from './horario';
 
 /**
@@ -144,4 +144,9 @@ export function validarHoraResumen(hora: unknown): string {
 /** El instante del resumen de un día: esa fecha a la hora elegida, en Bogotá. */
 export function momentoResumen(fecha: string, hora: string): Date {
   return enBogota(fecha, hora);
+}
+
+/** RB-46: al guardar, si el resumen de hoy aún puede llegar (la hora no ha pasado o pasó hace 30 min o menos). */
+export function resumenPuedeLlegarHoy(hora: string, ahora: Date = new Date()): boolean {
+  return decisionEnvio(momentoResumen(hoyBogota(ahora), hora), ahora) !== 'omitir';
 }

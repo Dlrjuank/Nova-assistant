@@ -61,6 +61,14 @@ describe('guardar', () => {
     const [sql, valores] = escrituras()[0] ?? [];
     expect(String(sql)).toContain('resumen_diario, hora_resumen');
     expect(valores).toEqual([U, true, '06:45']);
+    // El de hoy se vuelve a decidir con la hora nueva, salvo que ya haya llegado a algún dispositivo.
+    const [borrar, params] = escrituras().find(([s]) => String(s).includes('DELETE FROM envios')) ?? [];
+    expect(String(borrar)).toContain("tipo = 'resumen'");
+    expect(String(borrar)).toContain("resultado !~ '^enviadas [1-9]'");
+    expect((params as unknown[])[0]).toBe(U);
+    m.consultar.mockClear();
+    await actualizarConfiguracion(U, 'yo@ejemplo.com', { tema: 'oscuro' });
+    expect(escrituras().some(([s]) => String(s).includes('DELETE FROM envios'))).toBe(false);
     m.consultar.mockClear();
     await expect(actualizarConfiguracion(U, 'yo@ejemplo.com', { resumenDiario: true, horaResumen: '25:00' })).rejects.toMatchObject({ codigo: 'HORA_RESUMEN_INVALIDA' });
     expect(escrituras()).toEqual([]);

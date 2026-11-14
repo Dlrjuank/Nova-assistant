@@ -1,7 +1,7 @@
 // E11d (5.10; RB-46, RB-47, S-50): el texto del resumen diario y el .ics de "Agregar a mi calendario".
 import { describe, expect, it } from 'vitest';
 import { AVISO_COPIA_CALENDARIO, disparoAlarma, escaparTexto, generarIcs, nombreArchivoIcs, plegarLinea } from '@/lib/reglas/ics';
-import { momentoResumen, textoResumen, validarHoraResumen } from '@/lib/reglas/recordatorios';
+import { momentoResumen, resumenPuedeLlegarHoy, textoResumen, validarHoraResumen } from '@/lib/reglas/recordatorios';
 
 const AHORA = new Date('2026-11-13T20:05:09.123Z');
 const lineas = (ics: string) => ics.replace(/\r\n /g, '').split('\r\n');
@@ -24,6 +24,14 @@ describe('RB-46 · texto del resumen diario', () => {
     expect(validarHoraResumen('06:45')).toBe('06:45');
     for (const malo of ['6:45', '24:00', '07:60', '', 7, null]) expect(() => validarHoraResumen(malo)).toThrow();
     expect(momentoResumen('2026-11-20', '07:00').toISOString()).toBe('2026-11-20T12:00:00.000Z');
+  });
+
+  it('al guardar: llega hoy si la hora no pasó o pasó hace 30 min o menos', () => {
+    const a_las_18_50 = new Date('2026-11-20T23:50:00Z');
+    expect(resumenPuedeLlegarHoy('19:00', a_las_18_50)).toBe(true);
+    expect(resumenPuedeLlegarHoy('18:20', a_las_18_50)).toBe(true);
+    expect(resumenPuedeLlegarHoy('18:19', a_las_18_50)).toBe(false);
+    expect(resumenPuedeLlegarHoy('07:00', a_las_18_50)).toBe(false);
   });
 });
 

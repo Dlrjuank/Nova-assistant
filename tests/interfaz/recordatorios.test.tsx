@@ -164,6 +164,8 @@ describe('E11d · Resumen diario en Configuración (RB-46)', () => {
   it('apagado, la hora no se edita; al activarlo guarda el resumen y su hora y lo confirma', async () => {
     const f = vi.fn<(url: string, init?: RequestInit) => Promise<Response>>(async () => new Response(JSON.stringify({ ok: true, datos: {} })));
     vi.stubGlobal('fetch', f);
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-20T10:00:00Z')); // 5:00 en Bogotá: las 6:30 aún no llegan
     render(<ResumenDiario activo={false} hora="07:00" formatoHora="24" />);
     const hora = screen.getByLabelText('Hora del resumen') as HTMLInputElement;
     expect(hora.disabled).toBe(true);
@@ -173,6 +175,23 @@ describe('E11d · Resumen diario en Configuración (RB-46)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Guardar resumen' }));
     expect(await screen.findByText('Guardado. El resumen llegará cada día a las 6:30.')).toBeTruthy();
     expect(f).toHaveBeenCalledWith('/api/nova/configuracion', expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ resumenDiario: true, horaResumen: '06:30' }) }));
+  });
+
+  it('si hoy ya pasó esa hora (más de 30 min), dice que empieza mañana', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ ok: true, datos: {} }))));
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-20T23:50:00Z')); // 18:50 en Bogotá
+    render(<ResumenDiario activo={false} hora="07:00" formatoHora="24" />);
+    fireEvent.click(screen.getByLabelText(/Recibir un resumen cada día/));
+    escribir('Hora del resumen', '18:00');
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar resumen' }));
+    expect(await screen.findByText('Guardado. Hoy ya pasó esa hora: el resumen empieza mañana a las 18:00.')).toBeTruthy();
+    cleanup();
+    render(<ResumenDiario activo={false} hora="07:00" formatoHora="24" />);
+    fireEvent.click(screen.getByLabelText(/Recibir un resumen cada día/));
+    escribir('Hora del resumen', '18:30'); // pasó hace 20 min: todavía llega hoy
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar resumen' }));
+    expect(await screen.findByText('Guardado. El resumen llegará cada día a las 18:30.')).toBeTruthy();
   });
 
   it('desactivarlo lo dice; una hora vacía no se envía', async () => {

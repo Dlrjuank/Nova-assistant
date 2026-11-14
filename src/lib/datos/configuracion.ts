@@ -1,5 +1,6 @@
 import { conTransaccion, consultar } from '@/lib/db/conexion';
 import { validarHoraRecordatorio, validarHoraResumen } from '@/lib/reglas/recordatorios';
+import { hoyBogota } from '@/lib/reglas/fechas';
 import { recalcularRecordatoriosSinHorario } from './tareas';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
 import {
@@ -106,6 +107,16 @@ export async function actualizarConfiguracion(usuarioId: string, email: string, 
       );
       // 7.10: al cambiar la hora fija se recalculan los recordatorios de las tareas sin horario.
       if (horaRecordatorio !== undefined) await recalcularRecordatoriosSinHorario(tx, usuarioId, horaRecordatorio);
+      // RB-46: al activar el resumen o cambiar su hora, el de hoy se vuelve a decidir con la hora nueva, salvo que
+      // ya haya llegado a algún dispositivo (uno por día). Sin esto, activarlo con una hora pasada lo anotaba como
+      // atrasado y una hora nueva ese mismo día ya no servía.
+      if (cambios.resumenDiario !== undefined || horaResumen !== undefined) {
+        await tx.query(
+          `DELETE FROM envios WHERE usuario_id = $1 AND tipo = 'resumen' AND fecha = $2::date
+             AND resultado <> 'enviando' AND resultado !~ '^enviadas [1-9]'`,
+          [usuarioId, hoyBogota()],
+        );
+      }
     });
   }
   return obtenerConfiguracion(usuarioId, email);

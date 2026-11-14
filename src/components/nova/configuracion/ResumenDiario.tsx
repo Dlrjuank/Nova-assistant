@@ -7,6 +7,7 @@ import { Campo } from '@/components/ui/Campo';
 import { MENSAJES } from '@/lib/reglas/errores';
 import { formatearHora } from '@/lib/reglas/horario';
 import type { FormatoHora } from '@/lib/reglas/preferencias';
+import { resumenPuedeLlegarHoy } from '@/lib/reglas/recordatorios';
 import { guardarConfiguracion } from './guardar';
 
 /**
@@ -27,6 +28,7 @@ export function ResumenDiario({
   const [guardado, setGuardado] = useState({ activo, hora });
   const [error, setError] = useState('');
   const [listo, setListo] = useState(false);
+  const [hoyYaPaso, setHoyYaPaso] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const sinCambios = encendido === guardado.activo && valor === guardado.hora;
 
@@ -45,6 +47,7 @@ export function ResumenDiario({
       return;
     }
     setGuardado({ activo: encendido, hora: valor });
+    setHoyYaPaso(!resumenPuedeLlegarHoy(valor));
     setListo(true);
   }
 
@@ -98,7 +101,9 @@ export function ResumenDiario({
       {listo && (
         <Aviso tipo="exito">
           {guardado.activo
-            ? `Guardado. El resumen llegará cada día a las ${formatearHora(guardado.hora, formatoHora)}.`
+            ? hoyYaPaso
+              ? `Guardado. Hoy ya pasó esa hora: el resumen empieza mañana a las ${formatearHora(guardado.hora, formatoHora)}.`
+              : `Guardado. El resumen llegará cada día a las ${formatearHora(guardado.hora, formatoHora)}.`
             : 'Guardado. Ya no recibirás el resumen diario.'}
         </Aviso>
       )}

@@ -133,6 +133,14 @@ async function main(): Promise<void> {
       await actualizarConfiguracion(U, email, { horaResumen: hace45.hora });
       const r4 = await procesarResumenes(new Date(), { soloUsuario: U });
       marcar(r4.omitidos === 1 && r4.enviados === 0 && (await resumenes())[0]?.resultado === 'omitido: atrasado', 'con más de 30 min de atraso no se envía y queda anotado');
+      // Lo que le pasó al usuario el 2026-11-13: anotado como atrasado y luego una hora nueva el mismo día.
+      await actualizarConfiguracion(U, email, { horaResumen: hace2.hora });
+      marcar((await resumenes()).length === 0, 'al cambiar la hora, el anotado de hoy (no enviado) se borra');
+      const r5 = await procesarResumenes(new Date(), { soloUsuario: U });
+      marcar(r5.enviados === 1, 'y con la hora nueva sí se envía ese mismo día', JSON.stringify(r5));
+      await sql.query(`UPDATE envios SET resultado = 'enviadas 1, fallidas 0' WHERE usuario_id = $1 AND tipo = 'resumen'`, [U]);
+      await actualizarConfiguracion(U, email, { horaResumen: hace2.hora === '23:59' ? hace2.hora : hace45.hora });
+      marcar((await resumenes()).length === 1, 'uno que ya llegó a un dispositivo no se borra (uno por día)');
     }
 
     // Completar cancela.
