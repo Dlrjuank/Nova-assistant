@@ -1048,3 +1048,8 @@ Total de fallas: 0
 - **Pruebas:** `tests/reglas/notas.test.ts` (22), `tests/servidor/semestre.test.ts` (15), `tests/interfaz/semestre.test.tsx` (6), navegación con Semestre. En Edge (`ui_e12.mjs`, base real, dos usuarios temporales) 29 de 29: Semestre en "Más" y en la barra lateral, crear (RB-06, la categoría), componentes al 90 % con el aviso y sin él al corregir, componente repetido, nota 5,5 (RB-09), 3,75 con fecha y "sin nota" guardadas en la base, nombre repetido (RB-05), dividir (30/30/40 con los componentes en el Corte 1), cortes al 90 % con el aviso, RB-35, volver a sin cortes, la materia de otra persona (404 y "La materia no existe."), eliminar (se conserva la categoría), 390 px y 1280 px en oscuro sin desborde. Sin llamadas a Gemini salvo `probar:rag` de la compatibilidad con master.
 - **Al cierre:** `npm test` 1165/1165, `tsc` y `eslint` sin errores, `npm run build` correcto.
 - **Pendiente:** la prueba del usuario (B-24 a B-27).
+
+#### E12 terminada (2026-11-14)
+
+- **Prueba del usuario con `0baadd0` en la vista previa, en el iPhone y el PC, sin fallas (las 10):** crear materia con su categoría; créditos fuera de rango; nombre repetido; componentes con el aviso de la suma; notas (fuera de rango, con nombre y fecha, sin nota, editar y eliminar); dividir en cortes; cortes que no suman 100 %; volver a sin cortes conservando componentes y notas; eliminar la materia conservando la categoría; en el teléfono todo se toca bien, sin zoom ni desplazamiento lateral.
+- Queda cerrada E12. Sigue E13.
