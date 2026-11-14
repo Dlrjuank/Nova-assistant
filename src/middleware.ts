@@ -51,8 +51,8 @@ export async function middleware(request: NextRequest) {
     if (sinSesion || !tieneAccesoNova(data.user?.email)) {
       if (esApiNova) {
         const [estado, codigo, mensaje] = sinSesion
-          ? [401, 'NO_AUTORIZADO', 'Debe iniciar sesión.']
-          : [403, 'ACCESO_DENEGADO', 'Su cuenta no tiene acceso a Nova Assistant.'];
+          ? [401, 'NO_AUTORIZADO', 'Debes iniciar sesión.']
+          : [403, 'ACCESO_DENEGADO', 'Tu cuenta no tiene acceso a Nova Assistant.'];
         return NextResponse.json(
           { ok: false, error: { codigo, mensaje, detalles: null } },
           { status: estado, headers: { 'Cache-Control': 'no-store' } },

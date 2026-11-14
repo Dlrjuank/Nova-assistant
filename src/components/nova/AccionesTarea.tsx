@@ -49,7 +49,7 @@ export function AccionesTarea({
       setModo('inicial');
       router.refresh();
     } catch {
-      setError('No se pudo conectar con el servidor. Intente de nuevo.');
+      setError('No se pudo conectar con el servidor. Intenta de nuevo.');
     } finally {
       setEnviando(false);
     }

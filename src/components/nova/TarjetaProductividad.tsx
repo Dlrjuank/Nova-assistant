@@ -50,7 +50,7 @@ export function TarjetaProductividad({ hoy }: { hoy: string }) {
       }
       setEstado('sinTareas' in cuerpo.datos ? { tipo: 'sinTareas', fecha: dia } : { tipo: 'resultado', datos: cuerpo.datos });
     } catch {
-      setEstado({ tipo: 'error', mensaje: 'No se pudo conectar con el servidor. Intente de nuevo.' });
+      setEstado({ tipo: 'error', mensaje: 'No se pudo conectar con el servidor. Intenta de nuevo.' });
     }
   }
 

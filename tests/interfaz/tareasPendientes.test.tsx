@@ -51,6 +51,7 @@ import { FormularioTarea } from '@/components/nova/FormularioTarea';
 import { useCerrarSesion } from '@/components/nova/navegacion/useCerrarSesion';
 import { PendientesDeEnviar } from '@/components/nova/pendientes/PendientesDeEnviar';
 import { ProveedorPendientes } from '@/components/nova/pendientes/ProveedorPendientes';
+import { SoloSinPendientes } from '@/components/nova/pendientes/SoloSinPendientes';
 import { TareaPendienteFila } from '@/components/nova/pendientes/TareaPendienteFila';
 
 const U = 'u1';
@@ -140,7 +141,7 @@ describe('S-77 · RB-70: crear sin conexión', () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
     render(conProveedor(<FormularioTarea tarea={{ id: 't9', titulo: 'Vieja', categoria: 'General', prioridad: 2, fechaLimite: '2099-01-10' }} />));
     fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }));
-    expect(await screen.findByText('No se pudo conectar con el servidor. Intente de nuevo.')).toBeTruthy();
+    expect(await screen.findByText('No se pudo conectar con el servidor. Intenta de nuevo.')).toBeTruthy();
     expect(mem.mapa.size).toBe(0);
   });
 });
@@ -194,7 +195,7 @@ describe('RB-71 y RB-74: cómo se ve una pendiente', () => {
     escribir('Categoría', 'General');
     fireEvent.click(screen.getByRole('button', { name: 'Guardar tarea' }));
     await waitFor(() => expect(nav.push).toHaveBeenCalledWith('/nova/tareas'));
-    const envio = f.mock.calls.filter(([u]) => u === '/api/nova/tareas').map(([, i]) => JSON.parse(String((i as RequestInit).body)));
+    const envio = (f.mock.calls as unknown[][]).filter(([u]) => u === '/api/nova/tareas').map((c) => JSON.parse(String((c[1] as RequestInit).body)));
     expect(envio.at(-1)).toMatchObject({ idCliente: 'a', titulo: 'Tarea a', categoria: 'General' });
     expect(mem.mapa.has('a')).toBe(false);
   });
@@ -209,7 +210,7 @@ describe('S-78 · RB-72: envío al abrir con conexión', () => {
     vi.stubGlobal('fetch', f);
     render(conProveedor(<p>Nova</p>));
     expect(await screen.findByText('Se enviaron 2 tareas que creaste sin conexión.')).toBeTruthy();
-    expect(f.mock.calls.map(([, i]) => JSON.parse(String((i as RequestInit).body)).idCliente)).toEqual(['a', 'b']);
+    expect((f.mock.calls as unknown[][]).map((c) => JSON.parse(String((c[1] as RequestInit).body)).idCliente)).toEqual(['a', 'b']);
     expect(mem.mapa.size).toBe(0);
     expect(nav.refresh).toHaveBeenCalled();
   });
@@ -274,5 +275,30 @@ describe('S-80 · RB-75: cerrar sesión con tareas sin enviar', () => {
     render(conProveedor(<BotonSalir />));
     fireEvent.click(screen.getByRole('button', { name: 'Salir' }));
     await waitFor(() => expect(nav.replace).toHaveBeenCalledWith('/login'));
+  });
+});
+
+describe('Tareas con solo pendientes de enviar', () => {
+  it('no muestra "Aún no tienes tareas" mientras haya pendientes; sin ellas, sí', async () => {
+    enLinea(false);
+    mem.mapa.set('a', pendiente('a'));
+    const { unmount } = render(
+      conProveedor(
+        <SoloSinPendientes>
+          <p>Aún no tienes tareas</p>
+        </SoloSinPendientes>,
+      ),
+    );
+    await waitFor(() => expect(screen.queryByText('Aún no tienes tareas')).toBeNull());
+    unmount();
+    mem.mapa.clear();
+    render(
+      conProveedor(
+        <SoloSinPendientes>
+          <p>Aún no tienes tareas</p>
+        </SoloSinPendientes>,
+      ),
+    );
+    expect(await screen.findByText('Aún no tienes tareas')).toBeTruthy();
   });
 });

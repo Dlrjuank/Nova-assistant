@@ -227,7 +227,7 @@ export function FormularioTarea({
     } catch (error) {
       // E11e: si el pedido falló por la red, la tarea nueva queda en el dispositivo con el mismo idCliente.
       if (!tarea && esFallaDeRed(error)) await guardarEnDispositivo(datos);
-      else setErrorServidor('No se pudo conectar con el servidor. Intente de nuevo.');
+      else setErrorServidor('No se pudo conectar con el servidor. Intenta de nuevo.');
     } finally {
       setEnviando(false);
     }
@@ -242,7 +242,7 @@ export function FormularioTarea({
       return;
     }
     if (!usuarioId) {
-      setErrorServidor('No se pudo conectar con el servidor. Intente de nuevo.');
+      setErrorServidor('No se pudo conectar con el servidor. Intenta de nuevo.');
       return;
     }
     try {

@@ -33,7 +33,7 @@ export function GuardarFuente({ url, resumen }: { url: string; resumen: string }
       }
       setGuardada(cuerpo.datos);
     } catch {
-      setError({ codigo: 'SIN_CONEXION', mensaje: 'No se pudo conectar con el servidor. Intente de nuevo.' });
+      setError({ codigo: 'SIN_CONEXION', mensaje: 'No se pudo conectar con el servidor. Intenta de nuevo.' });
     } finally {
       setGuardando(false);
     }

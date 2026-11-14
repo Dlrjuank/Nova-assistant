@@ -115,7 +115,7 @@ describe('SubidorPdf', () => {
     render(<SubidorPdf />);
     elegir(archivoDe('a.pdf'));
     fireEvent.click(botonIndexar());
-    expect(await screen.findByText('No se pudo subir el archivo. Intente de nuevo.')).toBeTruthy();
+    expect(await screen.findByText('No se pudo subir el archivo. Intenta de nuevo.')).toBeTruthy();
     expect(f).not.toHaveBeenCalled();
   });
 });

@@ -167,8 +167,11 @@ html {
 }
 
 /* E11b (RB-62): sin conexión, lo que escribe datos o necesita internet se ve desactivado. ConexionNova lo
-   bloquea de verdad y dice `Necesitas conexión para esto.`; esto solo lo muestra. */
-html[data-nova-sin-conexion] :is(button, input, select, textarea, summary):not([data-sin-conexion="permitido"]),
+   bloquea de verdad y dice `Necesitas conexión para esto.`; esto solo lo muestra. Debe decidir lo mismo que
+   bloqueadoSinConexion (lo vigila tests/interfaz/sinConexionEstilo.test.ts). E11e: lo que está dentro de una zona
+   permitida (el formulario de nueva tarea, una tarea pendiente) y los enlaces al formulario se ven normales. */
+html[data-nova-sin-conexion]
+  :is(button, input, select, textarea, summary):not([data-sin-conexion="permitido"], [data-sin-conexion="permitido"] *),
 html[data-nova-sin-conexion]
   :is(
     a[href^="/nova/asistente"],
@@ -176,7 +179,7 @@ html[data-nova-sin-conexion]
     a[href^="/nova/productividad"],
     a[href^="/nova/configuracion"],
     a[href^="/nova/cuestionarios"],
-    a[href^="/nova/tareas/"],
+    a[href^="/nova/tareas/"]:not([href="/nova/tareas/nueva"], [href^="/nova/tareas/nueva?"]),
     a[href*="mes="]
   ) {
   opacity: 0.5;

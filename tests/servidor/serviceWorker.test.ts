@@ -34,12 +34,12 @@ function entorno() {
     skipWaiting: () => undefined,
     clients: { claim: async () => undefined, matchAll: async () => [{ postMessage: (m: unknown) => mensajes.push(m) }] },
   };
-  const red = vi.fn<(pedido: unknown) => Promise<Response | Record<string, unknown>>>();
+  const red = vi.fn<(pedido: unknown, opciones?: unknown) => Promise<Response | Record<string, unknown>>>();
   // E11e: con cada copia, el service worker también guarda el formulario de nueva tarea. Ese pedido va aparte
   // (redNueva) para que las cuentas de `red` sigan siendo las de la pantalla que se prueba.
   const redNueva = vi.fn(async () => pagina('Formulario de nueva tarea'));
   const urlDe = (p: unknown) => (typeof p === 'string' ? p : (p as { url: string }).url);
-  const redReal = (p: unknown, i?: unknown) => (new URL(urlDe(p), ORIGEN).pathname === '/nova/tareas/nueva' ? redNueva() : red(p, i as never));
+  const redReal = (p: unknown, i?: unknown) => (new URL(urlDe(p), ORIGEN).pathname === '/nova/tareas/nueva' ? redNueva() : red(p, i));
   const importScripts = () => new Function('self', readFileSync(join(process.cwd(), 'public/sw-reglas.js'), 'utf8'))(self);
   new Function('self', 'caches', 'importScripts', 'fetch', 'URL', 'Response', readFileSync(join(process.cwd(), 'public/sw.js'), 'utf8'))(
     self,

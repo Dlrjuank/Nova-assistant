@@ -8,7 +8,7 @@ import { Tarjeta } from '@/components/ui/Tarjeta';
 import { MENSAJES } from '@/lib/reglas/errores';
 
 const ESPERA_SI_OCUPADO_MS = 5000;
-const SIN_CONEXION = 'Se perdió la conexión con el servidor. Intente de nuevo.';
+const SIN_CONEXION = 'Se perdió la conexión con el servidor. Intenta de nuevo.';
 
 interface Pendiente {
   id: string;

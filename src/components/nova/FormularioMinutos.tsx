@@ -50,7 +50,7 @@ export function FormularioMinutos({
       alTerminar();
       router.refresh();
     } catch {
-      setError('No se pudo conectar con el servidor. Intente de nuevo.');
+      setError('No se pudo conectar con el servidor. Intenta de nuevo.');
     } finally {
       setEnviando(false);
     }
@@ -67,7 +67,7 @@ export function FormularioMinutos({
         inputMode="numeric"
         value={minutos}
         onChange={(e) => setMinutos(e.target.value)}
-        error={minutosValidos ? undefined : 'Escriba un número entero de 0 en adelante.'}
+        error={minutosValidos ? undefined : 'Escribe un número entero de 0 en adelante.'}
         autoFocus={enfocar}
       />
       <div className="flex flex-wrap gap-2">

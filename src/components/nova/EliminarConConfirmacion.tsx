@@ -25,7 +25,7 @@ export function EliminarConConfirmacion({ ruta, etiqueta, pregunta }: { ruta: st
       setConfirmando(false);
       router.refresh();
     } catch {
-      setError('No se pudo conectar con el servidor. Intente de nuevo.');
+      setError('No se pudo conectar con el servidor. Intenta de nuevo.');
     } finally {
       setEnviando(false);
     }

@@ -31,7 +31,7 @@ export interface LLMClient {
 // un lote de 50 fragmentos densos superaría el límite por sí solo y nunca pasaría.
 const TAMANO_LOTE = 20;
 const MENSAJE_CUOTA =
-  'Se alcanzó el límite de uso del asistente. Si el documento es muy largo, intente con uno más corto.';
+  'Se alcanzó el límite de uso del asistente. Si el documento es muy largo, intenta con uno más corto.';
 // Cuánto se puede esperar la cuota por minuto. Deben caber en el maxDuration de sus rutas (300 s y 60 s).
 const ESPERA_MAXIMA_INDEXAR_MS = 270_000;
 const ESPERA_MAXIMA_CONSULTAR_MS = 25_000;

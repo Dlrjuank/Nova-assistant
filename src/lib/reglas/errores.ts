@@ -53,28 +53,28 @@ export type CodigoError =
 
 // Textos de la sección 12.2; los de la sección 5.1 se usan literalmente.
 export const MENSAJES: Record<CodigoError, string> = {
-  DATOS_INVALIDOS: 'Revise los datos ingresados.',
-  NO_AUTORIZADO: 'Debe iniciar sesión.',
-  ACCESO_DENEGADO: 'Su cuenta no tiene acceso a Nova Assistant.',
+  DATOS_INVALIDOS: 'Revisa los datos ingresados.',
+  NO_AUTORIZADO: 'Debes iniciar sesión.',
+  ACCESO_DENEGADO: 'Tu cuenta no tiene acceso a Nova Assistant.',
   PRIORIDAD_INVALIDA: 'La prioridad debe ser 1, 2 o 3',
   FECHA_INVALIDA: 'La fecha debe tener formato AAAA-MM-DD y ser una fecha real.',
   ARCHIVO_MUY_GRANDE: 'El documento supera el límite permitido de 15 MB',
   PDF_INVALIDO: 'El archivo no es un PDF válido.',
   PDF_SIN_TEXTO: 'El documento no contiene texto seleccionable (no se admite OCR)',
   CONSULTA_MUY_CORTA: 'La instrucción es demasiado corta',
-  SIN_DOCUMENTOS: 'Aún no hay documentos indexados. Indexe un PDF antes de preguntar.',
+  SIN_DOCUMENTOS: 'Aún no hay documentos indexados. Indexa un PDF antes de preguntar.',
   PDF_MUY_LARGO: 'El PDF tiene demasiadas páginas; el máximo es 800.',
   ERROR_LLM: 'No se pudo obtener respuesta del asistente. Intenta de nuevo.',
   TAREA_NO_ENCONTRADA: 'La tarea no existe.',
   TAREA_YA_COMPLETADA: 'La tarea ya está completada.',
-  CONVERSACION_NO_ENCONTRADA: 'La conversación no existe. Recargue la página.',
+  CONVERSACION_NO_ENCONTRADA: 'La conversación no existe. Recarga la página.',
   DOCUMENTO_NO_ENCONTRADO: 'El documento no existe.',
   MENSAJE_NO_ENCONTRADO: 'Esa respuesta ya no se puede explicar de otra manera.',
   FUENTE_NO_ENCONTRADA: 'La fuente no existe.',
   FUENTE_DUPLICADA: 'Esta fuente ya está guardada en esta categoría.',
   FUENTE_URL_INVALIDA: 'La dirección de la fuente no es válida.',
-  LIMITE_FUENTES: 'Alcanzó el máximo de 20 fuentes en esta categoría; archive o elimine una.',
-  ERROR_WIKIPEDIA: 'No se pudo consultar Wikipedia. Intente de nuevo.',
+  LIMITE_FUENTES: 'Alcanzaste el máximo de 20 fuentes en esta categoría; archiva o elimina una.',
+  ERROR_WIKIPEDIA: 'No se pudo consultar Wikipedia. Intenta de nuevo.',
   // PLAN_AMPLIACION sección 8 (RB-02 a RB-04), en tuteo como el resto de la app.
   CATEGORIA_NO_ENCONTRADA: 'La categoría no existe.',
   CATEGORIA_DUPLICADA: 'Ya existe una categoría con ese nombre.',
@@ -110,7 +110,7 @@ export const MENSAJES: Record<CodigoError, string> = {
   SUSCRIPCION_INVALIDA: 'No se pudieron activar las notificaciones en este dispositivo. Intenta de nuevo.',
   SIN_NOTIFICACIONES: 'Activa las notificaciones para recibir este aviso.',
   NOTIFICACIONES_NO_CONFIGURADAS: 'Las notificaciones todavía no están disponibles en este servidor.',
-  ERROR_INTERNO: 'Ocurrió un error inesperado. Intente de nuevo.',
+  ERROR_INTERNO: 'Ocurrió un error inesperado. Intenta de nuevo.',
 };
 
 export const ESTADO_HTTP: Record<CodigoError, number> = {

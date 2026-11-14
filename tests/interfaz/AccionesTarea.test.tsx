@@ -42,7 +42,7 @@ describe('AccionesTarea', () => {
     montar();
     fireEvent.click(screen.getByRole('button', { name: 'Completar tarea: Pagar luz' }));
     fireEvent.change(screen.getByLabelText('Minutos dedicados'), { target: { value: '-5' } });
-    expect(screen.getByText('Escriba un número entero de 0 en adelante.')).toBeTruthy();
+    expect(screen.getByText('Escribe un número entero de 0 en adelante.')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Confirmar' }).hasAttribute('disabled')).toBe(true);
     expect(f).not.toHaveBeenCalled();
   });

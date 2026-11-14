@@ -237,7 +237,7 @@ export function Chat({
       setSinGuardar(false);
       router.refresh();
     } catch {
-      setErrorNueva('No se pudo conectar con el servidor. Intente de nuevo.');
+      setErrorNueva('No se pudo conectar con el servidor. Intenta de nuevo.');
     } finally {
       setCreando(false);
     }

@@ -87,6 +87,6 @@ describe('TarjetaProductividad', () => {
   it('un error del servidor o de red muestra un aviso', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('red')));
     render(<TarjetaProductividad hoy="2026-03-10" />);
-    expect(await screen.findByText('No se pudo conectar con el servidor. Intente de nuevo.')).toBeTruthy();
+    expect(await screen.findByText('No se pudo conectar con el servidor. Intenta de nuevo.')).toBeTruthy();
   });
 });

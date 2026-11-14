@@ -72,7 +72,7 @@ export function SubidorPdf() {
       urlBlob = blob.url;
     } catch (causa) {
       console.error('No se pudo subir el PDF:', causa);
-      setError('No se pudo subir el archivo. Intente de nuevo.');
+      setError('No se pudo subir el archivo. Intenta de nuevo.');
       setEtapa('inicial');
       return;
     }
@@ -97,7 +97,7 @@ export function SubidorPdf() {
       if (!respuesta.ok || !cuerpo?.ok || !cuerpo.datos) {
         setError(
           cuerpo?.error?.mensaje ??
-            'La indexación no terminó. El documento puede ser demasiado largo; intente con uno más corto.',
+            'La indexación no terminó. El documento puede ser demasiado largo; intenta con uno más corto.',
         );
         return;
       }
@@ -107,7 +107,7 @@ export function SubidorPdf() {
       if (entrada.current) entrada.current.value = '';
       router.refresh();
     } catch {
-      setError('No se pudo conectar con el servidor. Intente de nuevo.');
+      setError('No se pudo conectar con el servidor. Intenta de nuevo.');
     } finally {
       setEtapa('inicial');
     }

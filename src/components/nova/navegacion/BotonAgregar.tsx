@@ -69,6 +69,7 @@ export function BotonAgregar() {
       <button
         ref={boton}
         type="button"
+        data-sin-conexion="permitido" // E11e: solo abre el menú; "Nueva tarea" funciona sin conexión
         aria-label={abierto ? 'Cerrar el menú Agregar' : 'Agregar'}
         aria-expanded={abierto}
         aria-controls="menu-agregar"

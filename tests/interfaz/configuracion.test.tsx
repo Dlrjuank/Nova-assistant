@@ -51,10 +51,10 @@ describe('Apariencia (RB-27, B-03)', () => {
   });
 
   it('si no se puede guardar, vuelve al tema anterior y lo dice', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(falla('Ocurrió un error inesperado. Intente de nuevo.', 500)));
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(falla('Ocurrió un error inesperado. Intenta de nuevo.', 500)));
     render(<BloqueApariencia tema="claro" formatoHora="24" />);
     fireEvent.click(screen.getByLabelText('Oscuro'));
-    expect(await screen.findByText('Ocurrió un error inesperado. Intente de nuevo.')).toBeTruthy();
+    expect(await screen.findByText('Ocurrió un error inesperado. Intenta de nuevo.')).toBeTruthy();
     expect(document.documentElement.getAttribute('data-tema')).toBe('claro');
     expect((screen.getByLabelText('Claro') as HTMLInputElement).checked).toBe(true);
   });

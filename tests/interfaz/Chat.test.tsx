@@ -266,7 +266,7 @@ describe('Chat', () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('red')));
     render(<Chat conversacionId="c1" historial={[{ id: 1, autor: 'usuario', texto: 'Pregunta vieja', fuentes: [] }]} />);
     fireEvent.click(screen.getByRole('button', { name: 'Conversación nueva' }));
-    expect(await screen.findByText('No se pudo conectar con el servidor. Intente de nuevo.')).toBeTruthy();
+    expect(await screen.findByText('No se pudo conectar con el servidor. Intenta de nuevo.')).toBeTruthy();
     expect(screen.getByText('Pregunta vieja')).toBeTruthy();
   });
 
@@ -285,13 +285,13 @@ describe('Chat', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(
-        responder({ ok: false, error: { codigo: 'CONVERSACION_NO_ENCONTRADA', mensaje: 'La conversación no existe. Recargue la página.' } }, 404),
+        responder({ ok: false, error: { codigo: 'CONVERSACION_NO_ENCONTRADA', mensaje: 'La conversación no existe. Recarga la página.' } }, 404),
       ),
     );
     render(<Chat conversacionId="c1" />);
     escribir('Mi agenda de hoy');
     fireEvent.click(boton());
-    expect(await screen.findByText('La conversación no existe. Recargue la página.')).toBeTruthy();
+    expect(await screen.findByText('La conversación no existe. Recarga la página.')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Reintentar' })).toBeNull();
   });
 
@@ -427,14 +427,14 @@ describe('E10c2: Wikipedia y fuentes guardadas', () => {
       .fn()
       .mockResolvedValueOnce(ok(WIKI))
       .mockResolvedValueOnce(responder({ ok: false, error: { codigo: 'FUENTE_DUPLICADA', mensaje: 'Esta fuente ya está guardada en «General».' } }, 409))
-      .mockResolvedValueOnce(responder({ ok: false, error: { codigo: 'LIMITE_FUENTES', mensaje: 'Alcanzó el máximo de 20 fuentes en esta categoría; archive o elimine una.' } }, 409));
+      .mockResolvedValueOnce(responder({ ok: false, error: { codigo: 'LIMITE_FUENTES', mensaje: 'Alcanzaste el máximo de 20 fuentes en esta categoría; archiva o elimina una.' } }, 409));
     vi.stubGlobal('fetch', f);
     render(<Chat />);
     await preguntarWikipedia();
     fireEvent.click(screen.getByRole('button', { name: 'Guardar fuente' }));
     await screen.findByText('Esta fuente ya está guardada en «General».');
     fireEvent.click(screen.getByRole('button', { name: 'Guardar fuente' }));
-    await screen.findByText(/Alcanzó el máximo de 20/);
+    await screen.findByText(/Alcanzaste el máximo de 20/);
     expect(screen.getByRole('link', { name: 'Ver fuentes guardadas' }).getAttribute('href')).toBe('/nova/fuentes?pestana=web');
   });
 
