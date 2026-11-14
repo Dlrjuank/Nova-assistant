@@ -15,7 +15,11 @@ const m = vi.hoisted(() => ({
 }));
 vi.mock('@/lib/auth/sesion', () => ({ exigirSesion: m.exigirSesion }));
 vi.mock('@/lib/dataService', () => ({
-  crearTarea: m.crearTarea,
+  // E11e: la ruta usa crearTareaConResultado; el doble devuelve lo de crearTarea como recién creada.
+  crearTareaConResultado: async (...a: unknown[]) => {
+    const r = await m.crearTarea(...a);
+    return r && typeof r === 'object' && 'yaExistia' in r ? r : { tarea: r, yaExistia: false };
+  },
   listarTareas: m.listarTareas,
   indexarDocumento: m.indexarDocumento,
   listarDocumentos: m.listarDocumentos,
@@ -83,6 +87,18 @@ describe('rutas /api/nova', () => {
       const r = await tareasRuta.POST(post({ titulo: 'Pagar luz', fechaLimite: '2026-03-10' }));
       expect(r.status).toBe(201);
       expect(await r.json()).toEqual({ ok: true, datos: { id: '1', titulo: 'Pagar luz' } });
+    });
+
+    it('E11e (7.14): con idCliente, si ya existía responde 200 con la misma tarea; un idCliente que no es UUID es 400', async () => {
+      m.crearTarea.mockResolvedValue({ tarea: { id: '1', titulo: 'Pagar luz' }, yaExistia: true });
+      const id = '0b0e7c6a-1d2f-4e5a-9b8c-7d6e5f4a3b21';
+      const r = await tareasRuta.POST(post({ titulo: 'Pagar luz', fechaLimite: '2026-03-10', idCliente: id }));
+      expect(r.status).toBe(200);
+      expect(await r.json()).toEqual({ ok: true, datos: { id: '1', titulo: 'Pagar luz' } });
+      expect(m.crearTarea.mock.calls[0]?.[1]).toMatchObject({ idCliente: id });
+      m.crearTarea.mockClear();
+      expect((await tareasRuta.POST(post({ titulo: 'a', fechaLimite: '2026-03-10', idCliente: 'x' }))).status).toBe(400);
+      expect(m.crearTarea).not.toHaveBeenCalled();
     });
 
     it('prioridad 5 llega al servicio y vuelve 422 con el mensaje exacto', async () => {

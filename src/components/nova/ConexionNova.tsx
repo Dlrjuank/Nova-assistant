@@ -4,9 +4,10 @@ import { WifiOff } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { useFormatoHora } from '@/components/nova/PreferenciasNova';
+import { cargarPagina, marcarSalida, reiniciarSalida, saliendoDePagina } from '@/lib/cargarPagina';
 import { guardarEventoInstalar, type EventoInstalar } from '@/lib/instalacion';
 import { formatearHora } from '@/lib/reglas/horario';
-import { bloqueadoSinConexion, ESPERA_GUARDAR_MS, NECESITAS_CONEXION, rutaConCopia, textoSinConexion } from '@/lib/reglas/sinConexion';
+import { bloqueadoSinConexion, ESPERA_GUARDAR_MS, NECESITAS_CONEXION, RUTA_NUEVA_TAREA, rutaConCopia, textoSinConexion } from '@/lib/reglas/sinConexion';
 
 /**
  * Al moverse con el menú o un enlace, Next cambia de pantalla sin recargar (pedido RSC) y el service worker no ve
@@ -105,14 +106,27 @@ export function ConexionNova() {
     setEnLinea(navigator.onLine);
     const alVolver = () => {
       setEnLinea(true);
-      if (horaDeCopia()) window.location.reload(); // la copia es una foto: se pide la página de verdad
+      // La copia es una foto: se pide la página de verdad. E11e: no en el formulario de nueva tarea, que puede
+      // estar a medio llenar (al guardar ya hay conexión y se envía normal), ni si la página ya se está yendo a
+      // otra: el navegador puede avisar "online" justo al salir y la recarga se comería esa navegación.
+      if (horaDeCopia() && navigator.onLine && !saliendoDePagina() && window.location.pathname !== RUTA_NUEVA_TAREA) window.location.reload();
     };
     const alPerder = () => setEnLinea(false);
+    const alSalir = () => marcarSalida();
+    const alMostrar = (e: PageTransitionEvent) => {
+      if (e.persisted) reiniciarSalida();
+    };
+    window.addEventListener('pageshow', alMostrar);
     window.addEventListener('online', alVolver);
     window.addEventListener('offline', alPerder);
+    window.addEventListener('pagehide', alSalir);
+    window.addEventListener('beforeunload', alSalir);
     return () => {
       window.removeEventListener('online', alVolver);
       window.removeEventListener('offline', alPerder);
+      window.removeEventListener('pagehide', alSalir);
+      window.removeEventListener('beforeunload', alSalir);
+      window.removeEventListener('pageshow', alMostrar);
     };
   }, []);
 
@@ -146,7 +160,22 @@ export function ConexionNova() {
     let temporizador: ReturnType<typeof setTimeout> | undefined;
     const bloquear = (e: Event) => {
       const objetivo = e.target;
-      if (!(objetivo instanceof Element) || !bloqueadoSinConexion(objetivo, window.location.origin, new Date())) return;
+      if (!(objetivo instanceof Element)) return;
+      if (!bloqueadoSinConexion(objetivo, window.location.origin, new Date())) {
+        // E11e: un enlace permitido (a una pantalla con copia) se abre con una carga completa, que el service
+        // worker sirve desde la copia. La navegación de Next sin conexión a veces se queda sin cambiar de pantalla.
+        const enlace = e.type === 'click' ? objetivo.closest('a[href]') : null;
+        const clic = e as MouseEvent;
+        if (enlace && !clic.metaKey && !clic.ctrlKey && !clic.shiftKey && clic.button === 0 && enlace.getAttribute('target') !== '_blank') {
+          const destino = new URL(enlace.getAttribute('href') as string, window.location.origin);
+          if (destino.origin === window.location.origin && destino.href !== window.location.href) {
+            e.preventDefault();
+            e.stopPropagation();
+            cargarPagina(destino.href);
+          }
+        }
+        return;
+      }
       if (e.type === 'keydown' && !['Enter', ' '].includes((e as KeyboardEvent).key)) return;
       e.preventDefault();
       e.stopPropagation();

@@ -7,6 +7,7 @@
  * - Borra la copia al cerrar sesión, si el servidor rechaza la sesión, si entra otro usuario y tras 7 días sin
  *   una respuesta válida del servidor.
  * E11c: notificaciones de los recordatorios (mostrar, numerito del ícono y abrir la tarea al tocarla).
+ * E11e: también guarda el formulario de nueva tarea (y los archivos de cada copia) para crear tareas sin conexión.
  */
 importScripts('/sw-reglas.js');
 
@@ -134,17 +135,48 @@ function despues(url, metodo, respuesta, ahora) {
       var guardar =
         R.paginaGuardable(url, ahora) && tipo.indexOf('text/html') !== -1
           ? respuesta.text().then(function (html) {
-              return caches.open(DATOS).then(function (c) {
-                return c.put(
-                  R.clavePagina(url),
-                  new Response(R.marcarCopia(html, ahora.getTime()), { headers: { 'Content-Type': 'text/html; charset=utf-8', 'x-nova-guardada': String(ahora.getTime()) } }),
-                );
-              });
+              return caches
+                .open(DATOS)
+                .then(function (c) {
+                  return c.put(
+                    R.clavePagina(url),
+                    new Response(R.marcarCopia(html, ahora.getTime()), { headers: { 'Content-Type': 'text/html; charset=utf-8', 'x-nova-guardada': String(ahora.getTime()) } }),
+                  );
+                })
+                .then(function () {
+                  return guardarRecursos(html);
+                })
+                .then(function () {
+                  // E11e: con cada copia, también la del formulario de nueva tarea (si no hay una reciente).
+                  if (url.pathname !== R.NUEVA_TAREA) return guardarRuta(self.location.origin + R.NUEVA_TAREA);
+                });
             })
           : Promise.resolve();
       return guardar.then(function () {
         return guardarMeta({ usuario: usuario, ultimaValida: ahora.getTime() });
       });
+    });
+  });
+}
+
+/** E11e: guarda los archivos estáticos que pide una página y que aún no estén guardados. */
+function guardarRecursos(html) {
+  var rutas = R.recursosDePagina(html);
+  if (rutas.length === 0) return Promise.resolve();
+  return caches.open(ESTATICOS).then(function (cache) {
+    return Promise.all(
+      rutas.map(function (ruta) {
+        return cache.match(ruta).then(function (ya) {
+          if (ya) return;
+          return fetch(ruta, { credentials: 'same-origin' })
+            .then(function (r) {
+              if (r.ok) return cache.put(ruta, r);
+            })
+            .catch(function () {});
+        });
+      }),
+    ).then(function () {
+      return recortar(cache);
     });
   });
 }

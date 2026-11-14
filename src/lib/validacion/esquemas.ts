@@ -14,6 +14,8 @@ export const esquemaTarea = z.object({
   horaFin: z.string().max(8).nullish(),
   // E11c (RB-43): lo valida src/lib/reglas/recordatorios.ts; "" o null = sin recordatorio.
   recordatorio: z.string().max(12).nullish(),
+  // E11e (7.14): solo al crear; un reintento con el mismo idCliente devuelve la tarea ya guardada.
+  idCliente: z.uuid().optional(),
 });
 export type DatosTareaEntrada = z.infer<typeof esquemaTarea>;
 

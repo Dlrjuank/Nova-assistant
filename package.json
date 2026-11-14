@@ -23,6 +23,7 @@
     "probar:libro": "tsx scripts/probar-libro.ts",
     "probar:cuestionario": "tsx scripts/probar-cuestionario.ts",
     "probar:recordatorios": "tsx scripts/probar-recordatorios.ts",
+    "probar:sin-conexion": "tsx scripts/probar-sin-conexion.ts",
     "db:configurar-tick": "node scripts/configurar-tick.mjs"
   },
   "dependencies": {

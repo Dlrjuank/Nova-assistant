@@ -9,6 +9,8 @@
   /** Al navegar con el menú, una copia más nueva que esto no se vuelve a pedir (no se arma la página otra vez). */
   var COPIA_RECIENTE_MS = 5 * 60 * 1000;
   var CAPITULOS = /^\/nova\/fuentes\/[0-9a-f-]{36}\/capitulos$/i;
+  /** E11e (5.13): el formulario para crear una tarea, que funciona sin conexión. */
+  var NUEVA_TAREA = '/nova/tareas/nueva';
 
   /** "2026-11" del momento dado, en Bogotá (igual que el resto de la app). */
   function mesActual(ahora) {
@@ -37,10 +39,10 @@
     return url.pathname === '/nova' || url.pathname.indexOf('/nova/') === 0;
   }
 
-  /** RB-62: Inicio, Tareas (con sus filtros), el Calendario del mes actual y los capítulos de un documento. */
+  /** RB-62: Inicio, Tareas (con sus filtros), el Calendario del mes actual y los capítulos de un documento. E11e: el formulario de nueva tarea. */
   function paginaGuardable(url, ahora) {
     var ruta = url.pathname;
-    if (ruta === '/nova' || ruta === '/nova/tareas') return true;
+    if (ruta === '/nova' || ruta === '/nova/tareas' || ruta === NUEVA_TAREA) return true;
     if (ruta === '/nova/calendario') {
       var mes = url.searchParams.get('mes');
       return mes === null || mes === mesActual(ahora);
@@ -54,6 +56,11 @@
     copia.hash = '';
     copia.searchParams.delete('pregunta');
     copia.searchParams.delete('tarea'); // E11c: la tarea resaltada por una notificación no es otra pantalla
+    if (copia.pathname === NUEVA_TAREA) {
+      // E11e: una sola copia del formulario; la fecha y la tarea a corregir las lee el formulario de la dirección.
+      copia.searchParams.delete('fecha');
+      copia.searchParams.delete('corregir');
+    }
     copia.searchParams.sort();
     return copia.pathname + copia.search;
   }
@@ -94,6 +101,20 @@
     return url === '/nova' || url.indexOf('/nova/') === 0 || url.indexOf('/nova?') === 0 ? url : '/nova';
   }
 
+  /**
+   * E11e: los archivos de Next que pide una página (scripts y estilos con nombre único por versión), para que su
+   * copia funcione sin conexión aunque nunca se haya abierto con conexión. Como máximo 80.
+   */
+  function recursosDePagina(html) {
+    var encontrados = [];
+    var patron = /(?:src|href)="(\/_next\/static\/[^"?#]+)"/g;
+    var m;
+    while ((m = patron.exec(html)) !== null && encontrados.length < 80) {
+      if (encontrados.indexOf(m[1]) === -1) encontrados.push(m[1]);
+    }
+    return encontrados;
+  }
+
   /** Marca el HTML guardado con la hora en que se guardó, para el aviso `Sin conexión · datos de las HH:MM`. */
   function marcarCopia(html, guardadoEn) {
     var meta = '<meta name="nova-copia" content="' + new Date(guardadoEn).toISOString() + '">';
@@ -115,5 +136,7 @@
     debeBorrar: debeBorrar,
     vencida: vencida,
     marcarCopia: marcarCopia,
+    recursosDePagina: recursosDePagina,
+    NUEVA_TAREA: NUEVA_TAREA,
   };
 })(self);

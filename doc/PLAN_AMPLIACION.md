@@ -354,6 +354,12 @@ Se hace después de E11d. **Solo crear:** completar, editar y eliminar siguen ne
 - **Si el servidor la rechaza** (por ejemplo, una categoría o una fecha que ya no es válida): queda en el dispositivo como `No se pudo enviar`, con el mensaje exacto del servidor, y los botones "Corregir" (abre el formulario lleno; al guardar se vuelve a enviar) y "Descartar" (RB-74).
 - **Cerrar sesión con tareas sin enviar:** antes de cerrar, se avisa cuántas hay; si se confirma, se borran del dispositivo junto con la copia de RB-63. Las tareas pendientes de otro usuario nunca se envían con la sesión de este (RB-75).
 - **Límite:** 50 tareas pendientes por dispositivo.
+- **Cómo quedó al construirla (E11e, 2026-11-13):**
+  - En Tareas, las pendientes van en un bloque arriba de la lista (`{n} tareas pendientes de enviar`), cada una con su categoría y su fecha, y no dentro del grupo de su categoría: así se ven todas juntas y una categoría nueva no necesita un grupo que todavía no existe.
+  - Toda tarea nueva del formulario lleva su `id_cliente`, también con conexión: si el pedido se corta después de que el servidor la guardó, el reintento desde el dispositivo no la duplica.
+  - El service worker guarda la copia del formulario (y los scripts y estilos de cada copia) cada vez que guarda Inicio, Tareas o el Calendario, sin que haga falta abrirlo antes con conexión; como mucho una vez cada 5 minutos.
+  - Sin conexión, los enlaces a pantallas con copia se abren con una carga completa del navegador (la sirve el service worker): la navegación de Next sin red a veces no cambiaba de pantalla. Al volver la conexión, la página no se recarga si ya se está yendo a otra.
+  - Si el servidor rechaza una pendiente por el esquema de la petición (por ejemplo, una categoría de más de 80 caracteres), el mensaje es el general de datos inválidos; las demás reglas dan su mensaje exacto.
 
 ## 6. Modelo de datos
 
@@ -552,7 +558,7 @@ Antes de migrar: `npm run db:respaldar`. No hay tablas nuevas.
 |---|---|---|
 | `tareas_personales` | Columna nueva `id_cliente` UUID NULL: el identificador que el dispositivo le dio a una tarea creada sin conexión | Índice único parcial `(usuario_id, id_cliente)` donde `id_cliente IS NOT NULL` |
 
-- Solo aditiva: las tareas creadas con conexión y las de `master` quedan con `id_cliente` en NULL.
+- Solo aditiva: las tareas de `master` y las de otras rutas (plan de lectura, tarea de repaso) quedan con `id_cliente` en NULL. Desde E11e, toda tarea nueva del formulario lleva el suyo, también con conexión (5.13).
 - Lo pendiente vive en el dispositivo (IndexedDB), no en la base: la base solo recibe la tarea cuando se envía.
 
 ## 7. Reglas de cálculo

@@ -60,21 +60,42 @@ async function calcularRecordatorio(
 
 /** RN-04, RN-06, RN-07 y RN-08. RB-33: la categoría se resuelve (o se crea) en la misma transacción. */
 export async function crearTarea(usuarioId: string, d: DatosTarea): Promise<Tarea> {
+  return (await crearTareaConResultado(usuarioId, d)).tarea;
+}
+
+/**
+ * Crear, y E11e (7.14): con `idCliente` (una tarea creada sin conexión), si ya existe una tarea del usuario con
+ * ese identificador se devuelve esa, sin crear otra ni volver a resolver la categoría ni el recordatorio. Si dos
+ * envíos llegan a la vez, el índice único (M23) deja insertar solo a uno; el otro encuentra la tarea guardada.
+ */
+export async function crearTareaConResultado(usuarioId: string, d: DatosTarea): Promise<{ tarea: Tarea; yaExistia: boolean }> {
   const { titulo, prioridad } = validarTarea(d);
   const { horaInicio, horaFin } = validarHorario(d.horaInicio, d.horaFin); // RB-34
   const recordatorio = validarRecordatorio(d.recordatorio, horaInicio); // RB-43
+  const idCliente = d.idCliente ?? null;
+  const existente = async (tx: PoolClient) =>
+    (await tx.query<Tarea>(`SELECT ${COLUMNAS} FROM tareas_personales WHERE usuario_id = $1 AND id_cliente = $2`, [usuarioId, idCliente])).rows[0];
   return conTransaccion(async (tx) => {
+    if (idCliente) {
+      const ya = await existente(tx);
+      if (ya) return { tarea: ya, yaExistia: true };
+    }
     const categoria = await resolverCategoria(tx, usuarioId, d.categoria);
     const r = await calcularRecordatorio(tx, usuarioId, { recordatorio, fechaLimite: d.fechaLimite, horaInicio }, new Date());
     const { rows } = await tx.query<Tarea>(
       `INSERT INTO tareas_personales
          (titulo, categoria, prioridad, estado, fecha_limite, fecha_creacion, usuario_id, hora_inicio, hora_fin,
-          recordatorio, recordatorio_en, recordatorio_estado)
-       VALUES ($1, $2, $3, 'Pendiente', $4, $5, $6, $7, $8, $9, $10, $11)
+          recordatorio, recordatorio_en, recordatorio_estado, id_cliente)
+       VALUES ($1, $2, $3, 'Pendiente', $4, $5, $6, $7, $8, $9, $10, $11, $12)
+       ON CONFLICT (usuario_id, id_cliente) WHERE id_cliente IS NOT NULL DO NOTHING
        RETURNING ${COLUMNAS}`,
-      [titulo, categoria, prioridad, d.fechaLimite, hoyBogota(), usuarioId, horaInicio, horaFin, r.recordatorio, r.en, r.estado],
+      [titulo, categoria, prioridad, d.fechaLimite, hoyBogota(), usuarioId, horaInicio, horaFin, r.recordatorio, r.en, r.estado, idCliente],
     );
-    return rows[0] as Tarea;
+    if (rows[0]) return { tarea: rows[0], yaExistia: false };
+    // Otro envío con el mismo idCliente la guardó mientras tanto.
+    const ya = await existente(tx);
+    if (!ya) throw new ErrorDeNegocio('ERROR_INTERNO');
+    return { tarea: ya, yaExistia: true };
   });
 }
 

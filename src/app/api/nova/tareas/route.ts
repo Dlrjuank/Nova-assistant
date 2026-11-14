@@ -1,5 +1,5 @@
 import { exigirSesion } from '@/lib/auth/sesion';
-import { crearTarea, listarTareas } from '@/lib/dataService';
+import { crearTareaConResultado, listarTareas } from '@/lib/dataService';
 import { conManejoDeErrores, leerCuerpo, responderOk } from '@/lib/http/respuestas';
 import { esquemaFiltroTareas, esquemaTarea } from '@/lib/validacion/esquemas';
 
@@ -15,8 +15,10 @@ export const GET = conManejoDeErrores(async (peticion: Request) => {
   return responderOk(await listarTareas(id, filtro));
 });
 
+/** E11e (7.14): con `idCliente`, un reintento devuelve la tarea ya guardada con 200 en vez de crear otra (201). */
 export const POST = conManejoDeErrores(async (peticion: Request) => {
   const { id } = await exigirSesion();
   const datos = await leerCuerpo(peticion, esquemaTarea);
-  return responderOk(await crearTarea(id, datos), 201);
+  const { tarea, yaExistia } = await crearTareaConResultado(id, datos);
+  return responderOk(tarea, yaExistia ? 200 : 201);
 });

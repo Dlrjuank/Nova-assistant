@@ -8,6 +8,8 @@ import { colorDeCategoria } from '@/lib/reglas/categorias';
 import { DIAS_CORTOS, MAX_TAREAS_COLUMNA, nombreDia } from '@/lib/reglas/semana';
 import { estaVencida } from '@/lib/reglas/calendario';
 import { CasillaTarea, type TareaCasilla } from './CasillaTarea';
+import { usePendientes } from '@/components/nova/pendientes/ProveedorPendientes';
+import { TareaPendienteFila } from '@/components/nova/pendientes/TareaPendienteFila';
 
 const numeroDia = (fecha: string) => Number(fecha.slice(8, 10));
 
@@ -47,8 +49,22 @@ export function MiSemana({
       return nuevos;
     });
   const color = (t: TareaCasilla) => colorDeCategoria(t.categoria, categorias);
+  // E11e (RB-71): las creadas sin conexión, en su día, después de las guardadas y sin casilla.
+  const { lista: pendientes } = usePendientes();
+  const pendientesDe = (fecha: string) => pendientes.filter((t) => t.datos.fechaLimite === fecha);
   const lista = (fecha: string, prefijo: string, compacta: boolean) => {
     const tareas = porDia[fecha] ?? [];
+    const sinEnviar = pendientesDe(fecha);
+    const filasSinEnviar = sinEnviar.length > 0 && (
+      <ul className="mt-1 flex flex-col gap-1">
+        {sinEnviar.map((t) => (
+          <li key={t.idCliente}>
+            <TareaPendienteFila tarea={t} categorias={categorias} compacta={compacta} />
+          </li>
+        ))}
+      </ul>
+    );
+    if (tareas.length === 0 && sinEnviar.length > 0) return filasSinEnviar;
     if (tareas.length === 0) return <p className="px-2 py-1 text-xs text-texto-suave">Sin tareas</p>;
     // Solo en las columnas: como máximo MAX_TAREAS_COLUMNA y "+N más" abre el día completo en su columna.
     const conTope = compacta && tareas.length > MAX_TAREAS_COLUMNA;
@@ -83,6 +99,7 @@ export function MiSemana({
             {abierto ? 'Ver menos' : `+${ocultas} más`}
           </button>
         )}
+        {filasSinEnviar}
       </>
     );
   };
@@ -132,7 +149,7 @@ export function MiSemana({
         <div role="group" aria-label="Elegir día" className="grid grid-cols-7 gap-1">
           {dias.map((fecha, i) => {
             const activo = fecha === elegido;
-            const cantidad = porDia[fecha]?.length ?? 0;
+            const cantidad = (porDia[fecha]?.length ?? 0) + pendientesDe(fecha).length;
             return (
               <button
                 key={fecha}

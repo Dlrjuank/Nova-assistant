@@ -14,6 +14,8 @@ export interface DatosTarea {
   horaFin?: string | null | undefined;
   /** E11c (RB-43): null o "" = sin recordatorio. */
   recordatorio?: string | null | undefined;
+  /** E11e (7.14): el identificador que le dio el dispositivo a una tarea creada sin conexión. */
+  idCliente?: string | undefined;
 }
 
 export interface Tarea {

@@ -30,10 +30,16 @@ export function mesActualBogota(ahora: Date): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota', year: 'numeric', month: '2-digit' }).format(ahora).slice(0, 7);
 }
 
-/** RB-62: Inicio, Tareas, el Calendario del mes actual y los capítulos de un documento tienen copia sin conexión. */
+/** E11e (5.13): el formulario de nueva tarea, que funciona sin conexión. */
+export const RUTA_NUEVA_TAREA = '/nova/tareas/nueva';
+
+/**
+ * RB-62: Inicio, Tareas, el Calendario del mes actual y los capítulos de un documento tienen copia sin conexión.
+ * E11e: también el formulario de nueva tarea.
+ */
 export function rutaConCopia(url: URL, ahora: Date): boolean {
   const ruta = url.pathname;
-  if (ruta === '/nova' || ruta === '/nova/tareas') return true;
+  if (ruta === '/nova' || ruta === '/nova/tareas' || ruta === RUTA_NUEVA_TAREA) return true;
   if (ruta === '/nova/calendario') {
     const mes = url.searchParams.get('mes');
     return mes === null || mes === mesActualBogota(ahora);

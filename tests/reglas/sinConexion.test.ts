@@ -32,11 +32,10 @@ const FIN_DE_MES = new Date('2026-12-01T03:00:00Z');
 const DOC = '22222222-2222-4222-8222-222222222222';
 
 describe('S-68: qué se puede guardar (RB-62)', () => {
-  const guardables = ['/nova', '/nova?semana=2026-11-09', '/nova/tareas', '/nova/tareas?vista=hoy&categoria=Casa', '/nova/calendario', '/nova/calendario?mes=2026-11', `/nova/fuentes/${DOC}/capitulos`];
+  const guardables = ['/nova', '/nova?semana=2026-11-09', '/nova/tareas', '/nova/tareas?vista=hoy&categoria=Casa', '/nova/calendario', '/nova/calendario?mes=2026-11', `/nova/fuentes/${DOC}/capitulos`, '/nova/tareas/nueva', '/nova/tareas/nueva?fecha=2026-11-20']; // E11e: el formulario de nueva tarea
   const nunca = [
     '/nova/asistente',
     '/nova/calendario?mes=2026-10',
-    '/nova/tareas/nueva',
     `/nova/tareas/${DOC}/editar`,
     '/nova/fuentes',
     '/nova/fuentes?pestana=web',

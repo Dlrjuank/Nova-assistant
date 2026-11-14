@@ -416,8 +416,10 @@ try {
       await esperaFalla('bg) la misma suscripción dos veces', '23505', sus, [dueno, 'https://push.ejemplo/verificar']);
       await esperaFalla('bh) suscripción sin https', '23514', sus, [dueno, 'http://push.ejemplo/x']);
       const res = "INSERT INTO envios (usuario_id, tipo, fecha, resultado) VALUES ($1, $2, $3, 'ok')";
-      await c.query(res, [dueno, 'resumen', hoy]);
-      await esperaFalla('bi) dos resúmenes el mismo día', '23505', res, [dueno, 'resumen', hoy]);
+      // Un día fijo del pasado: el de hoy puede tener ya un resumen de verdad del usuario.
+      const diaPrueba = '2000-01-01';
+      await c.query(res, [dueno, 'resumen', diaPrueba]);
+      await esperaFalla('bi) dos resúmenes el mismo día', '23505', res, [dueno, 'resumen', diaPrueba]);
       await c.query(res, [dueno, 'recordatorio', hoy]);
       await c.query(res, [dueno, 'recordatorio', hoy]);
       marcar(true, 'bj) varios recordatorios el mismo día');
@@ -425,6 +427,23 @@ try {
       marcar(pref.h === '08:00' && pref.resumen_diario === false && pref.r === '07:00', 'bk) preferencias nuevas por defecto (8:00, sin resumen, 7:00)');
     } catch (e) {
       marcar(false, `ba-bk) recordatorios: ${e.message}`);
+    }
+  }
+  console.log('== 6k. Tareas creadas sin conexión (M23)');
+  const columnaM23 = await c.query("SELECT data_type, is_nullable FROM information_schema.columns WHERE table_name = 'tareas_personales' AND column_name = 'id_cliente'");
+  marcar(columnaM23.rowCount === 1 && columnaM23.rows[0].data_type === 'uuid' && columnaM23.rows[0].is_nullable === 'YES', 'columna tareas_personales.id_cliente (UUID, opcional)');
+  if (columnaM23.rowCount === 1 && dueno) {
+    try {
+      const ins = `INSERT INTO tareas_personales (titulo, fecha_limite, fecha_creacion, usuario_id, id_cliente) VALUES ('verificar M23', $1, $1, $2, $3) RETURNING id`;
+      const sinCliente = (await c.query(`INSERT INTO tareas_personales (titulo, fecha_limite, fecha_creacion, usuario_id) VALUES ('verificar M23', $1, $1, $2) RETURNING id_cliente`, [hoy, dueno])).rows[0];
+      marcar(sinCliente.id_cliente === null, 'bl) una tarea creada como en master queda con id_cliente en NULL');
+      await c.query(`INSERT INTO tareas_personales (titulo, fecha_limite, fecha_creacion, usuario_id) VALUES ('verificar M23', $1, $1, $2)`, [hoy, dueno]);
+      marcar(true, 'bm) varias tareas sin id_cliente del mismo usuario');
+      const idCliente = '0b0e7c6a-1d2f-4e5a-9b8c-7d6e5f4a3b21';
+      await c.query(ins, [hoy, dueno, idCliente]);
+      await esperaFalla('bn) el mismo id_cliente dos veces para el mismo usuario', '23505', ins, [hoy, dueno, idCliente]);
+    } catch (e) {
+      marcar(false, `bl-bn) id_cliente: ${e.message}`);
     }
   }
   await c.query('ROLLBACK');

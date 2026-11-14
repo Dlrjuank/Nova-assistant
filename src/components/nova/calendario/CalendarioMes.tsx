@@ -6,6 +6,8 @@ import { useEffect, useRef, useState } from 'react';
 import { claseBoton, CLASE_FOCO } from '@/components/ui/Boton';
 import { PuntoCategoria } from '@/components/nova/InsigniaCategoria';
 import { CasillaTarea, type TareaCasilla } from '@/components/nova/inicio/CasillaTarea';
+import { usePendientes } from '@/components/nova/pendientes/ProveedorPendientes';
+import { TareaPendienteFila } from '@/components/nova/pendientes/TareaPendienteFila';
 import { estaVencida, mesDe } from '@/lib/reglas/calendario';
 import { colorDeCategoria } from '@/lib/reglas/categorias';
 import { useFormatoHora } from '@/components/nova/PreferenciasNova';
@@ -50,6 +52,10 @@ export function CalendarioMes({
   const [elegido, setElegido] = useState(() => (diaInicial && semanas.flat().includes(diaInicial) ? diaInicial : mesDe(hoy) === mes ? hoy : `${mes}-01`));
   const color = (t: TareaCalendario) => colorDeCategoria(t.categoria, categorias);
   const tareasDia = porDia[elegido] ?? [];
+  // E11e (RB-71): las creadas sin conexión, en su día: un punto en la cuadrícula y la fila en la lista del día.
+  const { lista: pendientes } = usePendientes();
+  const sinEnviarDe = (fecha: string) => pendientes.filter((t) => t.datos.fechaLimite === fecha);
+  const sinEnviarDia = sinEnviarDe(elegido);
   const esMesActual = mesDe(hoy) === mes;
   const panelDia = useRef<HTMLElement>(null);
   // Cada toque en un día pide llevar su lista a la vista. Se hace en un efecto, ya con la lista nueva dibujada:
@@ -123,7 +129,17 @@ export function CalendarioMes({
           {semanas.map((semana) => (
             <div key={semana[0]} role="row" className="grid grid-cols-7 gap-1">
               {semana.map((fecha) => {
-                const tareas = porDia[fecha] ?? [];
+                const sinEnviar: TareaCalendario[] = sinEnviarDe(fecha).map((t) => ({
+                  id: `sin-enviar-${t.idCliente}`,
+                  titulo: t.datos.titulo,
+                  categoria: t.datos.categoria,
+                  prioridad: t.datos.prioridad,
+                  estado: 'Pendiente',
+                  horaInicio: t.datos.horaInicio,
+                  horaFin: t.datos.horaFin,
+                  fechaLimite: t.datos.fechaLimite,
+                }));
+                const tareas = [...(porDia[fecha] ?? []), ...sinEnviar];
                 const delMes = mesDe(fecha) === mes;
                 const esHoy = fecha === hoy;
                 const activo = fecha === elegido;
@@ -210,13 +226,18 @@ export function CalendarioMes({
             Agregar
           </Link>
         </div>
-        {tareasDia.length === 0 ? (
+        {tareasDia.length === 0 && sinEnviarDia.length === 0 ? (
           <p className="text-sm text-texto-suave">Sin tareas este día.</p>
         ) : (
           <ul className="flex flex-col gap-1">
             {tareasDia.map((t) => (
               <li key={t.id}>
                 <CasillaTarea tarea={t} color={color(t)} prefijo="calendario" vencida={estaVencida(t, hoy)} volver={`/nova/calendario?mes=${mes}&dia=${elegido}`} />
+              </li>
+            ))}
+            {sinEnviarDia.map((t) => (
+              <li key={t.idCliente}>
+                <TareaPendienteFila tarea={t} categorias={categorias} />
               </li>
             ))}
           </ul>

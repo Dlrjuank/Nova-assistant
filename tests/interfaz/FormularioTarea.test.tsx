@@ -112,6 +112,8 @@ describe('FormularioTarea', () => {
       horaInicio: null,
       horaFin: null,
       recordatorio: null,
+      // E11e (7.14): toda tarea nueva lleva el identificador del dispositivo, por si el pedido se corta.
+      idCliente: expect.stringMatching(/^[0-9a-f-]{36}$/),
     });
     expect(nav.refresh).toHaveBeenCalled();
   });

@@ -136,7 +136,7 @@ export {
   capitulosDeDocumento,
   continuarIndexacion,
 } from '@/lib/datos/documentos';
-export { completarTarea, crearTarea, editarTarea, eliminarTarea, hayTareasPendientes, listarTareas, obtenerTarea } from '@/lib/datos/tareas';
+export { completarTarea, crearTarea, crearTareaConResultado, editarTarea, eliminarTarea, hayTareasPendientes, listarTareas, obtenerTarea } from '@/lib/datos/tareas';
 export { calcularProductividad } from '@/lib/datos/productividad';
 export { semanaDeTareas, type Semana } from '@/lib/datos/semana';
 export { mesDeTareas, type Mes } from '@/lib/datos/calendario';

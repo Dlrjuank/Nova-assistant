@@ -13,9 +13,13 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: (url: string) => nav.push(url) }),
 }));
 
+const carga = vi.hoisted(() => ({ cargarPagina: vi.fn<(url: string) => void>(), marcarSalida: vi.fn(), reiniciarSalida: vi.fn(), saliendoDePagina: vi.fn(() => false) }));
+vi.mock('@/lib/cargarPagina', () => carga);
+
 let enLinea = true;
 beforeEach(() => {
   enLinea = true;
+  carga.cargarPagina.mockReset();
   vi.spyOn(navigator, 'onLine', 'get').mockImplementation(() => enLinea);
 });
 afterEach(() => {
@@ -73,10 +77,14 @@ describe('ConexionNova', () => {
     expect(clic(screen.getByText('Hecha'))).toBe(false);
     expect(clic(screen.getByRole('link', { name: 'Asistente' }))).toBe(false);
 
-    // Lo que solo muestra sigue funcionando, y los enlaces a pantallas con copia también.
+    // Lo que solo muestra sigue funcionando, y los enlaces a pantallas con copia también. E11e: estos se abren
+    // con una carga completa (la sirve el service worker), no con la navegación de Next.
     fireEvent.click(screen.getByRole('button', { name: 'Martes' }));
     expect(alElegirDia).toHaveBeenCalled();
-    expect(clic(screen.getByRole('link', { name: 'Tareas de hoy' }))).toBe(true);
+    expect(screen.queryByText('Necesitas conexión para esto.')).toBeTruthy(); // el aviso anterior sigue un momento
+    expect(clic(screen.getByRole('link', { name: 'Tareas de hoy' }))).toBe(false);
+    expect(carga.cargarPagina).toHaveBeenCalledWith(expect.stringMatching(/\/nova\/tareas\?vista=hoy$/));
+    expect(carga.cargarPagina).toHaveBeenCalledTimes(1); // el Asistente no
   });
 
   it('al perder la conexión con la página abierta, avisa con la hora en que se cargó; al volver, deja de bloquear', () => {

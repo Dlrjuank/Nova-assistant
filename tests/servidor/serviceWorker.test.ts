@@ -35,12 +35,17 @@ function entorno() {
     clients: { claim: async () => undefined, matchAll: async () => [{ postMessage: (m: unknown) => mensajes.push(m) }] },
   };
   const red = vi.fn<(pedido: unknown) => Promise<Response | Record<string, unknown>>>();
+  // E11e: con cada copia, el service worker también guarda el formulario de nueva tarea. Ese pedido va aparte
+  // (redNueva) para que las cuentas de `red` sigan siendo las de la pantalla que se prueba.
+  const redNueva = vi.fn(async () => pagina('Formulario de nueva tarea'));
+  const urlDe = (p: unknown) => (typeof p === 'string' ? p : (p as { url: string }).url);
+  const redReal = (p: unknown, i?: unknown) => (new URL(urlDe(p), ORIGEN).pathname === '/nova/tareas/nueva' ? redNueva() : red(p, i as never));
   const importScripts = () => new Function('self', readFileSync(join(process.cwd(), 'public/sw-reglas.js'), 'utf8'))(self);
   new Function('self', 'caches', 'importScripts', 'fetch', 'URL', 'Response', readFileSync(join(process.cwd(), 'public/sw.js'), 'utf8'))(
     self,
     caches,
     importScripts,
-    red,
+    redReal,
     URL,
     Response,
   );
@@ -69,7 +74,8 @@ function entorno() {
   }
 
   const copias = () => [...(almacen.get('nova-datos-v1')?.keys() ?? [])].map((k) => new URL(k).pathname + new URL(k).search);
-  return { red, pedir, avisarRuta, copias, mensajes };
+  const estaticos = () => [...(almacen.get('nova-estaticos-v1')?.keys() ?? [])].map((k) => new URL(k).pathname);
+  return { red, redNueva, pedir, avisarRuta, copias, estaticos, mensajes };
 }
 
 const pagina = (cuerpo: string, usuario = 'u1') =>
@@ -263,5 +269,45 @@ describe('service worker: borrar la copia (RB-63)', () => {
     vi.setSystemTime(new Date('2026-11-20T18:06:00Z')); // 7 días y un minuto
     expect(await (await sw.pedir('/nova/tareas'))?.text()).toContain('Esta pantalla aún no está disponible sin conexión.');
     expect(sw.copias()).toEqual([]);
+  });
+});
+
+describe('E11e (5.13, S-77): el formulario de nueva tarea disponible sin conexión', () => {
+  it('al guardar una pantalla también guarda el formulario; sin conexión se abre con cualquier ?fecha=', async () => {
+    const sw = entorno();
+    sw.red.mockResolvedValueOnce(pagina('Inicio'));
+    await sw.pedir('/nova');
+    expect(sw.redNueva).toHaveBeenCalledTimes(1);
+    expect(sw.copias()).toContain('/nova/tareas/nueva');
+    sw.red.mockImplementation(sinRed);
+    sw.redNueva.mockImplementation(sinRed);
+    for (const ruta of ['/nova/tareas/nueva', '/nova/tareas/nueva?fecha=2026-11-20', '/nova/tareas/nueva?corregir=abc']) {
+      expect(await (await sw.pedir(ruta))?.text()).toContain('Formulario de nueva tarea');
+    }
+  });
+
+  it('no lo vuelve a pedir si su copia tiene menos de 5 minutos', async () => {
+    const sw = entorno();
+    sw.red.mockResolvedValueOnce(pagina('Inicio')).mockResolvedValueOnce(pagina('Tareas'));
+    await sw.pedir('/nova');
+    await sw.pedir('/nova/tareas');
+    expect(sw.redNueva).toHaveBeenCalledTimes(1);
+  });
+
+  it('guarda los scripts y estilos de Next que pide la página, para que funcione sin haberla abierto', async () => {
+    const sw = entorno();
+    sw.redNueva.mockResolvedValueOnce(
+      new Response('<html><head><link rel="stylesheet" href="/_next/static/css/a.css"></head><body><script src="/_next/static/chunks/app/nova/tareas/nueva/page-1.js" async=""></script><script src="/_next/static/chunks/app/nova/tareas/nueva/page-1.js"></script></body></html>', {
+        headers: { 'Content-Type': 'text/html; charset=utf-8', 'x-nova-usuario': 'u1' },
+      }),
+    );
+    sw.red.mockImplementation(async (p) => {
+      const url = typeof p === 'string' ? p : (p as { url: string }).url;
+      return url.includes('/_next/static/') ? new Response('archivo', { status: 200 }) : pagina('Inicio');
+    });
+    await sw.pedir('/nova');
+    expect(sw.estaticos().sort()).toEqual(['/_next/static/chunks/app/nova/tareas/nueva/page-1.js', '/_next/static/css/a.css']);
+    sw.red.mockImplementation(sinRed);
+    expect(await (await sw.pedir('/_next/static/chunks/app/nova/tareas/nueva/page-1.js', { modo: 'no-cors' }))?.text()).toBe('archivo');
   });
 });

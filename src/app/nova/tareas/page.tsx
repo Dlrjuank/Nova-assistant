@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { FilaCategorias } from '@/components/nova/FilaCategorias';
 import { GruposTareas } from '@/components/nova/GruposTareas';
+import { PendientesDeEnviar } from '@/components/nova/pendientes/PendientesDeEnviar';
 import { ResaltarTarea } from '@/components/nova/ResaltarTarea';
 import { claseBoton } from '@/components/ui/Boton';
 import { EncabezadoPantalla } from '@/components/ui/EncabezadoPantalla';
@@ -55,6 +56,9 @@ export default async function TareasPage({
         etiqueta="Vistas de tareas"
         pestanas={pestanas.map((v) => ({ href: hrefTareas(v, categoria), texto: TEXTO_VISTA[v], activa: v === vista }))}
       />
+
+      {/* E11e (RB-71): las creadas sin conexión que aún no llegan al servidor. */}
+      <PendientesDeEnviar categorias={categorias.map(({ nombre, color }) => ({ nombre, color }))} />
 
       {tareas.length === 0 ? (
         <EstadoVacio
