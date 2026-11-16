@@ -17,7 +17,7 @@ Los prompts de ejecución están en `doc/PROMPTS_AMPLIACION.md` (etapas E00 a E2
 9. [El asistente en Semestre](#9-el-asistente-en-semestre)
 10. [API](#10-api)
 11. [Pruebas](#11-pruebas)
-12. [Casos de aceptación B-01 a B-86](#12-casos-de-aceptación-b-01-a-b-86)
+12. [Casos de aceptación B-01 a B-95](#12-casos-de-aceptación-b-01-a-b-95)
 13. [Riesgos y decisiones](#13-riesgos-y-decisiones)
 
 ---
@@ -81,6 +81,7 @@ Los prompts de ejecución están en `doc/PROMPTS_AMPLIACION.md` (etapas E00 a E2
 | X25 | Historial de intentos por documento o capítulo y sugerencia de tarea para repasar | E10f |
 | X31 | Tipos de pregunta en los cuestionarios: selección única, respuesta múltiple, verdadero o falso, completar, pregunta abierta y mixto (sugerido por un amigo del usuario y aprobado por el usuario, 2026-11-13) | E10g |
 | X32 | Crear tareas sin conexión: se guardan en el dispositivo con la marca "Pendiente de enviar" y se envían solas, sin duplicarse, al volver la conexión con Nova abierta; completar, editar y eliminar siguen necesitando conexión (pedido del usuario, 2026-11-13) | E11e |
+| X33 | Clave de Gemini propia: cada usuario vincula su clave de Google AI Studio, guardada cifrada, y toda su IA la usa; sin clave, lo que no usa IA sigue funcionando; guía para crearla dentro de Nova; acceso de otras personas de forma segura (solución del profesor del usuario, pedida el 2026-11-16) | E20c |
 
 ### 2.2 Fuera de alcance
 
@@ -97,7 +98,7 @@ Los prompts de ejecución están en `doc/PROMPTS_AMPLIACION.md` (etapas E00 a E2
   - Publicar Nova en Google Play y en la App Store con Capacitor. Google cobra 25 USD una vez; Apple, 99 USD al año, y exige un Mac o compilar en la nube.
   - Recordatorios por mensaje de WhatsApp con la API de WhatsApp Business, que cobra por mensaje.
   - Respaldo de los recordatorios por correo con Resend (retirado de E11d el 2026-11-09). Enviar a cualquier destinatario exige un dominio verificado, que tiene costo.
-  - **Límite de uso por persona:** cuando más personas usen Nova, la cuota de Gemini se comparte entre todos. Idea: un límite por usuario y por día, configurable (por ejemplo, 1 libro grande y 50 preguntas), con un mensaje claro al alcanzarlo, para que nadie gaste el cupo de todos.
+  - **Límite de uso por persona:** cuando más personas usen Nova, la cuota de Gemini se comparte entre todos. Idea: un límite por usuario y por día, configurable (por ejemplo, 1 libro grande y 50 preguntas), con un mensaje claro al alcanzarlo, para que nadie gaste el cupo de todos. *(Desde el 2026-11-16 lo resuelve E20c de otra forma: cada persona vincula su propia clave de Gemini y gasta su propia cuota; la del proyecto queda solo para los administradores.)*
   - **Gemini de pago para uso con más personas o en una universidad:** en el plan gratuito, Google usa lo enviado para mejorar sus productos, personas pueden leerlo y sus términos piden no enviar información sensible, confidencial o personal. En el de pago no usa los prompts ni las respuestas para mejorar sus productos.
   - **Crear o completar tareas sin conexión y sincronizar al volver** (anotado el 2026-11-09, sin planear): unas 2 o 3 etapas medianas (cola de cambios en IndexedDB, identificadores de cliente, reglas de conflicto, categorías y recordatorios sin conexión, pantallas que hoy dependen del servidor). En iPhone solo sincronizaría con la app abierta. *(El 2026-11-13 entra en el alcance solo **crear**: E11e, X32. Completar, editar y eliminar sin conexión siguen fuera.)*
   - **Búsqueda con Google integrada en Gemini** (descartada por ahora el 2026-11-09): no está disponible en el plan gratuito para los modelos que usa Nova; exige facturación con tarjeta, mostrar las sugerencias de búsqueda y cambiar RB-55. Si algún día se paga, se haría con una clave de un proyecto aparte y alerta de presupuesto.
@@ -260,7 +261,7 @@ Pestañas **Materias y notas**, **Objetivos y plan**, **Estadísticas** (cada un
 
 ### 5.8 Configuración (`/nova/configuracion`)
 
-Bloques: **Perfil** (nombre editable, correo de solo lectura, cambiar contraseña), **Apariencia** (claro, oscuro, automático; formato de hora de 24 o 12 horas, 24 por defecto, pedido del usuario en E06b), **Académico** (escala 0,0 a 5,0 de solo lectura, nota para aprobar, redondeo truncar/redondear, cortes por defecto), **Asistente** (borrar todo el historial, aviso de Gemini) y **Cerrar sesión**.
+Bloques: **Perfil** (nombre editable, correo de solo lectura, cambiar contraseña), **Apariencia** (claro, oscuro, automático; formato de hora de 24 o 12 horas, 24 por defecto, pedido del usuario en E06b), **Académico** (escala 0,0 a 5,0 de solo lectura, nota para aprobar, redondeo truncar/redondear, cortes por defecto), **Asistente** (borrar todo el historial, aviso de Gemini; desde E20c, "Vincular mi clave de Gemini", 5.14) y **Cerrar sesión**.
 
 ### 5.9 Libros en PDF (E10b a E10d, pedido del usuario del 2026-11-07)
 
@@ -363,7 +364,40 @@ Se hace después de E11d. **Solo crear:** completar, editar y eliminar siguen ne
   - **Accesos al formulario sin conexión (corrección del 2026-11-14):** el "+" de la barra inferior (solo abre su menú), "Nueva tarea" de ese menú, "Registrar tarea" de Tareas y "Agregar" de Prioridades de hoy y del día del Calendario (con `?fecha=`) se ven normales y abren el formulario. Lo atenuado en `globals.css` decide lo mismo que `bloqueadoSinConexion`: lo que está dentro de una zona `data-sin-conexion="permitido"` (el formulario, una tarea pendiente) no se atenúa, y los enlaces a `/nova/tareas/nueva` tampoco. Completar, editar y eliminar siguen bloqueados y atenuados. Mi semana no tiene botón propio para agregar: se agrega desde Prioridades de hoy, el "+" o el Calendario.
   - En Tareas, con solo tareas pendientes de enviar no aparece "Aún no tienes tareas".
 
-## 6. Modelo de datos
+### 5.14 Clave de Gemini propia y acceso de otras personas (E20c, pedido del usuario del 2026-11-16)
+
+Solución que le dio al usuario su profesor para que varias personas usen Nova sin gastar la cuota de Gemini del usuario. Se hace después de E20b y antes de E21. **Lo que no usa IA no cambia.**
+
+- **Configuración → Asistente → "Vincular mi clave de Gemini":**
+  - Un campo de contraseña (con "Mostrar") para pegar la clave y el botón "Verificar y guardar". Antes de guardar, el servidor revisa el formato y hace una llamada mínima a Google con esa clave (7.15). Si Google la rechaza, no se guarda nada (RB-77).
+  - Ya vinculada se ve solo `Clave vinculada: ••••{últimos 4}` con la fecha en que se verificó y su estado (`Funciona`, `No funciona: vincula una nueva` o `Sin cuota por ahora`).
+  - "Cambiar clave" repite la verificación con la nueva; la anterior se reemplaza solo si la nueva pasa.
+  - "Desvincular" pide confirmación (RB-80) y borra la clave de la base.
+  - Enlace "Cómo crear tu clave" a la guía.
+- **La clave nunca sale del servidor:** se guarda cifrada (7.15). Ninguna respuesta de la API, página, copia sin conexión (RB-62) ni registro la contiene; la pantalla solo recibe los últimos 4 caracteres. Al pegarla, el campo se vacía al terminar, también si falla.
+- **Quién usa qué clave (RB-76):**
+  - Un usuario con clave vinculada usa siempre la suya, en todo: Asistente (documentos, libros, fuentes web, Wikipedia, IA general, preguntas de seguimiento), "Explicar de otra manera", la recomendación del índice de Productividad, cuestionarios, temas y plan de estudio (E17, E18), embeddings al indexar, al guardar una fuente web y de cada pregunta, y la indexación en segundo plano del aviso de cada minuto (RB-57: usa la clave del dueño del libro). El modelo de respaldo del chat también usa su clave.
+  - Si su clave falla (no es válida, fue revocada o se quedó sin cuota), Nova se lo dice con un mensaje claro (RB-78) y **nunca** usa la clave del proyecto en su lugar.
+  - Un administrador (la lista de acceso actual) sin clave propia usa la del proyecto (`GEMINI_API_KEY`); si vincula la suya, usa la suya.
+  - Un usuario que no es administrador y no tiene clave: todo lo que no usa IA funciona (tareas, Calendario, Semestre, notas, metas, índice sin recomendación, Fuentes para ver, eliminar y abrir, cuestionarios ya creados para responder y repasar, historial). Lo que usa IA muestra el aviso de RB-79 con el enlace a la guía, en lugar del botón o del campo, sin llamar a Gemini. Subir un PDF también lo pide, porque indexar necesita embeddings.
+- **Guía "Cómo crear tu clave de Gemini"** (`/nova/configuracion/gemini`, también sin clave; pasos comprobados en la documentación oficial de Google el 2026-11-16, `aistudio.google.com/docs/api-key`, a revisar otra vez al construirla):
+  1. Entra a Google AI Studio (`aistudio.google.com/apikey`) con tu cuenta de Google. Google exige tener 18 años o más y estar en un país donde el servicio esté disponible.
+  2. Si es tu primera vez, acepta los términos: AI Studio crea un proyecto y una clave por defecto. Si no, toca "Create API key" (o "Crear clave de API").
+  3. Copia la clave.
+  4. Si la clave dice "Unrestricted", toca "Add restrictions" → "Restrict to Gemini API only". Las claves nuevas desde el 28 de mayo de 2026 ya vienen limitadas a Gemini.
+  5. En Nova: Configuración → Asistente → pega la clave → "Verificar y guardar".
+  - **Avisos:** en el plan gratuito, Google puede usar lo que envías (preguntas, fragmentos de tus PDF y respuestas) para mejorar sus productos, y personas pueden leerlo; no envíes información sensible, confidencial o personal. En el plan de pago no lo usa para mejorar sus productos. No compartas tu clave con nadie ni la pegues en otro sitio. Si crees que alguien la vio: crea una nueva en AI Studio, cámbiala en Nova y borra la anterior en AI Studio. Los límites de uso son de tu proyecto de Google, no de Nova; no crees varios proyectos para tener más cuota (Google lo prohíbe).
+- **Acceso de otras personas (propuesta, decisión del usuario pendiente):** hoy solo entran los correos de la lista de administradores, porque `/register` está abierto. Abrirlo sin más no sirve: el correo incluido de Supabase solo envía a los miembros del equipo del proyecto y a 2 correos por hora, así que nadie más recibiría la confirmación ni la recuperación de contraseña, y no hay dominio verificado para un correo propio (2.2). Propuesta:
+  - **Lista de acceso administrada por el usuario** (M25 `accesos`): en Configuración, un bloque "Acceso" solo para administradores con los correos invitados ("Invitar" y "Quitar", con confirmación). Solo esos correos y los administradores pasan `exigirSesion`; el resto sigue con `Tu cuenta no tiene acceso a Nova Assistant.` Quitar un correo cierra su acceso en la siguiente petición; sus datos quedan hasta que el usuario decida borrarlos.
+  - **Entrar con Google** (Supabase Auth con Google): no necesita correos de confirmación ni de recuperación, y quien usa Nova ya necesita una cuenta de Google para su clave. Se configura un cliente OAuth en Google Cloud, sin costo. El correo con contraseña sigue para los administradores.
+  - Alternativa sin Google: el administrador crea la cuenta con una contraseña temporal desde "Acceso" (API de administración de Supabase, sin correo) y la persona la cambia al entrar.
+  - El registro abierto (`/register`) se cierra para quien no esté invitado.
+- **Límites de los planes gratuitos con varias personas** (revisados el 2026-11-16 en las páginas oficiales):
+  - **Gemini:** cada clave gasta la cuota de su propio proyecto de Google ("los límites se aplican por proyecto, no por clave"), así que ya no se comparte.
+  - **Supabase Free:** 500 MB de base (al pasarse queda en solo lectura), 5 GB de salida al mes, 50.000 usuarios activos al mes, pausa tras 1 semana sin actividad, 2 proyectos. Lo que más pesa son los fragmentos con sus vectores: un libro de 400 páginas ocupa unos 2 a 3 MB (13), así que caben en total unos 100 a 150 libros grandes entre todos. Propuesta: un tope por usuario (por ejemplo, 40 MB de documentos indexados) con un mensaje al alcanzarlo, y en "Acceso" el espacio que usa cada uno.
+  - **Vercel Hobby:** solo para uso personal y no comercial; 1.000.000 de invocaciones, 4 horas de CPU activa, 360 GB-h de memoria y 100 GB de transferencia al mes; al pasarse, la función se detiene hasta 30 días. El aviso de cada minuto usa unas 43.200 invocaciones al mes. Lo que más CPU gasta es leer PDF (`pdf.js`): muchos libros grandes de muchas personas podrían acercarse a las 4 horas. Esperar a Gemini casi no cuenta como CPU activa.
+  - **Vercel Blob (Hobby):** 1 GB guardado, 10.000 operaciones simples, 2.000 avanzadas (cada subida es al menos una) y 10 GB de transferencia al mes; al pasarse, Blob se detiene hasta 30 días. Los PDF se borran al terminar de indexar, así que el espacio no se acumula; el límite real son unas 2.000 subidas al mes entre todos.
+  - Con un grupo pequeño (un curso, unas 30 personas) alcanza; con más, habría que pasar a planes de pago (Supabase Pro 25 USD al mes; Vercel Pro 20 USD por puesto al mes).
 
 Migraciones nuevas M5 a M13 en `supabase/migrations/`, numeradas después de `20261003136000`. Todas aditivas.
 
@@ -569,7 +603,24 @@ Antes de migrar: `npm run db:respaldar`. No hay tablas nuevas.
 - Solo aditiva: las tareas de `master` y las de otras rutas (plan de lectura, tarea de repaso) quedan con `id_cliente` en NULL. Desde E11e, toda tarea nueva del formulario lleva el suyo, también con conexión (5.13).
 - Lo pendiente vive en el dispositivo (IndexedDB), no en la base: la base solo recibe la tarea cuando se envía.
 
-## 7. Reglas de cálculo
+### 6.20 M24 · Clave de Gemini por usuario (E20c)
+
+Antes de migrar: `npm run db:respaldar`, y la tabla nueva entra en `scripts/tablas-respaldo.mjs` (el respaldo guarda el texto cifrado: sin la llave de 7.15 no sirve de nada).
+
+| Tabla | Columnas | Restricciones |
+|---|---|---|
+| `claves_gemini` | `usuario_id` (PK), `cifrada` BYTEA, `iv` BYTEA (12 bytes), `etiqueta` BYTEA (16 bytes), `version_llave` SMALLINT, `ultimos4` CHAR(4), `estado` (`activa`/`rechazada`/`sin_cuota`), `verificada_en`, `actualizada_en` | FK a `auth.users` con `ON DELETE CASCADE`; CHECK de longitudes y de estado; RLS activo y sin políticas: solo el servidor la lee |
+
+- Solo aditiva: `master` no la usa y sigue con `GEMINI_API_KEY`.
+- Nunca se guarda la clave en claro ni un hash que permita probar claves.
+
+### 6.21 M25 · Lista de acceso (E20c, si el usuario la aprueba)
+
+| Tabla | Columnas | Restricciones |
+|---|---|---|
+| `accesos` | `id`, `correo` VARCHAR(254), `invitado_por` (usuario), `creado_en` | Índice único `lower(correo)`; CHECK de formato básico; RLS activo y sin políticas |
+
+Los administradores siguen saliendo de `SUPABASE_ADMIN_EMAILS` y del correo incorporado; no se guardan en esta tabla.
 
 Todas en funciones puras de `src/lib/reglas/` (sin red, sin base, sin reloj salvo `fechas.ts`), probadas con Vitest. Notas en centésimas (0 a 500), porcentajes en centésimas de punto (0 a 10000). Los productos se calculan con enteros; la división final y el redondeo, con aritmética exacta sobre esos enteros.
 
@@ -706,7 +757,14 @@ Son iguales si coinciden después de normalizar. "  FOTOSINTESIS " acierta "foto
   - Red o 5xx: queda pendiente y se reintenta.
 - **Cuál usuario:** cada tarea pendiente guarda el id del usuario que la creó y solo se envía con esa sesión.
 
-## 8. Reglas de negocio y mensajes exactos
+### 7.15 Cifrado y uso de la clave de Gemini (E20c)
+
+- **Cifrado:** AES-256-GCM (`node:crypto`) con una llave de 32 bytes en la variable `NOVA_LLAVE_CLAVES` (base64), solo en Vercel (Production y Preview) y en `.env.local`, nunca en git ni en la base. Un IV aleatorio de 12 bytes por cada guardado; datos asociados `nova-gemini:v{version}:{usuario_id}`, para que una fila copiada a otro usuario no se pueda descifrar. `version_llave` permite cambiar la llave más adelante (se descifra con la anterior y se vuelve a cifrar).
+- **Dónde se descifra:** un único módulo del servidor (`server-only`) entrega un cliente de Gemini por usuario; ninguna otra parte ve la clave. El cliente se guarda en memoria por instancia como mucho 5 minutos y se descarta al cambiar o desvincular la clave. La memoria de "el modelo principal falló hace poco" (E10c2) pasa a ser por usuario, no global.
+- **Verificación al guardar:** formato (sin espacios, de 30 a 200 caracteres) y una llamada que no gasta cuota de generación: pedir a Google los datos del modelo de chat (`models.get`) con esa clave. Respuesta válida → se guarda con estado `activa`. 400, 401 o 403 → RB-77. 429 → se guarda con estado `sin_cuota` y se avisa (la clave es válida). Red o 5xx de Google → `No se pudo comprobar la clave con Google. Intenta de nuevo.` y no se guarda.
+- **Al usarla:** si Google responde 400 `API_KEY_INVALID`, 401 o 403, el estado pasa a `rechazada` y se responde RB-78; con 429, `sin_cuota` (vuelve a `activa` en la siguiente llamada que funcione). Nunca se reintenta con la clave del proyecto. En el chat, 429 de la clave del usuario sigue pasando al modelo de respaldo con **su** clave, como hoy.
+- **Registros:** ningún `console.*` ni mensaje de error lleva la clave: los errores de Google pasan por `ocultarClave`, que borra cualquier texto con forma de clave y el parámetro `key=`. Una prueba lo comprueba.
+- **Segundo plano (RB-57):** el aviso de cada minuto avanza cada libro con la clave de su dueño. Sin clave, o con la clave `rechazada`, el libro queda en pausa con el aviso de RB-78 en Fuentes y no se vuelve a intentar hasta que el dueño vincule una clave que funcione; con `sin_cuota`, se intenta en el minuto siguiente como hoy.
 
 Los mensajes se usan **textualmente** en la interfaz y en la API. Los de `PLAN_NOVA.md` (sección 5.1 y 12.2) no cambian, salvo el trato: **desde el 2026-11-14 (pedido del usuario en E11e) toda la app usa tuteo**, así que los que estaban en usted pasaron a tú con el mismo contenido: `Revisa los datos ingresados.`, `Debes iniciar sesión.`, `Tu cuenta no tiene acceso a Nova Assistant.`, `Aún no hay documentos indexados. Indexa un PDF antes de preguntar.`, `La conversación no existe. Recarga la página.`, `Alcanzaste el máximo de 20 fuentes en esta categoría; archiva o elimina una.`, `No se pudo consultar Wikipedia. Intenta de nuevo.`, `Ocurrió un error inesperado. Intenta de nuevo.`, `Escribe un número entero de 0 en adelante.` y cada "Intente de nuevo" de las pantallas. `master` los conserva en usted hasta E21.
 
@@ -787,10 +845,16 @@ Los mensajes se usan **textualmente** en la interfaz y en la API. Los de `PLAN_N
 | RB-73 | (E11e) El recordatorio lo calcula el servidor al recibir la tarea (7.10). Si su momento pasó mientras estaba sin conexión, queda `omitido` y se avisa | `El recordatorio de «{t}» no se enviará: su momento pasó mientras estaba sin conexión.` |
 | RB-74 | (E11e) Si el servidor rechaza una tarea pendiente, queda en el dispositivo con el mensaje exacto del servidor; "Corregir" abre el formulario lleno y la vuelve a enviar con el mismo `id_cliente`; "Descartar" la borra | `No se pudo enviar: {mensaje del servidor}` |
 | RB-75 | (E11e) Cerrar sesión con tareas sin enviar: primero se avisa; al confirmar, se borran del dispositivo con la copia de RB-63. Las de otro usuario nunca se envían con la sesión actual y se borran al detectar otro usuario (RB-63) | `Tienes {n} tareas sin enviar. Si cierras sesión, se borrarán de este dispositivo.` (con 1: `Tienes 1 tarea sin enviar. Si cierras sesión, se borrará de este dispositivo.`) · Botones `Cerrar sesión y borrarlas` y `Cancelar` |
+| RB-76 | (E20c) Cada usuario usa su propia clave de Gemini en todo lo que llama a la IA (5.14); la del proyecto solo la usan los administradores sin clave propia; nunca se usa la del proyecto si la del usuario falla | — |
+| RB-77 | (E20c) "Verificar y guardar": la clave se prueba con Google antes de guardarla; si no pasa, no se guarda nada | Vacía o con espacios: `Pega tu clave de Gemini completa.` · Rechazada: `Google no aceptó esta clave. Revisa que la copiaste completa o crea una nueva.` · Sin cuota: `Clave guardada. Por ahora no tiene cuota disponible; se podrá usar cuando Google la renueve.` · Guardada: `Clave verificada y guardada.` |
+| RB-78 | (E20c) La clave del usuario falla al usarla (`CLAVE_GEMINI_RECHAZADA`, 403; `CUOTA_CLAVE_AGOTADA`, 429) | `Tu clave de Gemini ya no funciona: puede que no sea válida o que la hayas revocado. Vincula una nueva en Configuración → Asistente.` · `Tu clave de Gemini llegó a su límite de uso por ahora. Intenta más tarde o revisa tu cuota en Google AI Studio.` |
+| RB-79 | (E20c) Sin clave vinculada y sin ser administrador, lo que usa IA no llama a Gemini (`SIN_CLAVE_GEMINI`, 409) | `Para usar la IA de Nova, vincula tu clave de Gemini.` con el enlace `Cómo crear tu clave` |
+| RB-80 | (E20c) Desvincular pide confirmación y borra la clave; lo que estaba indexándose en segundo plano queda en pausa | `¿Desvincular tu clave de Gemini? Nova no podrá usar la IA hasta que vincules otra.` · Botones `Desvincular` y `Cancelar` · Hecho: `Clave desvinculada.` |
+| RB-81 | (E20c, si se aprueba M25) Solo entran los administradores y los correos invitados; quitar un correo corta su acceso en la siguiente petición | Igual que hoy: `Tu cuenta no tiene acceso a Nova Assistant.` · Invitar repetido: `Ese correo ya tiene acceso.` |
 | RB-63 | (E11b) La copia sin conexión se borra: al cerrar sesión; si, con conexión, el servidor rechaza la sesión (401, 403 o redirección a `/login`); si inicia sesión otro usuario; y tras 7 días sin una respuesta válida del servidor, porque sin conexión no se puede saber si la sesión venció | — |
 | RB-29 | Editar una tarea: solo pendientes y del usuario; título, categoría, prioridad, fecha límite y horario con las mismas validaciones y mensajes que al crear; estado, minutos y fecha de cierre no se tocan | Los de crear (`PLAN_NOVA.md` 5.1). Tarea completada: `La tarea ya está completada.` (`TAREA_YA_COMPLETADA`, 409). De otro usuario o inexistente: `La tarea no existe.` (`TAREA_NO_ENCONTRADA`, 404) |
 
-Códigos de error nuevos (404 salvo indicación): `CATEGORIA_NO_ENCONTRADA`, `CATEGORIA_DUPLICADA` (409), `MATERIA_NO_ENCONTRADA`, `MATERIA_DUPLICADA` (409), `CORTE_NO_ENCONTRADO`, `COMPONENTE_NO_ENCONTRADO`, `NOTA_NO_ENCONTRADA`, `PORCENTAJES_INVALIDOS` (422, solo RB-10 y los cortes por defecto de Configuración), `CORTES_NO_SE_QUITAN` (422, RB-35), `NOTA_INVALIDA` (422), `META_NO_ENCONTRADA`, `META_DUPLICADA` (409), `PLAN_SIN_TEMAS` (422), `PLAN_SIN_FECHA` (422), `SIN_SYLLABUS` (422), `PLAN_INVALIDO` (502), `PASO_YA_EN_TAREAS` (409).
+Códigos de error nuevos (404 salvo indicación): `CATEGORIA_NO_ENCONTRADA`, `CATEGORIA_DUPLICADA` (409), `MATERIA_NO_ENCONTRADA`, `MATERIA_DUPLICADA` (409), `CORTE_NO_ENCONTRADO`, `COMPONENTE_NO_ENCONTRADO`, `NOTA_NO_ENCONTRADA`, `PORCENTAJES_INVALIDOS` (422, solo RB-10 y los cortes por defecto de Configuración), `CORTES_NO_SE_QUITAN` (422, RB-35), `NOTA_INVALIDA` (422), `META_NO_ENCONTRADA`, `META_DUPLICADA` (409), `PLAN_SIN_TEMAS` (422), `PLAN_SIN_FECHA` (422), `SIN_SYLLABUS` (422), `PLAN_INVALIDO` (502), `PASO_YA_EN_TAREAS` (409). Desde E20c: `SIN_CLAVE_GEMINI` (409), `CLAVE_GEMINI_INVALIDA` (422), `CLAVE_GEMINI_RECHAZADA` (403), `CUOTA_CLAVE_AGOTADA` (429), `CLAVE_GEMINI_NO_VERIFICADA` (503) y, con M25, `ACCESO_DUPLICADO` (409).
 
 ## 9. El asistente en Semestre
 
@@ -895,6 +959,10 @@ Todas con `exigirSesion()` como primera instrucción y el id del usuario de la s
 | `POST /api/nova/consultar` (valores nuevos) | `documentoId: "web"` para las fuentes web guardadas (RB-56) y `"wikipedia"` para buscar en Wikipedia (RB-58) | E10c2 |
 | `POST /api/nova/consultar` (valor nuevo) | `documentoId: "ia"` para la IA general (RB-59, RB-60) | E10c3 |
 | `GET /api/nova/salud` | Consulta mínima a la base, para el cron diario de Vercel; con `CRON_SECRET` | E21 |
+| `GET /api/nova/clave-gemini` | Solo `{ vinculada, ultimos4, estado, verificadaEn }`; nunca la clave | E20c |
+| `PUT /api/nova/clave-gemini` | Verificar y guardar (o cambiar) la clave (RB-77) | E20c |
+| `DELETE /api/nova/clave-gemini` | Desvincular (RB-80) | E20c |
+| `GET/POST /api/nova/accesos`, `DELETE /api/nova/accesos/[id]` | Lista de acceso, solo administradores (RB-81, si se aprueba M25) | E20c |
 | `src/app/manifest.ts`, `public/sw.js` | Manifiesto e service worker; públicos (el middleware no los protege) | E11b |
 
 Las rutas que llaman a Gemini declaran `maxDuration = 60`.
@@ -934,6 +1002,10 @@ Las rutas que llaman a Gemini declaran `maxDuration = 60`.
   - S-78 (E11e, RB-72): el envío por resultado (201, 200 ya existía, 422, 401, red); una sola pestaña envía (Web Locks simulado); orden de creación.
   - S-79 (E11e, RB-73, RB-74): recordatorio pasado al enviar queda omitido con su aviso; "Corregir" reenvía con el mismo `idCliente`.
   - S-80 (E11e, RB-75): cerrar sesión avisa y borra; las pendientes de otro usuario no se envían.
+  - S-81 (E20c, 7.15): cifrar y descifrar dan la misma clave; otro IV cada vez; con otro `usuario_id` o la etiqueta cambiada, descifrar falla; sin `NOVA_LLAVE_CLAVES` o con una llave de otro tamaño, el servidor no arranca la función y no guarda nada.
+  - S-82 (E20c, RB-76): quién usa qué clave: usuario con clave, administrador con y sin clave, usuario sin clave (RB-79 sin llamar a Gemini); nunca la del proyecto si la del usuario falla; el tick usa la del dueño de cada libro.
+  - S-83 (E20c, RB-77, RB-78): resultados de la verificación (válida, 400, 403, 429, red) y de cada uso (rechazada pasa a `rechazada`, 429 a `sin_cuota` y vuelve a `activa`).
+  - S-84 (E20c): ninguna respuesta de la API ni página lleva la clave (solo los últimos 4); `ocultarClave` borra la clave de los errores y de `key=`.
   - S-68 y S-69 (E11b): qué rutas se pueden guardar (Asistente, API de escritura y texto de documentos nunca); cada caso de borrado de RB-63, incluido el de 7 días.
   - S-29 a S-32 (validación del plan: tema no confirmado, fuente inventada, fecha fuera de rango, plan válido).
 - **Contraste**: una prueba lee los tokens de `globals.css` y comprueba ≥ 4,5:1 en cada par texto/fondo, en ambos modos, y para los 8 colores de categoría.
@@ -952,6 +1024,7 @@ Las rutas que llaman a Gemini declaran `maxDuration = 60`.
 - `npm run probar:recordatorios` (nuevo, E11c): crea tareas con recordatorio, llama al tick con un reloj fijo en modo de prueba (sin enviar) y comprueba qué se enviaría y que no se repite; borra lo que creó.
 - `npm run probar:cuestionario` (nuevo, E10e): con Gemini real y el PDF de `probar:libro`, genera 5 preguntas de un capítulo, comprueba que todas pasan RB-50 y que sus páginas están dentro del capítulo; pide 20 preguntas de 2 páginas y comprueba RB-49; borra lo que creó. Desde E10g genera un cuestionario mixto de 5 con una sola ejecución (a lo sumo 2 llamadas) y comprueba que cada pregunta pasa la validación de su tipo.
 - `npm run probar:plan` (nuevo, E18): con Gemini real, propone temas desde un PDF de prueba y genera un plan; comprueba que pasa la validación y borra lo que creó.
+- `npm run probar:clave` (nuevo, E20c): con un usuario temporal, vincula una clave inventada (debe rechazarse sin guardar), vincula `GEMINI_API_KEY` como si fuera la del usuario (una llamada `models.get`, sin gastar cuota de generación), comprueba que en la base solo está cifrada, que se descifra con su usuario y no con otro, y que una pregunta usa esa clave; desvincula y borra lo que creó.
 
 ### 11.3 Compatibilidad con `master` (después de cada migración)
 
@@ -961,7 +1034,7 @@ Con un `git worktree` de `master` en una carpeta temporal: `npm run probar:rag` 
 
 En cada etapa con interfaz: navegador real a 1280 px y 390 px (sin desplazamiento horizontal, sin errores de página, foco visible) y prueba del usuario en la **vista previa de Vercel** desde su teléfono.
 
-## 12. Casos de aceptación B-01 a B-86
+## 12. Casos de aceptación B-01 a B-95
 
 Se ejecutan en la vista previa de Vercel de `ampliacion`, en computador y en teléfono, y se registran en `doc/ACEPTACION.md` (sección nueva). Antes, se repiten A-01 a A-21 en la vista previa.
 
@@ -1041,6 +1114,15 @@ Se ejecutan en la vista previa de Vercel de `ampliacion`, en computador y en tel
 | B-84 | (E11e) Sin conexión, crear una tarea de hoy con "A la hora" a una hora que pasará antes de volver la conexión; volver | Se guarda en el servidor y avisa `El recordatorio de «…» no se enviará…` |
 | B-85 | (E11e, en la prueba automática de Edge: con las mismas validaciones en el dispositivo y en el servidor, a mano casi no se puede provocar) Una pendiente que el servidor rechaza; tocar "Corregir" en ella y "Descartar" en otra | La rechazada muestra `No se pudo enviar: {mensaje}`; corregida se envía; la descartada desaparece |
 | B-86 | (E11e) Con una tarea sin enviar, tocar "Cerrar sesión". Sin conexión el botón está bloqueado (cerrar sesión necesita al servidor): en el PC, dejar la tarea sin enviar bloqueando `*://*/api/nova/tareas` en las herramientas de Edge (Request conditions o "Bloqueo de solicitudes de red") y quitar el bloqueo antes de volver a entrar. Con el service worker activo el bloqueo puede no actuar (la tarea se guarda normal): marcar y desmarcar "Bypass for network" en Application → Service workers y volver a intentarlo | Avisa `Tienes 1 tarea sin enviar…`; con "Cancelar" no cierra; con "Cerrar sesión y borrarlas", cierra y al volver a entrar ya no está |
+| B-87 | (E20c) Con una cuenta que no es administradora y sin clave: recorrer Tareas, Calendario, Semestre y Productividad; abrir Asistente, Fuentes (subir) y Cuestionarios (crear) | Todo lo que no usa IA funciona; donde hay IA sale `Para usar la IA de Nova, vincula tu clave de Gemini.` con el enlace a la guía; ninguna llamada a Gemini |
+| B-88 | (E20c) Seguir la guía para crear una clave en AI Studio; pegar una clave inventada y luego la real | La inventada: `Google no aceptó esta clave…` y no se guarda; la real: `Clave verificada y guardada.` y se ve solo `••••` con los últimos 4 |
+| B-89 | (E20c) Con la clave vinculada: preguntar en el Asistente, explicar de otra manera, crear un cuestionario y subir un PDF corto; cerrar Fuentes mientras indexa | Todo funciona; el uso aparece en el proyecto de Google de esa persona (AI Studio → uso), no en el del usuario; el libro sigue avanzando solo |
+| B-90 | (E20c) Revisar la respuesta de `GET /api/nova/clave-gemini`, el HTML de Configuración y los registros de Vercel de esas peticiones | La clave no aparece en ninguno; solo los últimos 4 |
+| B-91 | (E20c) Revocar la clave en AI Studio y preguntar en el Asistente | `Tu clave de Gemini ya no funciona…`; Configuración la muestra como `No funciona: vincula una nueva`; no se usó la clave del proyecto |
+| B-92 | (E20c) "Cambiar clave" por una nueva; luego "Desvincular" | Cambia solo si la nueva pasa; desvincular pide confirmación y la IA vuelve a mostrar el aviso de RB-79 |
+| B-93 | (E20c) Con la cuenta del usuario (administrador) sin clave propia | Sigue usando la clave del proyecto como hoy |
+| B-94 | (E20c, si se aprueba M25) Invitar un correo, entrar con él (con Google o con la contraseña temporal); quitarlo | Entra y ve solo sus datos; al quitarlo, la siguiente petición responde `Tu cuenta no tiene acceso a Nova Assistant.`; un correo no invitado no entra |
+| B-95 | (E20c) En el teléfono: Configuración → Asistente y la guía | Se lee y se toca bien; el campo de la clave no hace zoom; "Mostrar" funciona |
 | B-67 | (E10b2) En "Buscar en la web": buscar una frase, ver la fuente en "Fuentes guardadas" sin recargar y eliminarla; con 20 en una categoría, buscar otra vez | Aparece en su categoría con su enlace y "1/20"; eliminar pide confirmación y la quita; al llegar a 20, el aviso indica que se pueden eliminar abajo, y al eliminar una se puede volver a buscar |
 | B-68 | (E10c2) Con "Wikipedia" en "Buscar en": buscar una frase y no tocar "Guardar fuente"; buscar otra y guardarla; guardarla otra vez; con 20 en la categoría, buscar y guardar | La primera no aparece en "Fuentes guardadas"; la segunda sí, sin recargar; repetirla avisa que ya está; con 20, la búsqueda funciona y el tope se avisa al guardar (A-18) |
 | B-69 | (E10c2) Con "Fuentes web" en "Buscar en": preguntar algo de una fuente guardada y algo que no esté; con "Todos los documentos", preguntar lo mismo; sin fuentes guardadas, preguntar | Responde citando la fuente con su enlace, que abre Wikipedia; lo que no está: `No encontré esto en tus fuentes web guardadas. Prueba con "Wikipedia" en "Buscar en".`; con documentos no usa la fuente; sin fuentes, el aviso de RB-56 |
@@ -1081,4 +1163,7 @@ Se ejecutan en la vista previa de Vercel de `ampliacion`, en computador y en tel
 | Tamaño de la ampliación | 22 etapas pequeñas (más las agregadas después), cada una con su commit y su prueba; se puede parar en cualquier etapa con todo funcionando |
 | Abrir la app más rápido (anotado para E20b) | Abrir la app mostrando al instante la copia guardada de Inicio con un aviso "Actualizando…" y reemplazarla en su lugar al llegar la respuesta del servidor, con completar, crear y editar desactivados mientras tanto; solo Inicio, con una copia del mismo usuario de menos de 24 h, sin pedidos extra al servidor. Riesgo: por un momento puede verse una tarea ya completada en otro dispositivo, o la copia antes de llevar al inicio de sesión si la sesión venció. Propuesta del 2026-11-13, no hecha por decisión del usuario. Junto con bajar el tiempo de carga de cada pantalla (≈ 550 ms en local; ver `PROMPTS_AMPLIACION.md`, E20b). |
 | Tareas creadas sin conexión (E11e) | Solo crear: completar, editar o eliminar sin conexión obligaría a resolver conflictos con lo que pasó en otro dispositivo. La duplicación se evita en el servidor (`id_cliente` único por usuario), no solo en el dispositivo. En el iPhone el sistema puede borrar los datos de una app web que no se usa en semanas: lo pendiente se puede perder si no se abre Nova con conexión; Tareas lo advierte mientras haya pendientes |
+| Clave de Gemini de cada usuario (E20c) | La clave es de la persona: si se filtra, puede gastar su cuota o, en el plan de pago, su dinero. Por eso se cifra con una llave que solo está en Vercel, nunca vuelve al navegador ni a los registros, la guía explica cómo revocarla y la pantalla solo muestra los últimos 4. Si la llave `NOVA_LLAVE_CLAVES` se pierde, las claves guardadas no se pueden leer: cada persona la vuelve a vincular (no se pierde nada más). Si la llave se filtra junto con un respaldo de la base, hay que cambiar la llave (`version_llave`) y pedir a cada uno que revoque y vuelva a vincular su clave. Google exige 18 años o más para usar la API; la guía lo dice |
+| Varias personas en los planes gratuitos (E20c) | Gemini ya no se comparte. Lo compartido es Supabase (500 MB), Vercel (4 h de CPU activa al mes, uso no comercial) y Blob (unas 2.000 subidas al mes): tope de espacio por usuario y la lista de acceso para no abrir Nova a cualquiera. Vercel Hobby es solo para uso personal y no comercial: un curso sin cobrar entra; si algún día se cobra, hace falta Vercel Pro |
+| La base es compartida entre producción y la vista previa | Abrir el acceso a otras personas se hace solo después de unir con `master` (E21) y de quitar el disparador de dueño por defecto (6.1): con otras personas, una fila sin dueño asignada al usuario sería un error. Hasta entonces, E20c se prueba en la vista previa con una cuenta de prueba no administradora |
 | Tipos de pregunta (E10g) | La abierta se califica con la autoevaluación del usuario, sin Gemini: es honesta solo si el usuario lo es, y por eso la respuesta modelo y la cita se muestran siempre. La de completar solo acepta lo que falta, con la comparación de 7.13: un sinónimo no cuenta. Verdadero o falso puede salir desbalanceado (9.7) |

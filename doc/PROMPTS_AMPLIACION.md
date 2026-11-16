@@ -1,6 +1,6 @@
 # Prompts de la ampliación · Nova Assistant
 
-Etapas E00 a E21 (más E02b, E02c, E05b, E06b y E20b, pedidas por el usuario, y las demás con letra que se agregaron después, como E10g) para ejecutar `doc/PLAN_AMPLIACION.md`, en orden de dependencias. Cada etapa es pequeña, se puede probar sola y termina en un commit en la rama `ampliacion`. Se ejecuta una etapa por vez y se espera la confirmación del usuario antes de la siguiente.
+Etapas E00 a E21 (más E02b, E02c, E05b, E06b, E20b y E20c, pedidas por el usuario, y las demás con letra que se agregaron después, como E10g) para ejecutar `doc/PLAN_AMPLIACION.md`, en orden de dependencias. Cada etapa es pequeña, se puede probar sola y termina en un commit en la rama `ampliacion`. Se ejecuta una etapa por vez y se espera la confirmación del usuario antes de la siguiente.
 
 ## Reglas de todas las etapas
 
@@ -800,17 +800,48 @@ Esos seis no son "solo presentación": cada uno lleva sus pruebas y se avisa ant
 
 ---
 
-## E21 · Aceptación de la ampliación
+## E20c · Clave de Gemini propia y acceso de otras personas (pedida por el usuario el 2026-11-16, solución de su profesor)
 
-**Plan:** 12. **Requisito:** E20b.
+**Cuándo:** después de E20b y antes de E21. **Plan:** X33, 5.14, 6.20, 6.21, 7.15, RB-76 a RB-81, S-81 a S-84, B-87 a B-95, riesgos (13). **Requisito:** E20b.
+
+**Decisiones del usuario antes de empezar** (anotadas el 2026-11-16, pendientes):
+1. Cómo entran otras personas: lista de acceso con "Entrar con Google" (recomendado), lista de acceso con contraseña temporal creada por el administrador, o dejar el acceso como hoy y usar solo la clave propia.
+2. Tope de espacio por usuario (propuesta: 40 MB de documentos indexados) o ninguno.
+3. Si los administradores sin clave propia siguen usando la del proyecto (propuesta: sí).
+4. Quién guarda `NOVA_LLAVE_CLAVES` en Vercel: el usuario a mano (Claude nunca ve el valor) o Claude con `vercel env add` generándola sin mostrarla (propuesta).
+5. Cuántas personas, más o menos, para revisar los límites (5.14).
 
 ```text
-TAREA 1. Agregar a doc/ACEPTACION.md la tabla B-01 a B-86 (columnas como A-01 a A-15) y la nota de repetir A-01 a A-21 en la vista previa.
+TAREA 1. Revisar otra vez los pasos de Google AI Studio en la documentación oficial (aistudio.google.com/docs/api-key) y ajustar la guía si cambiaron.
+TAREA 2. Migración M24 (claves_gemini) y, si el usuario la aprobó, M25 (accesos). Antes: npm run db:respaldar; las tablas nuevas entran en scripts/tablas-respaldo.mjs. db:verificar con sus restricciones y RLS; compatibilidad con master (11.3).
+TAREA 3. Llave NOVA_LLAVE_CLAVES (32 bytes, base64) en .env.local y en Vercel (Production y Preview), según la decisión 4, sin mostrar su valor. Módulo server-only de cifrado (7.15) con pruebas S-81.
+TAREA 4. src/lib/llm: un cliente de Gemini por usuario (clave propia o, solo para administradores sin clave, la del proyecto), con la memoria del modelo de respaldo por usuario; cada llamada (chat, respaldo, explicar, JSON de cuestionarios, temas y plan, embeddings, recomendación del índice) recibe el usuario. El tick de RB-57 usa la clave del dueño de cada libro. Errores RB-78 y estado de la clave; ocultarClave en todos los registros. Pruebas S-82 a S-84.
+TAREA 5. API GET/PUT/DELETE /api/nova/clave-gemini y el bloque "Vincular mi clave de Gemini" en Configuración → Asistente (RB-77, RB-80), con el campo de contraseña y "Mostrar"; la guía /nova/configuracion/gemini con los avisos de 5.14.
+TAREA 6. Sin clave (RB-79): aviso con el enlace a la guía en el Asistente, "Explicar de otra manera", subir PDF, crear cuestionario, Wikipedia, guardar fuente, recomendación del índice, temas y plan; el servidor responde SIN_CLAVE_GEMINI antes de llamar a Gemini.
+TAREA 7. Si se aprobó: lista de acceso (M25), bloque "Acceso" para administradores en Configuración, exigirSesion con la lista, "Entrar con Google" en el login (cliente OAuth en Google Cloud y proveedor en Supabase, pasos para el usuario) o la contraseña temporal, cierre del registro para no invitados (RB-81). Y el tope de espacio por usuario si se aprobó.
+TAREA 8. npm run probar:clave (11.2) y prueba en Edge con una cuenta de prueba no administradora: sin clave, clave inventada, clave válida, la clave no aparece en ninguna respuesta ni en el HTML, desvincular, 390 px y 1280 px.
+
+VERIFICACIÓN: B-87 a B-95; A-01 a A-21 y B-01 a B-86 siguen pasando con la cuenta del usuario (administrador).
+```
+
+**Commit:** `feat(configuracion): clave de Gemini propia` (y, si se aprueba, `feat(acceso): lista de acceso` aparte).
+
+**Qué cambia en E21:** `NOVA_LLAVE_CLAVES` debe estar en Production antes de unir; la tabla de aceptación pasa a B-01 a B-95; la revisión final busca la clave en registros, respuestas y en el repositorio; el acceso de otras personas se abre solo después de unir y de quitar el disparador de dueño por defecto (TAREA 4 de E21); se prueba con una segunda cuenta no administradora en producción.
+
+---
+
+## E21 · Aceptación de la ampliación
+
+**Plan:** 12. **Requisito:** E20c.
+
+```text
+TAREA 1. Agregar a doc/ACEPTACION.md la tabla B-01 a B-95 (columnas como A-01 a A-15) y la nota de repetir A-01 a A-21 en la vista previa.
 TAREA 2. Revisión final: sin botones muertos (recorrido de todas las pantallas), sin colores fuera de los tokens, sin textos en inglés, todas las rutas nuevas con exigirSesion y filtro por usuario, ninguna clave en el repositorio.
 TAREA 3. Actualizar README (funciones, pantallas, scripts nuevos) y crear doc/checkpoints/AMPLIACION_COMPLETADA.md.
 TAREA 4. Preparar (sin aplicar) la migración que quita el disparador de dueño por defecto (plan, 6.1): comprueba que no quedan filas sin usuario_id, borra el disparador y asignar_dueno_por_defecto (y nova_config si nada más la usa) y pasa usuario_id a NOT NULL. Se aplica solo al unir ampliacion con master, después de que master tenga el código nuevo; nunca antes, porque rompería el código de master en producción.
-TAREA 5. Recordarle al usuario ejecutar B-01 a B-86 y A-01 a A-21 en la vista previa, en computador y teléfono. La unión de ampliacion con master solo se hace si el usuario la pide, e incluye revisar y aplicar la migración de la TAREA 4.
+TAREA 5. Recordarle al usuario ejecutar B-01 a B-95 y A-01 a A-21 en la vista previa, en computador y teléfono. La unión de ampliacion con master solo se hace si el usuario la pide, e incluye revisar y aplicar la migración de la TAREA 4.
 TAREA 6. (Recordatorios, E11c; plan 6.12, "Paso a producción") Al unir con master, y solo cuando producción ya tenga el código: NOVA_TICK_URL pasa a https://nova-assistantsm-kappa.vercel.app/api/nova/recordatorios/tick, se quita VERCEL_AUTOMATION_BYPASS_SECRET de .env.local, se ejecuta npm run db:configurar-tick (Vault queda con la dirección de producción y sin la omisión), se revoca la omisión en el proyecto de Vercel, se comprueba en net._http_response que las llamadas responden 200 y que VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY y RECORDATORIOS_SECRETO están en Production. Se le recuerda al usuario reinstalar la app y volver a activar las notificaciones en cada dispositivo, ya en producción (las suscripciones son por sitio). Se agrega el cron diario de Vercel a GET /api/nova/salud con CRON_SECRET (riesgo de pausa de Supabase, plan 13).
+TAREA 7. (Clave propia, E20c) Antes de unir: NOVA_LLAVE_CLAVES en Production con el mismo valor que en Preview (si no, las claves guardadas no se pueden leer). Después de unir y de aplicar la migración de la TAREA 4: abrir el acceso a otras personas según lo que decidió el usuario en E20c y probar con una segunda cuenta no administradora en producción (B-87 a B-95).
 ```
 
 **Commit:** `docs: aceptación de la ampliación`
