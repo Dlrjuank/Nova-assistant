@@ -1079,3 +1079,9 @@ Total de fallas: 0
 - **Pruebas:** reglas, servidor (guardar, +1 y −1, ruta), interfaz (alerta, +1, RB-15, pérdida con "En riesgo"). `npm run probar:semestre` ahora 16 de 16 (pasos 14 a 16, fallas en la base real). En Edge (`ui_e14.mjs`) 13 de 13: sin límite, RB-15, alerta a 2 y a 1, pérdida en el límite con "En riesgo" aunque la nota aprueba, la tarjeta de Semestre, −1, límite vacío, 390 px y 1280 px en oscuro sin desborde. Sin llamadas a Gemini salvo `probar:rag` de la compatibilidad con master.
 - **Al cierre:** `npm test` 1196/1196, `tsc` y `eslint` sin errores, `npm run build` correcto.
 - **Pendiente:** la prueba del usuario (B-32).
+
+#### E14 terminada (2026-11-16)
+
+- **Prueba del usuario con `e55602b` en la vista previa, en el iPhone y el PC, sin fallas (las 9):** sin límite no hay alerta; el límite −1 se rechaza (RB-15); avisa cuando quedan 2 y 1 fallas; en el límite dice "Perdiste la materia por fallas (5 de 5)." y la materia queda "En riesgo" aunque la nota apruebe; la tarjeta de Semestre muestra las fallas y la alerta; el −1 funciona; al quitar el límite vuelve al estado por notas; en el teléfono todo se toca bien, sin zoom ni desplazamiento lateral.
+- **Plan (pedido del usuario):** la propuesta de E20b parte de `doc/DISENO_PRESENTACION.md` (detalles de su página de presentación). Lo de su sección 3 que cambia el comportamiento también va en E20b, salvo que el usuario pida algo antes. Anotado en `PROMPTS_AMPLIACION.md` (E20b) y en el plan (X17b).
+- Queda cerrada E14. Sigue E15.

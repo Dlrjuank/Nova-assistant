@@ -786,6 +786,16 @@ Anota en el plan lo que decidas y avísame antes de pasar a la siguiente pantall
 
 **Pendiente anotado el 2026-11-13 (pedido del usuario al cerrar E11b), para E20b o el cierre (E21):** revisar cómo bajar el tiempo de carga de cada pantalla, hoy ≈ 550 ms medidos en local (la señal de carga ya sale al instante). Casi todo es el servidor: la sesión se consulta a Supabase Auth en el middleware y otra vez en la pantalla, y las consultas a la base van en serie. Medición y detalle en `ESTADO_EJECUCION.md`, "E11b: rapidez al cambiar de pestaña".
 
+**Anotado el 2026-11-16 (pedido del usuario al cerrar E14): la propuesta parte de `doc/DISENO_PRESENTACION.md`.** Ese archivo recoge los detalles de la página de presentación del usuario: la paleta "noche de estudio", las tipografías (Bricolage Grotesque, Instrument Sans y JetBrains Mono), el logo con halo, las animaciones y los detalles en funciones que ya existen (su sección 2). La presentación solo tiene modo oscuro, así que la propuesta también debe traer el modo claro, con los colores pasando `tests/reglas/contraste.test.ts` en los dos. Lo de su sección 3 que cambia el comportamiento también va en E20b, salvo que el usuario pida alguno antes:
+- la respuesta palabra por palabra (streaming desde Gemini);
+- las preguntas sugeridas;
+- la cita desplegable con el fragmento;
+- las etapas de indexación visibles;
+- "Faltan N" en el progreso semanal;
+- la casilla con el color de la categoría.
+
+Esos seis no son "solo presentación": cada uno lleva sus pruebas y se avisa antes de hacerlo.
+
 **Opción anotada el 2026-11-13 para E20b, junto con bajar el tiempo de carga (el usuario decidió no hacerla por ahora):** Abrir la app mostrando al instante la copia guardada de Inicio con un aviso "Actualizando…" y reemplazarla en su lugar al llegar la respuesta del servidor, con completar, crear y editar desactivados mientras tanto; solo Inicio, con una copia del mismo usuario de menos de 24 h, sin pedidos extra al servidor. Riesgo: por un momento puede verse una tarea ya completada en otro dispositivo, o la copia antes de llevar al inicio de sesión si la sesión venció. Propuesta del 2026-11-13, no hecha por decisión del usuario.
 
 ---
