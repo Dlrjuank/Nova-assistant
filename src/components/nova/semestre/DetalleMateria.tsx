@@ -449,11 +449,14 @@ export function DetalleMateria({
   plantilla,
   notaAprobar = 300,
   redondeo = 'truncar',
+  metaGuardada = null,
 }: {
   materia: Materia;
   plantilla: readonly number[];
   notaAprobar?: number;
   redondeo?: Redondeo;
+  /** E16: la meta de la materia guardada en Objetivos y plan. */
+  metaGuardada?: number | null;
 }) {
   const router = useRouter();
   const dividir = useGuardar();
@@ -474,7 +477,7 @@ export function DetalleMateria({
         </ConDialogo>
         <EliminarMateria materia={materia} />
       </div>
-      <Calculadora materia={materia} notaAprobar={notaAprobar} redondeo={redondeo} />
+      <Calculadora key={metaGuardada ?? 'sin-meta'} materia={materia} notaAprobar={notaAprobar} redondeo={redondeo} metaGuardada={metaGuardada} />
       <Fallas
         key={`${materia.fallasLimite}:${materia.fallasRegistradas}`}
         materiaId={materia.id}

@@ -3,9 +3,9 @@
 import { randomBytes } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import pg from 'pg';
-import { cambiarFallas, eventosSemestre, crearComponente, crearMateria, crearNota, dividirEnCortes, guardarFallas, listarMaterias, type Materia } from '@/lib/datos/semestre';
+import { cambiarFallas, eventosSemestre, crearComponente, crearMateria, crearNota, dividirEnCortes, guardarFallas, guardarMetaNota, listarMaterias, listarMetasNota, type Materia } from '@/lib/datos/semestre';
 import { listarDocumentos } from '@/lib/datos/documentos';
-import { aprueba, calcularMateria, cuantoNecesito, estadoConFallas, estadoDe, estadoFallas, textoFallas, promedioSemestre, textoCuantoNecesito, textoNota, type MateriaEntrada } from '@/lib/reglas/notas';
+import { alcanzable, aprueba, calcularCorte, calcularMateria, cuantoNecesito, estadoConFallas, estadoDe, estadoFallas, textoFallas, promedioSemestre, textoCuantoNecesito, textoNota, type MateriaEntrada } from '@/lib/reglas/notas';
 import { hoyBogota } from '@/lib/reglas/fechas';
 import { cargarEnv, opcionesConexion } from './cargar-env.mjs';
 
@@ -106,6 +106,19 @@ async function main(): Promise<void> {
     await guardarFallas(U, M2, { registradas: 0 });
     const f3 = await cambiarFallas(U, M2, -1);
     marcar(f3.registradas === 0, 'Paso 16: −1 con 0 fallas sigue en 0');
+
+    // Pasos 17 a 19: metas de nota (E16, 7.9, B-34).
+    await guardarMetaNota(U, { materiaId: M2, corteId: null, meta: '4' });
+    await guardarMetaNota(U, { materiaId: M2, corteId: null, meta: '3' }); // la cambia, no crea otra
+    const metasM2 = await listarMetasNota(U, M2);
+    marcar(metasM2.length === 1 && metasM2[0]?.meta === 300 && alcanzable(c2, 300, 'truncar').texto === 'No alcanzaste la meta: tu nota es 2,9.', 'Paso 17: meta de la materia (una sola) y, con todo calificado, si la cumpliste');
+    const corte1 = conCortes.cortes[0]?.id as string;
+    await guardarMetaNota(U, { materiaId: MAT, corteId: corte1, meta: '4,5' });
+    const enCorte = alcanzable(calcularCorte(entrada(conCortes).cortes[0] as Parameters<typeof calcularCorte>[0]), 450, 'truncar').texto;
+    marcar((await listarMetasNota(U, MAT))[0]?.corteId === corte1 && enCorte === 'No alcanzable: lo máximo posible es 4,1.', 'Paso 18: meta 4,5 en el Corte 1 con el peso pendiente del corte', enCorte);
+    let codigo = '';
+    await guardarMetaNota(U, { materiaId: M2, corteId: corte1, meta: '4' }).catch((e: { codigo?: string }) => (codigo = e.codigo ?? 'otro'));
+    marcar(codigo === 'CORTE_NO_ENCONTRADO', 'Paso 19: una meta de corte en una materia sin cortes (o con un corte ajeno) se rechaza');
   } catch (e) {
     marcar(false, 'Error inesperado', `${(e as { codigo?: string }).codigo ?? ''} ${(e as Error).message}`);
   } finally {

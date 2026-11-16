@@ -208,3 +208,9 @@ export const esquemaCrearMetaSemanal = z
   })
   .strict();
 export const esquemaIdMetaSemanal = z.uuid();
+
+// E16 (6.7, RB-18): meta de nota de una materia (corteId null) o de uno de sus cortes.
+export const esquemaGuardarMetaNota = z
+  .object({ materiaId: z.uuid(), corteId: z.union([z.uuid(), z.null()]), meta: z.union([z.string().max(10), z.number()]) })
+  .strict();
+export const esquemaQuitarMetaNota = z.object({ materiaId: z.uuid(), corteId: z.union([z.uuid(), z.null()]) });

@@ -607,6 +607,33 @@ try {
       marcar(false, `dd-dj) metas: ${e.message}`);
     }
   }
+
+  console.log('== 6p. Metas de nota (M11)');
+  const tablaM11 = await c.query("SELECT relrowsecurity FROM pg_class WHERE relname = 'metas_nota' AND relnamespace = 'public'::regnamespace");
+  marcar(tablaM11.rows[0]?.relrowsecurity === true, 'tabla metas_nota con RLS');
+  if (tablaM11.rowCount === 1 && dueno) {
+    try {
+      const mat = (await c.query("INSERT INTO materias (usuario_id, nombre, creditos, usa_cortes) VALUES ($1, 'Verificar metas nota', 3, true) RETURNING id", [dueno])).rows[0].id;
+      const otra = (await c.query("INSERT INTO materias (usuario_id, nombre, creditos) VALUES ($1, 'Verificar metas otra', 2) RETURNING id", [dueno])).rows[0].id;
+      const corte = (await c.query("INSERT INTO cortes (materia_id, usuario_id, orden, nombre, porcentaje) VALUES ($1, $2, 1, 'Corte 1', 3000) RETURNING id", [mat, dueno])).rows[0].id;
+      const ins = 'INSERT INTO metas_nota (usuario_id, materia_id, corte_id, meta) VALUES ($1, $2, $3, $4)';
+      await c.query(ins, [dueno, mat, null, 400]);
+      await c.query(ins, [dueno, mat, corte, 450]);
+      marcar(true, 'dk) una meta de la materia y una de su corte');
+      await esperaFalla('dl) meta 0,0 (RB-18)', '23514', ins, [dueno, otra, null, 0]);
+      await esperaFalla('dm) meta 5,1 (RB-18)', '23514', ins, [dueno, otra, null, 510]);
+      await esperaFalla('dn) segunda meta de la misma materia (NULLS NOT DISTINCT)', '23505', ins, [dueno, mat, null, 300]);
+      await esperaFalla('do) segunda meta del mismo corte', '23505', ins, [dueno, mat, corte, 300]);
+      await esperaFalla('dp) un corte de otra materia', '23503', ins, [dueno, otra, corte, 300]);
+      await c.query('DELETE FROM cortes WHERE id = $1', [corte]);
+      const quedan = (await c.query('SELECT corte_id FROM metas_nota WHERE materia_id = $1', [mat])).rows;
+      marcar(quedan.length === 1 && quedan[0].corte_id === null, 'dq) al borrar el corte se borra su meta; la de la materia queda');
+      await c.query('DELETE FROM materias WHERE id = $1', [mat]);
+      marcar((await c.query('SELECT 1 FROM metas_nota WHERE materia_id = $1', [mat])).rowCount === 0, 'dr) al borrar la materia se borran sus metas');
+    } catch (e) {
+      marcar(false, `dk-dr) metas de nota: ${e.message}`);
+    }
+  }
   await c.query('ROLLBACK');
 
   console.log(`== 7. Total de fallas: ${fallas}`);

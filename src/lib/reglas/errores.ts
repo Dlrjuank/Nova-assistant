@@ -68,6 +68,7 @@ export type CodigoError =
   | 'OBJETIVO_INVALIDO'
   | 'META_SEMANAL_DUPLICADA'
   | 'META_SEMANAL_NO_ENCONTRADA'
+  | 'META_NO_ENCONTRADA'
   | 'ERROR_INTERNO';
 
 // Textos de la sección 12.2; los de la sección 5.1 se usan literalmente.
@@ -149,6 +150,7 @@ export const MENSAJES: Record<CodigoError, string> = {
   OBJETIVO_INVALIDO: 'El objetivo debe ser un número entero mayor que 0.', // RB-16
   META_SEMANAL_DUPLICADA: 'Ya tienes una meta igual.', // RB-17
   META_SEMANAL_NO_ENCONTRADA: 'La meta no existe.',
+  META_NO_ENCONTRADA: 'La meta no existe.',
   ERROR_INTERNO: 'Ocurrió un error inesperado. Intenta de nuevo.',
 };
 
@@ -222,6 +224,7 @@ export const ESTADO_HTTP: Record<CodigoError, number> = {
   OBJETIVO_INVALIDO: 422,
   META_SEMANAL_DUPLICADA: 409,
   META_SEMANAL_NO_ENCONTRADA: 404,
+  META_NO_ENCONTRADA: 404,
   ERROR_INTERNO: 500,
 };
 

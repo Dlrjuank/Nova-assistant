@@ -5,6 +5,7 @@ import { NuevaMateria } from '@/components/nova/semestre/NuevaMateria';
 import { CLASE_FOCO } from '@/components/ui/Boton';
 import { EncabezadoPantalla } from '@/components/ui/EncabezadoPantalla';
 import { EstadoVacio } from '@/components/ui/EstadoVacio';
+import { pestanasSemestre } from '@/components/nova/semestre/pestanas';
 import { Pestanas } from '@/components/ui/Pestanas';
 import { Tarjeta } from '@/components/ui/Tarjeta';
 import { exigirSesion, listarMaterias, type Materia } from '@/lib/dataService';
@@ -85,7 +86,7 @@ export default async function SemestrePage() {
   return (
     <>
       <EncabezadoPantalla titulo="Semestre" subtitulo="Tus materias, sus componentes de evaluación y tus notas." accion={materias.length > 0 ? <NuevaMateria /> : undefined} />
-      <Pestanas etiqueta="Secciones de Semestre" pestanas={[{ href: '/nova/semestre', texto: 'Materias y notas', activa: true }]} />
+      <Pestanas etiqueta="Secciones de Semestre" pestanas={pestanasSemestre('notas')} />
       {materias.length === 0 ? (
         <EstadoVacio titulo="Aún no tienes materias." descripcion="Crea tu primera materia con sus créditos; luego agrega sus componentes de evaluación y tus notas." accion={<NuevaMateria />} />
       ) : (

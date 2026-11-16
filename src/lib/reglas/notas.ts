@@ -322,6 +322,33 @@ export function validarMeta(v: string | number): number {
   return c;
 }
 
+// ---------- 7.9: "¿Es alcanzable?" (metas de nota, E16) ----------
+
+export const SIN_SUMAS_META = 'Para saber si es alcanzable, los porcentajes deben sumar 100 %.';
+
+export type Alcanzable = { tipo: 'alcanzable' | 'asegurada' | 'cumplida' | 'no-alcanzable' | 'no-cumplida' | 'sin-sumas'; texto: string };
+
+/**
+ * 7.9 con la regla 7.5: para una meta de la materia, su cálculo; para una de corte, el del corte (su propio peso
+ * pendiente). Con todo calificado dice si la cumpliste comparando la nota mostrada con la meta.
+ */
+export function alcanzable(c: Calculo, meta: number, redondeo: Redondeo): Alcanzable {
+  const r = cuantoNecesito(c, meta, redondeo);
+  if (!r) return { tipo: 'sin-sumas', texto: SIN_SUMAS_META };
+  switch (r.tipo) {
+    case 'necesitas':
+      return { tipo: 'alcanzable', texto: `Alcanzable: necesitas ${formatearDecimas(r.decimas)} en lo que falta.` };
+    case 'asegurado':
+      return { tipo: 'asegurada', texto: 'Ya la aseguraste.' };
+    case 'imposible':
+      return { tipo: 'no-alcanzable', texto: `No alcanzable: lo máximo posible es ${formatearDecimas(r.maximo)}.` };
+    case 'definitiva':
+      return r.nota >= Math.ceil(meta / 10)
+        ? { tipo: 'cumplida', texto: `Cumpliste la meta: tu nota es ${formatearDecimas(r.nota)}.` }
+        : { tipo: 'no-cumplida', texto: `No alcanzaste la meta: tu nota es ${formatearDecimas(r.nota)}.` };
+  }
+}
+
 // ---------- 7.6: promedio del semestre ----------
 
 export interface Promedio {

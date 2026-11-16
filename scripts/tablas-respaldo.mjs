@@ -11,6 +11,7 @@ export const TABLAS_RESPALDO = [
   'cortes',
   'componentes',
   'notas',
+  'metas_nota', // M11 (E16): materias y cortes
   'documentos',
   'fragmentos_pdf',
   'capitulos', // documentos y tareas_personales

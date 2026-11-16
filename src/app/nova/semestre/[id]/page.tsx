@@ -4,7 +4,7 @@ import { DetalleMateria } from '@/components/nova/semestre/DetalleMateria';
 import { CLASE_FOCO } from '@/components/ui/Boton';
 import { EncabezadoPantalla } from '@/components/ui/EncabezadoPantalla';
 import { EstadoVacio } from '@/components/ui/EstadoVacio';
-import { exigirSesion, obtenerMateria, type Materia } from '@/lib/dataService';
+import { exigirSesion, listarMetasNota, obtenerMateria, type Materia } from '@/lib/dataService';
 import { obtenerPreferencias } from '@/lib/datos/configuracion';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
 import { esquemaIdSemestre } from '@/lib/validacion/esquemas';
@@ -23,7 +23,8 @@ export default async function MateriaPage({ params }: { params: Promise<{ id: st
       throw error;
     });
   }
-  const preferencias = materia ? await obtenerPreferencias(sesion.id) : null;
+  const [preferencias, metas] = materia ? await Promise.all([obtenerPreferencias(sesion.id), listarMetasNota(sesion.id, materia.id)]) : [null, []];
+  const metaGuardada = metas.find((m) => m.corteId === null)?.meta ?? null;
 
   return (
     <>
@@ -35,7 +36,7 @@ export default async function MateriaPage({ params }: { params: Promise<{ id: st
         <ChevronLeft aria-hidden="true" className="size-4" />
         Semestre
       </Link>
-      {materia ? <DetalleMateria materia={materia} plantilla={preferencias?.cortesDefecto ?? []} notaAprobar={preferencias?.notaAprobar ?? 300} redondeo={preferencias?.redondeo ?? 'truncar'} /> : <EstadoVacio titulo="La materia no existe." descripcion="Puede que ya la hayas eliminado." />}
+      {materia ? <DetalleMateria materia={materia} plantilla={preferencias?.cortesDefecto ?? []} notaAprobar={preferencias?.notaAprobar ?? 300} redondeo={preferencias?.redondeo ?? 'truncar'} metaGuardada={metaGuardada} /> : <EstadoVacio titulo="La materia no existe." descripcion="Puede que ya la hayas eliminado." />}
     </>
   );
 }

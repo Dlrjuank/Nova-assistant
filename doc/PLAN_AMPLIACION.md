@@ -496,6 +496,8 @@ Las metas son permanentes: aplican a cada semana hasta que se eliminan. El progr
 |---|---|---|
 | `metas_nota` | `id`, `usuario_id`, `materia_id`, `corte_id` NULL (NULL = meta de la materia), `meta` SMALLINT (centésimas) | FK compuestas al dueño; meta 1 a 500; `UNIQUE (materia_id, corte_id)` con `NULLS NOT DISTINCT` |
 
+- **Hecho en E16 (2026-11-16):** M11 en `20261116120000_nova_metas_nota.sql`. La meta va de 10 a 500 (0,1 a 5,0, RB-18). Una FK más, `(corte_id, materia_id)` contra un `UNIQUE (id, materia_id)` nuevo en `cortes`, exige que el corte sea de esa materia. Las metas de corte solo en materias con cortes: el servidor responde `CORTE_NO_ENCONTRADO` si no, y "Quitar cortes" las borra; la de la materia queda. Borrar un corte o la materia las borra en cascada. `PUT /api/nova/metas-nota` crea o cambia (una por materia y una por corte); `DELETE /api/nova/metas-nota?materia=&corte=` la quita (`META_NO_ENCONTRADA`, 404). En la API, una meta numérica va en centésimas y una de texto como se escribe ("4,5"). Pestaña "Objetivos y plan" en `/nova/semestre/objetivos`.
+
 ### 6.8 M12 · Temas (E17)
 
 | Tabla | Columnas | Restricciones |
@@ -704,6 +706,8 @@ Nota: el índice diario usa la **fecha límite**; las metas usan la **fecha de c
 ### 7.9 "¿Es alcanzable?" (metas de nota)
 
 Con la regla 7.5 y la meta como objetivo: "Alcanzable: necesitas {x} en lo que falta", "Ya la aseguraste" o "No alcanzable: lo máximo posible es {y}". Para una meta de corte se usa el peso pendiente del corte.
+
+- **Hecho en E16:** con todo calificado, `Cumpliste la meta: tu nota es {n}.` o `No alcanzaste la meta: tu nota es {n}.` (con la nota mostrada, según el redondeo); con porcentajes que no suman 100 %, `Para saber si es alcanzable, los porcentajes deben sumar 100 %.`
 
 ### 7.10 Hora de un recordatorio (E11c)
 

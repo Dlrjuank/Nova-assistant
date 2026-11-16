@@ -27,12 +27,13 @@ import { mensajeDe } from './peticion';
  * una nota meta que no se guarda (por defecto, la nota para aprobar de Configuración). Con porcentajes que no
  * suman 100 %, solo la nota actual.
  */
-export function Calculadora({ materia, notaAprobar, redondeo }: { materia: Materia; notaAprobar: number; redondeo: Redondeo }) {
+export function Calculadora({ materia, notaAprobar, redondeo, metaGuardada = null }: { materia: Materia; notaAprobar: number; redondeo: Redondeo; metaGuardada?: number | null }) {
   const entrada = entradaDe(materia);
   const calculo = calcularMateria(entrada);
   // E14 (7.7): perdida por fallas, "En riesgo" aunque las notas aprueben.
   const estado = estadoConFallas(estadoDe(calculo, notaAprobar, redondeo), estadoFallas(materia.fallasLimite, materia.fallasRegistradas));
-  const [meta, setMeta] = useState(formatearNota(notaAprobar));
+  // E16: la meta guardada de la materia (Objetivos y plan) es el valor inicial; si no hay, la nota para aprobar.
+  const [meta, setMeta] = useState(formatearNota(metaGuardada ?? notaAprobar));
   const errorMeta = mensajeDe(() => validarMeta(meta));
   const necesito = errorMeta ? null : cuantoNecesito(calculo, validarMeta(meta), redondeo);
 
@@ -96,7 +97,7 @@ export function Calculadora({ materia, notaAprobar, redondeo }: { materia: Mater
               maxLength={4}
               onChange={(e) => setMeta(e.target.value)}
               error={errorMeta}
-              ayuda="Por defecto, la nota para aprobar. No se guarda."
+              ayuda={metaGuardada === null ? 'Por defecto, la nota para aprobar. No se guarda.' : 'Por defecto, tu meta de Objetivos y plan. Lo que escribas aquí no se guarda.'}
             />
           </div>
           {necesito && (

@@ -11,6 +11,7 @@ import {
   validarDocente,
   validarFallas,
   validarLimiteFallas,
+  validarMeta,
   validarNombreComponente,
   validarNombreCorte,
   validarNombreMateria,
@@ -220,6 +221,8 @@ export async function quitarCortes(usuarioId: string, id: string): Promise<{ id:
     const { rows } = await tx.query<{ n: number }>('SELECT count(*)::int AS n FROM cortes WHERE materia_id = $1 AND usuario_id = $2', [id, usuarioId]);
     if (!puedeQuitarCortes(rows[0]?.n ?? 0)) throw new ErrorDeNegocio('QUITAR_CORTES_INVALIDO');
     await tx.query('UPDATE cortes SET orden = 1, nombre = $3, porcentaje = 10000 WHERE materia_id = $1 AND usuario_id = $2', [id, usuarioId, NOMBRE_CORTE_UNICO]);
+    // E16 (6.7): sin cortes no hay metas de corte; la de la materia queda.
+    await tx.query('DELETE FROM metas_nota WHERE materia_id = $1 AND usuario_id = $2 AND corte_id IS NOT NULL', [id, usuarioId]);
     await tx.query('UPDATE materias SET usa_cortes = false WHERE id = $1', [id]);
     return { id };
   });
@@ -417,4 +420,54 @@ export async function cambiarFallas(usuarioId: string, id: string, cambio: 1 | -
   );
   if (!fila) throw new ErrorDeNegocio('MATERIA_NO_ENCONTRADA');
   return { limite: fila.fallas_limite, registradas: fila.fallas_registradas };
+}
+
+// ---------- E16 (6.7, 7.9, RB-18): metas de nota ----------
+
+export interface MetaNota {
+  materiaId: string;
+  /** null = meta de la materia. */
+  corteId: string | null;
+  /** Centésimas: 450 = 4,5. */
+  meta: number;
+}
+
+/** RB-01: solo las del usuario; con `materiaId`, solo las de esa materia. */
+export async function listarMetasNota(usuarioId: string, materiaId?: string | undefined): Promise<MetaNota[]> {
+  return consultar<MetaNota>(
+    `SELECT materia_id AS "materiaId", corte_id AS "corteId", meta FROM metas_nota
+     WHERE usuario_id = $1 AND ($2::uuid IS NULL OR materia_id = $2)`,
+    [usuarioId, materiaId ?? null],
+  );
+}
+
+/**
+ * Crea o cambia la meta (una por materia y una por corte). Las de corte solo en materias con cortes y con un corte
+ * de esa materia; si no, el corte responde como inexistente.
+ */
+export async function guardarMetaNota(usuarioId: string, d: { materiaId: string; corteId: string | null; meta: string | number }): Promise<MetaNota> {
+  const meta = validarMeta(d.meta);
+  return conTransaccion(async (tx) => {
+    const materia = await bloquearMateria(tx, usuarioId, d.materiaId);
+    if (d.corteId !== null) {
+      const { rows } = await tx.query('SELECT 1 FROM cortes WHERE id = $1 AND materia_id = $2 AND usuario_id = $3', [d.corteId, d.materiaId, usuarioId]);
+      if (!materia.usa_cortes || rows.length === 0) throw new ErrorDeNegocio('CORTE_NO_ENCONTRADO');
+    }
+    const { rows } = await tx.query<MetaNota>(
+      `INSERT INTO metas_nota (usuario_id, materia_id, corte_id, meta) VALUES ($1, $2, $3, $4)
+       ON CONFLICT ON CONSTRAINT metas_nota_unica DO UPDATE SET meta = EXCLUDED.meta
+       RETURNING materia_id AS "materiaId", corte_id AS "corteId", meta`,
+      [usuarioId, d.materiaId, d.corteId, meta],
+    );
+    return rows[0] as MetaNota;
+  });
+}
+
+export async function quitarMetaNota(usuarioId: string, d: { materiaId: string; corteId: string | null }): Promise<{ materiaId: string; corteId: string | null }> {
+  const filas = await consultar<{ id: string }>(
+    'DELETE FROM metas_nota WHERE materia_id = $1 AND usuario_id = $2 AND corte_id IS NOT DISTINCT FROM $3::uuid RETURNING id',
+    [d.materiaId, usuarioId, d.corteId],
+  );
+  if (filas.length === 0) throw new ErrorDeNegocio('META_NO_ENCONTRADA');
+  return { materiaId: d.materiaId, corteId: d.corteId };
 }
