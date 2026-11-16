@@ -29,6 +29,7 @@ import { MENSAJES } from '@/lib/reglas/errores';
 import { aCentesimas, formatearNota, formatearPorcentaje, type Redondeo } from '@/lib/reglas/preferencias';
 import { Calculadora } from './Calculadora';
 import { ConDialogo } from './ConDialogo';
+import { Fallas } from './Fallas';
 import { FormularioMateria } from './FormularioMateria';
 import { mensajeDe, pedirSemestre, type Resultado } from './peticion';
 
@@ -474,6 +475,12 @@ export function DetalleMateria({
         <EliminarMateria materia={materia} />
       </div>
       <Calculadora materia={materia} notaAprobar={notaAprobar} redondeo={redondeo} />
+      <Fallas
+        key={`${materia.fallasLimite}:${materia.fallasRegistradas}`}
+        materiaId={materia.id}
+        limite={materia.fallasLimite}
+        registradas={materia.fallasRegistradas}
+      />
 
       {!materia.usaCortes && corteUnico ? (
         <>

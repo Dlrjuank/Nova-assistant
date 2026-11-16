@@ -12,9 +12,11 @@ vi.mock('@/lib/datos/configuracion', () => ({ obtenerPreferencias: m.preferencia
 vi.mock('@/lib/dataService', async () => import('@/lib/datos/semestre'));
 
 import * as rutaCortes from '@/app/api/nova/materias/[id]/cortes/route';
+import * as rutaFallas from '@/app/api/nova/materias/[id]/fallas/route';
 import * as rutaMaterias from '@/app/api/nova/materias/route';
 import * as rutaNotas from '@/app/api/nova/componentes/[id]/notas/route';
 import {
+  cambiarFallas,
   crearComponente,
   crearMateria,
   crearNota,
@@ -22,6 +24,7 @@ import {
   editarMateria,
   eliminarMateria,
   guardarCortes,
+  guardarFallas,
   listarMaterias,
   quitarCortes,
 } from '@/lib/datos/semestre';
@@ -191,5 +194,29 @@ describe('rutas', () => {
     const a = await rutaCortes.POST(new Request('http://x', { method: 'POST', body: JSON.stringify({ accion: 'borrar' }) }), { params: Promise.resolve({ id: MAT }) });
     expect(a.status).toBe(400);
     expect(m.txQuery).not.toHaveBeenCalled();
+  });
+});
+
+describe("E14: fallas (6.5, RB-15)", () => {
+  it("guardar: el límite vacío queda sin límite; las registradas se validan (RB-15); ajena, inexistente", async () => {
+    m.consultar.mockResolvedValueOnce([{ fallas_limite: null, fallas_registradas: 3 }]);
+    await expect(guardarFallas(U, MAT, { limite: "", registradas: "3" })).resolves.toEqual({ limite: null, registradas: 3 });
+    expect(m.consultar.mock.calls[0]?.[1]).toEqual([MAT, U, null, 3]);
+    await expect(guardarFallas(U, MAT, { registradas: "-1" })).rejects.toMatchObject({ message: "Las fallas deben ser un número entero mayor o igual a 0." });
+    m.consultar.mockResolvedValueOnce([]);
+    await expect(guardarFallas(U, MAT, { limite: 5 })).rejects.toMatchObject({ codigo: "MATERIA_NO_ENCONTRADA" });
+  });
+
+  it("+1 y −1 en una sola sentencia que nunca baja de 0", async () => {
+    m.consultar.mockResolvedValueOnce([{ fallas_limite: 5, fallas_registradas: 4 }]);
+    await expect(cambiarFallas(U, MAT, 1)).resolves.toEqual({ limite: 5, registradas: 4 });
+    expect(String(m.consultar.mock.calls[0]?.[0])).toContain("GREATEST(0, fallas_registradas + $3)");
+    expect(m.consultar.mock.calls[0]?.[1]).toEqual([MAT, U, 1]);
+  });
+
+  it("la ruta solo admite +1 o −1", async () => {
+    const r = await rutaFallas.POST(new Request("http://x", { method: "POST", body: JSON.stringify({ cambio: 2 }) }), { params: Promise.resolve({ id: MAT }) });
+    expect(r.status).toBe(400);
+    expect(m.consultar).not.toHaveBeenCalled();
   });
 });

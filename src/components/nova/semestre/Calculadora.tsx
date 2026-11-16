@@ -9,7 +9,9 @@ import {
   calcularCorte,
   calcularMateria,
   cuantoNecesito,
+  estadoConFallas,
   estadoDe,
+  estadoFallas,
   SIN_NOTAS,
   textoCuantoNecesito,
   textoNota,
@@ -28,7 +30,8 @@ import { mensajeDe } from './peticion';
 export function Calculadora({ materia, notaAprobar, redondeo }: { materia: Materia; notaAprobar: number; redondeo: Redondeo }) {
   const entrada = entradaDe(materia);
   const calculo = calcularMateria(entrada);
-  const estado = estadoDe(calculo, notaAprobar, redondeo);
+  // E14 (7.7): perdida por fallas, "En riesgo" aunque las notas aprueben.
+  const estado = estadoConFallas(estadoDe(calculo, notaAprobar, redondeo), estadoFallas(materia.fallasLimite, materia.fallasRegistradas));
   const [meta, setMeta] = useState(formatearNota(notaAprobar));
   const errorMeta = mensajeDe(() => validarMeta(meta));
   const necesito = errorMeta ? null : cuantoNecesito(calculo, validarMeta(meta), redondeo);
@@ -37,7 +40,10 @@ export function Calculadora({ materia, notaAprobar, redondeo }: { materia: Mater
     <Tarjeta className="flex flex-col gap-4">
       <h2 className="text-lg font-semibold text-texto">Calculadora</h2>
       {calculo.actual === null ? (
-        <p className="text-sm text-texto-suave">{SIN_NOTAS}</p>
+        <p className="flex flex-wrap items-center gap-2 text-sm text-texto-suave">
+          {SIN_NOTAS}
+          {estado && <InsigniaEstadoMateria estado={estado} />}
+        </p>
       ) : (
         <div className="flex flex-wrap items-end gap-x-8 gap-y-3">
           <div>

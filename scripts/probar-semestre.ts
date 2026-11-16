@@ -3,9 +3,9 @@
 import { randomBytes } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import pg from 'pg';
-import { eventosSemestre, crearComponente, crearMateria, crearNota, dividirEnCortes, listarMaterias, type Materia } from '@/lib/datos/semestre';
+import { cambiarFallas, eventosSemestre, crearComponente, crearMateria, crearNota, dividirEnCortes, guardarFallas, listarMaterias, type Materia } from '@/lib/datos/semestre';
 import { listarDocumentos } from '@/lib/datos/documentos';
-import { aprueba, calcularMateria, cuantoNecesito, estadoDe, promedioSemestre, textoCuantoNecesito, textoNota, type MateriaEntrada } from '@/lib/reglas/notas';
+import { aprueba, calcularMateria, cuantoNecesito, estadoConFallas, estadoDe, estadoFallas, textoFallas, promedioSemestre, textoCuantoNecesito, textoNota, type MateriaEntrada } from '@/lib/reglas/notas';
 import { hoyBogota } from '@/lib/reglas/fechas';
 import { cargarEnv, opcionesConexion } from './cargar-env.mjs';
 
@@ -96,6 +96,16 @@ async function main(): Promise<void> {
     await sql.query("INSERT INTO documentos (nombre_archivo, categoria, fecha_guardado, usuario_id, materia_id) VALUES ('prueba-semestre.pdf', 'Prueba Semestre 7.4', $1, $2, $3)", [hoyBogota(), U, MAT]);
     const docs = await listarDocumentos(U);
     marcar(docs[0]?.materia === 'Prueba Semestre 7.4', 'Paso 13: la lista de documentos muestra la materia');
+
+    // Pasos 14 a 16: fallas (7.7, B-32) en la materia de 2,96 (aprobada al redondear).
+    const f1 = await guardarFallas(U, M2, { limite: '5', registradas: '3' });
+    marcar(textoFallas(estadoFallas(f1.limite, f1.registradas), f1.limite, f1.registradas) === 'Te quedan 2 fallas antes de perder la materia.', 'Paso 14: a 2 del límite, la alerta RB-14');
+    await cambiarFallas(U, M2, 1);
+    const f2 = await cambiarFallas(U, M2, 1);
+    marcar(f2.registradas === 5 && textoFallas(estadoFallas(f2.limite, f2.registradas), f2.limite, f2.registradas) === 'Perdiste la materia por fallas (5 de 5).' && estadoConFallas(estadoDe(c2, 300, 'redondear'), estadoFallas(f2.limite, f2.registradas)) === 'En riesgo', 'Paso 15: en el límite, perdida y "En riesgo" aunque apruebe');
+    await guardarFallas(U, M2, { registradas: 0 });
+    const f3 = await cambiarFallas(U, M2, -1);
+    marcar(f3.registradas === 0, 'Paso 16: −1 con 0 fallas sigue en 0');
   } catch (e) {
     marcar(false, 'Error inesperado', `${(e as { codigo?: string }).codigo ?? ''} ${(e as Error).message}`);
   } finally {

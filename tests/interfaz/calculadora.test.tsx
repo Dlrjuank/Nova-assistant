@@ -16,6 +16,8 @@ const EJEMPLO: Materia = {
   creditos: 3,
   docente: null,
   usaCortes: false,
+  fallasLimite: null,
+  fallasRegistradas: 0,
   cortes: [
     {
       id: 'c1',

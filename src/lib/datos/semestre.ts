@@ -9,6 +9,8 @@ import {
   puedeQuitarCortes,
   validarCreditos,
   validarDocente,
+  validarFallas,
+  validarLimiteFallas,
   validarNombreComponente,
   validarNombreCorte,
   validarNombreMateria,
@@ -59,6 +61,9 @@ export interface Materia {
   creditos: number;
   docente: string | null;
   usaCortes: boolean;
+  /** E14 (7.7): null = sin límite registrado. */
+  fallasLimite: number | null;
+  fallasRegistradas: number;
   cortes: CorteMateria[];
 }
 
@@ -80,8 +85,8 @@ const FECHA = (columna: string) => `to_char(${columna}, 'YYYY-MM-DD')`;
 
 /** E12: las materias del usuario con sus cortes, componentes y notas, en orden. Con `id`, solo esa. */
 export async function listarMaterias(usuarioId: string, id?: string | undefined): Promise<Materia[]> {
-  const materias = await consultar<{ id: string; nombre: string; creditos: number; docente: string | null; usa_cortes: boolean }>(
-    `SELECT id, nombre, creditos, docente, usa_cortes FROM materias
+  const materias = await consultar<{ id: string; nombre: string; creditos: number; docente: string | null; usa_cortes: boolean; fallas_limite: number | null; fallas_registradas: number }>(
+    `SELECT id, nombre, creditos, docente, usa_cortes, fallas_limite, fallas_registradas FROM materias
      WHERE usuario_id = $1 AND ($2::uuid IS NULL OR id = $2) ORDER BY lower(nombre), creada_en`,
     [usuarioId, id ?? null],
   );
@@ -112,7 +117,16 @@ export async function listarMaterias(usuarioId: string, id?: string | undefined)
       { id: c.id, orden: c.orden, nombre: c.nombre, porcentaje: c.porcentaje, fecha: c.fecha, componentes: componentesDe.get(c.id) ?? [] },
     ]);
   }
-  return materias.map((m) => ({ id: m.id, nombre: m.nombre, creditos: m.creditos, docente: m.docente, usaCortes: m.usa_cortes, cortes: cortesDe.get(m.id) ?? [] }));
+  return materias.map((m) => ({
+    id: m.id,
+    nombre: m.nombre,
+    creditos: m.creditos,
+    docente: m.docente,
+    usaCortes: m.usa_cortes,
+    fallasLimite: m.fallas_limite,
+    fallasRegistradas: m.fallas_registradas,
+    cortes: cortesDe.get(m.id) ?? [],
+  }));
 }
 
 export async function obtenerMateria(usuarioId: string, id: string): Promise<Materia> {
@@ -373,4 +387,34 @@ export async function eventosSemestre(usuarioId: string, desde: string, hasta: s
 /** E13 (B-21): las materias del usuario para elegir al subir un PDF. */
 export async function nombresMaterias(usuarioId: string): Promise<Array<{ id: string; nombre: string }>> {
   return consultar<{ id: string; nombre: string }>('SELECT id, nombre FROM materias WHERE usuario_id = $1 ORDER BY lower(nombre)', [usuarioId]);
+}
+
+export interface Fallas {
+  limite: number | null;
+  registradas: number;
+}
+
+/** E14 (6.5, RB-15): el límite (vacío = sin límite) y las fallas registradas, escritos a mano. */
+export async function guardarFallas(usuarioId: string, id: string, d: { limite?: string | number | null | undefined; registradas?: string | number | undefined }): Promise<Fallas> {
+  const cambios: string[] = [];
+  const valores: unknown[] = [id, usuarioId];
+  if (d.limite !== undefined) cambios.push(`fallas_limite = $${valores.push(validarLimiteFallas(d.limite))}`);
+  if (d.registradas !== undefined) cambios.push(`fallas_registradas = $${valores.push(validarFallas(d.registradas))}`);
+  if (cambios.length === 0) throw new ErrorDeNegocio('DATOS_INVALIDOS');
+  const [fila] = await consultar<{ fallas_limite: number | null; fallas_registradas: number }>(
+    `UPDATE materias SET ${cambios.join(', ')} WHERE id = $1 AND usuario_id = $2 RETURNING fallas_limite, fallas_registradas`,
+    valores,
+  );
+  if (!fila) throw new ErrorDeNegocio('MATERIA_NO_ENCONTRADA');
+  return { limite: fila.fallas_limite, registradas: fila.fallas_registradas };
+}
+
+/** E14: +1 o −1 en una sola sentencia (dos toques seguidos no se pisan); nunca baja de 0. */
+export async function cambiarFallas(usuarioId: string, id: string, cambio: 1 | -1): Promise<Fallas> {
+  const [fila] = await consultar<{ fallas_limite: number | null; fallas_registradas: number }>(
+    'UPDATE materias SET fallas_registradas = LEAST(32767, GREATEST(0, fallas_registradas + $3)) WHERE id = $1 AND usuario_id = $2 RETURNING fallas_limite, fallas_registradas',
+    [id, usuarioId, cambio],
+  );
+  if (!fila) throw new ErrorDeNegocio('MATERIA_NO_ENCONTRADA');
+  return { limite: fila.fallas_limite, registradas: fila.fallas_registradas };
 }

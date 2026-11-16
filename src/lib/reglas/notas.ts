@@ -353,3 +353,40 @@ export function promedioSemestre(materias: ReadonlyArray<{ creditos: number; cal
 
 /** Un peso (fracción de 1) en porcentaje con hasta dos decimales, redondeado: 0,32 → "32"; 2/15 → "13,33". */
 export const textoPeso = (peso: Fraccion) => formatearPorcentaje(Number(piso(fraccion(peso.n * 20000n + peso.d, peso.d * 2n))));
+
+// ---------- 7.7: fallas (RB-14, RB-15) ----------
+
+export type EstadoFallas = { tipo: 'sin-limite' } | { tipo: 'bien'; faltan: number } | { tipo: 'alerta'; faltan: number } | { tipo: 'perdida' };
+
+/** 7.7: faltan = límite − registradas. Con 0 o menos, perdida; con 1 o 2, alerta; sin límite, no se calcula. */
+export function estadoFallas(limite: number | null, registradas: number): EstadoFallas {
+  if (limite === null) return { tipo: 'sin-limite' };
+  const faltan = limite - registradas;
+  if (faltan <= 0) return { tipo: 'perdida' };
+  return faltan <= 2 ? { tipo: 'alerta', faltan } : { tipo: 'bien', faltan };
+}
+
+/** RB-14: la alerta o la pérdida; null si no hay nada que avisar. */
+export function textoFallas(e: EstadoFallas, limite: number | null, registradas: number): string | null {
+  if (e.tipo === 'perdida') return `Perdiste la materia por fallas (${registradas} de ${limite}).`;
+  if (e.tipo === 'alerta') return e.faltan === 1 ? 'Te queda 1 falla antes de perder la materia.' : `Te quedan ${e.faltan} fallas antes de perder la materia.`;
+  return null;
+}
+
+/** 7.7: una materia perdida por fallas está "En riesgo" aunque sus notas aprueben (o aún no tenga notas). */
+export function estadoConFallas(estado: Estado | null, fallas: EstadoFallas): Estado | null {
+  if (fallas.tipo !== 'perdida') return estado;
+  return estado === 'No alcanza' || estado === 'Reprobada' ? estado : 'En riesgo';
+}
+
+/** RB-15: fallas enteras ≥ 0 (texto del campo o número). Para el límite, vacío = sin límite (null). */
+export function validarFallas(v: string | number): number {
+  const n = typeof v === 'number' ? v : /^\s*\d{1,4}\s*$/.test(v) ? Number(v) : NaN;
+  if (!Number.isInteger(n) || n < 0 || n > 32767) throw new ErrorDeNegocio('FALLAS_INVALIDAS');
+  return n;
+}
+
+export function validarLimiteFallas(v: string | number | null | undefined): number | null {
+  if (v === null || v === undefined || (typeof v === 'string' && v.trim() === '')) return null;
+  return validarFallas(v);
+}

@@ -565,6 +565,27 @@ try {
       marcar(false, `cl-cy) semestre: ${e.message}`);
     }
   }
+  // M9 (ampliación, E14): fallas (6.5, RB-15).
+  console.log('== 6n. Fallas (M9)');
+  const columnasM9 = await c.query(
+    "SELECT column_name, is_nullable, column_default FROM information_schema.columns WHERE table_name = 'materias' AND column_name IN ('fallas_limite', 'fallas_registradas') ORDER BY column_name",
+  );
+  marcar(
+    columnasM9.rowCount === 2 && columnasM9.rows[0].is_nullable === 'YES' && columnasM9.rows[1].is_nullable === 'NO' && String(columnasM9.rows[1].column_default) === '0',
+    'columnas materias.fallas_limite (opcional) y fallas_registradas (0 por defecto)',
+  );
+  if (columnasM9.rowCount === 2 && dueno) {
+    try {
+      const m = (await c.query("INSERT INTO materias (usuario_id, nombre, creditos) VALUES ($1, 'Verificar fallas', 2) RETURNING id, fallas_limite, fallas_registradas", [dueno])).rows[0];
+      marcar(m.fallas_limite === null && m.fallas_registradas === 0, 'cz) una materia nace sin límite y con 0 fallas');
+      await esperaFalla('da) límite negativo (RB-15)', '23514', 'UPDATE materias SET fallas_limite = -1 WHERE id = $1', [m.id]);
+      await esperaFalla('db) fallas registradas negativas (RB-15)', '23514', 'UPDATE materias SET fallas_registradas = -1 WHERE id = $1', [m.id]);
+      await c.query('UPDATE materias SET fallas_limite = 0, fallas_registradas = 8 WHERE id = $1', [m.id]);
+      marcar(true, 'dc) límite 0 y más fallas que el límite se guardan (la regla 7.7 decide)');
+    } catch (e) {
+      marcar(false, `cz-dc) fallas: ${e.message}`);
+    }
+  }
   await c.query('ROLLBACK');
 
   console.log(`== 7. Total de fallas: ${fallas}`);

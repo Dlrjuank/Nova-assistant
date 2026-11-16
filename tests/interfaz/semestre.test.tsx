@@ -17,6 +17,8 @@ const SIN_CORTES: Materia = {
   creditos: 3,
   docente: null,
   usaCortes: false,
+  fallasLimite: null,
+  fallasRegistradas: 0,
   cortes: [
     {
       id: 'c1',
@@ -123,5 +125,26 @@ describe('DetalleMateria', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Guardar cortes' }));
     expect(screen.getByText('El porcentaje debe ser mayor que 0 y como máximo 100.')).toBeTruthy();
     expect(f).not.toHaveBeenCalled();
+  });
+
+  it("E14: la tarjeta Fallas: alerta a 2 del límite, +1 y −1, y el límite con RB-15 (B-32)", async () => {
+    const f = vi.fn().mockResolvedValue(ok({ limite: 5, registradas: 4 }));
+    vi.stubGlobal("fetch", f);
+    render(<DetalleMateria materia={{ ...SIN_CORTES, fallasLimite: 5, fallasRegistradas: 3 }} plantilla={[3000, 3000, 4000]} />);
+    expect(screen.getByText("Te quedan 2 fallas antes de perder la materia.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Sumar una falla" }));
+    await vi.waitFor(() => expect(m.refresh).toHaveBeenCalled());
+    expect(f.mock.calls[0]?.[0]).toBe("/api/nova/materias/m1/fallas");
+    expect(JSON.parse(f.mock.calls[0]?.[1].body)).toEqual({ cambio: 1 });
+    fireEvent.change(screen.getByLabelText("Límite de fallas"), { target: { value: "-1" } });
+    fireEvent.click(screen.getByRole("button", { name: "Guardar fallas" }));
+    expect(screen.getByText("Las fallas deben ser un número entero mayor o igual a 0.")).toBeTruthy();
+  });
+
+  it('E14: en el límite, la pérdida y "En riesgo" aunque las notas aprueben', () => {
+    render(<DetalleMateria materia={{ ...SIN_CORTES, fallasLimite: 4, fallasRegistradas: 4, cortes: [{ ...SIN_CORTES.cortes[0]!, componentes: [{ id: "k", orden: 1, nombre: "Final", porcentaje: 10000, notas: [{ id: "n", orden: 1, nombre: null, nota: 450, fecha: null }] }] }] }} plantilla={[3000, 3000, 4000]} />);
+    expect(screen.getByText("Perdiste la materia por fallas (4 de 4).")).toBeTruthy();
+    expect(screen.getByText("En riesgo")).toBeTruthy();
+    expect((screen.getByRole("button", { name: "Restar una falla" }) as HTMLButtonElement).disabled).toBe(false);
   });
 });

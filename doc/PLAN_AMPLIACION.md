@@ -444,6 +444,8 @@ Modelo de la calculadora de notas (definido por el usuario el 2026-11-07): mater
 
 Columnas nuevas en `materias`: `fallas_limite` SMALLINT NULL (≥ 0; NULL = sin límite registrado) y `fallas_registradas` SMALLINT NOT NULL DEFAULT 0 (≥ 0).
 
+- **Hecho en E14 (2026-11-16):** M9 en `20261116100000_nova_fallas.sql`, con un CHECK por columna (RB-15). `PATCH /api/nova/materias/[id]/fallas` guarda el límite (vacío o null = sin límite) y las registradas; `POST` con `{ cambio: 1 | -1 }` suma o resta en una sola sentencia que nunca baja de 0. "En riesgo" por fallas (7.7) reemplaza a Aprueba, Aprobada o a no tener estado; No alcanza y Reprobada se conservan. La alerta de 1 o 2 fallas no cambia el estado.
+
 ### 6.6 M10 · Metas semanales (E15)
 
 | Tabla | Columnas | Restricciones |

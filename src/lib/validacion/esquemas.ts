@@ -190,3 +190,9 @@ export const esquemaNota = z.object({
   nota: z.union([z.string().max(20), z.number(), z.null()]).optional(),
   fecha: z.string().max(10).nullable().optional(),
 });
+
+// E14 (RB-15): fallas escritas a mano (el límite vacío o null = sin límite) o +1 / −1.
+export const esquemaFallas = z
+  .object({ limite: z.union([z.string().max(10), z.number(), z.null()]).optional(), registradas: z.union([z.string().max(10), z.number()]).optional() })
+  .strict();
+export const esquemaCambioFallas = z.object({ cambio: z.union([z.literal(1), z.literal(-1)]) });

@@ -9,7 +9,19 @@ import { Pestanas } from '@/components/ui/Pestanas';
 import { Tarjeta } from '@/components/ui/Tarjeta';
 import { exigirSesion, listarMaterias, type Materia } from '@/lib/dataService';
 import { obtenerPreferencias } from '@/lib/datos/configuracion';
-import { avisoDeComponentes, avisoDeCortes, calcularMateria, estadoDe, promedioSemestre, SIN_NOTAS, textoNota, type Calculo } from '@/lib/reglas/notas';
+import {
+  avisoDeComponentes,
+  avisoDeCortes,
+  calcularMateria,
+  estadoConFallas,
+  estadoDe,
+  estadoFallas,
+  promedioSemestre,
+  SIN_NOTAS,
+  textoFallas,
+  textoNota,
+  type Calculo,
+} from '@/lib/reglas/notas';
 import type { Redondeo } from '@/lib/reglas/preferencias';
 
 export const dynamic = 'force-dynamic';
@@ -18,7 +30,10 @@ export const dynamic = 'force-dynamic';
 function TarjetaMateria({ materia, calculo, notaAprobar, redondeo }: { materia: Materia; calculo: Calculo; notaAprobar: number; redondeo: Redondeo }) {
   const e = entradaDe(materia);
   const revisar = Boolean(avisoDeCortes(e) || e.cortes.some((c) => avisoDeComponentes(c, e.usaCortes)));
-  const estado = estadoDe(calculo, notaAprobar, redondeo);
+  // E14 (7.7): las fallas cuentan para el estado; la alerta y la pérdida se ven en la tarjeta.
+  const fallas = estadoFallas(materia.fallasLimite, materia.fallasRegistradas);
+  const estado = estadoConFallas(estadoDe(calculo, notaAprobar, redondeo), fallas);
+  const avisoFallas = textoFallas(fallas, materia.fallasLimite, materia.fallasRegistradas);
   return (
     <li>
       <Link
@@ -34,7 +49,10 @@ function TarjetaMateria({ materia, calculo, notaAprobar, redondeo }: { materia: 
             {materia.usaCortes ? ` · ${materia.cortes.length} cortes` : ''}
           </span>
           {calculo.actual === null ? (
-            <span className="text-sm text-texto-suave">{SIN_NOTAS}</span>
+            <span className="flex flex-wrap items-center gap-2 text-sm text-texto-suave">
+              {SIN_NOTAS}
+              {estado && <InsigniaEstadoMateria estado={estado} />}
+            </span>
           ) : (
             <span className="flex flex-wrap items-center gap-2">
               <span className="text-sm text-texto">
@@ -43,6 +61,13 @@ function TarjetaMateria({ materia, calculo, notaAprobar, redondeo }: { materia: 
               {estado && <InsigniaEstadoMateria estado={estado} />}
             </span>
           )}
+          {materia.fallasLimite !== null || materia.fallasRegistradas > 0 ? (
+            <span className="text-sm text-texto-suave">
+              Fallas: {materia.fallasRegistradas}
+              {materia.fallasLimite !== null ? ` de ${materia.fallasLimite}` : ''}
+            </span>
+          ) : null}
+          {avisoFallas && <span className={`text-sm font-medium ${fallas.tipo === 'perdida' ? 'text-peligro' : 'text-aviso'}`}>{avisoFallas}</span>}
           {revisar && <span className="text-sm font-medium text-aviso">Revisa los porcentajes: no suman 100 %.</span>}
         </span>
         <ChevronRight aria-hidden="true" className="size-5 shrink-0 text-texto-suave" />

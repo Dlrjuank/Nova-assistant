@@ -1069,3 +1069,13 @@ Total de fallas: 0
 
 - **Prueba del usuario con `413fa13` en la vista previa, en el iPhone y el PC, sin fallas (las 9):** el ejemplo del plan da 3,7 Aprueba, asegurado 2,5 y falta 32 %; "¿Cuánto necesito?" da 1,4 y 4,5, dice que el máximo es 4,1, rechaza una meta fuera de rango y no se guarda; el redondeo pasa de 2,9 Reprobada a 3,0 Aprobada; el promedio da 3,5 actual y 2,6 asegurado; con porcentajes que no suman 100 % solo la nota actual; cada corte con su nota o "Sin notas"; las fechas de Semestre en el Calendario enlazan a la materia; al subir un PDF con materia, la categoría es la materia y la lista la muestra; en el teléfono todo se toca bien, sin zoom ni desplazamiento lateral.
 - Queda cerrada E13. Sigue E14.
+
+### E14 Ampliación: fallas
+
+- **M9** (`20261116100000_nova_fallas.sql`, respaldo previo en `respaldos/2026-11-16_152140`): `materias.fallas_limite` (opcional) y `fallas_registradas` (0 por defecto), enteros ≥ 0 (RB-15). Sin tablas nuevas (`materias` ya estaba en la lista de respaldo). `db:verificar` sección 6n (cz a dc), sin fallas. Compatibilidad con master: `db:verificar` y `probar:rag` del código de master con 0 fallas.
+- **Reglas** (`src/lib/reglas/notas.ts`): `estadoFallas` (7.7), textos RB-14, `estadoConFallas` (perdida por fallas → "En riesgo" aunque las notas aprueben), `validarFallas` y `validarLimiteFallas` (RB-15). Pruebas S-22 a S-24 (`tests/reglas/fallas.test.ts`).
+- **Servicio y API:** `guardarFallas` y `cambiarFallas` en `src/lib/datos/semestre.ts`; `PATCH` y `POST /api/nova/materias/[id]/fallas`.
+- **Pantallas:** en la materia, la tarjeta "Fallas" con el conteo, los botones −1 y +1 (−1 desactivado en 0), el límite y las registradas editables y la alerta RB-14 (o la pérdida) a la vista; la Calculadora y la tarjeta de Semestre usan el estado con fallas; la tarjeta muestra "Fallas: r de l" y la alerta.
+- **Pruebas:** reglas, servidor (guardar, +1 y −1, ruta), interfaz (alerta, +1, RB-15, pérdida con "En riesgo"). `npm run probar:semestre` ahora 16 de 16 (pasos 14 a 16, fallas en la base real). En Edge (`ui_e14.mjs`) 13 de 13: sin límite, RB-15, alerta a 2 y a 1, pérdida en el límite con "En riesgo" aunque la nota aprueba, la tarjeta de Semestre, −1, límite vacío, 390 px y 1280 px en oscuro sin desborde. Sin llamadas a Gemini salvo `probar:rag` de la compatibilidad con master.
+- **Al cierre:** `npm test` 1196/1196, `tsc` y `eslint` sin errores, `npm run build` correcto.
+- **Pendiente:** la prueba del usuario (B-32).
