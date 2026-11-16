@@ -1064,3 +1064,8 @@ Total de fallas: 0
 - **Pruebas:** reglas, `tests/interfaz/calculadora.test.tsx` (5), calendario con fechas de Semestre, SubidorPdf con materia, servidor (indexar con materia, eventos del Calendario). `npm run probar:semestre` (nuevo, base real, sin Gemini) 13 de 13: el ejemplo de 7.4 y 7.5 hecho a mano (3,7; 2,5; 1,4; 4,5; 4,1; 1,3 al redondear), 2,96 al truncar y al redondear, promedio por créditos, cortes, Calendario y documento con materia. En Edge (`ui_e13.mjs`) 23 de 23: promedio y tarjetas, calculadora con meta (también RB-18 y que no se guarda), redondear, porcentajes al 90 %, Calendario con su enlace, Fuentes con la materia, 390 px y 1280 px en oscuro sin desborde.
 - **Al cierre:** `npm test` 1186/1186, `tsc` y `eslint` sin errores, `npm run build` correcto.
 - **Pendiente:** la prueba del usuario (B-15, B-21, B-28 a B-31).
+
+#### E13 terminada (2026-11-16)
+
+- **Prueba del usuario con `413fa13` en la vista previa, en el iPhone y el PC, sin fallas (las 9):** el ejemplo del plan da 3,7 Aprueba, asegurado 2,5 y falta 32 %; "¿Cuánto necesito?" da 1,4 y 4,5, dice que el máximo es 4,1, rechaza una meta fuera de rango y no se guarda; el redondeo pasa de 2,9 Reprobada a 3,0 Aprobada; el promedio da 3,5 actual y 2,6 asegurado; con porcentajes que no suman 100 % solo la nota actual; cada corte con su nota o "Sin notas"; las fechas de Semestre en el Calendario enlazan a la materia; al subir un PDF con materia, la categoría es la materia y la lista la muestra; en el teléfono todo se toca bien, sin zoom ni desplazamiento lateral.
+- Queda cerrada E13. Sigue E14.
