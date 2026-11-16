@@ -1095,3 +1095,9 @@ Total de fallas: 0
 - **Pruebas:** reglas, servidor (listar, crear, RB-16, RB-17, eliminar, rutas 401/403/400/409/422), interfaz (5) y categorías (renombrar y eliminar con metas). `npm run probar:metas` (nuevo, base real, sin Gemini) 6 de 6. En Edge (`ui_e15.mjs`) 13 de 13: sin metas, A-17 (día sin tareas) igual, RB-16, 5 tareas → 3 de 5, 3 h en Universidad → 3 h 20 min de 3 h y "Cumplida" (la de la semana pasada no cuenta), RB-17, eliminar con confirmación, 390 px y 1280 px en oscuro sin desborde. Corregido en la prueba: al volver a abrir "Nueva meta", el formulario empieza de nuevo en "Tareas completadas" y "Todas las categorías". Sin llamadas a Gemini salvo `probar:rag` de la compatibilidad con master.
 - **Al cierre:** `npm test` 1214/1214, `eslint` sin errores, `npm run build` correcto. `tsc` solo da los 2 errores que ya había en `src/lib/__tests__/json-db.test.ts` (de septiembre, también en `e55602b`; no son de esta etapa).
 - **Pendiente:** la prueba del usuario (B-33; A-17 sigue pasando).
+
+#### E15 terminada (2026-11-16)
+
+- **Prueba del usuario con `d629df2` en la vista previa, en el iPhone y el PC, sin fallas (las 10):** sin metas; objetivo 0 rechazado (RB-16); meta de tareas y de tiempo con el progreso de la semana; "Cumplida"; meta repetida (RB-17); eliminar con confirmación; renombrar y eliminar una categoría con meta; el índice del día sigue igual (A-17); en el teléfono todo se toca bien.
+- El usuario está de acuerdo con que renombrar una categoría renombre sus metas y eliminarla las elimine.
+- Queda cerrada E15. Sigue E16.
