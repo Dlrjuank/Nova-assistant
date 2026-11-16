@@ -516,6 +516,8 @@ Las metas son permanentes: aplican a cada semana hasta que se eliminan. El progr
 
 Un tema manual nace `confirmado`; uno del asistente nace `propuesto` y el usuario lo confirma o lo descarta (descartar lo borra).
 
+- **Hecho en E17 (2026-11-16):** M12 en `20261116130000_nova_temas.sql`, con un CHECK que exige manual = confirmado y sin fuente, y del asistente = con fuente; `fuente` es VARCHAR(300). Una materia sin cortes guarda sus temas en su corte único. Al comparar temas (repetidos al proponer) no cuentan mayúsculas, tildes ni espacios de más; el índice único de la base compara sin mayúsculas. `POST /api/nova/cortes/[id]/temas` (a mano), `POST /api/nova/cortes/[id]/temas/proponer` (`maxDuration` 60), `PATCH /api/nova/temas/[id]` (nombre o `confirmar`) y `DELETE /api/nova/temas/[id]`. Errores nuevos: `TEMA_NOMBRE_INVALIDO` (422, `Escribe un tema de 1 a 200 caracteres.`), `TEMA_DUPLICADO` (409, `Ese tema ya está en este corte.`), `TEMA_NO_ENCONTRADO` y `SIN_TEMAS_PROPUESTOS` (422, `No encontré temas nuevos en ese PDF. Prueba con otro o agrégalos a mano.`). La pantalla está en "Objetivos y plan", debajo de las metas de cada materia.
+
 ### 6.9 M13 · Plan de estudio (E18, E19)
 
 | Tabla | Columnas | Restricciones |
@@ -817,7 +819,7 @@ Los mensajes se usan **textualmente** en la interfaz y en la API. Los de `PLAN_N
 | RB-16 | Meta semanal: objetivo entero > 0 | `El objetivo debe ser un número entero mayor que 0.` |
 | RB-17 | Meta semanal duplicada (mismo tipo y categoría) | `Ya tienes una meta igual.` |
 | RB-18 | Meta de nota entre 0,1 y 5,0 | `La meta debe estar entre 0,1 y 5,0.` |
-| RB-19 | Generar temas o plan requiere un corte con fecha futura | `Pon una fecha futura al corte para generar el plan.` |
+| RB-19 | Generar temas o plan requiere un corte con fecha futura (después de hoy, en Bogotá) | `Pon una fecha futura al corte para generar el plan.` · Temas (E17): `Pon una fecha futura al corte para proponer temas.` y, en una materia sin cortes, `Pon una fecha final futura a la materia para proponer temas.` |
 | RB-20 | Generar el plan requiere al menos un tema confirmado | `Primero confirma al menos un tema del corte.` |
 | RB-21 | Proponer temas requiere un PDF de la materia | `Sube un PDF de esta materia (por ejemplo, el syllabus) para proponer temas.` |
 | RB-22 | El plan del asistente solo usa temas confirmados y cita solo PDF de la materia (sección 9.3); si no cumple, se descarta | `El plan generado no cumplía las reglas y se descartó. Intenta de nuevo.` |
@@ -897,7 +899,7 @@ Todas las llamadas a Gemini siguen pasando por `src/lib/llm/` y piden **JSON con
 
 1. El usuario elige un PDF de la materia (documentos con `materia_id`).
 2. El servidor toma los fragmentos de ese documento más parecidos a "temas, contenidos y unidades del {corte}" (búsqueda vectorial limitada a ese documento, hasta 6 fragmentos) y los entrega etiquetados.
-3. El modelo devuelve `[{ nombre, fuente }]`. El servidor descarta los que citen una etiqueta que no se entregó y los duplicados, y guarda el resto como `propuesto`.
+3. El modelo devuelve `[{ nombre, fuente }]`. El servidor descarta los que citen una etiqueta que no se entregó y los duplicados, y guarda el resto como `propuesto` (como mucho 15). *(E17: el modelo recibe también los temas que el corte ya tiene, para no proponerlos otra vez con otras palabras; lo pidió la prueba real, donde propuso "Limites y continuidad de funciones" con "Límites y continuidad" ya escrito a mano.)*
 4. El usuario confirma o descarta cada uno. Nada se confirma solo.
 
 ### 9.2 Generar el plan (E18)
@@ -1063,6 +1065,7 @@ Las rutas que llaman a Gemini declaran `maxDuration = 60`.
 - `npm run probar:libro` (nuevo, E10b y E10c): con un PDF de prueba de unas 40 páginas con índice, comprueba capítulos y páginas, una pregunta por página con su cita, un capítulo y "Más simple" con Gemini real; borra lo que creó.
 - `npm run probar:recordatorios` (nuevo, E11c): crea tareas con recordatorio, llama al tick con un reloj fijo en modo de prueba (sin enviar) y comprueba qué se enviaría y que no se repite; borra lo que creó.
 - `npm run probar:cuestionario` (nuevo, E10e): con Gemini real y el PDF de `probar:libro`, genera 5 preguntas de un capítulo, comprueba que todas pasan RB-50 y que sus páginas están dentro del capítulo; pide 20 preguntas de 2 páginas y comprueba RB-49; borra lo que creó. Desde E10g genera un cuestionario mixto de 5 con una sola ejecución (a lo sumo 2 llamadas) y comprueba que cada pregunta pasa la validación de su tipo.
+- `npm run probar:temas` (nuevo, E17): un syllabus de prueba de 2 páginas con los temas de 3 cortes, indexado de verdad; RB-19 y RB-21 sin gastar cuota; un tema a mano y su repetido; proponer los del Corte 1 con Gemini real (1 llamada) y comprobar que trae los conocidos, no repite el escrito a mano ni trae los del Corte 3; confirmar. Borra lo que creó.
 - `npm run probar:plan` (nuevo, E18): con Gemini real, propone temas desde un PDF de prueba y genera un plan; comprueba que pasa la validación y borra lo que creó.
 - `npm run probar:clave` (nuevo, E20c): con un usuario temporal, vincula una clave inventada (debe rechazarse sin guardar), vincula `GEMINI_API_KEY` como si fuera la del usuario (una llamada `models.get`, sin gastar cuota de generación), comprueba que en la base solo está cifrada, que se descifra con su usuario y no con otro, y que una pregunta usa esa clave; desvincula y borra lo que creó.
 

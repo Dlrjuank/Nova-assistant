@@ -69,6 +69,12 @@ export type CodigoError =
   | 'META_SEMANAL_DUPLICADA'
   | 'META_SEMANAL_NO_ENCONTRADA'
   | 'META_NO_ENCONTRADA'
+  | 'TEMA_NOMBRE_INVALIDO'
+  | 'TEMA_DUPLICADO'
+  | 'TEMA_NO_ENCONTRADO'
+  | 'PLAN_SIN_FECHA'
+  | 'SIN_SYLLABUS'
+  | 'SIN_TEMAS_PROPUESTOS'
   | 'ERROR_INTERNO';
 
 // Textos de la sección 12.2; los de la sección 5.1 se usan literalmente.
@@ -151,6 +157,12 @@ export const MENSAJES: Record<CodigoError, string> = {
   META_SEMANAL_DUPLICADA: 'Ya tienes una meta igual.', // RB-17
   META_SEMANAL_NO_ENCONTRADA: 'La meta no existe.',
   META_NO_ENCONTRADA: 'La meta no existe.',
+  TEMA_NOMBRE_INVALIDO: 'Escribe un tema de 1 a 200 caracteres.',
+  TEMA_DUPLICADO: 'Ese tema ya está en este corte.',
+  TEMA_NO_ENCONTRADO: 'El tema no existe.',
+  PLAN_SIN_FECHA: 'Pon una fecha futura al corte para generar el plan.', // RB-19 (los temas usan su propio texto)
+  SIN_SYLLABUS: 'Sube un PDF de esta materia (por ejemplo, el syllabus) para proponer temas.', // RB-21
+  SIN_TEMAS_PROPUESTOS: 'No encontré temas nuevos en ese PDF. Prueba con otro o agrégalos a mano.',
   ERROR_INTERNO: 'Ocurrió un error inesperado. Intenta de nuevo.',
 };
 
@@ -225,6 +237,12 @@ export const ESTADO_HTTP: Record<CodigoError, number> = {
   META_SEMANAL_DUPLICADA: 409,
   META_SEMANAL_NO_ENCONTRADA: 404,
   META_NO_ENCONTRADA: 404,
+  TEMA_NOMBRE_INVALIDO: 422,
+  TEMA_DUPLICADO: 409,
+  TEMA_NO_ENCONTRADO: 404,
+  PLAN_SIN_FECHA: 422,
+  SIN_SYLLABUS: 422,
+  SIN_TEMAS_PROPUESTOS: 422,
   ERROR_INTERNO: 500,
 };
 

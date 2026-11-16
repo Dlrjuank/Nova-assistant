@@ -9,12 +9,13 @@ import { Aviso } from '@/components/ui/Aviso';
 import { Boton, CLASE_FOCO } from '@/components/ui/Boton';
 import { Campo } from '@/components/ui/Campo';
 import { Tarjeta } from '@/components/ui/Tarjeta';
-import type { Materia, MetaNota } from '@/lib/dataService';
+import type { Materia, MetaNota, Tema } from '@/lib/dataService';
 import { formatearFecha } from '@/lib/formato';
 import { alcanzable, calcularCorte, calcularMateria, formatearDecimas, validarMeta, type Alcanzable, type Calculo } from '@/lib/reglas/notas';
 import { formatearNota, formatearPorcentaje, type Redondeo } from '@/lib/reglas/preferencias';
 import { entradaDe } from './estadoMateria';
 import { mensajeDe, pedirSemestre } from './peticion';
+import { TemasCorte } from './TemasCorte';
 
 // El resultado se dice con texto; el color solo lo refuerza.
 const COLOR: Record<Alcanzable['tipo'], string> = {
@@ -141,7 +142,20 @@ function FilaMeta({
  * E16 (5.7, 6.7, 7.9; RB-18): en "Objetivos y plan", la meta de la materia y, si tiene cortes, la de cada corte con
  * su fecha, y si es alcanzable. Una materia sin cortes solo tiene la meta de la materia.
  */
-export function ObjetivosMateria({ materia, metas, redondeo }: { materia: Materia; metas: MetaNota[]; redondeo: Redondeo }) {
+export function ObjetivosMateria({
+  materia,
+  metas,
+  redondeo,
+  temas = [],
+  documentos = [],
+}: {
+  materia: Materia;
+  metas: MetaNota[];
+  redondeo: Redondeo;
+  /** E17: los temas de sus cortes y sus PDF ya indexados. */
+  temas?: Tema[];
+  documentos?: Array<{ id: string; nombre: string }>;
+}) {
   const entrada = entradaDe(materia);
   const metaDe = (corteId: string | null) => metas.find((m) => m.corteId === corteId)?.meta ?? null;
   const fechaFinal = !materia.usaCortes ? materia.cortes[0]?.fecha : null;
@@ -179,6 +193,11 @@ export function ObjetivosMateria({ materia, metas, redondeo }: { materia: Materi
           ))}
       </ul>
       {!materia.usaCortes && <Aviso tipo="info">Para tener metas por corte, divide la materia en cortes desde su página.</Aviso>}
+      {/* E17 (6.8): los temas de cada corte; sin cortes, los de la materia (en su corte único). */}
+      <h3 className="pt-2 text-base font-semibold text-texto">Temas</h3>
+      {materia.cortes.map((c) => (
+        <TemasCorte key={c.id} corteId={c.id} titulo={materia.usaCortes ? c.nombre : 'Temas de la materia'} temas={temas.filter((t) => t.corteId === c.id)} documentos={documentos} />
+      ))}
     </Tarjeta>
   );
 }

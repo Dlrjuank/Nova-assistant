@@ -634,6 +634,29 @@ try {
       marcar(false, `dk-dr) metas de nota: ${e.message}`);
     }
   }
+
+  console.log('== 6q. Temas (M12)');
+  const tablaM12 = await c.query("SELECT relrowsecurity FROM pg_class WHERE relname = 'temas' AND relnamespace = 'public'::regnamespace");
+  marcar(tablaM12.rows[0]?.relrowsecurity === true, 'tabla temas con RLS');
+  if (tablaM12.rowCount === 1 && dueno) {
+    try {
+      const mat = (await c.query("INSERT INTO materias (usuario_id, nombre, creditos) VALUES ($1, 'Verificar temas', 3) RETURNING id", [dueno])).rows[0].id;
+      const corte = (await c.query("INSERT INTO cortes (materia_id, usuario_id, orden, nombre, porcentaje) VALUES ($1, $2, 1, 'Corte único', 10000) RETURNING id", [mat, dueno])).rows[0].id;
+      const ins = 'INSERT INTO temas (usuario_id, corte_id, nombre, origen, estado, fuente) VALUES ($1, $2, $3, $4, $5, $6)';
+      await c.query(ins, [dueno, corte, 'Derivadas', 'manual', 'confirmado', null]);
+      await c.query(ins, [dueno, corte, 'Integrales', 'asistente', 'propuesto', 'syllabus.pdf · p. 2']);
+      marcar(true, 'ds) un tema manual confirmado y uno propuesto con su fuente');
+      await esperaFalla('dt) el mismo tema con otras mayúsculas', '23505', ins, [dueno, corte, 'DERIVADAS', 'manual', 'confirmado', null]);
+      await esperaFalla('du) manual propuesto', '23514', ins, [dueno, corte, 'Límites', 'manual', 'propuesto', null]);
+      await esperaFalla('dv) del asistente sin fuente', '23514', ins, [dueno, corte, 'Series', 'asistente', 'propuesto', null]);
+      await esperaFalla('dw) nombre con espacios al borde', '23514', ins, [dueno, corte, ' Series ', 'manual', 'confirmado', null]);
+      await esperaFalla('dx) estado fuera de la lista', '23514', ins, [dueno, corte, 'Series', 'asistente', 'otro', 'x']);
+      await c.query('DELETE FROM materias WHERE id = $1', [mat]);
+      marcar((await c.query('SELECT 1 FROM temas WHERE corte_id = $1', [corte])).rowCount === 0, 'dy) al borrar la materia se borran sus temas');
+    } catch (e) {
+      marcar(false, `ds-dy) temas: ${e.message}`);
+    }
+  }
   await c.query('ROLLBACK');
 
   console.log(`== 7. Total de fallas: ${fallas}`);

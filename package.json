@@ -26,6 +26,7 @@
     "probar:sin-conexion": "tsx scripts/probar-sin-conexion.ts",
     "probar:semestre": "tsx scripts/probar-semestre.ts",
     "probar:metas": "tsx scripts/probar-metas.ts",
+    "probar:temas": "tsx scripts/probar-temas.ts",
     "db:configurar-tick": "node scripts/configurar-tick.mjs"
   },
   "dependencies": {

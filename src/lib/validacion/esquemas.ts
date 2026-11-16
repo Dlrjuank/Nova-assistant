@@ -213,4 +213,9 @@ export const esquemaIdMetaSemanal = z.uuid();
 export const esquemaGuardarMetaNota = z
   .object({ materiaId: z.uuid(), corteId: z.union([z.uuid(), z.null()]), meta: z.union([z.string().max(10), z.number()]) })
   .strict();
+// E17 (6.8, 9.1): temas del corte.
+export const esquemaIdTema = z.uuid();
+export const esquemaCrearTema = z.object({ nombre: z.string().max(400) }).strict();
+export const esquemaEditarTema = z.object({ nombre: z.string().max(400).optional(), confirmar: z.boolean().optional() }).strict();
+export const esquemaProponerTemas = z.object({ documentoId: z.uuid() }).strict();
 export const esquemaQuitarMetaNota = z.object({ materiaId: z.uuid(), corteId: z.union([z.uuid(), z.null()]) });
