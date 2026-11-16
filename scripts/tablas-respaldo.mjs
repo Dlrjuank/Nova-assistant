@@ -5,6 +5,7 @@ export const TABLAS_RESPALDO = [
   'categorias',
   'preferencias_usuario', // M7 (E11)
   'tareas_personales',
+  'metas_semanales', // M10 (E15)
   // M8 (E12): Semestre; documentos.materia_id apunta a materias
   'materias',
   'cortes',

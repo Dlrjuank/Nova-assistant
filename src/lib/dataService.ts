@@ -141,6 +141,7 @@ export { calcularProductividad } from '@/lib/datos/productividad';
 export { semanaDeTareas, type Semana } from '@/lib/datos/semana';
 export { mesDeTareas, type Mes } from '@/lib/datos/calendario';
 export { actualizarCategoria, crearCategoria, eliminarCategoria, listarCategorias } from '@/lib/datos/categorias';
+export { crearMetaSemanal, eliminarMetaSemanal, listarMetasSemanales, type MetaConProgreso, type MetasDeLaSemana } from '@/lib/datos/metasSemanales';
 export { buscarEnWikipedia, eliminarFuenteWeb, guardarFuenteWeb, listarFuentesWeb } from '@/lib/datos/wikipedia';
 export { confirmarPlanLectura, vistaPreviaPlanLectura } from '@/lib/datos/planLectura';
 export { autoevaluarPregunta, crearCuestionario, empezarIntento, obtenerCuestionario, responderPregunta } from '@/lib/datos/cuestionarios';

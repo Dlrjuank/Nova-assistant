@@ -19,7 +19,9 @@ function esDuplicada(error: unknown): boolean {
 
 const COLUMNAS = `c.id, c.nombre, c.color,
   (SELECT COUNT(*) FROM tareas_personales t
-   WHERE t.usuario_id = c.usuario_id AND lower(btrim(t.categoria)) = lower(c.nombre))::bigint AS tareas`;
+   WHERE t.usuario_id = c.usuario_id AND lower(btrim(t.categoria)) = lower(c.nombre))::bigint AS tareas,
+  (SELECT COUNT(*) FROM metas_semanales m
+   WHERE m.usuario_id = c.usuario_id AND lower(m.categoria) = lower(c.nombre))::int AS metas`;
 
 /** "General" siempre existe (PLAN_AMPLIACION 6.2): se crea la primera vez que se necesita. */
 async function asegurarGeneral(usuarioId: string): Promise<void> {
@@ -65,7 +67,8 @@ export async function crearCategoria(usuarioId: string, d: { nombre: string; col
 
 /**
  * Renombrar y cambiar el color. Renombrar actualiza también la categoría de las tareas del usuario, en la
- * misma transacción (PLAN_AMPLIACION 6.2). General no se renombra (sí se le puede cambiar el color).
+ * misma transacción (PLAN_AMPLIACION 6.2), y la de sus metas semanales (E15). General no se renombra (sí se le
+ * puede cambiar el color).
  */
 export async function actualizarCategoria(
   usuarioId: string,
@@ -97,6 +100,11 @@ export async function actualizarCategoria(
            WHERE usuario_id = $1 AND lower(btrim(categoria)) = lower($2)`,
           [usuarioId, actual.nombre, nombreNuevo],
         );
+        await tx.query('UPDATE metas_semanales SET categoria = $3 WHERE usuario_id = $1 AND lower(categoria) = lower($2)', [
+          usuarioId,
+          actual.nombre,
+          nombreNuevo,
+        ]);
       }
     });
   } catch (error) {
@@ -110,7 +118,10 @@ export async function actualizarCategoria(
   return categoria as Categoria;
 }
 
-/** RB-04: sus tareas pasan a General; General no se elimina. Devuelve cuántas tareas se movieron. */
+/**
+ * RB-04: sus tareas pasan a General; General no se elimina. Devuelve cuántas tareas se movieron. Sus metas
+ * semanales (E15) se eliminan: medían solo esa categoría.
+ */
 export async function eliminarCategoria(usuarioId: string, id: string): Promise<{ id: string; tareasMovidas: number }> {
   return conTransaccion(async (tx) => {
     const { rows } = await tx.query<{ nombre: string }>(
@@ -129,6 +140,7 @@ export async function eliminarCategoria(usuarioId: string, id: string): Promise<
        WHERE usuario_id = $1 AND lower(btrim(categoria)) = lower($2)`,
       [usuarioId, actual.nombre, CATEGORIA_POR_DEFECTO],
     );
+    await tx.query('DELETE FROM metas_semanales WHERE usuario_id = $1 AND lower(categoria) = lower($2)', [usuarioId, actual.nombre]);
     await tx.query('DELETE FROM categorias WHERE id = $1 AND usuario_id = $2', [id, usuarioId]);
     return { id, tareasMovidas: movidas.rowCount ?? 0 };
   });

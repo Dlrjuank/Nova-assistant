@@ -239,6 +239,9 @@ export function FilaCategorias({
                 : Number(c.tareas) === 1
                   ? 'Su tarea pasará a General.'
                   : `Sus ${textoTareas(Number(c.tareas))} pasarán a General.`}
+              {/* E15: las metas semanales de la categoría no pasan a General: se eliminan. */}
+              {Number(c.metas ?? 0) === 1 && ' Su meta semanal se eliminará.'}
+              {Number(c.metas ?? 0) > 1 && ` Sus ${Number(c.metas)} metas semanales se eliminarán.`}
             </p>
             <div className="flex flex-wrap gap-2">
               <Boton variante="peligro" cargando={enviando} onClick={() => void eliminar(c)}>

@@ -65,6 +65,9 @@ export type CodigoError =
   | 'SIN_CORTES'
   | 'META_INVALIDA'
   | 'FALLAS_INVALIDAS'
+  | 'OBJETIVO_INVALIDO'
+  | 'META_SEMANAL_DUPLICADA'
+  | 'META_SEMANAL_NO_ENCONTRADA'
   | 'ERROR_INTERNO';
 
 // Textos de la sección 12.2; los de la sección 5.1 se usan literalmente.
@@ -143,6 +146,9 @@ export const MENSAJES: Record<CodigoError, string> = {
   SIN_CORTES: 'La materia debe tener al menos un corte.',
   META_INVALIDA: 'La meta debe estar entre 0,1 y 5,0.',
   FALLAS_INVALIDAS: 'Las fallas deben ser un número entero mayor o igual a 0.',
+  OBJETIVO_INVALIDO: 'El objetivo debe ser un número entero mayor que 0.', // RB-16
+  META_SEMANAL_DUPLICADA: 'Ya tienes una meta igual.', // RB-17
+  META_SEMANAL_NO_ENCONTRADA: 'La meta no existe.',
   ERROR_INTERNO: 'Ocurrió un error inesperado. Intenta de nuevo.',
 };
 
@@ -213,6 +219,9 @@ export const ESTADO_HTTP: Record<CodigoError, number> = {
   SIN_CORTES: 409,
   META_INVALIDA: 422,
   FALLAS_INVALIDAS: 422,
+  OBJETIVO_INVALIDO: 422,
+  META_SEMANAL_DUPLICADA: 409,
+  META_SEMANAL_NO_ENCONTRADA: 404,
   ERROR_INTERNO: 500,
 };
 

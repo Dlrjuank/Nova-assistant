@@ -452,7 +452,9 @@ Columnas nuevas en `materias`: `fallas_limite` SMALLINT NULL (≥ 0; NULL = sin 
 |---|---|---|
 | `metas_semanales` | `id`, `usuario_id`, `tipo` (`tareas`/`minutos`), `categoria` VARCHAR(80) NULL (NULL = global), `objetivo` INTEGER, `creada_en` | `objetivo` > 0 (tareas) o > 0 minutos; `UNIQUE (usuario_id, tipo, lower(coalesce(categoria,'')))` |
 
-Las metas son permanentes: aplican a cada semana hasta que se eliminan. El progreso no se guarda; se calcula (sección 7.6).
+Las metas son permanentes: aplican a cada semana hasta que se eliminan. El progreso no se guarda; se calcula (sección 7.8).
+
+- **Hecho en E15 (2026-11-16):** M10 en `20261116110000_nova_metas_semanales.sql`, con CHECK de tipo, de categoría sin espacios al borde y de objetivo > 0 (RB-16), y el índice único de RB-17. La categoría se elige entre las del usuario y se guarda con su nombre guardado. Renombrar una categoría renombra sus metas; eliminarla elimina sus metas (medían solo esa categoría), y la confirmación lo dice. Objetivo de tareas de 1 a 1000; el de tiempo en horas y minutos (minutos de 0 a 59), de 1 minuto a 168 horas; fuera de eso, el mensaje de RB-16. `GET/POST /api/nova/metas` y `DELETE /api/nova/metas/[id]`.
 
 ### 6.7 M11 · Metas de nota (E16)
 

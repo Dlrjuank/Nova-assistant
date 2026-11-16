@@ -68,7 +68,7 @@ describe('servicio de categorías', () => {
     expect(m.consultarBd).not.toHaveBeenCalled();
   });
 
-  it('renombrar actualiza las tareas del usuario en la misma transacción', async () => {
+  it('renombrar actualiza las tareas y las metas semanales (E15) del usuario en la misma transacción', async () => {
     m.txQuery.mockResolvedValueOnce({ rows: [{ nombre: 'Casa' }] }).mockResolvedValue({ rows: [], rowCount: 2 });
     m.consultarBd.mockResolvedValueOnce([{ id: ID, nombre: 'Hogar', color: 'verde', tareas: 2 }]);
     await expect(actualizarCategoria(U, ID, { nombre: 'Hogar', color: 'verde' })).resolves.toMatchObject({ nombre: 'Hogar' });
@@ -77,6 +77,8 @@ describe('servicio de categorías', () => {
     expect(m.txQuery.mock.calls[0]?.[1]).toEqual([ID, U]);
     expect(sql[2]).toContain('UPDATE tareas_personales SET categoria');
     expect(m.txQuery.mock.calls[2]?.[1]).toEqual([U, 'Casa', 'Hogar']);
+    expect(sql[3]).toContain('UPDATE metas_semanales SET categoria');
+    expect(m.txQuery.mock.calls[3]?.[1]).toEqual([U, 'Casa', 'Hogar']);
   });
 
   it('cambiar solo el color no toca las tareas', async () => {
@@ -103,7 +105,7 @@ describe('servicio de categorías', () => {
     await expect(eliminarCategoria(U, ID)).rejects.toMatchObject({ codigo: 'CATEGORIA_NO_ENCONTRADA' });
   });
 
-  it('RB-04: General no se elimina; otra pasa sus tareas a General y se borra', async () => {
+  it('RB-04: General no se elimina; otra pasa sus tareas a General, borra sus metas semanales (E15) y se borra', async () => {
     m.txQuery.mockResolvedValueOnce({ rows: [{ nombre: 'General' }] });
     await expect(eliminarCategoria(U, ID)).rejects.toMatchObject({ message: 'La categoría General no se puede eliminar.' });
     m.txQuery.mockReset();
@@ -111,10 +113,13 @@ describe('servicio de categorías', () => {
       .mockResolvedValueOnce({ rows: [{ nombre: 'Casa' }] })
       .mockResolvedValueOnce({ rows: [] }) // asegurar General
       .mockResolvedValueOnce({ rows: [], rowCount: 3 }) // mover tareas
+      .mockResolvedValueOnce({ rows: [] }) // borrar sus metas
       .mockResolvedValueOnce({ rows: [] }); // borrar
     await expect(eliminarCategoria(U, ID)).resolves.toEqual({ id: ID, tareasMovidas: 3 });
     expect(m.txQuery.mock.calls[2]?.[1]).toEqual([U, 'Casa', 'General']);
-    expect(sqlDe(m.txQuery.mock.calls)[3]).toContain('DELETE FROM categorias WHERE id = $1 AND usuario_id = $2');
+    expect(sqlDe(m.txQuery.mock.calls)[3]).toContain('DELETE FROM metas_semanales');
+    expect(m.txQuery.mock.calls[3]?.[1]).toEqual([U, 'Casa']);
+    expect(sqlDe(m.txQuery.mock.calls)[4]).toContain('DELETE FROM categorias WHERE id = $1 AND usuario_id = $2');
   });
 });
 

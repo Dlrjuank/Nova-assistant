@@ -318,4 +318,5 @@ export interface Categoria {
   nombre: string;
   color: string;
   tareas: number;
+  metas?: number; // E15: metas semanales de la categoría
 }

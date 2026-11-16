@@ -586,6 +586,27 @@ try {
       marcar(false, `cz-dc) fallas: ${e.message}`);
     }
   }
+
+  console.log('== 6o. Metas semanales (M10)');
+  const tablaM10 = await c.query("SELECT relrowsecurity FROM pg_class WHERE relname = 'metas_semanales' AND relnamespace = 'public'::regnamespace");
+  marcar(tablaM10.rows[0]?.relrowsecurity === true, 'tabla metas_semanales con RLS');
+  if (tablaM10.rowCount === 1 && dueno) {
+    try {
+      const ins = 'INSERT INTO metas_semanales (usuario_id, tipo, categoria, objetivo) VALUES ($1, $2, $3, $4)';
+      await c.query(ins, [dueno, 'tareas', null, 5]);
+      await c.query(ins, [dueno, 'minutos', 'Verificar Metas', 180]);
+      marcar(true, 'dd) una meta global de tareas y una de tiempo por categoría');
+      await esperaFalla('de) objetivo 0 (RB-16)', '23514', ins, [dueno, 'tareas', 'Otra', 0]);
+      await esperaFalla('df) tipo desconocido', '23514', ins, [dueno, 'horas', null, 3]);
+      await esperaFalla('dg) categoría con espacios al borde', '23514', ins, [dueno, 'tareas', ' Otra ', 3]);
+      await esperaFalla('dh) misma meta global repetida (RB-17)', '23505', ins, [dueno, 'tareas', null, 9]);
+      await esperaFalla('di) misma categoría con otras mayúsculas (RB-17)', '23505', ins, [dueno, 'minutos', 'VERIFICAR METAS', 60]);
+      await c.query(ins, [dueno, 'tareas', 'Verificar Metas', 2]);
+      marcar(true, 'dj) la misma categoría con el otro tipo se guarda');
+    } catch (e) {
+      marcar(false, `dd-dj) metas: ${e.message}`);
+    }
+  }
   await c.query('ROLLBACK');
 
   console.log(`== 7. Total de fallas: ${fallas}`);

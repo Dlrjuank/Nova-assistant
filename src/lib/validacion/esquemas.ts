@@ -196,3 +196,15 @@ export const esquemaFallas = z
   .object({ limite: z.union([z.string().max(10), z.number(), z.null()]).optional(), registradas: z.union([z.string().max(10), z.number()]).optional() })
   .strict();
 export const esquemaCambioFallas = z.object({ cambio: z.union([z.literal(1), z.literal(-1)]) });
+
+// E15 (5.6, 7.8): metas semanales. Las de tareas llevan `objetivo`; las de tiempo, `horas` y `minutos`.
+export const esquemaCrearMetaSemanal = z
+  .object({
+    tipo: z.enum(['tareas', 'minutos']),
+    categoria: z.union([z.string().max(200), z.null()]).optional(),
+    objetivo: numeroOTexto.optional(),
+    horas: numeroOTexto.optional(),
+    minutos: numeroOTexto.optional(),
+  })
+  .strict();
+export const esquemaIdMetaSemanal = z.uuid();
