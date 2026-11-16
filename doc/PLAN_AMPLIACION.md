@@ -17,7 +17,7 @@ Los prompts de ejecución están en `doc/PROMPTS_AMPLIACION.md` (etapas E00 a E2
 9. [El asistente en Semestre](#9-el-asistente-en-semestre)
 10. [API](#10-api)
 11. [Pruebas](#11-pruebas)
-12. [Casos de aceptación B-01 a B-95](#12-casos-de-aceptación-b-01-a-b-95)
+12. [Casos de aceptación B-01 a B-101](#12-casos-de-aceptación-b-01-a-b-101)
 13. [Riesgos y decisiones](#13-riesgos-y-decisiones)
 
 ---
@@ -81,7 +81,7 @@ Los prompts de ejecución están en `doc/PROMPTS_AMPLIACION.md` (etapas E00 a E2
 | X25 | Historial de intentos por documento o capítulo y sugerencia de tarea para repasar | E10f |
 | X31 | Tipos de pregunta en los cuestionarios: selección única, respuesta múltiple, verdadero o falso, completar, pregunta abierta y mixto (sugerido por un amigo del usuario y aprobado por el usuario, 2026-11-13) | E10g |
 | X32 | Crear tareas sin conexión: se guardan en el dispositivo con la marca "Pendiente de enviar" y se envían solas, sin duplicarse, al volver la conexión con Nova abierta; completar, editar y eliminar siguen necesitando conexión (pedido del usuario, 2026-11-13) | E11e |
-| X33 | Clave de Gemini propia: cada usuario vincula su clave de Google AI Studio, guardada cifrada, y toda su IA la usa; sin clave, lo que no usa IA sigue funcionando; guía para crearla dentro de Nova; acceso de otras personas de forma segura (solución del profesor del usuario, pedida el 2026-11-16) | E20c |
+| X33 | Clave de Gemini propia: cada usuario vincula su clave de Google AI Studio, guardada cifrada, y toda su IA la usa; sin clave, lo que no usa IA sigue funcionando; guía para crearla dentro de Nova; registro abierto con "Entrar con Google" y una pestaña "Administración" solo para los administradores (cuentas, bloquear, eliminar, uso y topes) (solución del profesor del usuario, pedida el 2026-11-16; decisiones del usuario del mismo día) | E20c |
 
 ### 2.2 Fuera de alcance
 
@@ -387,17 +387,27 @@ Solución que le dio al usuario su profesor para que varias personas usen Nova s
   4. Si la clave dice "Unrestricted", toca "Add restrictions" → "Restrict to Gemini API only". Las claves nuevas desde el 28 de mayo de 2026 ya vienen limitadas a Gemini.
   5. En Nova: Configuración → Asistente → pega la clave → "Verificar y guardar".
   - **Avisos:** en el plan gratuito, Google puede usar lo que envías (preguntas, fragmentos de tus PDF y respuestas) para mejorar sus productos, y personas pueden leerlo; no envíes información sensible, confidencial o personal. En el plan de pago no lo usa para mejorar sus productos. No compartas tu clave con nadie ni la pegues en otro sitio. Si crees que alguien la vio: crea una nueva en AI Studio, cámbiala en Nova y borra la anterior en AI Studio. Los límites de uso son de tu proyecto de Google, no de Nova; no crees varios proyectos para tener más cuota (Google lo prohíbe).
-- **Acceso de otras personas (propuesta, decisión del usuario pendiente):** hoy solo entran los correos de la lista de administradores, porque `/register` está abierto. Abrirlo sin más no sirve: el correo incluido de Supabase solo envía a los miembros del equipo del proyecto y a 2 correos por hora, así que nadie más recibiría la confirmación ni la recuperación de contraseña, y no hay dominio verificado para un correo propio (2.2). Propuesta:
-  - **Lista de acceso administrada por el usuario** (M25 `accesos`): en Configuración, un bloque "Acceso" solo para administradores con los correos invitados ("Invitar" y "Quitar", con confirmación). Solo esos correos y los administradores pasan `exigirSesion`; el resto sigue con `Tu cuenta no tiene acceso a Nova Assistant.` Quitar un correo cierra su acceso en la siguiente petición; sus datos quedan hasta que el usuario decida borrarlos.
-  - **Entrar con Google** (Supabase Auth con Google): no necesita correos de confirmación ni de recuperación, y quien usa Nova ya necesita una cuenta de Google para su clave. Se configura un cliente OAuth en Google Cloud, sin costo. El correo con contraseña sigue para los administradores.
-  - Alternativa sin Google: el administrador crea la cuenta con una contraseña temporal desde "Acceso" (API de administración de Supabase, sin correo) y la persona la cambia al entrar.
-  - El registro abierto (`/register`) se cierra para quien no esté invitado.
+- **Acceso de otras personas (decidido por el usuario el 2026-11-16):** cualquier persona puede registrarse en cualquier momento con **"Entrar con Google"** (Supabase Auth con Google), sin depender del correo de Supabase (el correo incluido solo envía a los miembros del equipo del proyecto y a 2 correos por hora). Se configura un cliente OAuth en Google Cloud, sin costo; el usuario sigue los pasos que le dé Claude.
+  - En `/login`, "Entrar con Google" arriba y, debajo, el correo y la contraseña, que quedan para los administradores. `/register` con correo deja de crear cuentas: dice `Para crear tu cuenta, usa "Entrar con Google".` (RB-81).
+  - **Tope de cuentas** (empieza en 15, editable): con el tope alcanzado, una cuenta nueva no se crea (RB-81). Se exige en la base con el gancho de Supabase "Before User Created" (una función de Postgres que rechaza la creación) y, por si acaso, otra vez al volver de Google: si la cuenta pasó el tope, se borra y se avisa. Los administradores no cuentan para el tope y siempre pueden entrar.
+  - **Cuentas bloqueadas:** no pueden entrar ni usar la API (RB-82): `exigirSesion` lo revisa en cada petición y, además, Supabase prohíbe la cuenta (`ban_duration`), así que tampoco puede renovar la sesión.
+  - Toda cuenta nueva empieza sin clave de Gemini: puede usar lo que no usa IA y ve la guía (RB-79).
+- **Pestaña "Administración"** (`/nova/administracion`, decidida por el usuario el 2026-11-16): aparece en la barra lateral y en "Más" **solo para los administradores** (`SUPABASE_ADMIN_EMAILS` y el correo incorporado). Para cualquier otra cuenta, la página responde como inexistente (404) y su API `ACCESO_DENEGADO` (403), sin dar ningún dato (RB-83). Bloques:
+  - **Cuentas:** una fila por cuenta con correo, nombre, fecha de registro, último acceso, espacio usado (7.16), `Clave de Gemini: Sí` o `No` (nunca la clave ni sus últimos 4) y su estado (`Activa` o `Bloqueada`). Ordenada por espacio usado, de mayor a menor. Los administradores salen marcados y sin acciones.
+  - **Bloquear y desbloquear** con confirmación (RB-82). **Eliminar** con confirmación escribiendo el correo de la cuenta: borra todos sus datos (tareas, documentos con sus fragmentos y capítulos, cuestionarios, conversaciones, fuentes web, Semestre, metas, preferencias, categorías, suscripciones, su clave de Gemini, sus PDF pendientes en Blob) y la cuenta de Supabase, en ese orden (RB-84). No se puede bloquear ni eliminar a un administrador ni a uno mismo.
+  - **Uso total** frente a los límites del plan gratuito: espacio de la base (`pg_database_size`) sobre 500 MB y de Blob sobre 1 GB, con barra y porcentaje; aviso al 80 % y aviso fuerte al 95 % (RB-86). El de Blob se calcula al abrir la pestaña y se recuerda 1 hora (listar Blob gasta operaciones avanzadas, con tope de 2.000 al mes).
+  - **Topes editables:** cuentas (empieza en 15) y espacio por persona (empieza en 30 MB; 7.16). Bajar un tope no borra nada: quien ya lo pasó no puede subir más hasta bajar de él (RB-85).
 - **Límites de los planes gratuitos con varias personas** (revisados el 2026-11-16 en las páginas oficiales):
   - **Gemini:** cada clave gasta la cuota de su propio proyecto de Google ("los límites se aplican por proyecto, no por clave"), así que ya no se comparte.
   - **Supabase Free:** 500 MB de base (al pasarse queda en solo lectura), 5 GB de salida al mes, 50.000 usuarios activos al mes, pausa tras 1 semana sin actividad, 2 proyectos. Lo que más pesa son los fragmentos con sus vectores: un libro de 400 páginas ocupa unos 2 a 3 MB (13), así que caben en total unos 100 a 150 libros grandes entre todos. Propuesta: un tope por usuario (por ejemplo, 40 MB de documentos indexados) con un mensaje al alcanzarlo, y en "Acceso" el espacio que usa cada uno.
   - **Vercel Hobby:** solo para uso personal y no comercial; 1.000.000 de invocaciones, 4 horas de CPU activa, 360 GB-h de memoria y 100 GB de transferencia al mes; al pasarse, la función se detiene hasta 30 días. El aviso de cada minuto usa unas 43.200 invocaciones al mes. Lo que más CPU gasta es leer PDF (`pdf.js`): muchos libros grandes de muchas personas podrían acercarse a las 4 horas. Esperar a Gemini casi no cuenta como CPU activa.
   - **Vercel Blob (Hobby):** 1 GB guardado, 10.000 operaciones simples, 2.000 avanzadas (cada subida es al menos una) y 10 GB de transferencia al mes; al pasarse, Blob se detiene hasta 30 días. Los PDF se borran al terminar de indexar, así que el espacio no se acumula; el límite real son unas 2.000 subidas al mes entre todos.
-  - Con un grupo pequeño (un curso, unas 30 personas) alcanza; con más, habría que pasar a planes de pago (Supabase Pro 25 USD al mes; Vercel Pro 20 USD por puesto al mes).
+  - **Con 10 personas (decisión del usuario del 2026-11-16) alcanza**, con el tope de 30 MB por persona (7.16). Si el espacio no alcanza, el siguiente paso es **Supabase Pro: 25 USD al mes, 8 GB de base** (y no pausa el proyecto). Vercel Pro (20 USD por puesto al mes) solo haría falta si se pasa la CPU activa o si Nova se usa con fines comerciales.
+  - **Registro de `pg_cron` (encontrado el 2026-11-16):** el aviso de cada minuto deja una fila por ejecución en `cron.job_run_details`: 4.249 filas y 728 kB en 3 días, unos 7 MB al mes, sin límite. E20c agrega un trabajo diario de `pg_cron` que borra las de más de 7 días (`net._http_response` ya se limpia sola a las 6 horas). Así no se come el espacio de las personas.
+  - **Pausa por inactividad de Supabase gratis (revisada el 2026-11-16):** Supabase pausa un proyecto gratuito tras 1 semana sin actividad. Si pasa, **Nova entera deja de funcionar** (no solo los recordatorios) hasta reanudarlo en el panel, con los datos intactos. Con 10 personas y el aviso de cada minuto, que entra por Vercel y consulta la base, es muy poco probable; el riesgo está en vacaciones largas sin uso si `pg_cron` no cuenta como actividad (Supabase no lo documenta). Por eso sigue en pie la protección de E21: el cron diario de Vercel a `GET /api/nova/salud`, que no depende de la base. Supabase avisa por correo antes de pausar. Supabase Pro no pausa (13).
+
+
+## 6. Modelo de datos
 
 Migraciones nuevas M5 a M13 en `supabase/migrations/`, numeradas después de `20261003136000`. Todas aditivas.
 
@@ -616,13 +626,19 @@ Antes de migrar: `npm run db:respaldar`, y la tabla nueva entra en `scripts/tabl
 - Solo aditiva: `master` no la usa y sigue con `GEMINI_API_KEY`.
 - Nunca se guarda la clave en claro ni un hash que permita probar claves.
 
-### 6.21 M25 · Lista de acceso (E20c, si el usuario la aprueba)
+### 6.21 M25 · Cuentas y administración (E20c, decidido el 2026-11-16)
 
 | Tabla | Columnas | Restricciones |
 |---|---|---|
-| `accesos` | `id`, `correo` VARCHAR(254), `invitado_por` (usuario), `creado_en` | Índice único `lower(correo)`; CHECK de formato básico; RLS activo y sin políticas |
+| `cuentas` | `usuario_id` (PK), `bloqueada` BOOLEAN (false), `bloqueada_en`, `ultimo_acceso` TIMESTAMPTZ, `creada_en` | FK a `auth.users` con `ON DELETE CASCADE`; RLS activo y sin políticas |
+| `administracion` | una sola fila: `tope_cuentas` SMALLINT (15), `tope_espacio_mb` SMALLINT (30), `actualizada_en` | CHECK `id = 1`; `tope_cuentas` de 1 a 1000; `tope_espacio_mb` de 1 a 500; RLS activo y sin políticas |
 
-Los administradores siguen saliendo de `SUPABASE_ADMIN_EMAILS` y del correo incorporado; no se guardan en esta tabla.
+- Una fila de `cuentas` por persona: se crea al primer ingreso (y para las cuentas que ya existen, al migrar). `ultimo_acceso` se actualiza como mucho una vez por hora, para no escribir en cada petición.
+- La función del gancho "Before User Created" (`nova_antes_de_crear_usuario`) lee `administracion.tope_cuentas` y cuenta las cuentas que no son de administrador.
+- Los administradores siguen saliendo de `SUPABASE_ADMIN_EMAILS` y del correo incorporado; no se guardan en la base.
+- Las dos tablas entran en `scripts/tablas-respaldo.mjs`.
+
+## 7. Reglas de cálculo
 
 Todas en funciones puras de `src/lib/reglas/` (sin red, sin base, sin reloj salvo `fechas.ts`), probadas con Vitest. Notas en centésimas (0 a 500), porcentajes en centésimas de punto (0 a 10000). Los productos se calculan con enteros; la división final y el redondeo, con aritmética exacta sobre esos enteros.
 
@@ -770,6 +786,14 @@ Son iguales si coinciden después de normalizar. "  FOTOSINTESIS " acierta "foto
 - **Registros:** ningún `console.*` ni mensaje de error lleva la clave: los errores de Google pasan por `ocultarClave`, que borra cualquier texto con forma de clave y el parámetro `key=`. Una prueba lo comprueba.
 - **Segundo plano (RB-57):** el aviso de cada minuto avanza cada libro con la clave de su dueño. Sin clave, o con la clave `rechazada`, el libro queda en pausa con el aviso de RB-78 en Fuentes y no se vuelve a intentar hasta que el dueño vincule una clave que funcione; con `sin_cuota`, se intenta en el minuto siguiente como hoy.
 
+### 7.16 Espacio por persona y tope (E20c)
+
+- **Espacio usado por una cuenta:** la suma de `pg_column_size` de sus filas en todas las tablas con `usuario_id` (lo que más pesa: el texto y el vector de cada fragmento), más el tamaño de sus vectores otra vez por el índice HNSW. Es una estimación: Postgres no reparte el espacio por usuario. Medido el 2026-11-16: 65 fragmentos ocupan 1,0 MB con su índice; un libro de 400 páginas, unos 2 a 3 MB.
+- **Cálculo del tope (con 10 personas, pedido del usuario):** 500 MB del plan gratuito − 20 MB del sistema (catálogo de Postgres, Auth, `pg_cron` y `pg_net`; hoy 13 MB) − 80 MB reservados para la cuenta del usuario (hoy 3 MB) − 100 MB de margen (20 %) para crecer y para el espacio que Postgres no libera enseguida al borrar = 300 MB para las demás, **30 MB por persona** con 10. Alcanza para unos 10 libros grandes o muchos PDF cortos por persona, además de tareas, Semestre y conversaciones, que pesan muy poco. Con 15 cuentas (el tope de cuentas), 30 MB llegarían a 450 MB en el peor caso: por eso el aviso al 80 % del total (RB-86) y bajar el tope o pasar a Supabase Pro.
+- **Cuándo se revisa:** al subir un PDF y antes de cada parte de la indexación (también en segundo plano). Si la cuenta ya pasó el tope, no se sube ni se sigue indexando, y el documento queda en pausa con el aviso (RB-85). Las tareas, notas y demás datos pequeños nunca se bloquean. Los administradores no tienen tope, pero su espacio se ve en "Administración".
+
+## 8. Reglas de negocio y mensajes exactos
+
 Los mensajes se usan **textualmente** en la interfaz y en la API. Los de `PLAN_NOVA.md` (sección 5.1 y 12.2) no cambian, salvo el trato: **desde el 2026-11-14 (pedido del usuario en E11e) toda la app usa tuteo**, así que los que estaban en usted pasaron a tú con el mismo contenido: `Revisa los datos ingresados.`, `Debes iniciar sesión.`, `Tu cuenta no tiene acceso a Nova Assistant.`, `Aún no hay documentos indexados. Indexa un PDF antes de preguntar.`, `La conversación no existe. Recarga la página.`, `Alcanzaste el máximo de 20 fuentes en esta categoría; archiva o elimina una.`, `No se pudo consultar Wikipedia. Intenta de nuevo.`, `Ocurrió un error inesperado. Intenta de nuevo.`, `Escribe un número entero de 0 en adelante.` y cada "Intente de nuevo" de las pantallas. `master` los conserva en usted hasta E21.
 
 | ID | Regla | Mensaje exacto |
@@ -854,11 +878,16 @@ Los mensajes se usan **textualmente** en la interfaz y en la API. Los de `PLAN_N
 | RB-78 | (E20c) La clave del usuario falla al usarla (`CLAVE_GEMINI_RECHAZADA`, 403; `CUOTA_CLAVE_AGOTADA`, 429) | `Tu clave de Gemini ya no funciona: puede que no sea válida o que la hayas revocado. Vincula una nueva en Configuración → Asistente.` · `Tu clave de Gemini llegó a su límite de uso por ahora. Intenta más tarde o revisa tu cuota en Google AI Studio.` |
 | RB-79 | (E20c) Sin clave vinculada y sin ser administrador, lo que usa IA no llama a Gemini (`SIN_CLAVE_GEMINI`, 409) | `Para usar la IA de Nova, vincula tu clave de Gemini.` con el enlace `Cómo crear tu clave` |
 | RB-80 | (E20c) Desvincular pide confirmación y borra la clave; lo que estaba indexándose en segundo plano queda en pausa | `¿Desvincular tu clave de Gemini? Nova no podrá usar la IA hasta que vincules otra.` · Botones `Desvincular` y `Cancelar` · Hecho: `Clave desvinculada.` |
-| RB-81 | (E20c, si se aprueba M25) Solo entran los administradores y los correos invitados; quitar un correo corta su acceso en la siguiente petición | Igual que hoy: `Tu cuenta no tiene acceso a Nova Assistant.` · Invitar repetido: `Ese correo ya tiene acceso.` |
+| RB-81 | (E20c) Registro: solo con "Entrar con Google"; con el tope de cuentas alcanzado, la cuenta no se crea; el correo y la contraseña quedan para los administradores | `Para crear tu cuenta, usa "Entrar con Google".` · Tope: `Nova llegó al máximo de cuentas por ahora. Escríbele al administrador.` |
+| RB-82 | (E20c) Bloquear y desbloquear una cuenta (solo administradores, con confirmación); una cuenta bloqueada no entra ni usa la API, también con una sesión ya abierta (`CUENTA_BLOQUEADA`, 403) | `¿Bloquear a {correo}? No podrá entrar a Nova hasta que la desbloquees.` · Al entrar o en la API: `Tu cuenta está bloqueada. Escríbele al administrador.` |
+| RB-83 | (E20c) La pestaña "Administración" y su API son solo de los administradores: para cualquier otra cuenta, la página no existe (404) y la API responde `ACCESO_DENEGADO` (403) sin datos; no aparece en el menú | `Tu cuenta no tiene acceso a Nova Assistant.` (API) |
+| RB-84 | (E20c) Eliminar una cuenta: confirmación escribiendo su correo; borra todos sus datos y la cuenta; no se puede con un administrador ni con la propia | `Escribe {correo} para confirmar. Se borrarán su cuenta y todos sus datos; no se puede deshacer.` · Hecho: `Se eliminó la cuenta {correo}.` |
+| RB-85 | (E20c) Tope de espacio por persona (30 MB al empezar, editable): pasado el tope no se sube ni se indexa más; nada se borra (`ESPACIO_AGOTADO`, 409) | `Llegaste al espacio máximo de tu cuenta ({n} MB). Elimina documentos para subir más.` · Tope editable: `Escribe un número entero de 1 a 500.` / cuentas: `Escribe un número entero de 1 a 1000.` |
+| RB-86 | (E20c) Uso total frente al plan gratuito: aviso al 80 % y aviso fuerte al 95 % de la base o de Blob | `La base va en {p} % del plan gratuito.` · `La base está casi llena ({p} %). Elimina datos o pasa a Supabase Pro.` (igual para Blob, con "Blob" y "Vercel Pro") |
 | RB-63 | (E11b) La copia sin conexión se borra: al cerrar sesión; si, con conexión, el servidor rechaza la sesión (401, 403 o redirección a `/login`); si inicia sesión otro usuario; y tras 7 días sin una respuesta válida del servidor, porque sin conexión no se puede saber si la sesión venció | — |
 | RB-29 | Editar una tarea: solo pendientes y del usuario; título, categoría, prioridad, fecha límite y horario con las mismas validaciones y mensajes que al crear; estado, minutos y fecha de cierre no se tocan | Los de crear (`PLAN_NOVA.md` 5.1). Tarea completada: `La tarea ya está completada.` (`TAREA_YA_COMPLETADA`, 409). De otro usuario o inexistente: `La tarea no existe.` (`TAREA_NO_ENCONTRADA`, 404) |
 
-Códigos de error nuevos (404 salvo indicación): `CATEGORIA_NO_ENCONTRADA`, `CATEGORIA_DUPLICADA` (409), `MATERIA_NO_ENCONTRADA`, `MATERIA_DUPLICADA` (409), `CORTE_NO_ENCONTRADO`, `COMPONENTE_NO_ENCONTRADO`, `NOTA_NO_ENCONTRADA`, `PORCENTAJES_INVALIDOS` (422, solo RB-10 y los cortes por defecto de Configuración), `CORTES_NO_SE_QUITAN` (422, RB-35), `NOTA_INVALIDA` (422), `META_NO_ENCONTRADA`, `META_DUPLICADA` (409), `PLAN_SIN_TEMAS` (422), `PLAN_SIN_FECHA` (422), `SIN_SYLLABUS` (422), `PLAN_INVALIDO` (502), `PASO_YA_EN_TAREAS` (409). Desde E20c: `SIN_CLAVE_GEMINI` (409), `CLAVE_GEMINI_INVALIDA` (422), `CLAVE_GEMINI_RECHAZADA` (403), `CUOTA_CLAVE_AGOTADA` (429), `CLAVE_GEMINI_NO_VERIFICADA` (503) y, con M25, `ACCESO_DUPLICADO` (409).
+Códigos de error nuevos (404 salvo indicación): `CATEGORIA_NO_ENCONTRADA`, `CATEGORIA_DUPLICADA` (409), `MATERIA_NO_ENCONTRADA`, `MATERIA_DUPLICADA` (409), `CORTE_NO_ENCONTRADO`, `COMPONENTE_NO_ENCONTRADO`, `NOTA_NO_ENCONTRADA`, `PORCENTAJES_INVALIDOS` (422, solo RB-10 y los cortes por defecto de Configuración), `CORTES_NO_SE_QUITAN` (422, RB-35), `NOTA_INVALIDA` (422), `META_NO_ENCONTRADA`, `META_DUPLICADA` (409), `PLAN_SIN_TEMAS` (422), `PLAN_SIN_FECHA` (422), `SIN_SYLLABUS` (422), `PLAN_INVALIDO` (502), `PASO_YA_EN_TAREAS` (409). Desde E20c: `SIN_CLAVE_GEMINI` (409), `CLAVE_GEMINI_INVALIDA` (422), `CLAVE_GEMINI_RECHAZADA` (403), `CUOTA_CLAVE_AGOTADA` (429), `CLAVE_GEMINI_NO_VERIFICADA` (503), `CUENTA_BLOQUEADA` (403), `ESPACIO_AGOTADO` (409), `TOPE_CUENTAS` (409) y `TOPE_INVALIDO` (422).
 
 ## 9. El asistente en Semestre
 
@@ -966,7 +995,10 @@ Todas con `exigirSesion()` como primera instrucción y el id del usuario de la s
 | `GET /api/nova/clave-gemini` | Solo `{ vinculada, ultimos4, estado, verificadaEn }`; nunca la clave | E20c |
 | `PUT /api/nova/clave-gemini` | Verificar y guardar (o cambiar) la clave (RB-77) | E20c |
 | `DELETE /api/nova/clave-gemini` | Desvincular (RB-80) | E20c |
-| `GET/POST /api/nova/accesos`, `DELETE /api/nova/accesos/[id]` | Lista de acceso, solo administradores (RB-81, si se aprueba M25) | E20c |
+| `GET /api/nova/administracion` | Cuentas (sin claves), uso total y topes; solo administradores (RB-83) | E20c |
+| `PATCH /api/nova/administracion` | Cambiar los topes (RB-85) | E20c |
+| `POST /api/nova/administracion/cuentas/[id]` | `{ accion: "bloquear" \| "desbloquear" }` (RB-82) | E20c |
+| `DELETE /api/nova/administracion/cuentas/[id]` | Eliminar la cuenta y sus datos, con `{ correo }` como confirmación (RB-84) | E20c |
 | `src/app/manifest.ts`, `public/sw.js` | Manifiesto e service worker; públicos (el middleware no los protege) | E11b |
 
 Las rutas que llaman a Gemini declaran `maxDuration = 60`.
@@ -1010,6 +1042,10 @@ Las rutas que llaman a Gemini declaran `maxDuration = 60`.
   - S-82 (E20c, RB-76): quién usa qué clave: usuario con clave, administrador con y sin clave, usuario sin clave (RB-79 sin llamar a Gemini); nunca la del proyecto si la del usuario falla; el tick usa la del dueño de cada libro.
   - S-83 (E20c, RB-77, RB-78): resultados de la verificación (válida, 400, 403, 429, red) y de cada uso (rechazada pasa a `rechazada`, 429 a `sin_cuota` y vuelve a `activa`).
   - S-84 (E20c): ninguna respuesta de la API ni página lleva la clave (solo los últimos 4); `ocultarClave` borra la clave de los errores y de `key=`.
+  - S-85 (E20c, RB-83): con cada ruta de Administración, una cuenta que no es administradora recibe 403 y ningún dato; sin sesión, 401; la página responde 404 y el menú no la muestra.
+  - S-86 (E20c, RB-81, RB-82): el tope de cuentas (la 16.ª no se crea; un administrador sí entra); una cuenta bloqueada recibe `CUENTA_BLOQUEADA` en cada ruta, también con una sesión ya abierta; desbloquear la devuelve.
+  - S-87 (E20c, RB-84): eliminar borra las filas de la cuenta en cada tabla con `usuario_id` y nada de otra cuenta; no se puede con un administrador, con la propia ni con un correo de confirmación distinto.
+  - S-88 (E20c, 7.16, RB-85, RB-86): el espacio estimado; pasado el tope no se sube ni se indexa (también en segundo plano) y no se borra nada; avisos al 80 % y al 95 %; los topes fuera de rango se rechazan.
   - S-68 y S-69 (E11b): qué rutas se pueden guardar (Asistente, API de escritura y texto de documentos nunca); cada caso de borrado de RB-63, incluido el de 7 días.
   - S-29 a S-32 (validación del plan: tema no confirmado, fuente inventada, fecha fuera de rango, plan válido).
 - **Contraste**: una prueba lee los tokens de `globals.css` y comprueba ≥ 4,5:1 en cada par texto/fondo, en ambos modos, y para los 8 colores de categoría.
@@ -1038,7 +1074,7 @@ Con un `git worktree` de `master` en una carpeta temporal: `npm run probar:rag` 
 
 En cada etapa con interfaz: navegador real a 1280 px y 390 px (sin desplazamiento horizontal, sin errores de página, foco visible) y prueba del usuario en la **vista previa de Vercel** desde su teléfono.
 
-## 12. Casos de aceptación B-01 a B-95
+## 12. Casos de aceptación B-01 a B-101
 
 Se ejecutan en la vista previa de Vercel de `ampliacion`, en computador y en teléfono, y se registran en `doc/ACEPTACION.md` (sección nueva). Antes, se repiten A-01 a A-21 en la vista previa.
 
@@ -1125,7 +1161,13 @@ Se ejecutan en la vista previa de Vercel de `ampliacion`, en computador y en tel
 | B-91 | (E20c) Revocar la clave en AI Studio y preguntar en el Asistente | `Tu clave de Gemini ya no funciona…`; Configuración la muestra como `No funciona: vincula una nueva`; no se usó la clave del proyecto |
 | B-92 | (E20c) "Cambiar clave" por una nueva; luego "Desvincular" | Cambia solo si la nueva pasa; desvincular pide confirmación y la IA vuelve a mostrar el aviso de RB-79 |
 | B-93 | (E20c) Con la cuenta del usuario (administrador) sin clave propia | Sigue usando la clave del proyecto como hoy |
-| B-94 | (E20c, si se aprueba M25) Invitar un correo, entrar con él (con Google o con la contraseña temporal); quitarlo | Entra y ve solo sus datos; al quitarlo, la siguiente petición responde `Tu cuenta no tiene acceso a Nova Assistant.`; un correo no invitado no entra |
+| B-94 | (E20c) Con una cuenta de Google que no es administradora, tocar "Entrar con Google" | Se crea la cuenta y entra; ve solo sus datos; la IA pide la clave (B-87); no ve "Administración" en el menú y `/nova/administracion` no existe |
+| B-96 | (E20c) Con la cuenta del usuario, abrir "Administración" | Se ve la lista de cuentas con correo, nombre, registro, último acceso, espacio y `Clave de Gemini: Sí` o `No`, sin ninguna clave; el uso total de la base y de Blob con su porcentaje |
+| B-97 | (E20c) Bloquear la cuenta de prueba con su sesión abierta en otro navegador; luego desbloquearla | Al bloquear, la otra sesión recibe `Tu cuenta está bloqueada…` en la siguiente acción y no puede volver a entrar; al desbloquear, entra |
+| B-98 | (E20c) Bajar el tope de espacio por persona a 1 MB y, con la cuenta de prueba, subir un PDF; volver a 30 MB | Sale `Llegaste al espacio máximo de tu cuenta (1 MB)…` y no se sube; no se borró nada; con 30 MB vuelve a subir |
+| B-99 | (E20c) Bajar el tope de cuentas al número actual y entrar con otra cuenta de Google nueva | `Nova llegó al máximo de cuentas por ahora…`; la cuenta no aparece en la lista |
+| B-100 | (E20c) Eliminar la cuenta de prueba (escribiendo mal el correo y luego bien) | Con el correo mal no hace nada; con el correo bien desaparece de la lista y sus datos ya no están en la base |
+| B-101 | (E20c) Desde la cuenta de prueba (no administradora), llamar a `GET /api/nova/administracion` | 403 `Tu cuenta no tiene acceso a Nova Assistant.`, sin datos |
 | B-95 | (E20c) En el teléfono: Configuración → Asistente y la guía | Se lee y se toca bien; el campo de la clave no hace zoom; "Mostrar" funciona |
 | B-67 | (E10b2) En "Buscar en la web": buscar una frase, ver la fuente en "Fuentes guardadas" sin recargar y eliminarla; con 20 en una categoría, buscar otra vez | Aparece en su categoría con su enlace y "1/20"; eliminar pide confirmación y la quita; al llegar a 20, el aviso indica que se pueden eliminar abajo, y al eliminar una se puede volver a buscar |
 | B-68 | (E10c2) Con "Wikipedia" en "Buscar en": buscar una frase y no tocar "Guardar fuente"; buscar otra y guardarla; guardarla otra vez; con 20 en la categoría, buscar y guardar | La primera no aparece en "Fuentes guardadas"; la segunda sí, sin recargar; repetirla avisa que ya está; con 20, la búsqueda funciona y el tope se avisa al guardar (A-18) |
@@ -1168,6 +1210,8 @@ Se ejecutan en la vista previa de Vercel de `ampliacion`, en computador y en tel
 | Abrir la app más rápido (anotado para E20b) | Abrir la app mostrando al instante la copia guardada de Inicio con un aviso "Actualizando…" y reemplazarla en su lugar al llegar la respuesta del servidor, con completar, crear y editar desactivados mientras tanto; solo Inicio, con una copia del mismo usuario de menos de 24 h, sin pedidos extra al servidor. Riesgo: por un momento puede verse una tarea ya completada en otro dispositivo, o la copia antes de llevar al inicio de sesión si la sesión venció. Propuesta del 2026-11-13, no hecha por decisión del usuario. Junto con bajar el tiempo de carga de cada pantalla (≈ 550 ms en local; ver `PROMPTS_AMPLIACION.md`, E20b). |
 | Tareas creadas sin conexión (E11e) | Solo crear: completar, editar o eliminar sin conexión obligaría a resolver conflictos con lo que pasó en otro dispositivo. La duplicación se evita en el servidor (`id_cliente` único por usuario), no solo en el dispositivo. En el iPhone el sistema puede borrar los datos de una app web que no se usa en semanas: lo pendiente se puede perder si no se abre Nova con conexión; Tareas lo advierte mientras haya pendientes |
 | Clave de Gemini de cada usuario (E20c) | La clave es de la persona: si se filtra, puede gastar su cuota o, en el plan de pago, su dinero. Por eso se cifra con una llave que solo está en Vercel, nunca vuelve al navegador ni a los registros, la guía explica cómo revocarla y la pantalla solo muestra los últimos 4. Si la llave `NOVA_LLAVE_CLAVES` se pierde, las claves guardadas no se pueden leer: cada persona la vuelve a vincular (no se pierde nada más). Si la llave se filtra junto con un respaldo de la base, hay que cambiar la llave (`version_llave`) y pedir a cada uno que revoque y vuelva a vincular su clave. Google exige 18 años o más para usar la API; la guía lo dice |
-| Varias personas en los planes gratuitos (E20c) | Gemini ya no se comparte. Lo compartido es Supabase (500 MB), Vercel (4 h de CPU activa al mes, uso no comercial) y Blob (unas 2.000 subidas al mes): tope de espacio por usuario y la lista de acceso para no abrir Nova a cualquiera. Vercel Hobby es solo para uso personal y no comercial: un curso sin cobrar entra; si algún día se cobra, hace falta Vercel Pro |
+| Varias personas en los planes gratuitos (E20c) | Gemini ya no se comparte. Lo compartido es Supabase (500 MB), Vercel (4 h de CPU activa al mes, uso no comercial) y Blob (1 GB, unas 2.000 subidas al mes). Decisión del usuario del 2026-11-16: 10 personas, tope de 15 cuentas y 30 MB por persona (7.16), con avisos al 80 % y al 95 % en "Administración". Si el espacio no alcanza, el siguiente paso es **Supabase Pro (25 USD al mes, 8 GB)**. Vercel Hobby es solo para uso personal y no comercial: un curso sin cobrar entra; si algún día se cobra, hace falta Vercel Pro |
+| Registro abierto con Google (E20c) | Cualquiera puede crear una cuenta: el tope de cuentas (en la base, con el gancho de Supabase), el tope de espacio, bloquear y eliminar desde "Administración" lo controlan. Una cuenta nueva no gasta la cuota de Gemini del usuario: sin clave propia no usa IA. Los términos de Google piden 18 años o más para la API; Nova no lo verifica |
+| Registro de `pg_cron` sin límite | Encontrado el 2026-11-16: unos 7 MB al mes en `cron.job_run_details`. E20c agrega la limpieza diaria (más de 7 días) |
 | La base es compartida entre producción y la vista previa | Abrir el acceso a otras personas se hace solo después de unir con `master` (E21) y de quitar el disparador de dueño por defecto (6.1): con otras personas, una fila sin dueño asignada al usuario sería un error. Hasta entonces, E20c se prueba en la vista previa con una cuenta de prueba no administradora |
 | Tipos de pregunta (E10g) | La abierta se califica con la autoevaluación del usuario, sin Gemini: es honesta solo si el usuario lo es, y por eso la respuesta modelo y la cita se muestran siempre. La de completar solo acepta lo que falta, con la comparación de 7.13: un sinónimo no cuenta. Verdadero o falso puede salir desbalanceado (9.7) |
