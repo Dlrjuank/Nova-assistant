@@ -1187,3 +1187,8 @@ Total de fallas: 0
 - **Pruebas:** reglas (las rutas de Semestre en S-68: guardables y que no, y que el navegador y el service worker coinciden), service worker (2 nuevas, S-89: las copias por materia y por `?materia=`, la materia sin copia y el texto de RB-87), atenuado = bloqueado (los enlaces de Semestre, la Calculadora, "Definir meta" y "Pasar a Tareas"). En Edge (`ui_e19b.mjs`, con el service worker de verdad, el modo sin conexión y el servidor apagado) 12 de 12: las tres pantallas guardadas, cada una sin conexión con su aviso y sus datos, abrir la materia desde la lista, la Calculadora, "Editar materia" y "Pasar a Tareas" bloqueados, la materia nunca abierta, la pantalla sin copia con RB-87, 390 px sin desborde.
 - **Al cierre:** `npm test` 1309/1309, `eslint` sin errores (las 3 advertencias de siempre), `npm run build` correcto; `tsc` solo con los 2 errores viejos de `json-db.test.ts`.
 - **Pendiente:** la prueba del usuario en el iPhone con la app instalada, en modo avión (B-102).
+
+#### E19b terminada (2026-11-18)
+
+- **Prueba del usuario con `a511397` en el iPhone (app instalada), sin fallas (las 9):** las copias se guardan al abrir las pantallas con conexión; sin conexión se ven Materias y notas, la materia y Objetivos y plan con el aviso de la hora; la Calculadora funciona; lo que escribe datos dice `Necesitas conexión para esto.`; la materia nunca abierta dice que aún no está disponible; Productividad muestra el texto de RB-87; al volver la conexión todo se recarga y funciona. B-102 aceptada.
+- Queda cerrada E19b. Sigue E20.
