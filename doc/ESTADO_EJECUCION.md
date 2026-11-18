@@ -1174,3 +1174,8 @@ Total de fallas: 0
 - **Pruebas:** servidor (4 nuevas: la tarea con sus datos, RB-24 sin crear otra y la marca en una versión editada, un paso que ya no está o un plan ajeno, la ruta 201/409/400), interfaz (2 nuevas). En Edge (`ui_e19.mjs`, base real, sin Gemini) 13 de 13: el diálogo con sus datos, nada sin confirmar, la tarea pendiente con la fecha, la materia y prioridad 2, "En Tareas" con su enlace, RB-24, la tarea en Tareas, Inicio y Calendario, la marca en una versión editada, eliminar la tarea libera el paso, 390 px y 1280 px en oscuro sin desborde.
 - **Al cierre:** `npm test` 1294/1294, `eslint` sin errores (las 3 advertencias de siempre), `npm run build` correcto; `tsc` solo con los 2 errores viejos de `json-db.test.ts`.
 - **Pendiente:** la prueba del usuario (B-39).
+
+#### E19 terminada (2026-11-18)
+
+- **Prueba del usuario con `fa45e20` en la vista previa, en el iPhone y el PC, sin fallas (las 8):** el diálogo con título, fecha, categoría y prioridad Media, y Cancelar no crea nada; al confirmar el paso queda "En Tareas"; la tarea aparece resaltada en Tareas y también en Inicio y el Calendario; no se puede pasar dos veces (RB-24); se conserva al editar el plan; al eliminar la tarea se puede pasar otra vez; en una versión anterior no aparece el botón; teléfono y modo oscuro. B-39 aceptada.
+- Queda cerrada E19. Sigue E19b.
