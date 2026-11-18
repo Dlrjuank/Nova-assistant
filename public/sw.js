@@ -235,7 +235,7 @@ function navegar(evento, url) {
     })
     .catch(function () {
       // Sin conexión.
-      if (!R.paginaGuardable(url, ahora)) return pagina('Necesitas conexión para esto.');
+      if (!R.paginaGuardable(url, ahora)) return pagina(R.NECESITA_CONEXION); // RB-87
       return leerMeta().then(function (meta) {
         if (!meta || R.vencida(meta.ultimaValida, ahora)) {
           return borrarDatos().then(function () {

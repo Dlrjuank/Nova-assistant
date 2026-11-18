@@ -9,6 +9,8 @@
   /** Al navegar con el menú, una copia más nueva que esto no se vuelve a pedir (no se arma la página otra vez). */
   var COPIA_RECIENTE_MS = 5 * 60 * 1000;
   var CAPITULOS = /^\/nova\/fuentes\/[0-9a-f-]{36}\/capitulos$/i;
+  /** E19b (RB-87): Semestre (Materias y notas, Objetivos y plan) y la página de cada materia. */
+  var SEMESTRE = /^\/nova\/semestre(\/objetivos|\/[0-9a-f-]{36})?$/i;
   /** E11e (5.13): el formulario para crear una tarea, que funciona sin conexión. */
   var NUEVA_TAREA = '/nova/tareas/nueva';
 
@@ -39,7 +41,10 @@
     return url.pathname === '/nova' || url.pathname.indexOf('/nova/') === 0;
   }
 
-  /** RB-62: Inicio, Tareas (con sus filtros), el Calendario del mes actual y los capítulos de un documento. E11e: el formulario de nueva tarea. */
+  /**
+   * RB-62: Inicio, Tareas (con sus filtros), el Calendario del mes actual y los capítulos de un documento. E11e: el
+   * formulario de nueva tarea. E19b (RB-87): Semestre, cada materia y Objetivos y plan (con o sin ?materia=).
+   */
   function paginaGuardable(url, ahora) {
     var ruta = url.pathname;
     if (ruta === '/nova' || ruta === '/nova/tareas' || ruta === NUEVA_TAREA) return true;
@@ -47,7 +52,7 @@
       var mes = url.searchParams.get('mes');
       return mes === null || mes === mesActual(ahora);
     }
-    return CAPITULOS.test(ruta);
+    return CAPITULOS.test(ruta) || SEMESTRE.test(ruta);
   }
 
   /** La copia se guarda por dirección completa, sin el ancla; "?pregunta=" de Inicio no cambia lo que se ve. */
@@ -122,7 +127,11 @@
     return i === -1 ? meta + html : html.slice(0, i) + meta + html.slice(i);
   }
 
+  /** E19b (RB-87): lo que dice una pantalla que necesita conexión, con lo que sí se puede ver. */
+  var NECESITA_CONEXION = 'Esta pantalla necesita conexión. Sin conexión puedes ver Inicio, Tareas, el Calendario y Semestre.';
+
   global.NovaReglas = {
+    NECESITA_CONEXION: NECESITA_CONEXION,
     SIETE_DIAS_MS: SIETE_DIAS_MS,
     COPIA_RECIENTE_MS: COPIA_RECIENTE_MS,
     copiaReciente: copiaReciente,

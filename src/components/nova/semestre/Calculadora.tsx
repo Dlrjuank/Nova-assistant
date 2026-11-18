@@ -88,7 +88,8 @@ export function Calculadora({ materia, notaAprobar, redondeo, metaGuardada = nul
       ) : (
         <div className="flex flex-col gap-3 border-t border-borde pt-4">
           <h3 className="text-base font-semibold text-texto">¿Cuánto necesito?</h3>
-          <div className="sm:w-48">
+          {/* E19b (RB-87): calcula solo en el navegador y no guarda: sigue funcionando sin conexión. */}
+          <div className="sm:w-48" data-sin-conexion="permitido">
             <Campo
               id="nota-meta"
               etiqueta="Nota meta"

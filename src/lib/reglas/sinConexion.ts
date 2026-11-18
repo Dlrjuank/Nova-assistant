@@ -16,6 +16,8 @@ export const ATRIBUTO_PERMITIDO = 'data-sin-conexion';
 export const ESPERA_GUARDAR_MS = 2000;
 
 const CAPITULOS =/^\/nova\/fuentes\/[0-9a-f-]{36}\/capitulos$/i;
+/** E19b (RB-87): Semestre (Materias y notas, Objetivos y plan) y la página de cada materia. */
+const SEMESTRE = /^\/nova\/semestre(\/objetivos|\/[0-9a-f-]{36})?$/i;
 
 /**
  * E11b: ¿el pedido falló por no tener internet (o no llegar al servidor)? `fetch` lo dice con un TypeError; una
@@ -35,7 +37,7 @@ export const RUTA_NUEVA_TAREA = '/nova/tareas/nueva';
 
 /**
  * RB-62: Inicio, Tareas, el Calendario del mes actual y los capítulos de un documento tienen copia sin conexión.
- * E11e: también el formulario de nueva tarea.
+ * E11e: también el formulario de nueva tarea. E19b (RB-87): Semestre, cada materia y Objetivos y plan.
  */
 export function rutaConCopia(url: URL, ahora: Date): boolean {
   const ruta = url.pathname;
@@ -44,7 +46,7 @@ export function rutaConCopia(url: URL, ahora: Date): boolean {
     const mes = url.searchParams.get('mes');
     return mes === null || mes === mesActualBogota(ahora);
   }
-  return CAPITULOS.test(ruta);
+  return CAPITULOS.test(ruta) || SEMESTRE.test(ruta);
 }
 
 /** `Sin conexión · datos de las {HH:MM}` con la hora (Bogotá) de la copia que se está viendo. */

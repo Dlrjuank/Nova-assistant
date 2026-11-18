@@ -112,7 +112,7 @@ describe('service worker (RB-62)', () => {
     sw.red.mockImplementation(sinRed);
     const r = await sw.pedir('/nova/asistente');
     expect(r?.status).toBe(503);
-    expect(await r?.text()).toContain('Necesitas conexión para esto.');
+    expect(await r?.text()).toContain('Esta pantalla necesita conexión. Sin conexión puedes ver Inicio, Tareas, el Calendario y Semestre.');
   });
 
   it('una pantalla con copia posible que nunca se abrió lo dice', async () => {
@@ -121,7 +121,7 @@ describe('service worker (RB-62)', () => {
     await sw.pedir('/nova');
     sw.red.mockImplementation(sinRed);
     expect(await (await sw.pedir('/nova/calendario'))?.text()).toContain('Esta pantalla aún no está disponible sin conexión.');
-    expect(await (await sw.pedir('/nova/calendario?mes=2026-10'))?.text()).toContain('Necesitas conexión para esto.');
+    expect(await (await sw.pedir('/nova/calendario?mes=2026-10'))?.text()).toContain('Esta pantalla necesita conexión.');
   });
 
   it('los pedidos internos de navegación (RSC) pasan sin tocarse', async () => {
@@ -332,5 +332,32 @@ describe('service worker: el tope de archivos no deja la copia sin los suyos (co
     expect(sw.estaticos()).not.toContain('/_next/static/chunks/version-0.js'); // los viejos sin copia sí se borran
     sw.red.mockImplementation(sinRed);
     expect(await (await sw.pedir(NUCLEO, { modo: 'no-cors' }))?.text()).toBe('archivo');
+  });
+});
+
+describe('E19b (S-89, RB-87): Semestre sin conexión', () => {
+  const M = '33333333-3333-4333-8333-333333333333';
+  it('guarda Materias y notas, cada materia y Objetivos y plan por materia; sin conexión muestra cada copia', async () => {
+    const sw = entorno();
+    sw.red.mockImplementation(async (p) => {
+      const url = new URL(typeof p === 'string' ? p : (p as { url: string }).url);
+      return pagina(`Pantalla ${url.pathname}${url.search}`);
+    });
+    for (const r of ['/nova/semestre', `/nova/semestre/${M}`, `/nova/semestre/objetivos?materia=${M}`, '/nova/semestre/objetivos']) await sw.pedir(r);
+    expect(sw.copias()).toEqual(expect.arrayContaining(['/nova/semestre', `/nova/semestre/${M}`, `/nova/semestre/objetivos?materia=${M}`, '/nova/semestre/objetivos']));
+    sw.red.mockImplementation(sinRed);
+    expect(await (await sw.pedir(`/nova/semestre/${M}`))?.text()).toContain(`Pantalla /nova/semestre/${M}`);
+    expect(await (await sw.pedir(`/nova/semestre/objetivos?materia=${M}`))?.text()).toContain(`?materia=${M}`);
+  });
+
+  it('una materia que nunca se abrió no tiene copia; una pantalla que no se guarda dice qué sí se puede ver', async () => {
+    const sw = entorno();
+    sw.red.mockResolvedValueOnce(pagina('Inicio'));
+    await sw.pedir('/nova');
+    sw.red.mockImplementation(sinRed);
+    expect(await (await sw.pedir('/nova/semestre/44444444-4444-4444-8444-444444444444'))?.text()).toContain('Esta pantalla aún no está disponible sin conexión.');
+    const r = await sw.pedir('/nova/productividad');
+    expect(r?.status).toBe(503);
+    expect(await r?.text()).toContain('Esta pantalla necesita conexión. Sin conexión puedes ver Inicio, Tareas, el Calendario y Semestre.');
   });
 });

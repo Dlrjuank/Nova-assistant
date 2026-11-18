@@ -45,6 +45,12 @@ describe('sin conexión: lo atenuado coincide con lo bloqueado', () => {
     '/nova/configuracion',
     '/nova/cuestionarios',
     '/nova/calendario?mes=2020-01',
+    // E19b (RB-87): Semestre se puede ver sin conexión.
+    '/nova/semestre',
+    '/nova/semestre/objetivos',
+    `/nova/semestre/objetivos?materia=${DOC}`,
+    `/nova/semestre/${DOC}`,
+    `/nova/tareas?tarea=${DOC}`,
   ];
 
   it.each(enlaces)('enlace %s', (href) => {
@@ -69,6 +75,21 @@ describe('sin conexión: lo atenuado coincide con lo bloqueado', () => {
     }
     expect((document.getElementById('guardar') as Element).matches(selector)).toBe(false);
     expect((document.getElementById('completar') as Element).matches(selector)).toBe(true);
+  });
+
+  it('E19b: en Semestre, la Calculadora sigue y lo que escribe (Definir meta, Pasar a Tareas) se atenúa y se bloquea', () => {
+    document.documentElement.setAttribute('data-nova-sin-conexion', '');
+    document.body.innerHTML = `
+      <div data-sin-conexion="permitido"><input id="nota-meta"></div>
+      <button id="definir">Definir meta</button>
+      <button id="pasar">Pasar a Tareas</button>`;
+    const selector = selectorAtenuado();
+    for (const id of ['nota-meta', 'definir', 'pasar']) {
+      const e = document.getElementById(id) as Element;
+      expect([id, e.matches(selector)]).toEqual([id, bloqueadoSinConexion(e, ORIGEN, AHORA)]);
+    }
+    expect(bloqueadoSinConexion(document.getElementById('nota-meta') as Element, ORIGEN, AHORA)).toBe(false);
+    expect(bloqueadoSinConexion(document.getElementById('pasar') as Element, ORIGEN, AHORA)).toBe(true);
   });
 
   it('con conexión no se atenúa nada', () => {
