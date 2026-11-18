@@ -716,6 +716,23 @@ VERIFICACIÓN: B-39; la tarea aparece en Inicio, Calendario y Tareas.
 
 ---
 
+## E19b · Semestre sin conexión (propuesta del 2026-11-17, aprobada por el usuario el 2026-11-18)
+
+**Plan:** 5.10 (Semestre sin conexión), RB-62, RB-63, RB-87, S-89, B-102. **Requisito:** E19 y E11b.
+
+```text
+TAREA 1. paginaGuardable (public/sw-reglas.js) y rutaConCopia (src/lib/reglas/sinConexion.ts) con /nova/semestre, /nova/semestre/[id] y /nova/semestre/objetivos (con y sin ?materia=); la prueba que exige que coincidan.
+TAREA 2. Sin conexión, todo lo que escribe datos en Semestre queda desactivado con "Necesitas conexión para esto." (notas, fallas, componentes, cortes, metas, temas, proponer, generar o editar el plan, pasar a Tareas). La Calculadora sigue si calcula solo en el navegador: comprobarlo y marcarla como permitida. Las pestañas de materias llevan a la copia de cada una.
+TAREA 3. La pantalla sin copia que necesita conexión dice qué sí se puede ver (RB-87).
+TAREA 4. Pruebas del service worker y de las reglas (S-89); en Edge: cargar con conexión, cortar la red, ver las tres pantallas, los controles desactivados y la Calculadora, 390 px.
+
+VERIFICACIÓN: B-102 (en el iPhone con la app instalada, en modo avión).
+```
+
+**Commit:** `feat(sin-conexion): consultar Semestre sin conexión`
+
+---
+
 ## E20 · Estadísticas
 
 **Plan:** 5.7, 7.4, 7.7. **Requisito:** E14.
@@ -796,6 +813,16 @@ Anota en el plan lo que decidas y avísame antes de pasar a la siguiente pantall
 
 Esos seis no son "solo presentación": cada uno lleva sus pruebas y se avisa antes de hacerlo.
 
+**Decidido el 2026-11-18 (el usuario eligió "Con el video", no el "Plan anterior"): E20b parte del prototipo interactivo `doc/PROTOTIPO_DISENO.html`** (React con JSX, 7 pantallas; se abre en el navegador y arriba tiene el selector de versión). La decisión y cada ejemplo del video están en `doc/DISENO_PRESENTACION.md` (secciones "Decisión del usuario" y 4). Lo que se lleva a Nova:
+- barra lateral de cristal con el perfil arriba, submenú de Semestre (Materias y notas, Objetivos y plan) y una tarjeta de aviso abajo (próximo corte, tarea vencida o cuota);
+- barra inferior flotante en el teléfono, con el indicador que se desliza al activo;
+- menú "Más" de cristal;
+- entrada (inicio de sesión) con la lámpara;
+- botones con estados "cargando" y "listo";
+- Inicio con el saludo según la hora, tarjetas con mini gráficos y números que cuentan.
+
+Cómo se hace: se pasa a componentes reales de Nova (TSX, tokens `--nova-*`, `lucide-react`), **sin copiar el código del prototipo tal cual**, cuidando el contraste en claro y en oscuro (`tests/reglas/contraste.test.ts`), "reducir movimiento" en cada animación y el rendimiento en el teléfono (cristal con moderación, `motion` liviano si se usa, sin empeorar el tiempo de carga). La propuesta que se presenta primero, sin código, se apoya en el prototipo en lugar de describirlo desde cero.
+
 **Opción anotada el 2026-11-13 para E20b, junto con bajar el tiempo de carga (el usuario decidió no hacerla por ahora):** Abrir la app mostrando al instante la copia guardada de Inicio con un aviso "Actualizando…" y reemplazarla en su lugar al llegar la respuesta del servidor, con completar, crear y editar desactivados mientras tanto; solo Inicio, con una copia del mismo usuario de menos de 24 h, sin pedidos extra al servidor. Riesgo: por un momento puede verse una tarea ya completada en otro dispositivo, o la copia antes de llevar al inicio de sesión si la sesión venció. Propuesta del 2026-11-13, no hecha por decisión del usuario.
 
 ---
@@ -818,15 +845,17 @@ TAREA 3. Llave NOVA_LLAVE_CLAVES (32 bytes, base64) en .env.local y en Vercel (P
 TAREA 4. src/lib/llm: un cliente de Gemini por usuario (clave propia o, solo para administradores sin clave, la del proyecto), con la memoria del modelo de respaldo por usuario; cada llamada (chat, respaldo, explicar, JSON de cuestionarios, temas y plan, embeddings, recomendación del índice) recibe el usuario. El tick de RB-57 usa la clave del dueño de cada libro. Errores RB-78 y estado de la clave; ocultarClave en todos los registros. Pruebas S-82 a S-84.
 TAREA 5. API GET/PUT/DELETE /api/nova/clave-gemini y el bloque "Vincular mi clave de Gemini" en Configuración → Asistente (RB-77, RB-80), con el campo de contraseña y "Mostrar"; la guía /nova/configuracion/gemini con los avisos de 5.14.
 TAREA 6. Sin clave (RB-79): aviso con el enlace a la guía en el Asistente, "Explicar de otra manera", subir PDF, crear cuestionario, Wikipedia, guardar fuente, recomendación del índice, temas y plan; el servidor responde SIN_CLAVE_GEMINI antes de llamar a Gemini.
-TAREA 7. Acceso y Administración: "Entrar con Google" en /login (cliente OAuth en Google Cloud y proveedor en Supabase: pasos para el usuario, que los hace en su cuenta), /register sin crear cuentas con correo, el gancho "Before User Created" activado en Supabase, exigirSesion con cuentas bloqueadas y último acceso (RB-81, RB-82). Pestaña /nova/administracion solo para administradores, en el menú solo para ellos, con su API (RB-83 a RB-86) y el espacio por persona de 7.16 al subir e indexar. Pruebas S-85 a S-88.
+Diseño de "Administración" (decidido el 2026-11-18): sigue el prototipo `doc/PROTOTIPO_DISENO.html`, con el diseño de E20b: tarjetas de resumen, medidores circulares del espacio con marcas al 80 % y al 95 %, gráfico de actividad de 14 días, tabla de cuentas con búsqueda y filtros, bloquear, eliminar escribiendo el correo, topes que calculan el margen, estado del sistema y registro de acciones (PLAN 5.14, 6.21 `acciones_admin`, RB-88, RB-89, S-90, S-91, B-103 a B-105).
+
+TAREA 7. Acceso y Administración: "Entrar con Google" en /login (cliente OAuth en Google Cloud y proveedor en Supabase: pasos para el usuario, que los hace en su cuenta), /register sin crear cuentas con correo, el gancho "Before User Created" activado en Supabase, exigirSesion con cuentas bloqueadas y último acceso (RB-81, RB-82). Pestaña /nova/administracion solo para administradores, en el menú solo para ellos, con su API (RB-83 a RB-86, RB-88, RB-89) y el espacio por persona de 7.16 al subir e indexar; con el diseño del prototipo: resumen, medidores, actividad de 14 días, tabla con búsqueda y filtros, topes con margen, sistema y registro de acciones (tabla acciones_admin en M25). Pruebas S-85 a S-88, S-90 y S-91.
 TAREA 8. npm run probar:clave (11.2) y prueba en Edge con una cuenta de prueba no administradora: sin clave, clave inventada, clave válida, la clave no aparece en ninguna respuesta ni en el HTML, desvincular, Administración bloqueada para ella (404 y 403), bloquear, tope de espacio, eliminar, 390 px y 1280 px.
 
-VERIFICACIÓN: B-87 a B-101; A-01 a A-21 y B-01 a B-86 siguen pasando con la cuenta del usuario (administrador).
+VERIFICACIÓN: B-87 a B-101 y B-103 a B-105; A-01 a A-21 y B-01 a B-86 siguen pasando con la cuenta del usuario (administrador).
 ```
 
 **Commits:** `feat(configuracion): clave de Gemini propia` y, aparte, `feat(administracion): registro con Google y pestaña de administración`.
 
-**Qué cambia en E21:** `NOVA_LLAVE_CLAVES` debe estar en Production antes de unir; la tabla de aceptación pasa a B-01 a B-101; la revisión final busca la clave en registros, respuestas y en el repositorio; el acceso de otras personas se abre solo después de unir y de quitar el disparador de dueño por defecto (TAREA 4 de E21); se prueba con una segunda cuenta no administradora en producción.
+**Qué cambia en E21:** `NOVA_LLAVE_CLAVES` debe estar en Production antes de unir; la tabla de aceptación pasa a B-01 a B-105; la revisión final busca la clave en registros, respuestas y en el repositorio; el acceso de otras personas se abre solo después de unir y de quitar el disparador de dueño por defecto (TAREA 4 de E21); se prueba con una segunda cuenta no administradora en producción.
 
 ---
 
@@ -835,11 +864,11 @@ VERIFICACIÓN: B-87 a B-101; A-01 a A-21 y B-01 a B-86 siguen pasando con la cue
 **Plan:** 12. **Requisito:** E20c.
 
 ```text
-TAREA 1. Agregar a doc/ACEPTACION.md la tabla B-01 a B-101 (columnas como A-01 a A-15) y la nota de repetir A-01 a A-21 en la vista previa.
+TAREA 1. Agregar a doc/ACEPTACION.md la tabla B-01 a B-105 (columnas como A-01 a A-15) y la nota de repetir A-01 a A-21 en la vista previa.
 TAREA 2. Revisión final: sin botones muertos (recorrido de todas las pantallas), sin colores fuera de los tokens, sin textos en inglés, todas las rutas nuevas con exigirSesion y filtro por usuario, ninguna clave en el repositorio.
 TAREA 3. Actualizar README (funciones, pantallas, scripts nuevos) y crear doc/checkpoints/AMPLIACION_COMPLETADA.md.
 TAREA 4. Preparar (sin aplicar) la migración que quita el disparador de dueño por defecto (plan, 6.1): comprueba que no quedan filas sin usuario_id, borra el disparador y asignar_dueno_por_defecto (y nova_config si nada más la usa) y pasa usuario_id a NOT NULL. Se aplica solo al unir ampliacion con master, después de que master tenga el código nuevo; nunca antes, porque rompería el código de master en producción.
-TAREA 5. Recordarle al usuario ejecutar B-01 a B-101 y A-01 a A-21 en la vista previa, en computador y teléfono. La unión de ampliacion con master solo se hace si el usuario la pide, e incluye revisar y aplicar la migración de la TAREA 4.
+TAREA 5. Recordarle al usuario ejecutar B-01 a B-105 y A-01 a A-21 en la vista previa, en computador y teléfono. La unión de ampliacion con master solo se hace si el usuario la pide, e incluye revisar y aplicar la migración de la TAREA 4.
 TAREA 6. (Recordatorios, E11c; plan 6.12, "Paso a producción") Al unir con master, y solo cuando producción ya tenga el código: NOVA_TICK_URL pasa a https://nova-assistantsm-kappa.vercel.app/api/nova/recordatorios/tick, se quita VERCEL_AUTOMATION_BYPASS_SECRET de .env.local, se ejecuta npm run db:configurar-tick (Vault queda con la dirección de producción y sin la omisión), se revoca la omisión en el proyecto de Vercel, se comprueba en net._http_response que las llamadas responden 200 y que VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY y RECORDATORIOS_SECRETO están en Production. Se le recuerda al usuario reinstalar la app y volver a activar las notificaciones en cada dispositivo, ya en producción (las suscripciones son por sitio). Se agrega el cron diario de Vercel a GET /api/nova/salud con CRON_SECRET (riesgo de pausa de Supabase, plan 13).
 TAREA 7. (Clave propia, E20c) Antes de unir: NOVA_LLAVE_CLAVES en Production con el mismo valor que en Preview (si no, las claves guardadas no se pueden leer). Después de unir y de aplicar la migración de la TAREA 4: abrir el registro con Google (activar el proveedor y el gancho en el proyecto de Supabase, agregar la dirección de producción como URL de retorno) y probar con una segunda cuenta no administradora en producción (B-87 a B-101).
 ```
