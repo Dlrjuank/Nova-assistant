@@ -1,6 +1,7 @@
 import { ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
 import { DetalleMateria } from '@/components/nova/semestre/DetalleMateria';
+import { RecordarMateria } from '@/components/nova/semestre/RecordarMateria';
 import { CLASE_FOCO } from '@/components/ui/Boton';
 import { EncabezadoPantalla } from '@/components/ui/EncabezadoPantalla';
 import { EstadoVacio } from '@/components/ui/EstadoVacio';
@@ -36,6 +37,8 @@ export default async function MateriaPage({ params }: { params: Promise<{ id: st
         <ChevronLeft aria-hidden="true" className="size-4" />
         Semestre
       </Link>
+      {/* E17 (ajuste): la última materia abierta es la que muestra "Objetivos y plan" al entrar. */}
+      {materia && <RecordarMateria id={materia.id} />}
       {materia ? <DetalleMateria materia={materia} plantilla={preferencias?.cortesDefecto ?? []} notaAprobar={preferencias?.notaAprobar ?? 300} redondeo={preferencias?.redondeo ?? 'truncar'} metaGuardada={metaGuardada} /> : <EstadoVacio titulo="La materia no existe." descripcion="Puede que ya la hayas eliminado." />}
     </>
   );

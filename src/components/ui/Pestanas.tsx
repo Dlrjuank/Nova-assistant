@@ -13,9 +13,10 @@ export interface Pestana {
 /**
  * Pestañas en píldora (PLAN_AMPLIACION 3.2). Son enlaces: la activa lleva aria-current. Siempre en una
  * sola fila (E08): si no caben en el teléfono, se deslizan de lado en vez de partirse en dos líneas, y al
- * cargar la fila se corre para que la activa quede a la vista (sin animación).
+ * cargar la fila se corre para que la activa quede a la vista (sin animación). Con `envolverEnComputador` (selector de
+ * materia de E17), desde 1024 px las que no caben bajan a otra línea en vez de mostrar la barra de desplazamiento.
  */
-export function Pestanas({ etiqueta, pestanas }: { etiqueta: string; pestanas: Pestana[] }) {
+export function Pestanas({ etiqueta, pestanas, envolverEnComputador = false }: { etiqueta: string; pestanas: Pestana[]; envolverEnComputador?: boolean }) {
   const fila = useRef<HTMLElement>(null);
   const activa = pestanas.find((p) => p.activa)?.href;
 
@@ -29,7 +30,7 @@ export function Pestanas({ etiqueta, pestanas }: { etiqueta: string; pestanas: P
   }, [activa]);
 
   return (
-    <nav ref={fila} aria-label={etiqueta} className="relative flex max-w-full gap-1 self-start overflow-x-auto rounded-full bg-superficie-2 p-1">
+    <nav ref={fila} aria-label={etiqueta} className={`relative flex max-w-full gap-1 self-start overflow-x-auto rounded-full bg-superficie-2 p-1 ${envolverEnComputador ? 'lg:flex-wrap lg:overflow-visible lg:rounded-2xl' : ''}`}>
       {pestanas.map(({ href, texto, activa: esActiva }) => (
         <Link
           key={href}

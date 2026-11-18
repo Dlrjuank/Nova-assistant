@@ -471,3 +471,9 @@ export async function quitarMetaNota(usuarioId: string, d: { materiaId: string; 
   if (filas.length === 0) throw new ErrorDeNegocio('META_NO_ENCONTRADA');
   return { materiaId: d.materiaId, corteId: d.corteId };
 }
+
+/** E17 (ajuste): la materia creada más recientemente, para "Objetivos y plan" sin ?materia= ni una recordada. */
+export async function materiaMasReciente(usuarioId: string): Promise<string | null> {
+  const [fila] = await consultar<{ id: string }>('SELECT id FROM materias WHERE usuario_id = $1 ORDER BY creada_en DESC, id LIMIT 1', [usuarioId]);
+  return fila?.id ?? null;
+}

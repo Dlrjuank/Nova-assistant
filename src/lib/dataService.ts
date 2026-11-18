@@ -164,6 +164,7 @@ export {
   guardarMetaNota,
   listarMaterias,
   listarMetasNota,
+  materiaMasReciente,
   quitarMetaNota,
   nombresMaterias,
   obtenerMateria,
