@@ -256,7 +256,7 @@ Pestañas **Materias y notas**, **Objetivos y plan**, **Estadísticas** (cada un
     - Lo **asegurado** (lo que ya se ganó aunque lo que falta saliera 0).
     - Con cortes, la nota de cada corte.
     - **"¿Cuánto necesito?"** en lo que falta, para aprobar o para una **nota meta** que el usuario escribe ahí mismo (RB-18; no se guarda). Por defecto se usa la nota para aprobar, o la meta guardada de E16 si existe. Dice si ya es imposible (con la nota máxima alcanzable) o si ya está asegurado (RB-12).
-- **Objetivos y plan**: por materia y corte, la meta, si es alcanzable, los temas del corte y el plan de estudio con sus versiones.
+- **Objetivos y plan**: por materia y corte, la meta, si es alcanzable, los temas del corte y el plan de estudio con sus versiones. *(Ajuste del usuario en E17, 2026-11-17: una materia a la vez, elegida en una fila de pestañas arriba; va en `?materia=` y, sin ella, se muestra la última abierta en el navegador (cookie `nova-materia`) o la más reciente.)*
 - **Estadísticas**: evolución de notas por corte (una materia sin cortes muestra solo su nota actual), comparación entre materias y materias en riesgo.
 
 ### 5.8 Configuración (`/nova/configuracion`)
@@ -516,7 +516,7 @@ Las metas son permanentes: aplican a cada semana hasta que se eliminan. El progr
 
 Un tema manual nace `confirmado`; uno del asistente nace `propuesto` y el usuario lo confirma o lo descarta (descartar lo borra).
 
-- **Hecho en E17 (2026-11-16):** M12 en `20261116130000_nova_temas.sql`, con un CHECK que exige manual = confirmado y sin fuente, y del asistente = con fuente; `fuente` es VARCHAR(300). Una materia sin cortes guarda sus temas en su corte único. Al comparar temas (repetidos al proponer) no cuentan mayúsculas, tildes ni espacios de más; el índice único de la base compara sin mayúsculas. `POST /api/nova/cortes/[id]/temas` (a mano), `POST /api/nova/cortes/[id]/temas/proponer` (`maxDuration` 60), `PATCH /api/nova/temas/[id]` (nombre o `confirmar`) y `DELETE /api/nova/temas/[id]`. Errores nuevos: `TEMA_NOMBRE_INVALIDO` (422, `Escribe un tema de 1 a 200 caracteres.`), `TEMA_DUPLICADO` (409, `Ese tema ya está en este corte.`), `TEMA_NO_ENCONTRADO` y `SIN_TEMAS_PROPUESTOS` (422, `No encontré temas nuevos en ese PDF. Prueba con otro o agrégalos a mano.`). La pantalla está en "Objetivos y plan", debajo de las metas de cada materia.
+- **Hecho en E17 (2026-11-16):** M12 en `20261116130000_nova_temas.sql`, con un CHECK que exige manual = confirmado y sin fuente, y del asistente = con fuente; `fuente` es VARCHAR(300). Una materia sin cortes guarda sus temas en su corte único. Al comparar temas (repetidos al proponer) no cuentan mayúsculas, tildes ni espacios de más; el índice único de la base compara sin mayúsculas. `POST /api/nova/cortes/[id]/temas` (a mano), `POST /api/nova/cortes/[id]/temas/proponer` (`maxDuration` 60), `PATCH /api/nova/temas/[id]` (nombre o `confirmar`) y `DELETE /api/nova/temas/[id]`. Errores nuevos: `TEMA_NOMBRE_INVALIDO` (422, `Escribe un tema de 1 a 200 caracteres.`), `TEMA_DUPLICADO` (409, `Ese tema ya está en este corte.`), `TEMA_NO_ENCONTRADO` y `SIN_TEMAS_PROPUESTOS` (422, `No encontré temas nuevos en ese PDF. Prueba con otro o agrégalos a mano.`). La pantalla está en "Objetivos y plan", debajo de las metas de la materia elegida.
 
 ### 6.9 M13 · Plan de estudio (E18, E19)
 
