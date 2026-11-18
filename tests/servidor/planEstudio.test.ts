@@ -14,6 +14,7 @@ const m = vi.hoisted(() => ({
   embeddings: vi.fn(),
   json: vi.fn(),
   materias: vi.fn(),
+  crearTareaEn: vi.fn(),
   metas: vi.fn(),
   bd: {
     corte: true,
@@ -23,12 +24,24 @@ const m = vi.hoisted(() => ({
     documentos: [] as Array<{ id: string }>,
     fragmentos: [] as unknown[][],
     pedidosFragmentos: 0,
+    enTareas: [] as Array<{ paso_id: string; tarea_id: string }>,
   },
 }));
 
 /** Una base mínima que responde según la consulta: cortes, temas, documentos, fragmentos, planes y versiones. */
-async function responder(sql: string, v: unknown[] = []): Promise<{ rows: unknown[] }> {
+async function responder(sql: string, v: unknown[] = []): Promise<{ rows: unknown[]; rowCount: number }> {
+  const { rows } = await filas(sql, v);
+  return { rows, rowCount: rows.length };
+}
+
+async function filas(sql: string, v: unknown[]): Promise<{ rows: unknown[] }> {
   const bd = m.bd;
+  if (sql.includes('m.nombre AS materia FROM planes_estudio p')) return { rows: bd.plan && v[0] === bd.plan ? [{ id: bd.plan, materia: 'Cálculo' }] : [] };
+  if (sql.startsWith('SELECT 1 FROM pasos_en_tareas')) return { rows: bd.enTareas.filter((e) => e.paso_id === v[1]) };
+  if (sql.startsWith('INSERT INTO pasos_en_tareas')) {
+    bd.enTareas.push({ paso_id: v[1] as string, tarea_id: v[2] as string });
+    return { rows: [] };
+  }
   if (sql.includes('SELECT materia_id FROM cortes')) return { rows: bd.corte ? [{ materia_id: MAT }] : [] };
   if (sql.includes('FROM temas WHERE corte_id')) return { rows: bd.temas };
   if (sql.includes('FROM documentos WHERE usuario_id')) return { rows: bd.documentos };
@@ -48,7 +61,7 @@ async function responder(sql: string, v: unknown[] = []): Promise<{ rows: unknow
   if (sql.includes('ORDER BY numero DESC LIMIT 1')) return { rows: desc().slice(0, 1) };
   if (sql.includes('SELECT contenido, huella FROM versiones_plan')) return { rows: bd.versiones.filter((x) => x.numero === v[1]) };
   if (sql.includes('FROM versiones_plan v')) return { rows: desc().map((x) => ({ ...x, plan_id: bd.plan, creada_en: '2026-11-17T19:40' })) };
-  if (sql.includes('FROM pasos_en_tareas')) return { rows: [] };
+  if (sql.includes('FROM pasos_en_tareas')) return { rows: bd.enTareas };
   throw new Error(`Consulta no simulada: ${sql}`);
 }
 
@@ -60,6 +73,7 @@ vi.mock('@/lib/db/conexion', () => ({
 vi.mock('@/lib/auth/sesion', () => ({ exigirSesion: m.exigirSesion }));
 vi.mock('@/lib/llm/gemini', () => ({ llm: { generarEmbeddings: m.embeddings, generarJson: m.json } }));
 vi.mock('@/lib/datos/semestre', () => ({ listarMaterias: m.materias, listarMetasNota: m.metas }));
+vi.mock('@/lib/datos/tareas', () => ({ crearTareaEn: m.crearTareaEn }));
 vi.mock('@/lib/datos/configuracion', () => ({ obtenerPreferencias: async () => ({ redondeo: 'truncar' }) }));
 vi.mock('@/lib/dataService', async () => import('@/lib/datos/planEstudio'));
 
@@ -67,7 +81,8 @@ import * as rutaGenerar from '@/app/api/nova/cortes/[id]/plan/generar/route';
 import * as rutaPlan from '@/app/api/nova/cortes/[id]/plan/route';
 import * as rutaRestaurar from '@/app/api/nova/cortes/[id]/plan/restaurar/route';
 import * as rutaVersiones from '@/app/api/nova/cortes/[id]/plan/versiones/route';
-import { generarPlan, guardarVersionManual, obtenerPlan, restaurarVersion } from '@/lib/datos/planEstudio';
+import * as rutaPasar from '@/app/api/nova/planes/[id]/pasos/[pasoId]/tarea/route';
+import { generarPlan, guardarVersionManual, obtenerPlan, pasarPasoATarea, restaurarVersion } from '@/lib/datos/planEstudio';
 
 const materia = (fecha: string | null, usaCortes = true) => ({
   id: MAT,
@@ -106,6 +121,7 @@ beforeEach(() => {
     documentos: [{ id: 'd1' }],
     fragmentos: [[fragmento('f1', '2'), fragmento('f2', '3')], [fragmento('f2', '3'), fragmento('f3', '4')]],
     pedidosFragmentos: 0,
+    enTareas: [],
   });
   m.exigirSesion.mockResolvedValue({ id: U });
   m.materias.mockResolvedValue([materia('2026-11-30')]);
@@ -273,3 +289,50 @@ describe('rutas (sección 10)', () => {
   });
 });
 
+
+describe('pasar un paso a Tareas (9.5, RB-24)', () => {
+  async function conPlan() {
+    m.json.mockResolvedValueOnce(planValido);
+    const plan = await generarPlan(U, C1, HOY);
+    return { plan, pasos: plan.version.contenido.semanas.flatMap((s) => s.dias.flatMap((d) => d.pasos.map((p) => ({ ...p, fecha: d.fecha })))) };
+  }
+
+  it('crea la tarea con la fecha del paso, la materia como categoría y prioridad 2, y marca el paso', async () => {
+    const { plan, pasos } = await conPlan();
+    m.crearTareaEn.mockResolvedValueOnce({ id: 'tarea-1', titulo: 'Repasar límites', categoria: 'Cálculo' });
+    const r = await pasarPasoATarea(U, plan.planId, pasos[0]?.id as string);
+    expect(m.crearTareaEn.mock.calls[0]?.slice(1)).toEqual([U, { titulo: 'Repasar límites', fechaLimite: '2026-11-18', categoria: 'Cálculo', prioridad: 2 }]);
+    expect(r).toEqual({ tareaId: 'tarea-1', titulo: 'Repasar límites', fecha: '2026-11-18', categoria: 'Cálculo' });
+    await expect(obtenerPlan(U, C1)).resolves.toMatchObject({ enTareas: { [pasos[0]?.id as string]: 'tarea-1' } });
+  });
+
+  it('RB-24: la segunda vez responde que ya está, sin crear otra tarea; la marca sigue en una versión editada', async () => {
+    const { plan, pasos } = await conPlan();
+    m.crearTareaEn.mockResolvedValue({ id: 'tarea-1', titulo: 'x', categoria: 'Cálculo' });
+    await pasarPasoATarea(U, plan.planId, pasos[0]?.id as string);
+    await expect(pasarPasoATarea(U, plan.planId, pasos[0]?.id as string)).rejects.toMatchObject({ codigo: 'PASO_YA_EN_TAREAS', message: 'Este paso ya está en Tareas.' });
+    expect(m.crearTareaEn).toHaveBeenCalledTimes(1);
+    const editado = await guardarVersionManual(U, C1, pasos.map((p) => ({ id: p.id, titulo: p.titulo + ' (editado)', fecha: p.fecha, minutos: p.minutos, temaId: p.tema_id })), HOY);
+    expect(editado.enTareas[pasos[0]?.id as string]).toBe('tarea-1');
+  });
+
+  it('un paso que no está en la versión vigente, o un plan ajeno, no crean nada', async () => {
+    const { plan, pasos } = await conPlan();
+    await guardarVersionManual(U, C1, [{ id: pasos[1]?.id, titulo: 'Solo derivadas', fecha: pasos[1]?.fecha as string, minutos: 60, temaId: T2 }], HOY);
+    await expect(pasarPasoATarea(U, plan.planId, pasos[0]?.id as string)).rejects.toMatchObject({ codigo: 'PASO_NO_ENCONTRADO' });
+    await expect(pasarPasoATarea(U, 'otro-plan', pasos[1]?.id as string)).rejects.toMatchObject({ codigo: 'PLAN_NO_ENCONTRADO' });
+    expect(m.crearTareaEn).not.toHaveBeenCalled();
+  });
+
+  it('la ruta: 201, 409 la segunda vez y 400 con un id que no es uuid', async () => {
+    const { plan, pasos } = await conPlan();
+    m.crearTareaEn.mockResolvedValue({ id: 'tarea-1', titulo: 'x', categoria: 'Cálculo' });
+    const ctx = (pasoId: string) => ({ params: Promise.resolve({ id: plan.planId, pasoId }) });
+    m.bd.plan = '44444444-4444-4444-8444-444444444444';
+    plan.planId = m.bd.plan;
+    expect((await rutaPasar.POST(peticion(), ctx(pasos[0]?.id as string))).status).toBe(201);
+    const r = await rutaPasar.POST(peticion(), ctx(pasos[0]?.id as string));
+    expect(r.status).toBe(409);
+    expect((await rutaPasar.POST(peticion(), ctx('no-es-uuid'))).status).toBe(400);
+  });
+});

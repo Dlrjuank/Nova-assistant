@@ -85,6 +85,8 @@ export type CodigoError =
   | 'PASO_TEMA_INVALIDO'
   | 'PLAN_SIN_PASOS'
   | 'PLAN_MUY_LARGO'
+  | 'PASO_NO_ENCONTRADO'
+  | 'PASO_YA_EN_TAREAS'
   | 'ERROR_INTERNO';
 
 // Textos de la sección 12.2; los de la sección 5.1 se usan literalmente.
@@ -184,6 +186,9 @@ export const MENSAJES: Record<CodigoError, string> = {
   PASO_TEMA_INVALIDO: 'Elige un tema confirmado del corte.',
   PLAN_SIN_PASOS: 'El plan debe tener al menos un paso.',
   PLAN_MUY_LARGO: 'El plan puede tener como máximo 60 pasos.',
+  // E19 (9.5)
+  PASO_NO_ENCONTRADO: 'Ese paso ya no está en el plan vigente.',
+  PASO_YA_EN_TAREAS: 'Este paso ya está en Tareas.', // RB-24
   ERROR_INTERNO: 'Ocurrió un error inesperado. Intenta de nuevo.',
 };
 
@@ -274,6 +279,8 @@ export const ESTADO_HTTP: Record<CodigoError, number> = {
   PASO_TEMA_INVALIDO: 422,
   PLAN_SIN_PASOS: 422,
   PLAN_MUY_LARGO: 422,
+  PASO_NO_ENCONTRADO: 404,
+  PASO_YA_EN_TAREAS: 409,
   ERROR_INTERNO: 500,
 };
 

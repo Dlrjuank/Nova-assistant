@@ -40,7 +40,7 @@ const PLAN: PlanCorte = {
   cambios: [],
   enTareas: {},
 };
-const props = { corteId: C1, titulo: 'Corte 1', temas: TEMAS, hoy: '2026-11-17', fechaCorte: '2026-11-30' };
+const props = { corteId: C1, titulo: 'Corte 1', materia: 'Cálculo', temas: TEMAS, hoy: '2026-11-17', fechaCorte: '2026-11-30' };
 
 afterEach(() => {
   cleanup();
@@ -126,5 +126,39 @@ describe('PlanEstudio', () => {
         { titulo: 'Simulacro', fecha: '2026-11-17', minutos: '30', temaId: T1 },
       ],
     });
+  });
+
+  it('E19: Pasar a Tareas muestra la tarea en un diálogo y la crea al confirmar; un paso ya pasado dice "En Tareas" con su enlace', async () => {
+    const fetch = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(ok({ tareaId: 't1' }, 201));
+    render(<PlanEstudio {...props} plan={{ ...PLAN, enTareas: { p2: 'tarea-2' } }} />);
+    const enlace = screen.getByRole('link', { name: 'En Tareas' });
+    expect(enlace.getAttribute('href')).toBe('/nova/tareas?tarea=tarea-2');
+    expect(screen.queryByRole('button', { name: 'Pasar a Tareas: Ejercicios de derivadas' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Pasar a Tareas: Repasar límites' }));
+    const dialogo = await screen.findByRole('dialog');
+    expect(within(dialogo).getByText('¿Pasar este paso a Tareas?')).toBeTruthy();
+    expect(within(dialogo).getByText('Repasar límites')).toBeTruthy();
+    expect(within(dialogo).getByText('Cálculo')).toBeTruthy();
+    expect(within(dialogo).getByText('Media')).toBeTruthy();
+    expect(fetch).not.toHaveBeenCalled();
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Pasar a Tareas' }));
+    await waitFor(() => expect(m.refresh).toHaveBeenCalled());
+    expect(fetch.mock.calls[0]?.[0]).toBe('/api/nova/planes/plan/pasos/p1/tarea');
+  });
+
+  it('RB-24: si ya estaba en Tareas, el diálogo lo dice; viendo otra versión no se puede pasar', async () => {
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(falla('Este paso ya está en Tareas.', 409))
+      .mockResolvedValueOnce(ok({ ...PLAN, version: version(1, 'Plan viejo') }));
+    render(<PlanEstudio {...props} plan={PLAN} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Pasar a Tareas: Repasar límites' }));
+    const dialogo = await screen.findByRole('dialog');
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Pasar a Tareas' }));
+    await within(dialogo).findByText('Este paso ya está en Tareas.');
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Cancelar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Versiones (2)' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ver la versión 1' }));
+    await screen.findByText('Plan viejo');
+    expect(screen.queryByRole('button', { name: /^Pasar a Tareas/ })).toBeNull();
   });
 });

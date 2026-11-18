@@ -23,6 +23,7 @@ import {
 } from '@/lib/reglas/planEstudio';
 import { corteConFechaFutura } from '@/lib/reglas/temas';
 import { obtenerPreferencias } from './configuracion';
+import { crearTareaEn } from './tareas';
 import { listarMaterias, listarMetasNota, type Materia } from './semestre';
 import type { Fragmento } from './tipos';
 
@@ -316,4 +317,30 @@ export async function restaurarVersion(usuarioId: string, corteId: string, numer
     return plan.id;
   });
   return armarPlan(usuarioId, d, planId);
+}
+
+/**
+ * E19 (9.5, RB-24): pasa un paso de la versión vigente a Tareas, con la fecha del paso como fecha límite, la
+ * materia como categoría (RB-33: se crea si no existe) y prioridad 2. La tarea y la marca se guardan juntas; con el
+ * plan bloqueado, dos toques a la vez no crean dos tareas. Si la tarea se borra, la marca se va con ella.
+ */
+export async function pasarPasoATarea(usuarioId: string, planId: string, pasoId: string): Promise<{ tareaId: string; titulo: string; fecha: string; categoria: string }> {
+  return conTransaccion(async (tx) => {
+    const plan = (
+      await tx.query<{ id: string; materia: string }>(
+        `SELECT p.id, m.nombre AS materia FROM planes_estudio p JOIN cortes c ON c.id = p.corte_id JOIN materias m ON m.id = c.materia_id
+         WHERE p.id = $1 AND p.usuario_id = $2 FOR UPDATE OF p`,
+        [planId, usuarioId],
+      )
+    ).rows[0];
+    if (!plan) throw new ErrorDeNegocio('PLAN_NO_ENCONTRADO');
+    const ya = await tx.query('SELECT 1 FROM pasos_en_tareas WHERE plan_id = $1 AND paso_id = $2', [planId, pasoId]);
+    if (ya.rowCount) throw new ErrorDeNegocio('PASO_YA_EN_TAREAS');
+    const vigente = (await tx.query<{ contenido: ContenidoPlan }>('SELECT contenido FROM versiones_plan WHERE plan_id = $1 ORDER BY numero DESC LIMIT 1', [planId])).rows[0];
+    const paso = vigente ? pasosDe(vigente.contenido).find((p) => p.id === pasoId) : undefined;
+    if (!paso) throw new ErrorDeNegocio('PASO_NO_ENCONTRADO');
+    const tarea = await crearTareaEn(tx, usuarioId, { titulo: paso.titulo, fechaLimite: paso.fecha, categoria: plan.materia, prioridad: 2 });
+    await tx.query('INSERT INTO pasos_en_tareas (plan_id, paso_id, tarea_id, usuario_id) VALUES ($1, $2, $3, $4)', [planId, pasoId, tarea.id, usuarioId]);
+    return { tareaId: tarea.id, titulo: tarea.titulo, fecha: paso.fecha, categoria: tarea.categoria };
+  });
 }

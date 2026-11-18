@@ -11,6 +11,7 @@ import { Selector } from '@/components/ui/Selector';
 import type { PlanCorte, Tema, VersionPlan } from '@/lib/dataService';
 import { aplicarMascaraFecha } from '@/lib/reglas/fechas';
 import { minutosDe, pasosDe, textoCambiosPlan, textoDia, textoMinutos, textoOrigen, textoSemana, validarPlanManual, type PasoEditado } from '@/lib/reglas/planEstudio';
+import { EnTareas, PasarATareas } from './PasarATareas';
 import { mensajeDe, pedirSemestre } from './peticion';
 
 /** "17/11/2026 a las 19:40" a partir de 'YYYY-MM-DDTHH:MM' (ya en Bogotá). */
@@ -21,7 +22,19 @@ function textoCreada(v: string): string {
 }
 
 /** Los pasos de una versión por semanas y días, con el tema, los minutos y las citas de cada paso. */
-function VistaPlan({ version, nombreTema }: { version: VersionPlan; nombreTema: (id: string) => string }) {
+function VistaPlan({
+  version,
+  nombreTema,
+  enTareas,
+  pasar,
+}: {
+  version: VersionPlan;
+  nombreTema: (id: string) => string;
+  /** E19: paso → tarea, para los ya pasados. */
+  enTareas: Record<string, string>;
+  /** E19: con qué plan y materia se pasa un paso; sin esto (viendo otra versión), no hay botón. */
+  pasar: { planId: string; materia: string } | null;
+}) {
   return (
     <div className="flex flex-col gap-4">
       {version.contenido.semanas.map((s) => (
@@ -46,6 +59,11 @@ function VistaPlan({ version, nombreTema }: { version: VersionPlan; nombreTema: 
                       </div>
                       <p className="text-xs break-words text-texto-suave">Tema: {nombreTema(p.tema_id)}</p>
                       {p.fuentes.length > 0 && <p className="text-xs break-words text-texto-suave">Fuente: {p.fuentes.join(' · ')}</p>}
+                      {enTareas[p.id] ? (
+                        <EnTareas tareaId={enTareas[p.id] as string} />
+                      ) : (
+                        pasar && <PasarATareas planId={pasar.planId} pasoId={p.id} titulo={p.titulo} fecha={d.fecha} materia={pasar.materia} />
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -182,6 +200,7 @@ function EditarPlan({
 export function PlanEstudio({
   corteId,
   titulo,
+  materia,
   plan,
   temas,
   hoy,
@@ -189,6 +208,8 @@ export function PlanEstudio({
 }: {
   corteId: string;
   titulo: string;
+  /** E19: el nombre de la materia (la categoría de las tareas que salen del plan). */
+  materia: string;
   plan: PlanCorte | null;
   /** Los temas del corte (confirmados y propuestos), para los nombres y para editar. */
   temas: Tema[];
@@ -299,7 +320,7 @@ export function PlanEstudio({
               </span>
             </Aviso>
           )}
-          <VistaPlan version={version} nombreTema={nombreTema} />
+          <VistaPlan version={version} nombreTema={nombreTema} enTareas={plan.enTareas} pasar={viendoOtra ? null : { planId: plan.planId, materia }} />
         </>
       )}
 

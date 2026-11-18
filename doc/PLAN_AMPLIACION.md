@@ -958,6 +958,8 @@ Cada versión guarda su `huella`: `{ meta, temas: [id+nombre confirmados], notas
 
 Cada paso tiene "Pasar a Tareas": un diálogo muestra título, fecha límite = fecha del paso, categoría = nombre de la materia y prioridad 2, y pide confirmar. Se registra en `pasos_en_tareas`; el paso queda marcado "En Tareas" con enlace. Los pasos conservan su `id` entre versiones, así que la marca se mantiene al editar.
 
+*(Hecho en E19, 2026-11-18, sin migración: `pasos_en_tareas` ya venía en M13. `POST /api/nova/planes/[id]/pasos/[pasoId]/tarea` bloquea el plan y, en la misma transacción, crea la tarea con las reglas del formulario (`crearTareaEn`, extraída de `crearTareaConResultado`; RB-33 crea la categoría si no existe) y guarda la marca. Solo se pasa un paso de la versión vigente (`PASO_NO_ENCONTRADO`, 404: `Ese paso ya no está en el plan vigente.`); la segunda vez, `PASO_YA_EN_TAREAS` (409, RB-24). La tarea toma el título del paso. "En Tareas" lleva a `/nova/tareas?tarea=<id>`, con la tarea resaltada. Si la tarea se elimina, la marca se va con ella (`ON DELETE CASCADE`) y el paso se puede pasar otra vez. Viendo una versión anterior no hay botón.)*
+
 ### 9.6 Generar un cuestionario (E10e)
 
 Es una llamada a `gemini-3.1-flash-lite` (con su respaldo) que pide JSON con esquema, igual que 9.1. No usa embeddings.

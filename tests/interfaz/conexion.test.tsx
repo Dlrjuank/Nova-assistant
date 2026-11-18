@@ -93,7 +93,7 @@ describe('ConexionNova', () => {
     act(() => {
       window.dispatchEvent(new Event('offline'));
     });
-    expect(screen.getByRole('status').textContent).toMatch(/^Sin conexión · datos de las \d{2}:\d{2}$/);
+    expect(screen.getByRole('status').textContent).toMatch(/^Sin conexión · datos de las \d{1,2}:\d{2}$/); // antes de las 10 sale "7:10" (sin cero)
     clic(screen.getByRole('button', { name: 'Completar' }));
     expect(alGuardar).not.toHaveBeenCalled();
     enLinea = true;

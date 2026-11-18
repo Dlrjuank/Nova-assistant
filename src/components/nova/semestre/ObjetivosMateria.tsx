@@ -211,6 +211,7 @@ export function ObjetivosMateria({
           key={`${c.id}:${planes[c.id]?.vigente ?? 0}`}
           corteId={c.id}
           titulo={materia.usaCortes ? c.nombre : 'Plan de la materia'}
+          materia={materia.nombre}
           plan={planes[c.id] ?? null}
           temas={temas.filter((t) => t.corteId === c.id)}
           hoy={hoy}

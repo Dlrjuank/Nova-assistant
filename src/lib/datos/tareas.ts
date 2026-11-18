@@ -58,6 +58,41 @@ async function calcularRecordatorio(
   return { recordatorio: d.recordatorio, en, estado: estadoInicial(en, ahora) };
 }
 
+/** RN-04 a RN-08, RB-34 y RB-43: los datos de una tarea nueva, validados antes de abrir la transacción. */
+function validarDatosTarea(d: DatosTarea) {
+  const { titulo, prioridad } = validarTarea(d);
+  const { horaInicio, horaFin } = validarHorario(d.horaInicio, d.horaFin); // RB-34
+  const recordatorio = validarRecordatorio(d.recordatorio, horaInicio); // RB-43
+  return { d, titulo, prioridad, horaInicio, horaFin, recordatorio };
+}
+
+/** Inserta la tarea dentro de `tx` (RB-33: la categoría se resuelve o se crea ahí mismo). Undefined si el idCliente ya estaba. */
+async function insertarTarea(tx: PoolClient, usuarioId: string, v: ReturnType<typeof validarDatosTarea>): Promise<Tarea | undefined> {
+  const { d, titulo, prioridad, horaInicio, horaFin, recordatorio } = v;
+  const categoria = await resolverCategoria(tx, usuarioId, d.categoria);
+  const r = await calcularRecordatorio(tx, usuarioId, { recordatorio, fechaLimite: d.fechaLimite, horaInicio }, new Date());
+  const { rows } = await tx.query<Tarea>(
+    `INSERT INTO tareas_personales
+       (titulo, categoria, prioridad, estado, fecha_limite, fecha_creacion, usuario_id, hora_inicio, hora_fin,
+        recordatorio, recordatorio_en, recordatorio_estado, id_cliente)
+     VALUES ($1, $2, $3, 'Pendiente', $4, $5, $6, $7, $8, $9, $10, $11, $12)
+     ON CONFLICT (usuario_id, id_cliente) WHERE id_cliente IS NOT NULL DO NOTHING
+     RETURNING ${COLUMNAS}`,
+    [titulo, categoria, prioridad, d.fechaLimite, hoyBogota(), usuarioId, horaInicio, horaFin, r.recordatorio, r.en, r.estado, d.idCliente ?? null],
+  );
+  return rows[0];
+}
+
+/**
+ * E19 (9.5): crea una tarea dentro de una transacción ajena (pasar un paso del plan a Tareas), con las mismas
+ * reglas que el formulario.
+ */
+export async function crearTareaEn(tx: PoolClient, usuarioId: string, d: DatosTarea): Promise<Tarea> {
+  const tarea = await insertarTarea(tx, usuarioId, validarDatosTarea({ ...d, idCliente: undefined }));
+  if (!tarea) throw new ErrorDeNegocio('ERROR_INTERNO');
+  return tarea;
+}
+
 /** RN-04, RN-06, RN-07 y RN-08. RB-33: la categoría se resuelve (o se crea) en la misma transacción. */
 export async function crearTarea(usuarioId: string, d: DatosTarea): Promise<Tarea> {
   return (await crearTareaConResultado(usuarioId, d)).tarea;
@@ -69,29 +104,17 @@ export async function crearTarea(usuarioId: string, d: DatosTarea): Promise<Tare
  * envíos llegan a la vez, el índice único (M23) deja insertar solo a uno; el otro encuentra la tarea guardada.
  */
 export async function crearTareaConResultado(usuarioId: string, d: DatosTarea): Promise<{ tarea: Tarea; yaExistia: boolean }> {
-  const { titulo, prioridad } = validarTarea(d);
-  const { horaInicio, horaFin } = validarHorario(d.horaInicio, d.horaFin); // RB-34
-  const recordatorio = validarRecordatorio(d.recordatorio, horaInicio); // RB-43
   const idCliente = d.idCliente ?? null;
   const existente = async (tx: PoolClient) =>
     (await tx.query<Tarea>(`SELECT ${COLUMNAS} FROM tareas_personales WHERE usuario_id = $1 AND id_cliente = $2`, [usuarioId, idCliente])).rows[0];
+  const validada = validarDatosTarea(d);
   return conTransaccion(async (tx) => {
     if (idCliente) {
       const ya = await existente(tx);
       if (ya) return { tarea: ya, yaExistia: true };
     }
-    const categoria = await resolverCategoria(tx, usuarioId, d.categoria);
-    const r = await calcularRecordatorio(tx, usuarioId, { recordatorio, fechaLimite: d.fechaLimite, horaInicio }, new Date());
-    const { rows } = await tx.query<Tarea>(
-      `INSERT INTO tareas_personales
-         (titulo, categoria, prioridad, estado, fecha_limite, fecha_creacion, usuario_id, hora_inicio, hora_fin,
-          recordatorio, recordatorio_en, recordatorio_estado, id_cliente)
-       VALUES ($1, $2, $3, 'Pendiente', $4, $5, $6, $7, $8, $9, $10, $11, $12)
-       ON CONFLICT (usuario_id, id_cliente) WHERE id_cliente IS NOT NULL DO NOTHING
-       RETURNING ${COLUMNAS}`,
-      [titulo, categoria, prioridad, d.fechaLimite, hoyBogota(), usuarioId, horaInicio, horaFin, r.recordatorio, r.en, r.estado, idCliente],
-    );
-    if (rows[0]) return { tarea: rows[0], yaExistia: false };
+    const tarea = await insertarTarea(tx, usuarioId, validada);
+    if (tarea) return { tarea, yaExistia: false };
     // Otro envío con el mismo idCliente la guardó mientras tanto.
     const ya = await existente(tx);
     if (!ya) throw new ErrorDeNegocio('ERROR_INTERNO');
