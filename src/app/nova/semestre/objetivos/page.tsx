@@ -6,8 +6,9 @@ import { RecordarMateria } from '@/components/nova/semestre/RecordarMateria';
 import { EncabezadoPantalla } from '@/components/ui/EncabezadoPantalla';
 import { EstadoVacio } from '@/components/ui/EstadoVacio';
 import { Pestanas } from '@/components/ui/Pestanas';
-import { documentosDeMaterias, exigirSesion, listarMaterias, listarMetasNota, listarTemas, materiaMasReciente } from '@/lib/dataService';
+import { documentosDeMaterias, exigirSesion, listarMaterias, listarMetasNota, listarTemas, materiaMasReciente, planesDeMateria } from '@/lib/dataService';
 import { obtenerPreferencias } from '@/lib/datos/configuracion';
+import { hoyBogota } from '@/lib/reglas/fechas';
 import { COOKIE_MATERIA, elegirMateria } from '@/lib/reglas/materiaElegida';
 
 export const dynamic = 'force-dynamic';
@@ -33,13 +34,13 @@ export default async function ObjetivosPage({ searchParams }: { searchParams: Pr
     masReciente,
   );
   const materia = materias.find((m) => m.id === id);
-  const [metas, temas, documentos] = materia
-    ? await Promise.all([listarMetasNota(sesion.id, materia.id), listarTemas(sesion.id, materia.id), documentosDeMaterias(sesion.id)])
-    : [[], [], []];
+  const [metas, temas, documentos, planes] = materia
+    ? await Promise.all([listarMetasNota(sesion.id, materia.id), listarTemas(sesion.id, materia.id), documentosDeMaterias(sesion.id), planesDeMateria(sesion.id, materia.id)])
+    : [[], [], [], {}];
 
   return (
     <>
-      <EncabezadoPantalla titulo="Semestre" subtitulo="La nota que quieres en cada materia y en cada corte, si todavía es alcanzable, y los temas de cada corte." />
+      <EncabezadoPantalla titulo="Semestre" subtitulo="La nota que quieres en cada materia y en cada corte, si todavía es alcanzable, los temas de cada corte y tu plan de estudio." />
       <Pestanas etiqueta="Secciones de Semestre" pestanas={pestanasSemestre('objetivos')} />
       {!materia ? (
         <EstadoVacio titulo="Aún no tienes materias." descripcion="Crea una materia para ponerle una meta." accion={<NuevaMateria />} />
@@ -56,7 +57,7 @@ export default async function ObjetivosPage({ searchParams }: { searchParams: Pr
           <p className="text-sm text-texto-suave">
             «¿Es alcanzable?» usa tus notas y lo que falta por calificar, con el redondeo de Configuración. La meta de la materia es también el valor inicial de «Nota meta» en su calculadora.
           </p>
-          <ObjetivosMateria key={materia.id} materia={materia} metas={metas} redondeo={redondeo} temas={temas} documentos={documentos.filter((d) => d.materiaId === materia.id)} />
+          <ObjetivosMateria key={materia.id} materia={materia} metas={metas} redondeo={redondeo} temas={temas} documentos={documentos.filter((d) => d.materiaId === materia.id)} planes={planes} hoy={hoyBogota()} />
         </div>
       )}
     </>

@@ -9,12 +9,13 @@ import { Aviso } from '@/components/ui/Aviso';
 import { Boton, CLASE_FOCO } from '@/components/ui/Boton';
 import { Campo } from '@/components/ui/Campo';
 import { Tarjeta } from '@/components/ui/Tarjeta';
-import type { Materia, MetaNota, Tema } from '@/lib/dataService';
+import type { Materia, MetaNota, PlanCorte, Tema } from '@/lib/dataService';
 import { formatearFecha } from '@/lib/formato';
 import { alcanzable, calcularCorte, calcularMateria, formatearDecimas, validarMeta, type Alcanzable, type Calculo } from '@/lib/reglas/notas';
 import { formatearNota, formatearPorcentaje, type Redondeo } from '@/lib/reglas/preferencias';
 import { entradaDe } from './estadoMateria';
 import { mensajeDe, pedirSemestre } from './peticion';
+import { PlanEstudio } from './PlanEstudio';
 import { TemasCorte } from './TemasCorte';
 
 // El resultado se dice con texto; el color solo lo refuerza.
@@ -148,6 +149,8 @@ export function ObjetivosMateria({
   redondeo,
   temas = [],
   documentos = [],
+  planes = {},
+  hoy = '',
 }: {
   materia: Materia;
   metas: MetaNota[];
@@ -155,6 +158,9 @@ export function ObjetivosMateria({
   /** E17: los temas de sus cortes y sus PDF ya indexados. */
   temas?: Tema[];
   documentos?: Array<{ id: string; nombre: string }>;
+  /** E18: el plan de estudio de cada corte que ya tiene uno, y la fecha de hoy en Bogotá. */
+  planes?: Record<string, PlanCorte>;
+  hoy?: string;
 }) {
   const entrada = entradaDe(materia);
   const metaDe = (corteId: string | null) => metas.find((m) => m.corteId === corteId)?.meta ?? null;
@@ -197,6 +203,19 @@ export function ObjetivosMateria({
       <h3 className="pt-2 text-base font-semibold text-texto">Temas</h3>
       {materia.cortes.map((c) => (
         <TemasCorte key={c.id} corteId={c.id} titulo={materia.usaCortes ? c.nombre : 'Temas de la materia'} temas={temas.filter((t) => t.corteId === c.id)} documentos={documentos} />
+      ))}
+      {/* E18 (6.9, 9.2 a 9.4): el plan de estudio de cada corte; sin cortes, el de la materia. */}
+      <h3 className="pt-2 text-base font-semibold text-texto">Plan de estudio</h3>
+      {materia.cortes.map((c) => (
+        <PlanEstudio
+          key={`${c.id}:${planes[c.id]?.vigente ?? 0}`}
+          corteId={c.id}
+          titulo={materia.usaCortes ? c.nombre : 'Plan de la materia'}
+          plan={planes[c.id] ?? null}
+          temas={temas.filter((t) => t.corteId === c.id)}
+          hoy={hoy}
+          fechaCorte={c.fecha}
+        />
       ))}
     </Tarjeta>
   );

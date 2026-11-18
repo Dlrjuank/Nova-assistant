@@ -657,6 +657,39 @@ try {
       marcar(false, `ds-dy) temas: ${e.message}`);
     }
   }
+
+  console.log('== 6r. Plan de estudio (M13)');
+  const tablasM13 = await c.query(
+    "SELECT relname FROM pg_class WHERE relname IN ('planes_estudio', 'versiones_plan', 'pasos_en_tareas') AND relnamespace = 'public'::regnamespace AND relrowsecurity",
+  );
+  marcar(tablasM13.rowCount === 3, 'tablas planes_estudio, versiones_plan y pasos_en_tareas con RLS');
+  if (tablasM13.rowCount === 3 && dueno) {
+    try {
+      const mat = (await c.query("INSERT INTO materias (usuario_id, nombre, creditos) VALUES ($1, 'Verificar plan', 3) RETURNING id", [dueno])).rows[0].id;
+      const corte = (await c.query("INSERT INTO cortes (materia_id, usuario_id, orden, nombre, porcentaje) VALUES ($1, $2, 1, 'Corte único', 10000) RETURNING id", [mat, dueno])).rows[0].id;
+      const plan = (await c.query('INSERT INTO planes_estudio (usuario_id, corte_id) VALUES ($1, $2) RETURNING id', [dueno, corte])).rows[0].id;
+      const ins = 'INSERT INTO versiones_plan (plan_id, usuario_id, numero, origen, contenido, huella) VALUES ($1, $2, $3, $4, $5, $6)';
+      await c.query(ins, [plan, dueno, 1, 'asistente', { semanas: [] }, {}]);
+      await c.query(ins, [plan, dueno, 2, 'manual', { semanas: [] }, {}]);
+      marcar(true, 'dz) un plan con dos versiones');
+      await esperaFalla('ea) un segundo plan para el mismo corte', '23505', 'INSERT INTO planes_estudio (usuario_id, corte_id) VALUES ($1, $2)', [dueno, corte]);
+      await esperaFalla('eb) el mismo número de versión', '23505', ins, [plan, dueno, 2, 'manual', { semanas: [] }, {}]);
+      await esperaFalla('ec) origen fuera de la lista', '23514', ins, [plan, dueno, 3, 'otro', { semanas: [] }, {}]);
+      await esperaFalla('ed) contenido sin semanas', '23514', ins, [plan, dueno, 3, 'manual', { dias: [] }, {}]);
+      await esperaFalla('ee) número 0', '23514', ins, [plan, dueno, 0, 'manual', { semanas: [] }, {}]);
+      const tarea = (await c.query("INSERT INTO tareas_personales (titulo, fecha_limite, fecha_creacion, prioridad, usuario_id) VALUES ('Verificar paso', CURRENT_DATE, CURRENT_DATE, 2, $1) RETURNING id", [dueno])).rows[0].id;
+      const paso = '00000000-0000-4000-8000-000000000001';
+      await c.query('INSERT INTO pasos_en_tareas (plan_id, paso_id, tarea_id, usuario_id) VALUES ($1, $2, $3, $4)', [plan, paso, tarea, dueno]);
+      await esperaFalla('ef) el mismo paso dos veces en Tareas', '23505', 'INSERT INTO pasos_en_tareas (plan_id, paso_id, tarea_id, usuario_id) VALUES ($1, $2, $3, $4)', [plan, paso, tarea, dueno]);
+      await c.query('DELETE FROM tareas_personales WHERE id = $1', [tarea]);
+      marcar((await c.query('SELECT 1 FROM pasos_en_tareas WHERE plan_id = $1', [plan])).rowCount === 0, 'eg) al borrar la tarea se borra su marca');
+      await c.query('DELETE FROM materias WHERE id = $1', [mat]);
+      const quedan = (await c.query('SELECT (SELECT count(*) FROM planes_estudio WHERE id = $1) + (SELECT count(*) FROM versiones_plan WHERE plan_id = $1) AS n', [plan])).rows[0].n;
+      marcar(Number(quedan) === 0, 'eh) al borrar la materia se borran el plan y sus versiones');
+    } catch (e) {
+      marcar(false, `dz-eh) plan de estudio: ${e.message}`);
+    }
+  }
   await c.query('ROLLBACK');
 
   console.log(`== 7. Total de fallas: ${fallas}`);

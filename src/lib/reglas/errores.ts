@@ -75,6 +75,16 @@ export type CodigoError =
   | 'PLAN_SIN_FECHA'
   | 'SIN_SYLLABUS'
   | 'SIN_TEMAS_PROPUESTOS'
+  | 'SIN_TEMAS_CONFIRMADOS'
+  | 'PLAN_INVALIDO'
+  | 'PLAN_NO_ENCONTRADO'
+  | 'VERSION_NO_ENCONTRADA'
+  | 'PASO_TITULO_INVALIDO'
+  | 'PASO_MINUTOS_INVALIDOS'
+  | 'PASO_FECHA_INVALIDA'
+  | 'PASO_TEMA_INVALIDO'
+  | 'PLAN_SIN_PASOS'
+  | 'PLAN_MUY_LARGO'
   | 'ERROR_INTERNO';
 
 // Textos de la sección 12.2; los de la sección 5.1 se usan literalmente.
@@ -163,6 +173,17 @@ export const MENSAJES: Record<CodigoError, string> = {
   PLAN_SIN_FECHA: 'Pon una fecha futura al corte para generar el plan.', // RB-19 (los temas usan su propio texto)
   SIN_SYLLABUS: 'Sube un PDF de esta materia (por ejemplo, el syllabus) para proponer temas.', // RB-21
   SIN_TEMAS_PROPUESTOS: 'No encontré temas nuevos en ese PDF. Prueba con otro o agrégalos a mano.',
+  // E18 (9.2 a 9.4)
+  SIN_TEMAS_CONFIRMADOS: 'Primero confirma al menos un tema del corte.', // RB-20
+  PLAN_INVALIDO: 'El plan generado no cumplía las reglas y se descartó. Intenta de nuevo.', // RB-22
+  PLAN_NO_ENCONTRADO: 'Este corte aún no tiene plan de estudio.',
+  VERSION_NO_ENCONTRADA: 'Esa versión del plan no existe.',
+  PASO_TITULO_INVALIDO: 'Escribe un paso de 1 a 120 caracteres.',
+  PASO_MINUTOS_INVALIDOS: 'Los minutos van de 15 a 240.',
+  PASO_FECHA_INVALIDA: 'La fecha del paso debe estar entre hoy y la fecha del corte.',
+  PASO_TEMA_INVALIDO: 'Elige un tema confirmado del corte.',
+  PLAN_SIN_PASOS: 'El plan debe tener al menos un paso.',
+  PLAN_MUY_LARGO: 'El plan puede tener como máximo 60 pasos.',
   ERROR_INTERNO: 'Ocurrió un error inesperado. Intenta de nuevo.',
 };
 
@@ -243,6 +264,16 @@ export const ESTADO_HTTP: Record<CodigoError, number> = {
   PLAN_SIN_FECHA: 422,
   SIN_SYLLABUS: 422,
   SIN_TEMAS_PROPUESTOS: 422,
+  SIN_TEMAS_CONFIRMADOS: 422,
+  PLAN_INVALIDO: 422,
+  PLAN_NO_ENCONTRADO: 404,
+  VERSION_NO_ENCONTRADA: 404,
+  PASO_TITULO_INVALIDO: 422,
+  PASO_MINUTOS_INVALIDOS: 422,
+  PASO_FECHA_INVALIDA: 422,
+  PASO_TEMA_INVALIDO: 422,
+  PLAN_SIN_PASOS: 422,
+  PLAN_MUY_LARGO: 422,
   ERROR_INTERNO: 500,
 };
 

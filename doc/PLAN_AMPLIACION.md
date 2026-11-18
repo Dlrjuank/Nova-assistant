@@ -540,6 +540,8 @@ Un tema manual nace `confirmado`; uno del asistente nace `propuesto` y el usuari
 
 La versión vigente es la de mayor `numero`. Nunca se modifica una versión: editar o restaurar crea una nueva.
 
+- **Hecho en E18 (2026-11-17):** M13 en `20261117100000_nova_plan_estudio.sql`. FK compuestas al dueño (`planes_estudio (id, usuario_id)` único para las hijas); un CHECK exige que `contenido` sea un objeto con `semanas` como lista y `huella` un objeto; `numero` ≥ 1. `pasos_en_tareas.tarea_id` apunta solo al id de la tarea (no se toca `tareas_personales`, que es de master): el dueño lo revisa el servidor en E19. Borrar el corte o la materia borra el plan, sus versiones y sus marcas; borrar la tarea borra su marca. Errores nuevos: `SIN_TEMAS_CONFIRMADOS` (RB-20), `PLAN_INVALIDO` (RB-22), `PLAN_NO_ENCONTRADO`, `VERSION_NO_ENCONTRADA` (404) y, al editar, `PASO_TITULO_INVALIDO` (`Escribe un paso de 1 a 120 caracteres.`), `PASO_MINUTOS_INVALIDOS` (`Los minutos van de 15 a 240.`), `PASO_FECHA_INVALIDA` (`La fecha del paso debe estar entre hoy y la fecha del corte.`), `PASO_TEMA_INVALIDO` (`Elige un tema confirmado del corte.`), `PLAN_SIN_PASOS` y `PLAN_MUY_LARGO` (como máximo 60 pasos). RB-19 sin cortes: `Pon una fecha final futura a la materia para generar el plan.`
+
 ### 6.10 M14 · Horario de tareas (E06b)
 
 Columnas nuevas en `tareas_personales`: `hora_inicio TIME NULL` y `hora_fin TIME NULL`, con `CHECK (hora_fin IS NULL OR (hora_inicio IS NOT NULL AND hora_fin > hora_inicio))` (`tareas_horario_valido`). Solo aditiva: los INSERT del código de `master` las dejan en NULL.
@@ -918,6 +920,8 @@ Todas las llamadas a Gemini siguen pasando por `src/lib/llm/` y piden **JSON con
 
 Entradas: corte (con fecha futura), meta (si hay), notas actuales, temas **confirmados** (con id), y por cada tema los 2 fragmentos más parecidos entre los PDF de la materia (`buscar_fragmentos_usuario` con `materia`), etiquetados.
 
+*(Hecho en E18: como mucho 20 temas confirmados; un solo pedido de embeddings con todos los temas y la búsqueda filtrada por materia en una consulta propia, sin cambiar `buscar_fragmentos_usuario` (como `recuperarFragmentosDeDocumento`), sin repetir fragmentos. La meta es la del corte o, sin cortes, la de la materia, con "¿Es alcanzable?"; las notas, la nota actual con el porcentaje calificado. Sin PDF en la materia no se piden embeddings y el modelo sabe que no hay fuentes. El modelo ve los temas como "T1"… y los fragmentos como "F1"…, y cada paso lleva un solo tema: en la prueba real puso "T1, T2, T3" en un repaso general y el plan se descartó; el prompt ahora pide un paso de repaso por tema.)*
+
 ### 9.3 Esquema del plan y validación (RB-22)
 
 ```text
@@ -927,9 +931,13 @@ Entradas: corte (con fecha futura), meta (si hay), notas actuales, temas **confi
 
 El servidor rechaza el plan entero si: algún `tema_id` no es un tema confirmado de ese corte; alguna fuente no es una etiqueta entregada en el contexto; alguna fecha está fuera de [hoy, fecha del corte]; o no cumple el esquema. Los `id` de los pasos los asigna el servidor (no el modelo). Un rechazo se reintenta una vez; si vuelve a fallar, `PLAN_INVALIDO`.
 
+*(Hecho en E18: el modelo devuelve `{ dias: [{ fecha, pasos: [{ titulo, tema, minutos, fuentes }] }] }` y el servidor arma las semanas (de lunes a domingo, 7.1) y guarda las fuentes como etiquetas legibles ("syllabus.pdf · p. 2"). La fecha del corte cuenta como dentro del rango. Un JSON roto cuenta como un intento; la cuota agotada se informa enseguida. Más de 60 pasos o ninguno también se rechaza. `generarPlan` en `src/lib/datos/planEstudio.ts`, reglas en `src/lib/reglas/planEstudio.ts`, prompt en `src/lib/llm/planEstudio.ts`; ruta con `maxDuration` 120.)*
+
 ### 9.4 Versiones y huella (RB-23)
 
 Cada versión guarda su `huella`: `{ meta, temas: [id+nombre confirmados], notas: [nota+componente del corte y de la materia], documentos: [ids de PDF de la materia] }`. La pantalla compara la huella de la versión vigente con la actual y, si difieren, muestra RB-23 con la lista de lo que cambió ("un PDF nuevo", "notas nuevas", "temas cambiados", "meta cambiada") y el botón "Actualizar plan". Actualizar genera una versión nueva; nunca se reemplaza sola. "Editar" permite cambiar título, fecha y minutos de cada paso, borrar pasos y agregar pasos manuales (con un tema confirmado); guardar crea una versión `manual`. "Restaurar" copia una versión anterior como versión nueva.
+
+*(Hecho en E18: la huella guarda la meta (del corte o, sin cortes, de la materia), los temas confirmados del corte, todas las notas de la materia (id y valor) y los PDF indexados de la materia. Avisos: "un PDF nuevo" o "{n} PDF nuevos", "un PDF eliminado", "notas nuevas" (también una nota registrada donde no había), "notas cambiadas", "temas cambiados" y "meta cambiada", unidos con comas e "y". Una versión `manual` conserva la huella de la vigente, para que editar no apague el aviso; una `restaurada` copia la de la versión que restaura. Al editar, una fecha nueva o cambiada va de hoy a la fecha del corte (la de un paso que no se movió se respeta aunque ya pasó) y un tema nuevo o cambiado debe estar confirmado; los pasos conservan su `id` y sus fuentes, y los nuevos no citan nada. Pantalla: "Plan de estudio" en "Objetivos y plan", un bloque por corte (o "Plan de la materia"), con "Generar plan", "Generar de nuevo", "Editar", "Versiones (n)" con "Ver" y "Restaurar esta versión", y el aviso RB-23 con "Actualizar plan". Rutas de la sección 10: `GET .../plan?version=n` para ver una anterior.)*
 
 ### 9.5 Pasar a Tareas (E19, RB-24)
 
@@ -1078,7 +1086,7 @@ Las rutas que llaman a Gemini declaran `maxDuration = 60`.
 - `npm run probar:recordatorios` (nuevo, E11c): crea tareas con recordatorio, llama al tick con un reloj fijo en modo de prueba (sin enviar) y comprueba qué se enviaría y que no se repite; borra lo que creó.
 - `npm run probar:cuestionario` (nuevo, E10e): con Gemini real y el PDF de `probar:libro`, genera 5 preguntas de un capítulo, comprueba que todas pasan RB-50 y que sus páginas están dentro del capítulo; pide 20 preguntas de 2 páginas y comprueba RB-49; borra lo que creó. Desde E10g genera un cuestionario mixto de 5 con una sola ejecución (a lo sumo 2 llamadas) y comprueba que cada pregunta pasa la validación de su tipo.
 - `npm run probar:temas` (nuevo, E17): un syllabus de prueba de 2 páginas con los temas de 3 cortes, indexado de verdad; RB-19 y RB-21 sin gastar cuota; un tema a mano y su repetido; proponer los del Corte 1 con Gemini real (1 llamada) y comprobar que trae los conocidos, no repite el escrito a mano ni trae los del Corte 3; confirmar. Borra lo que creó.
-- `npm run probar:plan` (nuevo, E18): con Gemini real, propone temas desde un PDF de prueba y genera un plan; comprueba que pasa la validación y borra lo que creó.
+- `npm run probar:plan` (nuevo, E18): con Gemini real, genera un plan desde el syllabus de prueba de E17 y comprueba que pasa la validación y borra lo que creó. *(Hecho: los tres temas se escriben a mano, porque proponerlos ya lo prueba `probar:temas`, más un propuesto que no debe entrar; también RB-19, RB-20, el aviso RB-23 tras una nota nueva, editar y restaurar. 1 pedido de embeddings y 1 llamada al modelo, 2 si el primer plan no cumple.)*
 - `npm run probar:clave` (nuevo, E20c): con un usuario temporal, vincula una clave inventada (debe rechazarse sin guardar), vincula `GEMINI_API_KEY` como si fuera la del usuario (una llamada `models.get`, sin gastar cuota de generación), comprueba que en la base solo está cifrada, que se descifra con su usuario y no con otro, y que una pregunta usa esa clave; desvincula y borra lo que creó.
 
 ### 11.3 Compatibilidad con `master` (después de cada migración)

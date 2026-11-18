@@ -218,4 +218,24 @@ export const esquemaIdTema = z.uuid();
 export const esquemaCrearTema = z.object({ nombre: z.string().max(400) }).strict();
 export const esquemaEditarTema = z.object({ nombre: z.string().max(400).optional(), confirmar: z.boolean().optional() }).strict();
 export const esquemaProponerTemas = z.object({ documentoId: z.uuid() }).strict();
+// E18 (9.3, 9.4): plan de estudio. Los pasos editados: sin id, un paso nuevo.
+export const esquemaVersionPlan = z.coerce.number().int().min(1).max(100000);
+export const esquemaGuardarPlan = z
+  .object({
+    pasos: z
+      .array(
+        z
+          .object({
+            id: z.uuid().optional(),
+            titulo: z.string().max(400),
+            fecha: z.string().max(20),
+            minutos: z.union([z.number(), z.string().max(10)]),
+            temaId: z.uuid(),
+          })
+          .strict(),
+      )
+      .max(200),
+  })
+  .strict();
+export const esquemaRestaurarPlan = z.object({ numero: z.number().int().min(1) }).strict();
 export const esquemaQuitarMetaNota = z.object({ materiaId: z.uuid(), corteId: z.union([z.uuid(), z.null()]) });

@@ -13,9 +13,13 @@ export const TABLAS_RESPALDO = [
   'notas',
   'metas_nota', // M11 (E16): materias y cortes
   'temas', // M12 (E17): cortes
+  // M13 (E18): plan de estudio de un corte
+  'planes_estudio', // cortes
+  'versiones_plan',
   'documentos',
   'fragmentos_pdf',
   'capitulos', // documentos y tareas_personales
+  'pasos_en_tareas', // M13 (E19): planes_estudio y tareas_personales
   // M17 (E10e): cuestionarios y sus intentos
   'cuestionarios', // documentos y capitulos
   'preguntas_cuestionario',
