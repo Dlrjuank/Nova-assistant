@@ -311,3 +311,26 @@ describe('E11e (5.13, S-77): el formulario de nueva tarea disponible sin conexi�
     expect(await (await sw.pedir('/_next/static/chunks/app/nova/tareas/nueva/page-1.js', { modo: 'no-cors' }))?.text()).toBe('archivo');
   });
 });
+
+describe('service worker: el tope de archivos no deja la copia sin los suyos (corrección del 2026-11-17)', () => {
+  it('tras muchas versiones nuevas, los archivos que pide la copia de Inicio siguen guardados', async () => {
+    const sw = entorno();
+    const NUCLEO = '/_next/static/chunks/framework-estable.js';
+    sw.red.mockImplementation(async (p) => {
+      const url = typeof p === 'string' ? p : (p as { url: string }).url;
+      if (url.includes('/_next/static/')) return new Response('archivo', { status: 200 });
+      return new Response(`<html><head></head><body>Inicio<script src="${NUCLEO}"></script></body></html>`, {
+        headers: { 'Content-Type': 'text/html; charset=utf-8', 'x-nova-usuario': 'u1' },
+      });
+    });
+    await sw.pedir('/nova');
+    expect(sw.estaticos()).toContain(NUCLEO);
+    // Varias versiones nuevas: más de 400 archivos que llegan después del núcleo (que no cambia y no se vuelve a guardar).
+    for (let i = 0; i < 420; i++) await sw.pedir(`/_next/static/chunks/version-${i}.js`, { modo: 'no-cors' });
+    expect(sw.estaticos().length).toBeLessThanOrEqual(400);
+    expect(sw.estaticos()).toContain(NUCLEO);
+    expect(sw.estaticos()).not.toContain('/_next/static/chunks/version-0.js'); // los viejos sin copia sí se borran
+    sw.red.mockImplementation(sinRed);
+    expect(await (await sw.pedir(NUCLEO, { modo: 'no-cors' }))?.text()).toBe('archivo');
+  });
+});

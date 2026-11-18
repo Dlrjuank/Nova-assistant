@@ -16,6 +16,7 @@ var ESTATICOS = 'nova-estaticos-v1';
 var DATOS = 'nova-datos-v1';
 var META = '/__nova/meta';
 var MAX_ESTATICOS = 400;
+var HOLGURA_ESTATICOS = 50;
 
 self.addEventListener('install', function () {
   self.skipWaiting();
@@ -93,14 +94,58 @@ function pagina(texto) {
   return new Response(html, { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } });
 }
 
+/** Los archivos que piden las copias guardadas (por ruta). */
+function protegidos() {
+  return caches
+    .open(DATOS)
+    .then(function (c) {
+      return c.keys().then(function (llaves) {
+        return Promise.all(
+          llaves.map(function (k) {
+            return c.match(k).then(function (r) {
+              return r ? r.text() : '';
+            });
+          }),
+        );
+      });
+    })
+    .then(function (htmls) {
+      var rutas = {};
+      htmls.forEach(function (html) {
+        R.recursosDePagina(html).forEach(function (ruta) {
+          rutas[ruta] = true;
+        });
+      });
+      return rutas;
+    })
+    .catch(function () {
+      return {};
+    });
+}
+
+/**
+ * Con más de MAX_ESTATICOS archivos, borra los más viejos hasta dejar HOLGURA_ESTATICOS de espacio (así no se
+ * recorta en cada archivo nuevo). Corrección del 2026-11-17: nunca borra uno que pida una copia guardada. Los
+ * archivos que no cambian entre versiones (los de React y Next) son los primeros que entran y nunca se vuelven a
+ * guardar; por orden de llegada eran los primeros en borrarse tras varias versiones nuevas, y la copia de Inicio
+ * se quedaba sin ellos y no funcionaba sin conexión.
+ */
 function recortar(cache) {
   return cache.keys().then(function (llaves) {
-    var sobran = llaves.length - MAX_ESTATICOS;
-    return Promise.all(
-      llaves.slice(0, Math.max(0, sobran)).map(function (k) {
-        return cache.delete(k);
-      }),
-    );
+    if (llaves.length <= MAX_ESTATICOS) return;
+    var sobran = llaves.length - (MAX_ESTATICOS - HOLGURA_ESTATICOS);
+    return protegidos().then(function (usados) {
+      return Promise.all(
+        llaves
+          .filter(function (k) {
+            return !usados[new URL(k.url).pathname];
+          })
+          .slice(0, sobran)
+          .map(function (k) {
+            return cache.delete(k);
+          }),
+      );
+    });
   });
 }
 
