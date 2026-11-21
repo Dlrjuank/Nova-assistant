@@ -25,7 +25,9 @@ const DOC = '22222222-2222-4222-8222-222222222222';
 
 describe('el service worker se actualiza con cada cambio de sus reglas', () => {
   it('sw.js importa sw-reglas.js con la huella de su contenido (al cambiar las reglas, cambia sw.js)', () => {
-    const huella = createHash('sha256').update(readFileSync(join(process.cwd(), 'public/sw-reglas.js'))).digest('hex').slice(0, 12);
+    // Con finales de línea LF, como en el repositorio (en Windows, git puede dejarlo con CRLF).
+    const reglas = leer('public/sw-reglas.js').replace(/\r\n/g, '\n');
+    const huella = createHash('sha256').update(reglas, 'utf8').digest('hex').slice(0, 12);
     const importa = leer('public/sw.js').match(/importScripts\('([^']+)'\)/g) ?? [];
     expect(importa, `actualiza la huella en public/sw.js: /sw-reglas.js?v=${huella}`).toEqual([`importScripts('/sw-reglas.js?v=${huella}')`]);
   });
