@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useId, useState } from 'react';
 import { Aviso } from '@/components/ui/Aviso';
@@ -17,6 +18,8 @@ export function GuardarFuente({ url, resumen }: { url: string; resumen: string }
   const [guardada, setGuardada] = useState<FuenteGuardada | null>(null);
   const [error, setError] = useState<{ codigo: string; mensaje: string } | null>(null);
 
+  const router = useRouter();
+
   async function guardar() {
     setError(null);
     setGuardando(true);
@@ -32,6 +35,7 @@ export function GuardarFuente({ url, resumen }: { url: string; resumen: string }
         return;
       }
       setGuardada(cuerpo.datos);
+      router.refresh(); // E20b (tiempo de carga): vacía la memoria de pantallas recientes, para que Fuentes muestre la nueva.
     } catch {
       setError({ codigo: 'SIN_CONEXION', mensaje: 'No se pudo conectar con el servidor. Intenta de nuevo.' });
     } finally {

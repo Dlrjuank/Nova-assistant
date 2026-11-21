@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from 'react';
 
-/** Cuánto dura la cuenta, en milisegundos. */
-const DURACION_MS = 800;
+/** Cuánto dura la cuenta, en milisegundos. E20b (tiempo de carga, pedido del usuario): antes 800. */
+export const DURACION_MS = 450;
 
 /** Décimas como nota: 39 → "3,9". */
 const decimas = (n: number) => `${Math.trunc(n / 10)},${Math.abs(n % 10)}`;
 
 /**
- * E20b (commit 2): un número que cuenta desde 0 hasta su valor al aparecer (0,8 s, frenando al final). El HTML
+ * E20b (commit 2): un número que cuenta desde 0 hasta su valor al aparecer (0,45 s, frenando al final). El HTML
  * del servidor ya trae el valor final (la copia sin conexión y los lectores de pantalla lo ven entero); el
  * número que se mueve va oculto para lectores de pantalla y al lado va el valor en texto. Con "reducir
  * movimiento" no cuenta: muestra el valor de una vez.

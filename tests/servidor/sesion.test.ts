@@ -1,8 +1,10 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const getCurrentUser = vi.hoisted(() => vi.fn());
-vi.mock('@/modules/auth/session', () => ({ getCurrentUser }));
+// E20b (tiempo de carga): la sesión sale de getClaims (verificada con la clave pública, sin ir a Supabase Auth).
+const getClaims = vi.hoisted(() => vi.fn());
+vi.mock('@/lib/supabase/server', () => ({ createSupabaseServerClient: async () => ({ auth: { getClaims } }) }));
+const getCurrentUser = { mockResolvedValue: (u: { id?: string; email?: string } | null) => getClaims.mockResolvedValue(u ? { data: { claims: { sub: u.id ?? 'u0', email: u.email } }, error: null } : { data: null, error: null }), mockReset: () => getClaims.mockReset() };
 
 import { tieneAccesoNova } from '@/lib/auth/acceso';
 import { exigirSesion, obtenerSesion } from '@/lib/auth/sesion';
@@ -30,6 +32,13 @@ describe('acceso a Nova', () => {
   it('con sesión fuera de la lista lanza ACCESO_DENEGADO', async () => {
     getCurrentUser.mockResolvedValue({ email: 'intruso@ejemplo.com' });
     await expect(exigirSesion()).rejects.toMatchObject({ codigo: 'ACCESO_DENEGADO' });
+  });
+
+  it('token inválido: sin sesión; otro error de Supabase se propaga', async () => {
+    getClaims.mockResolvedValue({ data: null, error: { name: 'AuthInvalidJwtError', status: 400 } });
+    await expect(obtenerSesion()).resolves.toBeNull();
+    getClaims.mockResolvedValue({ data: null, error: { name: 'AuthRetryableFetchError', status: 0 } });
+    await expect(obtenerSesion()).rejects.toThrow('No se pudo verificar la sesión con Supabase.');
   });
 
   it('con sesión en la lista devuelve el id y el correo', async () => {

@@ -90,6 +90,7 @@ export function FormularioCuestionario({
         return;
       }
       const { id, creadas } = datos.datos;
+      router.refresh(); // E20b (tiempo de carga): que "Mis cuestionarios" no muestre una lista vieja.
       router.push(`/nova/cuestionarios/${id}${creadas < datos.datos.pedidas ? `?obtenidas=${creadas}&pedidas=${datos.datos.pedidas}` : ''}`);
     } catch {
       setError('No se pudo conectar con el servidor. Intenta de nuevo.');

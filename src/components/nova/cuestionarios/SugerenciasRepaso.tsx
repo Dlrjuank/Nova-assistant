@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useRef, useState } from 'react';
 import { SelectorCategoria } from '@/components/nova/SelectorCategoria';
@@ -34,6 +35,7 @@ export function SugerenciasRepaso({
   const [error, setError] = useState('');
   const [cargando, setCargando] = useState(false);
   const [creada, setCreada] = useState<TareaRepasoCreada | null>(null);
+  const router = useRouter();
   const origen = useRef<HTMLButtonElement | null>(null);
 
   if (sugerencias.length === 0) return null;
@@ -66,6 +68,7 @@ export function SugerenciasRepaso({
       setExistentes((previas) => new Set(previas).add(abierta.capituloId));
       setCreada(d.datos);
       setAbierta(null);
+      router.refresh(); // E20b (tiempo de carga): vacía la memoria de pantallas recientes, para que Tareas muestre la nueva.
     } catch {
       setError('No se pudo conectar con el servidor. Intenta de nuevo.');
     } finally {

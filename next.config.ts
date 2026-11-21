@@ -2,6 +2,12 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // E20b (tiempo de carga): volver a una pantalla vista en los últimos 30 s la muestra al instante, sin pedirla otra
+  // vez. Todo lo que cambia datos llama a router.refresh(), que vacía esta memoria: nunca se ve algo viejo después
+  // de guardar.
+  experimental: {
+    staleTimes: { dynamic: 30 },
+  },
   // E11b: el service worker y sus reglas se revisan en cada visita, para que una versión nueva llegue enseguida.
   async headers() {
     return ['/sw.js', '/sw-reglas.js'].map((source) => ({

@@ -1,5 +1,5 @@
 import { cache } from 'react';
-import { getCurrentUser } from '@/modules/auth/session';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { tieneAccesoNova } from '@/lib/auth/acceso';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
 
@@ -10,13 +10,20 @@ export interface Sesion {
 
 /**
  * Adaptador sobre el login existente (Supabase Auth): devuelve { id, email } o null.
- * Con `cache`, el layout de Nova y la página comparten una sola consulta a Supabase Auth por pedido (antes, cada
- * uno hacía la suya). Fuera de una pantalla del servidor (rutas de la API) `cache` no guarda nada: se consulta igual.
+ * Con `cache`, el layout de Nova y la página comparten una sola revisión por pedido.
+ * E20b (tiempo de carga): `getClaims` verifica la firma del token con la clave pública del proyecto (ES256, que
+ * se guarda unos minutos), sin ir a Supabase Auth; con una clave simétrica, la librería pregunta a Supabase como
+ * antes. Un token dura como máximo 1 hora: una sesión cerrada en otro dispositivo vale hasta que venza.
  */
 export const obtenerSesion = cache(async (): Promise<Sesion | null> => {
-  const usuario = await getCurrentUser();
-  if (!usuario) return null;
-  return { id: usuario.id, email: usuario.email ?? '' };
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.auth.getClaims();
+  const claims = data?.claims;
+  if (error || !claims?.sub) {
+    if (!error || error.status === 401 || error.name === 'AuthSessionMissingError' || error.name === 'AuthInvalidJwtError') return null;
+    throw new Error('No se pudo verificar la sesión con Supabase.', { cause: error });
+  }
+  return { id: claims.sub, email: typeof claims.email === 'string' ? claims.email : '' };
 });
 
 /**

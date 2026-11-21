@@ -1273,4 +1273,30 @@ Total de fallas: 0
 - **"Reducir movimiento":** la regla global ahora también quita las esperas de las animaciones (`animation-delay: 0s`): la celebración aparece quieta, con el check completo y sin destellos.
 - **Pruebas nuevas:** `tests/interfaz/tareasE20b.test.tsx` (la celebración y que solo se celebre lo confirmado, la insignia con el tiempo, la barra de avance y el borde, el vacío con ícono, el botón listo) y los textos en `tests/reglas/inicio.test.ts`. Edge (`ui_e20b3.mjs`) 18 de 18: insignia con el tiempo, bordes de color (los demás neutros), barras 50 % y 0 %, completar desde una tarjeta con la celebración en su lugar y que se va sola, el vacío de vencidas con ícono, "Guardada" con el check y la tarea en la base, 390 y 1280 px en claro y oscuro sin desborde, la celebración en el PC y con "reducir movimiento". En Edge sin ventana la navegación de Next sin recarga no se aplica (tampoco con el código anterior); la vuelta a Tareas tras guardar se prueba en el teléfono. Sin conexión: `ui_e20sin.mjs` 16 de 16, `ui_e19b.mjs` 12 de 12 y `ui_e11e.mjs` 34 de 34.
 - **Al cierre:** `npm test` 1374/1374, `eslint` sin errores (las 3 advertencias de siempre), `npm run build` correcto; `tsc` solo con los 2 errores viejos de `json-db.test.ts`.
-- **Pendiente:** la prueba del usuario del commit 3.
+- **Prueba del usuario (2026-11-21):** en el iPhone y el PC, todo bien (también la segunda parte del commit 2: el cambio de semana y los puntos de color). Reportó que cambiar de pestaña tarda 2 a 3 s, sobre todo justo después de un despliegue.
+
+#### Medida del tiempo al cambiar de pestaña (2026-11-21)
+
+- **Cómo:** despliegues de prueba en Vercel (sin `.git` ni `.env`, con el usuario temporal como administrador solo en ese despliegue, borrados al final) del código actual y de `92e59f4` (fin de E20), con Edge desde Colombia y el secreto de omisión de la protección de Vercel.
+- **Resultado:** las dos versiones iguales: ~0,3 s por pantalla con la función caliente y 0,7 a 1,2 s la primera vez tras desplegar (todas las pantallas están en la misma función de 3,11 MB). De ~0,3 s, ~0,22 s son el viaje a Vercel (una página casi vacía ya tarda eso) y la sesión y la base solo 20 a 70 ms. E20b sumó 10 a 25 ms; las letras pasaron de 47 a 109 KB solo en la primera carga. La cuenta del usuario tiene pocos datos (3 tareas, 3 materias). En Vercel la navegación sin recarga sí funciona en Edge sin ventana (lo que no terminaba era el servidor local).
+- **Decisión del usuario:** adelantar el commit 11 (tiempo de carga) antes del Calendario.
+
+#### Commit 11 adelantado: tiempo de carga (2026-11-21)
+
+- **Sesión una sola vez, y sin viaje:** el middleware y `obtenerSesion` usan `supabase.auth.getClaims()`, que verifica el token con la clave pública del proyecto (ES256, en el JWKS de Supabase) sin preguntar a Supabase Auth en cada pedido; si el token venció, lo renueva con el de refresco como antes. Con una clave simétrica la librería volvería a preguntar a Supabase. Consecuencia: una sesión cerrada en otro dispositivo vale hasta que venza su token (máximo 1 hora); cerrar sesión en el mismo dispositivo sigue siendo inmediato.
+- **Consultas a la vez:** Inicio pide la semana, las categorías y el resumen en paralelo (el resumen solo necesita la fecha de hoy); Tareas, las categorías y las tareas (el filtro de categoría ya compara sin mayúsculas en la base); `listarMaterias` hace sus cuatro consultas a la vez, filtrando cortes, componentes y notas por usuario y materia.
+- **Volver es inmediato:** `experimental.staleTimes.dynamic = 30` en `next.config.ts`: una pantalla vista en los últimos 30 s se muestra sin pedirla. Todo lo que guarda llama a `router.refresh()`, que vacía esa memoria; se agregó en las tres pantallas que no lo hacían (tarea de repaso, "Guardar fuente" y crear cuestionario). Probado: completar una vencida y volver a Inicio muestra 0.
+- **Animaciones más cortas (pedido del usuario):** entrada de los bloques 0,2 s con 20 ms entre uno y otro (antes 0,3 s y 40 ms), números que cuentan 0,45 s (antes 0,8 s), el anillo 0,55 s sin espera (antes 0,9 s tras 0,15 s), la barra de los grupos de Tareas 0,45 s sin espera.
+- **Barra de herramientas de Vercel:** solo aparece a quien inició sesión en Vercel (no en los pedidos con el secreto de omisión, así que no se pudo medir directo). Su script pesa 23 KB comprimido (76 KB sin comprimir) y abre un marco a vercel.live; se carga al abrir la app o recargar, no en cada cambio de pestaña. Se apaga en Vercel → proyecto → Settings → General → Vercel Toolbar → "Pre-Production Deployments: Off", o con la variable `VERCEL_PREVIEW_FEEDBACK_ENABLED=0` en Preview, o por sesión con "Disable for Session" en su menú.
+- **Medida (mismos pasos, Edge en Vercel desde Colombia; "contenido" = se ve la pantalla, "lista" = además quieta):**
+
+| Paso | Antes (contenido / lista) | Después (contenido / lista) |
+|---|---|---|
+| Cambiar de pestaña, pantalla no vista hace poco | 0,32–0,49 s / 0,70–1,42 s | 0,35–0,48 s / 0,61–0,83 s |
+| Cambiar de pestaña, vista en los últimos 30 s | 0,32–0,35 s / 0,70–1,42 s | 0,08–0,10 s / 0,27–0,63 s |
+| Inicio, quieta | 1,42 s | 0,62 s |
+| Abrir la app en Inicio | 0,48 s / 1,52 s | 0,43 s / 0,92 s |
+| Primera visita tras desplegar | 0,35–1,14 s / 1,05–1,52 s | 0,35–0,86 s / 0,61–1,12 s |
+
+- **Pruebas:** `tests/reglas/tiempoCarga.test.ts` (la memoria de 30 s, las duraciones y el `router.refresh()` de las tres pantallas), `tests/servidor/sesion.test.ts` con `getClaims` (token inválido = sin sesión, otro error se propaga). Edge con la base real: `ui_e20b2` 23/23, `ui_e20b3` 18/18; sin conexión `ui_e20sin` 16/16, `ui_e19b` 12/12 y `ui_e11e` 34/34. `npm test`, `eslint` sin errores y build correcto.
+- **Pendiente:** la prueba del usuario.

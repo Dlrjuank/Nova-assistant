@@ -42,7 +42,11 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  const { data } = await supabase.auth.getUser();
+  // E20b (tiempo de carga): la sesión se verifica aquí mismo con la clave pública del proyecto (ES256), sin ir a
+  // Supabase Auth en cada pedido; si el token venció, getClaims lo renueva con el de refresco (y pone las cookies).
+  const { data: datosSesion } = await supabase.auth.getClaims();
+  const claims = datosSesion?.claims;
+  const data = { user: claims?.sub ? { id: claims.sub, email: typeof claims.email === 'string' ? claims.email : undefined } : null };
 
   const esApiNova = ruta === '/api/nova' || ruta.startsWith('/api/nova/');
   const esPaginaNova = ruta === '/nova' || ruta.startsWith('/nova/');

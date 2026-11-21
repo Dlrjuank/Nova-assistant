@@ -86,25 +86,34 @@ const FECHA = (columna: string) => `to_char(${columna}, 'YYYY-MM-DD')`;
 
 /** E12: las materias del usuario con sus cortes, componentes y notas, en orden. Con `id`, solo esa. */
 export async function listarMaterias(usuarioId: string, id?: string | undefined): Promise<Materia[]> {
-  const materias = await consultar<{ id: string; nombre: string; creditos: number; docente: string | null; usa_cortes: boolean; fallas_limite: number | null; fallas_registradas: number }>(
-    `SELECT id, nombre, creditos, docente, usa_cortes, fallas_limite, fallas_registradas FROM materias
-     WHERE usuario_id = $1 AND ($2::uuid IS NULL OR id = $2) ORDER BY lower(nombre), creada_en`,
-    [usuarioId, id ?? null],
-  );
+  // E20b (tiempo de carga): las cuatro consultas a la vez (antes, una tras otra). Cortes, componentes y notas se
+  // filtran por usuario y, con `id`, por la materia, con lo que salen los mismos que con la lista de ids.
+  const [materias, cortes, componentes, notas] = await Promise.all([
+    consultar<{ id: string; nombre: string; creditos: number; docente: string | null; usa_cortes: boolean; fallas_limite: number | null; fallas_registradas: number }>(
+      `SELECT id, nombre, creditos, docente, usa_cortes, fallas_limite, fallas_registradas FROM materias
+       WHERE usuario_id = $1 AND ($2::uuid IS NULL OR id = $2) ORDER BY lower(nombre), creada_en`,
+      [usuarioId, id ?? null],
+    ),
+    consultar<{ id: string; materia_id: string; orden: number; nombre: string; porcentaje: number; fecha: string | null }>(
+      `SELECT id, materia_id, orden, nombre, porcentaje, ${FECHA('fecha')} AS fecha FROM cortes
+       WHERE usuario_id = $1 AND ($2::uuid IS NULL OR materia_id = $2) ORDER BY orden`,
+      [usuarioId, id ?? null],
+    ),
+    consultar<{ id: string; corte_id: string; orden: number; nombre: string; porcentaje: number }>(
+      `SELECT k.id, k.corte_id, k.orden, k.nombre, k.porcentaje FROM componentes k
+       JOIN cortes c ON c.id = k.corte_id AND c.usuario_id = $1
+       WHERE k.usuario_id = $1 AND ($2::uuid IS NULL OR c.materia_id = $2) ORDER BY k.orden, lower(k.nombre)`,
+      [usuarioId, id ?? null],
+    ),
+    consultar<{ id: string; componente_id: string; orden: number; nombre: string | null; nota: number | null; fecha: string | null }>(
+      `SELECT n.id, n.componente_id, n.orden, n.nombre, n.nota, ${FECHA('n.fecha')} AS fecha FROM notas n
+       JOIN componentes k ON k.id = n.componente_id AND k.usuario_id = $1
+       JOIN cortes c ON c.id = k.corte_id AND c.usuario_id = $1
+       WHERE n.usuario_id = $1 AND ($2::uuid IS NULL OR c.materia_id = $2) ORDER BY n.orden, n.id`,
+      [usuarioId, id ?? null],
+    ),
+  ]);
   if (materias.length === 0) return [];
-  const ids = materias.map((m) => m.id);
-  const cortes = await consultar<{ id: string; materia_id: string; orden: number; nombre: string; porcentaje: number; fecha: string | null }>(
-    `SELECT id, materia_id, orden, nombre, porcentaje, ${FECHA('fecha')} AS fecha FROM cortes WHERE usuario_id = $1 AND materia_id = ANY($2::uuid[]) ORDER BY orden`,
-    [usuarioId, ids],
-  );
-  const componentes = await consultar<{ id: string; corte_id: string; orden: number; nombre: string; porcentaje: number }>(
-    'SELECT id, corte_id, orden, nombre, porcentaje FROM componentes WHERE usuario_id = $1 AND corte_id = ANY($2::uuid[]) ORDER BY orden, lower(nombre)',
-    [usuarioId, cortes.map((c) => c.id)],
-  );
-  const notas = await consultar<{ id: string; componente_id: string; orden: number; nombre: string | null; nota: number | null; fecha: string | null }>(
-    `SELECT id, componente_id, orden, nombre, nota, ${FECHA('fecha')} AS fecha FROM notas WHERE usuario_id = $1 AND componente_id = ANY($2::uuid[]) ORDER BY orden, id`,
-    [usuarioId, componentes.map((c) => c.id)],
-  );
   const notasDe = new Map<string, NotaRegistrada[]>();
   for (const n of notas) notasDe.set(n.componente_id, [...(notasDe.get(n.componente_id) ?? []), { id: n.id, orden: n.orden, nombre: n.nombre, nota: n.nota, fecha: n.fecha }]);
   const componentesDe = new Map<string, ComponenteMateria[]>();

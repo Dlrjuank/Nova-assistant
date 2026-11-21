@@ -1,6 +1,9 @@
 // E10f (5.11, RB-53): historial de cuestionarios y sugerencia de repaso.
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+
+// E20b (tiempo de carga): al crear la tarea de repaso se llama a router.refresh().
+vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }), usePathname: () => '/nova/cuestionarios' }));
 import { HistorialCuestionarios } from '@/components/nova/cuestionarios/HistorialCuestionarios';
 import { SugerenciasRepaso } from '@/components/nova/cuestionarios/SugerenciasRepaso';
 import type { DocumentoHistorial, SugerenciaRepaso } from '@/lib/dataService';

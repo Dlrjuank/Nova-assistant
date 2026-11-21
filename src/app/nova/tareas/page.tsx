@@ -48,16 +48,16 @@ export default async function TareasPage({
   const hoy = hoyBogota();
   // El layout ya exige sesión con acceso; aquí hace falta el id para ver solo sus tareas (RB-01).
   const { id } = await exigirSesion();
-  const categorias = await listarCategorias(id);
   // E05b: filtro por categoría (sin distinguir mayúsculas); se muestra con el nombre guardado.
+  // E20b (tiempo de carga): categorías y tareas a la vez; el filtro ya compara sin mayúsculas en la base.
   const pedida = uno(parametros.categoria)?.trim() ?? '';
+  const [categorias, tareas] = await Promise.all([
+    listarCategorias(id),
+    listarTareas(id, { ...filtroDeVista(vista, hoy), categoria: pedida || undefined }),
+  ]);
   const categoria = pedida
     ? (categorias.find((c) => c.nombre.toLowerCase() === pedida.toLowerCase())?.nombre ?? pedida)
     : null;
-  const tareas = await listarTareas(id, {
-    ...filtroDeVista(vista, hoy),
-    categoria: categoria ?? undefined,
-  });
 
   // "Vencidas" solo aparece como píldora mientras se está en esa vista (llega desde Inicio).
   const pestanas: Vista[] =
