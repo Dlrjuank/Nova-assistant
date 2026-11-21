@@ -1299,4 +1299,16 @@ Total de fallas: 0
 | Primera visita tras desplegar | 0,35–1,14 s / 1,05–1,52 s | 0,35–0,86 s / 0,61–1,12 s |
 
 - **Pruebas:** `tests/reglas/tiempoCarga.test.ts` (la memoria de 30 s, las duraciones y el `router.refresh()` de las tres pantallas), `tests/servidor/sesion.test.ts` con `getClaims` (token inválido = sin sesión, otro error se propaga). Edge con la base real: `ui_e20b2` 23/23, `ui_e20b3` 18/18; sin conexión `ui_e20sin` 16/16, `ui_e19b` 12/12 y `ui_e11e` 34/34. `npm test`, `eslint` sin errores y build correcto.
+- **Prueba del usuario (2026-11-21):** en el iPhone (app instalada) y el PC, todo bien: las pestañas más ágiles, volver casi instantáneo, Inicio con el cambio después de guardar, animaciones cortas, la sesión y sin conexión.
+- **Barra de herramientas de Vercel:** a pedido del usuario, `VERCEL_PREVIEW_FEEDBACK_ENABLED=0` en Preview (desde el despliegue siguiente).
+- **Para E20c (pedido del usuario):** al bloquear o eliminar una cuenta, la sesión que ya tenía abierta no debe seguir valiendo hasta que venza el token; anotado en el prompt de E20c (`PROMPTS_AMPLIACION.md`).
+
+#### Commit 4: Calendario (2026-11-21)
+
+- **Fechas de Semestre:** el día con un corte, la fecha final o una nota con fecha lleva un contorno del color de acento en su número, además del ícono.
+- **Puntos:** uno por categoría con su color, hasta 3, como en Mi semana (`coloresDelDia`); apagado si todas las tareas de esa categoría en el día están completadas (antes, uno por tarea y "+N").
+- **"Próximos" (presentación):** debajo de la lista del día (al lado del mes desde 1536 px), las 5 más cercanas de los próximos 30 días desde hoy, sin importar el mes que se ve: tareas pendientes y fechas de Semestre, cada una con su fecha, "Hoy", "Mañana" o "El lunes 23", y la etiqueta Tarea, Corte o Nota; el mismo día, Semestre primero y las tareas por hora. La tarea lleva a su día en el Calendario; lo de Semestre, a la materia. Regla `proximosDelCalendario` en `src/lib/reglas/calendario.ts`; datos en `mesDeTareas` (`proximos`); componente `ProximosCalendario.tsx`.
+- **Vida:** el mes entra deslizándose desde el lado de la flecha que se tocó (`nova-mes-siguiente` y `nova-mes-anterior`, 0,22 s); la lista del día aparece suave al elegir otro día. Con "reducir movimiento", nada se mueve.
+- **Pruebas:** `tests/interfaz/calendario.test.tsx` (un punto por categoría, el contorno, "Próximos" con sus enlaces y vacío) y la regla en `tests/reglas/inicio.test.ts`. Edge (`ui_e20b4.mjs`) 12 de 12: el contorno, dos puntos para tres tareas de dos categorías, "Próximos" en orden y sin vencidas, sus enlaces, el lado por el que entra el mes, la lista del día, 390, 1280 y 1600 px en claro y oscuro sin desborde. Sin conexión: `ui_e20sin.mjs` 16/16, `ui_e19b.mjs` 12/12 y `ui_e11e.mjs` 34/34. `npm test` sin fallas (una prueba de `indexacionPendiente` falló una vez con la máquina cargada y pasa sola), `eslint` sin errores y build correcto.
 - **Pendiente:** la prueba del usuario.
+

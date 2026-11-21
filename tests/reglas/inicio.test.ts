@@ -100,3 +100,16 @@ describe('Inicio: tarjetas de números', () => {
     expect(textoFaltan(4, 4)).toBe('Semana completa');
   });
 });
+
+describe('Calendario (E20b, commit 4): próximos', () => {
+  it('desde hoy, por fecha; el mismo día Semestre primero y las tareas por hora; sin completadas; hasta 5', async () => {
+    const { proximosDelCalendario } = await import('@/lib/reglas/calendario');
+    const t = (id: string, fechaLimite: string, extra: Record<string, unknown> = {}) => ({ id, titulo: id, categoria: 'Casa', estado: 'Pendiente', fechaLimite, horaInicio: null, ...extra });
+    const r = proximosDelCalendario(
+      [t('ayer', '2026-11-20'), t('tarde', '2026-11-21', { horaInicio: '18:00' }), t('mañana', '2026-11-21', { horaInicio: '08:00' }), t('hecha', '2026-11-22', { estado: 'Completada' }), t('d', '2026-11-23'), t('e', '2026-11-24'), t('f', '2026-11-25')],
+      [{ id: 'c', tipo: 'corte', fecha: '2026-11-21', titulo: 'Corte', materiaId: 'm' }],
+      '2026-11-21',
+    );
+    expect(r.map((p) => p.id)).toEqual(['c', 'mañana', 'tarde', 'd', 'e']);
+  });
+});

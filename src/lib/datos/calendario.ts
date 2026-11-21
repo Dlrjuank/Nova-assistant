@@ -1,5 +1,5 @@
-import { esMesValido, mesDe, semanasDelMes } from '@/lib/reglas/calendario';
-import { hoyBogota } from '@/lib/reglas/fechas';
+import { DIAS_PROXIMOS, esMesValido, mesDe, proximosDelCalendario, semanasDelMes, type Proximo } from '@/lib/reglas/calendario';
+import { hoyBogota, sumarDias } from '@/lib/reglas/fechas';
 import { tareasPorDia } from '@/lib/reglas/semana';
 import { eventosSemestre, type EventoSemestre } from './semestre';
 import { listarTareas } from './tareas';
@@ -13,6 +13,8 @@ export interface Mes {
   porDia: Record<string, Tarea[]>;
   /** E13: fechas de Semestre (cortes, fecha final y notas con fecha) por día. */
   eventos: Record<string, EventoSemestre[]>;
+  /** E20b (commit 4): lo que viene desde hoy (tareas pendientes y fechas de Semestre), sin importar el mes que se ve. */
+  proximos: Proximo[];
 }
 
 /**
@@ -26,6 +28,17 @@ export async function mesDeTareas(usuarioId: string, mes?: string): Promise<Mes>
   const semanas = semanasDelMes(elegido);
   const dias = semanas.flat();
   const [desde, hasta] = [dias[0] as string, dias[dias.length - 1] as string];
-  const [tareas, eventos] = await Promise.all([listarTareas(usuarioId, { desde, hasta }), eventosSemestre(usuarioId, desde, hasta)]);
-  return { mes: elegido, hoy, semanas, porDia: tareasPorDia(tareas, dias), eventos };
+  const finProximos = sumarDias(hoy, DIAS_PROXIMOS);
+  const [tareas, eventos, tareasProximas, eventosProximos] = await Promise.all([
+    listarTareas(usuarioId, { desde, hasta }),
+    eventosSemestre(usuarioId, desde, hasta),
+    listarTareas(usuarioId, { desde: hoy, hasta: finProximos, estado: 'Pendiente' }),
+    eventosSemestre(usuarioId, hoy, finProximos),
+  ]);
+  const proximos = proximosDelCalendario(
+    tareasProximas.map((t) => ({ ...t, fechaLimite: String(t.fechaLimite).slice(0, 10) })),
+    Object.values(eventosProximos).flat(),
+    hoy,
+  );
+  return { mes: elegido, hoy, semanas, porDia: tareasPorDia(tareas, dias), eventos, proximos };
 }

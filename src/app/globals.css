@@ -411,3 +411,23 @@ html:has([data-nova-fondo]) body {
   transform-origin: left;
   animation: nova-avance 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both; /* E20b (tiempo de carga): antes 0,7 s tras 0,15 s */
 }
+
+/* E20b (commit 4): el mes del Calendario entra deslizándose desde el lado de la flecha que se tocó. */
+@keyframes nova-mes-siguiente {
+  from {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+}
+@keyframes nova-mes-anterior {
+  from {
+    opacity: 0;
+    transform: translateX(-18px);
+  }
+}
+.nova-mes-siguiente {
+  animation: nova-mes-siguiente 0.22s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.nova-mes-anterior {
+  animation: nova-mes-anterior 0.22s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}

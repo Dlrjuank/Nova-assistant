@@ -27,6 +27,7 @@ export default async function CalendarioPage({ searchParams }: { searchParams: P
         anterior={`/nova/calendario?mes=${sumarMeses(datos.mes, -1)}`}
         siguiente={`/nova/calendario?mes=${sumarMeses(datos.mes, 1)}`}
         diaInicial={typeof dia === 'string' ? dia : undefined}
+        proximos={datos.proximos}
       />
     </>
   );

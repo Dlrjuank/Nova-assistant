@@ -8,7 +8,9 @@ import { PuntoCategoria } from '@/components/nova/InsigniaCategoria';
 import { CasillaTarea, type TareaCasilla } from '@/components/nova/inicio/CasillaTarea';
 import { usePendientes } from '@/components/nova/pendientes/ProveedorPendientes';
 import { TareaPendienteFila } from '@/components/nova/pendientes/TareaPendienteFila';
-import { estaVencida, mesDe } from '@/lib/reglas/calendario';
+import { estaVencida, mesDe, type Proximo } from '@/lib/reglas/calendario';
+import { coloresDelDia } from '@/lib/reglas/semana';
+import { ProximosCalendario } from './ProximosCalendario';
 import { colorDeCategoria } from '@/lib/reglas/categorias';
 import { useFormatoHora } from '@/components/nova/PreferenciasNova';
 import { formatearHorario } from '@/lib/reglas/horario';
@@ -17,9 +19,14 @@ import type { EventoSemestre } from '@/lib/datos/semestre';
 
 export type TareaCalendario = TareaCasilla & { fechaLimite: string };
 
-/** Puntos por día en el teléfono y títulos por día en el computador, antes de "+N". */
-const MAX_PUNTOS = 3;
+/** Títulos por día en el computador, antes de "+N". */
 const MAX_TITULOS = 2;
+
+/**
+ * E20b (commit 4): el último mes que se vio, para que el nuevo entre desde el lado de la flecha que se tocó. Vive
+ * en el módulo: el componente se vuelve a montar con cada mes (`key`).
+ */
+let ultimoMes: string | null = null;
 
 /**
  * E07 (PLAN_AMPLIACION 5.3): vista mensual (lunes primero) con flechas de mes y "Hoy". Cada día muestra
@@ -27,6 +34,9 @@ const MAX_TITULOS = 2;
  * día se ve su lista (ya ordenada: pendientes con hora, luego sin hora, completadas al final) y "Agregar"
  * con esa fecha. Las pendientes vencidas llevan una marca sutil. E13 (B-15): las fechas de Semestre (cortes, fecha
  * final y notas con fecha) llevan su ícono en el día y enlazan a la materia en la lista del día.
+ * E20b (commit 4): un día con fecha de Semestre lleva además un contorno del color de acento; los puntos son uno
+ * por categoría (hasta 3, como en Mi semana); el mes entra deslizándose desde el lado de la flecha; la lista del
+ * día aparece suave al cambiar de día; y "Próximos" con lo que viene (tarea, corte o nota y cuándo).
  */
 export function CalendarioMes({
   mes,
@@ -39,6 +49,7 @@ export function CalendarioMes({
   anterior,
   siguiente,
   diaInicial,
+  proximos = [],
 }: {
   mes: string;
   titulo: string;
@@ -52,8 +63,15 @@ export function CalendarioMes({
   siguiente: string;
   /** E09: `?dia=` al volver de editar una tarea; solo si está en la cuadrícula. */
   diaInicial?: string | undefined;
+  /** E20b (commit 4): lo que viene desde hoy. */
+  proximos?: Proximo[];
 }) {
   const formatoHora = useFormatoHora(); // E11: 24 o 12 horas
+  // E20b: hacia dónde entra el mes (nada la primera vez que se abre el Calendario).
+  const [entrada] = useState(() => (ultimoMes === null || ultimoMes === mes ? '' : mes > ultimoMes ? 'nova-mes-siguiente' : 'nova-mes-anterior'));
+  useEffect(() => {
+    ultimoMes = mes;
+  }, [mes]);
   const [elegido, setElegido] = useState(() => (diaInicial && semanas.flat().includes(diaInicial) ? diaInicial : mesDe(hoy) === mes ? hoy : `${mes}-01`));
   const color = (t: TareaCalendario) => colorDeCategoria(t.categoria, categorias);
   const tareasDia = porDia[elegido] ?? [];
@@ -124,7 +142,7 @@ export function CalendarioMes({
           </div>
         </div>
 
-        <div role="grid" aria-labelledby="titulo-mes" className="flex flex-col gap-1">
+        <div role="grid" aria-labelledby="titulo-mes" data-entrada-mes={entrada || undefined} className={`flex flex-col gap-1 ${entrada}`}>
           <div role="row" className="grid grid-cols-7 gap-1">
             {DIAS_CORTOS.map((d) => (
               <span key={d} role="columnheader" className="py-1 text-center text-xs font-semibold uppercase text-texto-suave">
@@ -171,7 +189,8 @@ export function CalendarioMes({
                         aria-hidden="true"
                         className={`flex size-7 items-center justify-center self-center rounded-full text-sm font-semibold sm:self-start ${
                           esHoy ? 'bg-acento text-acento-texto' : delMes ? 'text-texto' : 'text-texto-suave'
-                        }`}
+                        } ${fechasSemestre.length > 0 ? 'ring-2 ring-acento ring-offset-1 ring-offset-superficie' : ''}`}
+                        data-con-semestre={fechasSemestre.length > 0 || undefined}
                       >
                         {Number(fecha.slice(8, 10))}
                       </span>
@@ -179,10 +198,10 @@ export function CalendarioMes({
                       {(tareas.length > 0 || fechasSemestre.length > 0) && (
                         <span aria-hidden="true" className="flex flex-wrap items-center justify-center gap-0.5 sm:justify-start xl:hidden">
                           {fechasSemestre.length > 0 && <GraduationCap className="size-3.5 text-acento" />}
-                          {tareas.slice(0, MAX_PUNTOS).map((t) => (
-                            <PuntoCategoria key={t.id} color={color(t)} className={t.estado === 'Completada' ? 'opacity-40' : ''} />
+                          {/* E20b: un punto por categoría (hasta 3); apagado si todas sus tareas del día están completadas. */}
+                          {coloresDelDia(tareas.map(color)).map((c) => (
+                            <PuntoCategoria key={c} color={c} className={tareas.every((t) => color(t) !== c || t.estado === 'Completada') ? 'opacity-40' : ''} />
                           ))}
-                          {tareas.length > MAX_PUNTOS && <span className="text-xs leading-none font-semibold text-texto-suave">+{tareas.length - MAX_PUNTOS}</span>}
                         </span>
                       )}
                       {/* Computador ancho: fechas de Semestre y títulos cortos con su hora. */}
@@ -236,6 +255,7 @@ export function CalendarioMes({
         )}
       </section>
 
+      <div className="flex min-w-0 flex-col gap-4">
       <section ref={panelDia} aria-labelledby="titulo-dia" className="scroll-mt-4 flex flex-col gap-3 rounded-2xl border border-borde bg-superficie p-4 shadow-suave sm:p-5">
         <div className="flex items-center justify-between gap-3">
           <h2 id="titulo-dia" className="text-base font-semibold text-texto first-letter:uppercase">
@@ -265,9 +285,10 @@ export function CalendarioMes({
           </ul>
         )}
         {tareasDia.length === 0 && sinEnviarDia.length === 0 ? (
-          <p className="text-sm text-texto-suave">Sin tareas este día.</p>
+          <p key={elegido} className="nova-aparecer text-sm text-texto-suave">Sin tareas este día.</p>
         ) : (
-          <ul className="flex flex-col gap-1">
+          // E20b: la lista aparece suave al cambiar de día.
+          <ul key={elegido} className="nova-aparecer flex flex-col gap-1">
             {tareasDia.map((t) => (
               <li key={t.id}>
                 <CasillaTarea tarea={t} color={color(t)} prefijo="calendario" vencida={estaVencida(t, hoy)} volver={`/nova/calendario?mes=${mes}&dia=${elegido}`} />
@@ -281,6 +302,8 @@ export function CalendarioMes({
           </ul>
         )}
       </section>
+      <ProximosCalendario proximos={proximos} hoy={hoy} categorias={categorias} />
+      </div>
     </div>
   );
 }

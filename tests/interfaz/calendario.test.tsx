@@ -48,12 +48,12 @@ describe('CalendarioMes', () => {
     expect(screen.getByRole('link', { name: 'Agregar' }).getAttribute('href')).toBe('/nova/tareas/nueva?fecha=2026-11-07');
   });
 
-  it('puntos de color (máximo 3 y "+N") y títulos cortos con hora (máximo 2 y "+N más")', () => {
-    const cinco = [t('a', '2026-11-12', { horaInicio: '08:00' }), t('b', '2026-11-12'), t('c', '2026-11-12'), t('d', '2026-11-12'), t('e', '2026-11-12')];
+  it('E20b: un punto por categoría (máximo 3) y títulos cortos con hora (máximo 2 y "+N más")', () => {
+    const cinco = [t('a', '2026-11-12', { horaInicio: '08:00' }), t('b', '2026-11-12'), t('c', '2026-11-12'), t('d', '2026-11-12', { categoria: 'General' }), t('e', '2026-11-12')];
     render(<CalendarioMes {...props({ '2026-11-12': cinco })} />);
     const celda = diaLabel(/^jueves 12 de nov\., 5 tareas/);
-    expect(celda.querySelectorAll('.bg-cat-verde')).toHaveLength(3 + 2); // 3 puntos + 2 títulos
-    expect(within(celda).getByText('+2')).toBeTruthy();
+    const puntos = celda.querySelector('span.xl\\:hidden') as HTMLElement;
+    expect([...puntos.querySelectorAll('[class*="bg-cat-"]')].map((p) => p.className.match(/bg-cat-\w+/)?.[0])).toEqual(['bg-cat-verde', 'bg-cat-gris']);
     expect(within(celda).getByText('8:00 Tarea a')).toBeTruthy();
     expect(within(celda).getByText('+3 más')).toBeTruthy();
   });
@@ -119,5 +119,31 @@ describe('CalendarioMes', () => {
     const lista = within(screen.getByRole("list", { name: "Fechas de Semestre" }));
     expect(lista.getByRole("link", { name: /Corte 1 · Cálculo/ }).getAttribute("href")).toBe("/nova/semestre/m1");
     expect(lista.getByRole("link", { name: /Quiz 1 · Física/ }).getAttribute("href")).toBe("/nova/semestre/m2");
+  });
+
+  it('E20b: el día con fecha de Semestre lleva un contorno; los demás no', () => {
+    const eventos = { '2026-11-10': [{ id: 'c', tipo: 'corte' as const, fecha: '2026-11-10', titulo: 'Corte 1 · Cálculo', materiaId: 'm1' }] };
+    render(<CalendarioMes {...props({})} eventos={eventos} />);
+    expect(diaLabel(/^martes 10 de nov./).querySelector('[data-con-semestre]')?.className).toContain('ring-acento');
+    expect(diaLabel(/^miércoles 11 de nov./).querySelector('[data-con-semestre]')).toBeNull();
+  });
+
+  it('E20b: "Próximos" con tarea, corte o nota, cuándo es y su enlace', () => {
+    const proximos = [
+      { id: 'c', tipo: 'corte' as const, fecha: '2026-11-07', titulo: 'Corte 2 · Cálculo', materiaId: 'm1' },
+      { id: 'a', tipo: 'tarea' as const, fecha: '2026-11-08', titulo: 'Taller', categoria: 'Casa', horaInicio: null },
+    ];
+    render(<CalendarioMes {...props({})} proximos={proximos} />);
+    const seccion = within(screen.getByRole('heading', { name: 'Próximos' }).closest('section') as HTMLElement);
+    const [corte, tarea] = seccion.getAllByRole('link');
+    expect(corte?.textContent).toMatch(/Corte 2 · Cálculo.*Hoy.*Corte/);
+    expect(corte?.getAttribute('href')).toBe('/nova/semestre/m1');
+    expect(tarea?.textContent).toMatch(/Taller.*Mañana.*Tarea/);
+    expect(tarea?.getAttribute('href')).toBe('/nova/calendario?mes=2026-11&dia=2026-11-08');
+  });
+
+  it('E20b: sin nada próximo lo dice', () => {
+    render(<CalendarioMes {...props({})} />);
+    expect(screen.getByText('Nada en los próximos 30 días.')).toBeTruthy();
   });
 });

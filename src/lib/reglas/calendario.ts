@@ -46,3 +46,43 @@ export function semanasDelMes(mes: string): string[][] {
 export function estaVencida(t: { estado: string; fechaLimite: string }, hoy: string): boolean {
   return t.estado !== 'Completada' && t.fechaLimite.slice(0, 10) < hoy;
 }
+
+/** E20b (commit 4): cuántos días hacia adelante mira "Próximos" y cuántos muestra. */
+export const DIAS_PROXIMOS = 30;
+export const MAX_PROXIMOS = 5;
+
+export interface Proximo {
+  id: string;
+  tipo: 'tarea' | 'corte' | 'nota';
+  fecha: string;
+  titulo: string;
+  /** Tarea: su categoría (para el color). Semestre: la materia a la que lleva. */
+  categoria?: string;
+  materiaId?: string;
+  horaInicio?: string | null;
+}
+
+/**
+ * E20b (commit 4, presentación): "Próximos" del Calendario. Las tareas pendientes y las fechas de Semestre desde
+ * hoy, en orden de fecha; el mismo día, primero Semestre (un corte pesa más) y luego las tareas por hora. Como
+ * máximo `max`.
+ */
+export function proximosDelCalendario(
+  tareas: ReadonlyArray<{ id: string; titulo: string; categoria: string; estado: string; fechaLimite: string; horaInicio?: string | null }>,
+  eventos: ReadonlyArray<{ id: string; tipo: 'corte' | 'nota'; fecha: string; titulo: string; materiaId: string }>,
+  hoy: string,
+  max = MAX_PROXIMOS,
+): Proximo[] {
+  const lista: Proximo[] = [
+    ...eventos.filter((e) => e.fecha >= hoy).map((e) => ({ id: e.id, tipo: e.tipo, fecha: e.fecha, titulo: e.titulo, materiaId: e.materiaId })),
+    ...tareas
+      .filter((t) => t.estado !== 'Completada' && t.fechaLimite >= hoy)
+      .map((t) => ({ id: t.id, tipo: 'tarea' as const, fecha: t.fechaLimite, titulo: t.titulo, categoria: t.categoria, horaInicio: t.horaInicio ?? null })),
+  ];
+  const peso = (p: Proximo) => (p.tipo === 'tarea' ? 1 : 0);
+  lista.sort((a, b) => a.fecha.localeCompare(b.fecha) || peso(a) - peso(b) || (a.horaInicio ?? '99').localeCompare(b.horaInicio ?? '99') || a.titulo.localeCompare(b.titulo, 'es'));
+  return lista.slice(0, max);
+}
+
+/** E20b (commit 4): la etiqueta de cada próximo. */
+export const ETIQUETA_PROXIMO: Record<Proximo['tipo'], string> = { tarea: 'Tarea', corte: 'Corte', nota: 'Nota' };
