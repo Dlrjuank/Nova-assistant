@@ -132,6 +132,7 @@ export function CasillaTarea({
       >
         <FormularioMinutos
           id={tarea.id}
+          titulo={tarea.titulo}
           prefijo={`${prefijo}-dialogo`}
           alTerminar={() => setAbierto(false)}
           alCancelar={() => setAbierto(false)}

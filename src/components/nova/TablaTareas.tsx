@@ -1,10 +1,10 @@
 import { AccionesTarea } from '@/components/nova/AccionesTarea';
-import { InsigniaCategoria } from '@/components/nova/InsigniaCategoria';
+import { BORDE_COLOR, InsigniaCategoria } from '@/components/nova/InsigniaCategoria';
 import { InsigniaEstadoTarea } from '@/components/nova/InsigniaEstadoTarea';
 import { InsigniaPrioridad } from '@/components/nova/InsigniaPrioridad';
 import { Insignia } from '@/components/ui/Insignia';
 import type { Tarea } from '@/lib/dataService';
-import { formatearFecha, formatearMinutos } from '@/lib/formato';
+import { formatearFecha } from '@/lib/formato';
 import { estaVencida } from '@/lib/reglas/calendario';
 import { colorDeCategoria } from '@/lib/reglas/categorias';
 import { HorarioTarea } from '@/components/nova/PreferenciasNova';
@@ -73,8 +73,8 @@ export function TablaTareas({
           </thead>
           <tbody className="divide-y divide-borde">
             {tareas.map((t) => (
-              <tr key={t.id} data-tarea-id={t.id} className="align-top">
-                <th scope="row" className="px-4 py-3 font-medium break-words text-texto">
+              <tr key={t.id} data-tarea-id={t.id} className="align-top transition-colors duration-150 hover:bg-superficie-2/50">
+                <th scope="row" className={`px-4 py-3 font-medium break-words ${t.estado === 'Completada' ? 'text-texto-suave' : 'text-texto'}`}>
                   {t.titulo}
                 </th>
                 {!sinCategoria && <td className="px-4 py-3">{insignia(t)}</td>}
@@ -83,14 +83,9 @@ export function TablaTareas({
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex flex-wrap gap-1.5">
-                    <InsigniaEstadoTarea estado={t.estado} />
+                    <InsigniaEstadoTarea estado={t.estado} minutos={t.minutosInvertidos} />
                     {vencida(t)}
                   </div>
-                  {t.estado === 'Completada' && (
-                    <p className="mt-1 whitespace-nowrap text-xs text-texto-suave">
-                      {formatearMinutos(t.minutosInvertidos)}
-                    </p>
-                  )}
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-texto-suave">
                   {formatearFecha(t.fechaLimite)}
@@ -113,11 +108,12 @@ export function TablaTareas({
 
       <ul className="flex flex-col gap-3 sm:hidden">
         {tareas.map((t) => (
-          <li key={t.id} data-tarea-id={t.id} className="rounded-xl border border-borde bg-superficie p-4">
-            <p className="font-semibold text-texto">{t.titulo}</p>
+          // E20b (commit 3): borde izquierdo con el color de la categoría; la completada, con el título atenuado.
+          <li key={t.id} data-tarea-id={t.id} className={`rounded-[20px] border border-l-4 border-borde bg-superficie p-4 shadow-suave ${BORDE_COLOR[colorDeCategoria(t.categoria, categorias)]}`}>
+            <p className={`font-semibold break-words ${t.estado === 'Completada' ? 'text-texto-suave' : 'text-texto'}`}>{t.titulo}</p>
             <div className="mt-2 flex flex-wrap gap-2">
               <InsigniaPrioridad prioridad={t.prioridad} />
-              <InsigniaEstadoTarea estado={t.estado} />
+              <InsigniaEstadoTarea estado={t.estado} minutos={t.minutosInvertidos} />
               {vencida(t)}
             </div>
             <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
@@ -140,12 +136,6 @@ export function TablaTareas({
               </dd>
               <dt className="text-texto-suave">Creada</dt>
               <dd>{formatearFecha(t.fechaCreacion)}</dd>
-              {t.estado === 'Completada' && (
-                <>
-                  <dt className="text-texto-suave">Dedicado</dt>
-                  <dd>{formatearMinutos(t.minutosInvertidos)}</dd>
-                </>
-              )}
             </dl>
             <div className="mt-3">
               <AccionesTarea id={t.id} titulo={t.titulo} completada={t.estado === 'Completada'} prefijo="tarjeta" />

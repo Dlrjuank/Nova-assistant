@@ -24,6 +24,18 @@ export const CASILLA_COLOR: Record<ColorCategoria, string> = {
   gris: 'border-cat-gris checked:bg-cat-gris',
 };
 
+/** E20b (commit 3): el borde izquierdo de las tarjetas de Tareas en el teléfono, con el color de su categoría. */
+export const BORDE_COLOR: Record<ColorCategoria, string> = {
+  terracota: 'border-l-cat-terracota',
+  ambar: 'border-l-cat-ambar',
+  oliva: 'border-l-cat-oliva',
+  verde: 'border-l-cat-verde',
+  azul: 'border-l-cat-azul',
+  violeta: 'border-l-cat-violeta',
+  rosa: 'border-l-cat-rosa',
+  gris: 'border-l-cat-gris',
+};
+
 /** Punto de color de una categoría; decorativo: el nombre siempre va en texto al lado. */
 export function PuntoCategoria({ color, className = '' }: { color: string; className?: string }) {
   const clase = PUNTO_COLOR[esColorCategoria(color) ? color : 'gris'];

@@ -59,6 +59,7 @@ export function AccionesTarea({
     return (
       <FormularioMinutos
         id={id}
+        titulo={titulo}
         prefijo={prefijo}
         alTerminar={() => setModo('inicial')}
         alCancelar={() => setModo('inicial')}

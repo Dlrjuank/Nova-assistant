@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
+import { Celebracion } from '@/components/nova/Celebracion';
 import { ConexionNova } from '@/components/nova/ConexionNova';
 import { NavegacionNova } from '@/components/nova/NavegacionNova';
 import { tieneAccesoNova } from '@/lib/auth/acceso';
@@ -35,6 +36,8 @@ export default async function NovaLayout({ children }: Readonly<{ children: Reac
             <ConexionNova />
             {children}
           </main>
+          {/* E20b (commit 3): el aviso al completar una tarea, fuera de <main> para no entrar en su escalonado. */}
+          <Celebracion />
         </div>
       </ProveedorPendientes>
     </ProveedorPreferencias>

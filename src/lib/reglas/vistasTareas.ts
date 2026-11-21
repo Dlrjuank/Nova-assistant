@@ -68,6 +68,18 @@ export function textoVacio(vista: Vista, categoria: string | null): string {
   return vista === 'todas' ? `No hay tareas en «${categoria}»` : `${base[vista]} en «${categoria}»`;
 }
 
+/** E20b (commit 3): la línea amable bajo el título de una vista vacía. */
+export function descripcionVacio(vista: Vista): string {
+  const textos: Record<Vista, string> = {
+    todas: 'Registra tu primera tarea y aquí la verás, agrupada por categoría.',
+    hoy: 'Hoy no vence nada. Buen momento para adelantar algo.',
+    importantes: 'Nada urgente por ahora.',
+    completadas: 'Cuando completes una tarea, aparecerá aquí con su tiempo.',
+    vencidas: 'Vas al día con tus fechas límite.',
+  };
+  return textos[vista];
+}
+
 export interface GrupoCategoria<T> {
   nombre: string;
   color: ColorCategoria;

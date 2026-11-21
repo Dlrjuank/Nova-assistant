@@ -1,3 +1,4 @@
+import { CircleCheckBig, Flag, ListTodo, PartyPopper, Sun, type LucideIcon } from 'lucide-react';
 import Link from 'next/link';
 import { FilaCategorias } from '@/components/nova/FilaCategorias';
 import { GruposTareas } from '@/components/nova/GruposTareas';
@@ -11,6 +12,7 @@ import { Pestanas } from '@/components/ui/Pestanas';
 import { exigirSesion, listarCategorias, listarTareas } from '@/lib/dataService';
 import { hoyBogota } from '@/lib/reglas/fechas';
 import {
+  descripcionVacio,
   filtroDeVista,
   PESTANAS_TAREAS,
   TEXTO_VISTA,
@@ -21,6 +23,9 @@ import {
 import { hrefTareas } from '@/lib/rutasTareas';
 
 export const dynamic = 'force-dynamic';
+
+/** E20b (commit 3): el ícono de cada vista vacía. */
+const ICONO_VACIO: Record<Vista, LucideIcon> = { todas: ListTodo, hoy: Sun, importantes: Flag, completadas: CircleCheckBig, vencidas: PartyPopper };
 
 const uno = (v: string | string[] | undefined) => (typeof v === 'string' ? v : undefined);
 
@@ -89,11 +94,8 @@ export default async function TareasPage({
         <SoloSinPendientes>
           <EstadoVacio
             titulo={textoVacio(vista, categoria)}
-            descripcion={
-              vista === 'vencidas'
-                ? 'Vas al día con tus fechas límite.'
-                : 'Registra una tarea y aparecerá aquí.'
-            }
+            descripcion={descripcionVacio(vista)}
+            icono={ICONO_VACIO[vista]}
             accion={
               <Link href="/nova/tareas/nueva" className={claseBoton('primario')}>
                 Registrar tarea

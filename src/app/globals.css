@@ -194,6 +194,7 @@ html {
   ::before,
   ::after {
     animation-duration: 0.01ms !important;
+    animation-delay: 0s !important; /* E20b: sin esperas; todo aparece ya en su estado final */
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
@@ -347,4 +348,63 @@ html:has([data-nova-fondo]) body {
 }
 .nova-anillo {
   animation: nova-anillo 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) 0.15s both;
+}
+
+/*
+ * E20b (commit 3): la celebración al completar una tarea. El aviso sube con un pequeño rebote, el check se dibuja
+ * y seis destellos salen del círculo y se apagan. Con "reducir movimiento" la regla global los deja en su final:
+ * el aviso quieto, el check completo y los destellos apagados.
+ */
+@keyframes nova-celebrar {
+  0% {
+    opacity: 0;
+    transform: translateY(16px) scale(0.92);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-3px) scale(1.02);
+  }
+  100% {
+    transform: none;
+  }
+}
+.nova-celebrar {
+  animation: nova-celebrar 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@keyframes nova-trazo-check {
+  from {
+    stroke-dashoffset: 24;
+  }
+}
+.nova-trazo-check {
+  stroke-dasharray: 24;
+  animation: nova-trazo-check 0.35s ease-out 0.2s both;
+}
+@keyframes nova-destello {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(var(--nova-angulo)) translateY(0) scale(0.4);
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(var(--nova-angulo)) translateY(-26px) scale(1);
+  }
+}
+.nova-destello {
+  opacity: 0;
+  animation: nova-destello 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) 0.25s both;
+}
+
+/* E20b (commit 3): la barra de avance de cada grupo de Tareas se llena al aparecer, hasta --nova-avance. */
+@keyframes nova-avance {
+  from {
+    transform: scaleX(0);
+  }
+}
+.nova-avance {
+  transform-origin: left;
+  animation: nova-avance 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) 0.15s both;
 }

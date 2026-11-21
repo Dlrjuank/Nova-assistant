@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { Boton } from '@/components/ui/Boton';
 import { Campo } from '@/components/ui/Campo';
+import { celebrar } from '@/lib/celebracion';
 import { MENSAJES } from '@/lib/reglas/errores';
 
 /**
@@ -17,8 +18,11 @@ export function FormularioMinutos({
   alTerminar,
   alCancelar,
   enfocar = true,
+  titulo,
 }: {
   id: string;
+  /** E20b: para la celebración al completarla. */
+  titulo: string;
   /** Distingue los ids cuando la misma tarea aparece dos veces en la página. */
   prefijo: string;
   alTerminar: () => void;
@@ -47,6 +51,7 @@ export function FormularioMinutos({
         setError(cuerpo.error?.mensaje ?? MENSAJES.ERROR_INTERNO);
         return;
       }
+      celebrar({ titulo, minutos: Number(minutos) }); // E20b: el aviso vive en el layout
       alTerminar();
       router.refresh();
     } catch {

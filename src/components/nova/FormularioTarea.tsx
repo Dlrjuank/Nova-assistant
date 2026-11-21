@@ -176,6 +176,8 @@ export function FormularioTarea({
 
   const [tocados, setTocados] = useState<Partial<Record<Campos, boolean>>>({});
   const [enviando, setEnviando] = useState(false);
+  // E20b (commit 3): guardada; el botón dice "Guardada" con un check mientras vuelve a la pantalla anterior.
+  const [guardada, setGuardada] = useState(false);
   const [errorServidor, setErrorServidor] = useState('');
 
   const errores = validar(valores);
@@ -222,6 +224,7 @@ export function FormularioTarea({
         await almacenDispositivo.borrar(idCliente).catch(() => undefined);
         if (datos.recordatorio && cuerpo.datos?.recordatorioEstado === 'omitido') avisar(textoRecordatorioPasado(datos.titulo));
       }
+      setGuardada(true);
       router.push(volver);
       router.refresh();
     } catch (error) {
@@ -256,6 +259,7 @@ export function FormularioTarea({
       return;
     }
     avisar(GUARDADA_EN_DISPOSITIVO, true);
+    setGuardada(true);
     // Sin conexión, una carga completa (la sirve el service worker desde la copia): la navegación de Next sin
     // red a veces no cambia de pantalla.
     if (typeof navigator !== 'undefined' && !navigator.onLine) cargarPagina(volver);
@@ -357,7 +361,7 @@ export function FormularioTarea({
       {errorServidor && <Aviso tipo="error">{errorServidor}</Aviso>}
 
       <div className="flex flex-wrap gap-3">
-        <Boton type="submit" cargando={enviando}>
+        <Boton type="submit" cargando={enviando} listo={guardada} textoListo={tarea ? 'Cambios guardados' : 'Guardada'}>
           {tarea ? 'Guardar cambios' : 'Guardar tarea'}
         </Boton>
         <Boton variante="secundario" onClick={() => router.push(volver)}>

@@ -14,6 +14,19 @@ import {
   textoVencida,
 } from '@/lib/reglas/inicio';
 import { coloresDelDia, diaInicialSemana } from '@/lib/reglas/semana';
+import { detalleCelebracion } from '@/lib/celebracion';
+import { descripcionVacio } from '@/lib/reglas/vistasTareas';
+
+describe('Tareas (E20b, commit 3): textos', () => {
+  it('la línea de la celebración', () => {
+    expect(detalleCelebracion({ titulo: ' Ensayo ', minutos: 0 })).toBe('Ensayo');
+    expect(detalleCelebracion({ titulo: 'Ensayo', minutos: 125 })).toBe('Ensayo · 2 h 5 min');
+  });
+  it('cada vista vacía tiene su línea amable', () => {
+    expect(descripcionVacio('vencidas')).toBe('Vas al día con tus fechas límite.');
+    expect(descripcionVacio('hoy')).toBe('Hoy no vence nada. Buen momento para adelantar algo.');
+  });
+});
 
 describe('Inicio: saludo y fecha', () => {
   it('saludo según la hora de Bogotá', () => {
