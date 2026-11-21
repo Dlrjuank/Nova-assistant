@@ -9,8 +9,8 @@
   /** Al navegar con el menú, una copia más nueva que esto no se vuelve a pedir (no se arma la página otra vez). */
   var COPIA_RECIENTE_MS = 5 * 60 * 1000;
   var CAPITULOS = /^\/nova\/fuentes\/[0-9a-f-]{36}\/capitulos$/i;
-  /** E19b (RB-87): Semestre (Materias y notas, Objetivos y plan) y la página de cada materia. */
-  var SEMESTRE = /^\/nova\/semestre(\/objetivos|\/[0-9a-f-]{36})?$/i;
+  /** E19b (RB-87): Semestre (Materias y notas, Objetivos y plan, Estadísticas desde E20) y la página de cada materia. */
+  var SEMESTRE = /^\/nova\/semestre(\/objetivos|\/estadisticas|\/[0-9a-f-]{36})?$/i;
   /** E11e (5.13): el formulario para crear una tarea, que funciona sin conexión. */
   var NUEVA_TAREA = '/nova/tareas/nueva';
 

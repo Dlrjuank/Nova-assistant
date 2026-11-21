@@ -1,6 +1,6 @@
 // @vitest-environment node
 // E18 (9.2 a 9.4; RB-19, RB-20, RB-22, RB-23): el plan de estudio con la base y Gemini simulados, y sus rutas.
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const U = '11111111-1111-4111-8111-111111111111';
 const MAT = '22222222-2222-4222-8222-222222222222';
@@ -258,6 +258,13 @@ describe('versiones y huella (9.4, RB-23)', () => {
 });
 
 describe('rutas (sección 10)', () => {
+  // Las rutas usan la fecha real de hoy: se fija la de la prueba para que los pasos del plan no queden en el pasado.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(`${HOY}T15:00:00Z`));
+  });
+  afterEach(() => vi.useRealTimers());
+
   it('generar responde 201; ver una versión con ?version=; un número inválido, 400', async () => {
     m.json.mockResolvedValueOnce(planValido);
     const r = await rutaGenerar.POST(peticion(), contexto());

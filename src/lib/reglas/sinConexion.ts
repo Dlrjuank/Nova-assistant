@@ -16,8 +16,8 @@ export const ATRIBUTO_PERMITIDO = 'data-sin-conexion';
 export const ESPERA_GUARDAR_MS = 2000;
 
 const CAPITULOS =/^\/nova\/fuentes\/[0-9a-f-]{36}\/capitulos$/i;
-/** E19b (RB-87): Semestre (Materias y notas, Objetivos y plan) y la página de cada materia. */
-const SEMESTRE = /^\/nova\/semestre(\/objetivos|\/[0-9a-f-]{36})?$/i;
+/** E19b (RB-87): Semestre (Materias y notas, Objetivos y plan, Estadísticas desde E20) y la página de cada materia. */
+const SEMESTRE = /^\/nova\/semestre(\/objetivos|\/estadisticas|\/[0-9a-f-]{36})?$/i;
 
 /**
  * E11b: ¿el pedido falló por no tener internet (o no llegar al servidor)? `fetch` lo dice con un TypeError; una

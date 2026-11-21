@@ -48,6 +48,7 @@ describe('sin conexión: lo atenuado coincide con lo bloqueado', () => {
     // E19b (RB-87): Semestre se puede ver sin conexión.
     '/nova/semestre',
     '/nova/semestre/objetivos',
+    '/nova/semestre/estadisticas',
     `/nova/semestre/objetivos?materia=${DOC}`,
     `/nova/semestre/${DOC}`,
     `/nova/tareas?tarea=${DOC}`,

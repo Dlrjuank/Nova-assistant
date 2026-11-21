@@ -32,7 +32,7 @@ const FIN_DE_MES = new Date('2026-12-01T03:00:00Z');
 const DOC = '22222222-2222-4222-8222-222222222222';
 
 describe('S-68: qué se puede guardar (RB-62)', () => {
-  const guardables = ['/nova', '/nova?semana=2026-11-09', '/nova/tareas', '/nova/tareas?vista=hoy&categoria=Casa', '/nova/calendario', '/nova/calendario?mes=2026-11', `/nova/fuentes/${DOC}/capitulos`, '/nova/tareas/nueva', '/nova/tareas/nueva?fecha=2026-11-20', '/nova/semestre', '/nova/semestre/objetivos', `/nova/semestre/objetivos?materia=${DOC}`, `/nova/semestre/${DOC}`]; // E11e: el formulario de nueva tarea; E19b (S-89): Semestre
+  const guardables = ['/nova', '/nova?semana=2026-11-09', '/nova/tareas', '/nova/tareas?vista=hoy&categoria=Casa', '/nova/calendario', '/nova/calendario?mes=2026-11', `/nova/fuentes/${DOC}/capitulos`, '/nova/tareas/nueva', '/nova/tareas/nueva?fecha=2026-11-20', '/nova/semestre', '/nova/semestre/objetivos', '/nova/semestre/estadisticas', `/nova/semestre/objetivos?materia=${DOC}`, `/nova/semestre/${DOC}`]; // E11e: el formulario de nueva tarea; E19b (S-89): Semestre
   const nunca = [
     '/nova/asistente',
     '/nova/calendario?mes=2026-10',
@@ -47,7 +47,6 @@ describe('S-68: qué se puede guardar (RB-62)', () => {
     '/api/nova/tareas',
     '/api/nova/documentos',
     '/login',
-    '/nova/semestre/estadisticas', // E20 decidirá si se guarda
     '/nova/semestre/otra-cosa',
     `/nova/semestre/${DOC}/editar`,
   ];
