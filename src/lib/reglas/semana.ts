@@ -90,3 +90,18 @@ export const MAX_TAREAS_COLUMNA = 4;
 export function textoVencidas(n: number): string {
   return n === 1 ? '1 tarea vencida' : `${n} tareas vencidas`;
 }
+
+/**
+ * E20b (pedido del usuario): el día que Mi semana muestra al abrir una semana en el teléfono. En la semana de
+ * hoy, hoy; en otra, el primer día con tareas y, si no tiene ninguna, el lunes.
+ */
+export function diaInicialSemana(dias: readonly string[], hoy: string, cantidad: (fecha: string) => number): string {
+  if (dias.includes(hoy)) return hoy;
+  return dias.find((d) => cantidad(d) > 0) ?? (dias[0] as string);
+}
+
+/** Puntos bajo cada día de Mi semana (pedido del usuario): los colores de sus categorías, sin repetir, hasta 3. */
+export const MAX_PUNTOS_DIA = 3;
+export function coloresDelDia<C extends string>(colores: readonly C[]): C[] {
+  return [...new Set(colores)].slice(0, MAX_PUNTOS_DIA);
+}

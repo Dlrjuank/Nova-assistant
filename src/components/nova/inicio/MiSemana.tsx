@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { CLASE_FOCO } from '@/components/ui/Boton';
 import { colorDeCategoria } from '@/lib/reglas/categorias';
-import { DIAS_CORTOS, MAX_TAREAS_COLUMNA, nombreDia } from '@/lib/reglas/semana';
+import { coloresDelDia, diaInicialSemana, DIAS_CORTOS, MAX_TAREAS_COLUMNA, nombreDia } from '@/lib/reglas/semana';
 import { estaVencida } from '@/lib/reglas/calendario';
+import { PUNTO_COLOR } from '@/components/nova/InsigniaCategoria';
 import { CasillaTarea, type TareaCasilla } from './CasillaTarea';
 import { usePendientes } from '@/components/nova/pendientes/ProveedorPendientes';
 import { TareaPendienteFila } from '@/components/nova/pendientes/TareaPendienteFila';
@@ -38,7 +39,9 @@ export function MiSemana({
   /** Enlace a la semana actual, solo si se está viendo otra. */
   actual: string | null;
 }) {
-  const [elegido, setElegido] = useState(() => (dias.includes(hoy) ? hoy : (dias[0] as string)));
+  // E20b: al cambiar de semana el componente sigue montado; si el día elegido no es de esta semana, vale el
+  // día inicial (hoy en la semana actual; en otra, el primer día con tareas o el lunes).
+  const [eleccion, setElegido] = useState<string | null>(null);
   // Columnas del computador con más de MAX_TAREAS_COLUMNA tareas que el usuario abrió con "+N más".
   const [abiertos, setAbiertos] = useState<ReadonlySet<string>>(new Set());
   const alternar = (fecha: string) =>
@@ -52,6 +55,16 @@ export function MiSemana({
   // E11e (RB-71): las creadas sin conexión, en su día, después de las guardadas y sin casilla.
   const { lista: pendientes } = usePendientes();
   const pendientesDe = (fecha: string) => pendientes.filter((t) => t.datos.fechaLimite === fecha);
+  const cantidadDe = (fecha: string) => (porDia[fecha]?.length ?? 0) + pendientesDe(fecha).length;
+  const [semana, setSemana] = useState(dias[0]);
+  if (semana !== dias[0]) {
+    // Otra semana: el día se elige una sola vez al llegar, y no salta si después cambian sus tareas.
+    setSemana(dias[0]);
+    setElegido(diaInicialSemana(dias, hoy, cantidadDe));
+  }
+  const elegido = eleccion !== null && dias.includes(eleccion) ? eleccion : diaInicialSemana(dias, hoy, cantidadDe);
+  const coloresDe = (fecha: string) =>
+    coloresDelDia([...(porDia[fecha] ?? []).map(color), ...pendientesDe(fecha).map((t) => colorDeCategoria(t.datos.categoria, categorias))]);
   const lista = (fecha: string, prefijo: string, compacta: boolean) => {
     const tareas = porDia[fecha] ?? [];
     const sinEnviar = pendientesDe(fecha);
@@ -149,7 +162,7 @@ export function MiSemana({
         <div role="group" aria-label="Elegir día" className="grid grid-cols-7 gap-1">
           {dias.map((fecha, i) => {
             const activo = fecha === elegido;
-            const cantidad = (porDia[fecha]?.length ?? 0) + pendientesDe(fecha).length;
+            const cantidad = cantidadDe(fecha);
             return (
               <button
                 key={fecha}
@@ -166,7 +179,12 @@ export function MiSemana({
                 <span aria-hidden="true" className="text-base font-semibold">
                   {numeroDia(fecha)}
                 </span>
-                <span aria-hidden="true" className={`size-1.5 rounded-full ${cantidad ? (activo ? 'bg-acento-texto' : 'bg-acento') : 'bg-transparent'}`} />
+                {/* E20b (pedido del usuario): un punto por categoría del día, con su color, como en el Calendario. */}
+                <span aria-hidden="true" data-puntos-dia className="flex h-1.5 items-center gap-0.5">
+                  {coloresDe(fecha).map((c) => (
+                    <span key={c} className={`size-1.5 rounded-full ${PUNTO_COLOR[c]} ${activo ? 'ring-1 ring-acento-texto' : ''}`} />
+                  ))}
+                </span>
               </button>
             );
           })}

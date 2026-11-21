@@ -133,6 +133,32 @@ describe('MiSemana', () => {
     fireEvent.click(within(grupo).getByRole('button', { name: 'lunes 2 de nov., sin tareas' }));
     expect(screen.getByRole('heading', { level: 3 }).textContent).toBe('lunes 2 de nov.');
   });
+
+  it('E20b: al cambiar de semana elige el primer día con tareas (o el lunes) y "Esta semana" vuelve a hoy', () => {
+    const { rerender } = render(<MiSemana {...props} actual={null} />);
+    const titulo = () => screen.getByRole('heading', { level: 3 }).textContent;
+    fireEvent.click(screen.getByRole('button', { name: 'lunes 2 de nov., sin tareas' }));
+    const SIG = ['2026-11-09', '2026-11-10', '2026-11-11', '2026-11-12', '2026-11-13', '2026-11-14', '2026-11-15'];
+    rerender(<MiSemana {...props} dias={SIG} porDia={{ '2026-11-12': [tarea('c')] }} actual="/nova" />);
+    expect(titulo()).toBe('jueves 12 de nov.');
+    expect(screen.getByRole('button', { name: 'jueves 12 de nov., 1 tarea' }).getAttribute('aria-pressed')).toBe('true');
+    rerender(<MiSemana {...props} dias={SIG} porDia={{}} actual="/nova" />);
+    expect(titulo()).toBe('jueves 12 de nov.'); // la misma semana conserva lo elegido
+    const OTRA = SIG.map((d) => d.replace('-11-', '-12-').replace(/(\d\d)$/, (x) => String(Number(x) - 2).padStart(2, '0')));
+    rerender(<MiSemana {...props} dias={OTRA} porDia={{}} actual="/nova" />);
+    expect(titulo()).toBe('lunes 7 de dic.');
+    rerender(<MiSemana {...props} actual={null} />);
+    expect(titulo()).toBe('miércoles 4 de nov.');
+  });
+
+  it('E20b: bajo cada día, un punto por categoría con su color, hasta 3', () => {
+    const cats = [...CATEGORIAS, { nombre: 'U', color: 'azul' }, { nombre: 'V', color: 'verde' }, { nombre: 'W', color: 'rosa' }];
+    const con = (id: string, categoria: string) => ({ ...tarea(id), categoria });
+    const porDia = { '2026-11-03': [con('1', 'Casa'), con('2', 'Casa')], '2026-11-05': [con('3', 'Casa'), con('4', 'U'), con('5', 'V'), con('6', 'W')] };
+    const { container } = render(<MiSemana {...props} categorias={cats} porDia={porDia} actual={null} />);
+    const puntos = [...container.querySelectorAll('[data-puntos-dia]')].map((p) => [...p.children].map((c) => c.className.match(/bg-cat-\w+/)?.[0]));
+    expect(puntos).toEqual([[], ['bg-cat-terracota'], [], ['bg-cat-terracota', 'bg-cat-azul', 'bg-cat-verde'], [], [], []]);
+  });
 });
 
 describe('ProgresoSemanal y PrioridadesHoy', () => {

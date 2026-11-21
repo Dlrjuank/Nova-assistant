@@ -13,6 +13,7 @@ import {
   textoTiempo,
   textoVencida,
 } from '@/lib/reglas/inicio';
+import { coloresDelDia, diaInicialSemana } from '@/lib/reglas/semana';
 
 describe('Inicio: saludo y fecha', () => {
   it('saludo según la hora de Bogotá', () => {
@@ -39,6 +40,19 @@ describe('Inicio: saludo y fecha', () => {
     expect(resumenDelDia(1, 0)).toBe('Hoy tienes 1 tarea pendiente.');
     expect(resumenDelDia(0, 3)).toBe('Hoy no tienes tareas pendientes, pero tienes 3 vencidas.');
     expect(resumenDelDia(0, 0)).toBe('Hoy no tienes tareas pendientes.');
+  });
+});
+
+describe('Mi semana: día inicial y puntos (pedido del usuario)', () => {
+  const dias = ['2026-11-23', '2026-11-24', '2026-11-25', '2026-11-26', '2026-11-27', '2026-11-28', '2026-11-29'];
+  it('hoy en su semana; en otra, el primer día con tareas o el lunes', () => {
+    expect(diaInicialSemana(dias, '2026-11-25', () => 0)).toBe('2026-11-25');
+    expect(diaInicialSemana(dias, '2026-11-21', (d) => (d >= '2026-11-26' ? 1 : 0))).toBe('2026-11-26');
+    expect(diaInicialSemana(dias, '2026-11-21', () => 0)).toBe('2026-11-23');
+  });
+  it('colores sin repetir, hasta 3', () => {
+    expect(coloresDelDia(['azul', 'azul', 'verde', 'rosa', 'gris'])).toEqual(['azul', 'verde', 'rosa']);
+    expect(coloresDelDia([])).toEqual([]);
   });
 });
 
