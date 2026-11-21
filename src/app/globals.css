@@ -338,3 +338,13 @@ html:has([data-nova-fondo]) body {
 :root[data-lateral='plegada'] .nova-solo-desplegada {
   display: none;
 }
+
+/* E20b (commit 2): el anillo de progreso se llena al aparecer, desde vacío (--nova-anillo-desde) hasta su valor. */
+@keyframes nova-anillo {
+  from {
+    stroke-dashoffset: var(--nova-anillo-desde);
+  }
+}
+.nova-anillo {
+  animation: nova-anillo 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) 0.15s both;
+}

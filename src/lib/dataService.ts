@@ -143,6 +143,7 @@ export { mesDeTareas, type Mes } from '@/lib/datos/calendario';
 export { actualizarCategoria, crearCategoria, eliminarCategoria, listarCategorias } from '@/lib/datos/categorias';
 export { estadisticasSemestre } from '@/lib/datos/estadisticas';
 export { avisosNavegacion } from '@/lib/datos/avisos';
+export { resumenInicio, type ResumenInicio } from '@/lib/datos/inicio';
 export { crearTema, documentosDeMaterias, editarTema, eliminarTema, listarTemas, proponerTemas, type Tema } from '@/lib/datos/temas';
 export { generarPlan, guardarVersionManual, obtenerPlan, pasarPasoATarea, planesDeMateria, restaurarVersion, type PlanCorte, type ResumenVersion, type VersionPlan } from '@/lib/datos/planEstudio';
 export { crearMetaSemanal, eliminarMetaSemanal, listarMetasSemanales, type MetaConProgreso, type MetasDeLaSemana } from '@/lib/datos/metasSemanales';

@@ -1,13 +1,16 @@
 'use client';
 
+import { Check } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { Dialogo } from '@/components/ui/Dialogo';
+import { CLASE_FOCO } from '@/components/ui/Boton';
 import { EnlaceEditarTarea } from '@/components/nova/EnlaceEditarTarea';
 import { FormularioMinutos } from '@/components/nova/FormularioMinutos';
-import { InsigniaCategoria } from '@/components/nova/InsigniaCategoria';
+import { CASILLA_COLOR, InsigniaCategoria } from '@/components/nova/InsigniaCategoria';
 import { InsigniaPrioridad } from '@/components/nova/InsigniaPrioridad';
 import { Insignia } from '@/components/ui/Insignia';
 import { useFormatoHora } from '@/components/nova/PreferenciasNova';
+import { esColorCategoria } from '@/lib/reglas/categorias';
 import { formatearHorario } from '@/lib/reglas/horario';
 
 export interface TareaCasilla {
@@ -49,18 +52,22 @@ export function CasillaTarea({
   const completada = tarea.estado === 'Completada';
   const id = `${prefijo}-casilla-${tarea.id}`;
 
+  // E20b: la casilla lleva el color de su categoría y se rellena con él al completarla (pedido en la presentación).
   const entrada = (
-    <input
-      ref={casilla}
-      id={id}
-      type="checkbox"
-      checked={completada}
-      disabled={completada}
-      // Controlada: marcarla no la completa sola; abre el diálogo de minutos.
-      onChange={() => setAbierto(true)}
-      aria-label={completada ? `${tarea.titulo}: completada` : `Completar «${tarea.titulo}»`}
-      className="mt-0.5 size-5 shrink-0 cursor-pointer accent-acento disabled:cursor-default"
-    />
+    <span className="relative mt-0.5 flex size-5 shrink-0">
+      <input
+        ref={casilla}
+        id={id}
+        type="checkbox"
+        checked={completada}
+        disabled={completada}
+        // Controlada: marcarla no la completa sola; abre el diálogo de minutos.
+        onChange={() => setAbierto(true)}
+        aria-label={completada ? `${tarea.titulo}: completada` : `Completar «${tarea.titulo}»`}
+        className={`peer size-5 cursor-pointer appearance-none rounded-md border-2 bg-superficie transition-colors duration-150 disabled:cursor-default ${CASILLA_COLOR[esColorCategoria(color) ? color : 'gris']} ${CLASE_FOCO}`}
+      />
+      <Check aria-hidden="true" strokeWidth={3.5} className="pointer-events-none absolute inset-0 m-auto size-3.5 text-superficie opacity-0 peer-checked:opacity-100" />
+    </span>
   );
   const horario = formatearHorario(tarea, formatoHora);
   const titulo = (

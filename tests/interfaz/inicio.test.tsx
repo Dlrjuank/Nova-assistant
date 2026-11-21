@@ -10,6 +10,8 @@ import { CasillaTarea } from '@/components/nova/inicio/CasillaTarea';
 import { MiSemana } from '@/components/nova/inicio/MiSemana';
 import { PrioridadesHoy } from '@/components/nova/inicio/PrioridadesHoy';
 import { ProgresoSemanal } from '@/components/nova/inicio/ProgresoSemanal';
+import { ProximoCorte, SaludoInicio, TarjetasInicio } from '@/components/nova/inicio/ResumenInicio';
+import { PreguntaleANova } from '@/components/nova/PreguntaleANova';
 
 const CATEGORIAS = [{ nombre: 'Casa', color: 'terracota' }];
 const tarea = (id: string, estado = 'Pendiente', titulo = `Tarea ${id}`, prioridad = 2) => ({ id, titulo, categoria: 'Casa', prioridad, estado });
@@ -136,7 +138,10 @@ describe('MiSemana', () => {
 describe('ProgresoSemanal y PrioridadesHoy', () => {
   it('el porcentaje va también en texto, con los contadores', () => {
     render(<ProgresoSemanal progreso={{ total: 4, completadas: 2, pendientes: 2, porcentaje: 50 }} />);
-    expect(screen.getByText(/50 %/).textContent).toContain('de las tareas de la semana completadas');
+    // E20b: el número cuenta (oculto para lectores de pantalla) y al lado va el valor en texto.
+    const anillo = screen.getByText(/de las tareas de la semana completadas/).closest('p') as HTMLElement;
+    expect(anillo.textContent).toMatch(/50 %/);
+    expect(screen.getByText('Faltan 2')).toBeTruthy();
     expect(screen.getByText('Completadas').nextElementSibling?.textContent).toBe('2');
     expect(screen.getByText('Total').nextElementSibling?.textContent).toBe('4');
   });
@@ -144,6 +149,12 @@ describe('ProgresoSemanal y PrioridadesHoy', () => {
   it('sin tareas en la semana lo dice', () => {
     render(<ProgresoSemanal progreso={{ total: 0, completadas: 0, pendientes: 0, porcentaje: 0 }} />);
     expect(screen.getByText('No hay tareas con fecha límite en esta semana.')).toBeTruthy();
+    expect(screen.queryByText(/Falta/)).toBeNull();
+  });
+
+  it('E20b: con todas completadas dice "Semana completa"', () => {
+    render(<ProgresoSemanal progreso={{ total: 3, completadas: 3, pendientes: 0, porcentaje: 100 }} />);
+    expect(screen.getByText('Semana completa')).toBeTruthy();
   });
 
   it('"Agregar" abre el formulario con la fecha de hoy; las vencidas enlazan a Tareas', () => {
@@ -164,5 +175,56 @@ describe('FormularioTarea con ?fecha=', () => {
   it('la fecha que llega desde Inicio queda puesta en el campo', () => {
     render(<FormularioTarea fechaInicial="2026-11-07" />);
     expect((screen.getByLabelText('Fecha límite') as HTMLInputElement).value).toBe('2026-11-07');
+  });
+});
+
+describe('E20b: Inicio nuevo', () => {
+  it('la casilla lleva el color de su categoría (borde y relleno al completarla); sin color conocido, gris', () => {
+    render(<CasillaTarea tarea={tarea('1')} color="azul" prefijo="c" />);
+    const casilla = screen.getByRole('checkbox', { name: 'Completar «Tarea 1»' });
+    expect(casilla.className).toContain('border-cat-azul');
+    expect(casilla.className).toContain('checked:bg-cat-azul');
+    cleanup();
+    render(<CasillaTarea tarea={tarea('2', 'Completada')} color="inventado" prefijo="c" />);
+    const hecha = screen.getByRole('checkbox', { name: 'Tarea 2: completada' }) as HTMLInputElement;
+    expect(hecha.checked).toBe(true);
+    expect(hecha.className).toContain('border-cat-gris');
+  });
+
+  it('"Pregúntale a Nova" con un ejemplo corto y el botón "Preguntar" (solo ícono en el teléfono)', () => {
+    render(<PreguntaleANova />);
+    expect(screen.getByLabelText('Tu pregunta para Nova').getAttribute('placeholder')).toBe('¿Qué tengo esta semana?');
+    expect(screen.getByRole('button', { name: 'Preguntar' })).toBeTruthy();
+  });
+
+  it('saludo con el primer nombre, tarjetas de números enlazadas y el próximo corte', () => {
+    const resumen = {
+      nombre: 'Valentina Ruiz',
+      hoy: { total: 3, pendientes: 2, conHorario: 1 },
+      vencidaMasAntigua: { titulo: 'Ensayo', fecha: '2026-11-20' },
+      minutosPorDia: [30, 0, 0, 0, 0, 45, 0],
+      minutosHastaHoy: 75,
+      minutosSemanaPasada: 60,
+      promedio: { actual: 39, asegurado: 26, materias: 4, aprobar: 30 },
+      proximoCorte: { materiaId: 'm1', materia: 'Cálculo', corte: 'Corte 2', fecha: '2026-11-24', porcentaje: 3000, texto: 'Necesitas al menos 4,3 en lo que falta para llegar a 4,0.' },
+    };
+    render(
+      <>
+        <SaludoInicio nombre={resumen.nombre} hora={15} hoy="2026-11-21" pendientesHoy={2} vencidas={1} />
+        <TarjetasInicio resumen={resumen} hoy="2026-11-21" hoyTotal={3} hoyPendientes={2} hoyConHorario={1} vencidas={1} />
+        <ProximoCorte corte={resumen.proximoCorte} hoy="2026-11-21" />
+      </>,
+    );
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Buenas tardes, Valentina.');
+    expect(screen.getByText('Sábado 21 de noviembre · semana 47')).toBeTruthy();
+    expect(screen.getByText('Hoy tienes 2 tareas pendientes y 1 vencida.')).toBeTruthy();
+    const tarjetas = within(screen.getByRole('list', { name: 'Tu día en números' })).getAllByRole('link');
+    expect(tarjetas.map((a) => a.getAttribute('href'))).toEqual(['/nova/tareas?vista=hoy', '/nova/tareas?vista=vencidas', '/nova/productividad', '/nova/semestre']);
+    expect(tarjetas[1]?.textContent).toContain('Ensayo, desde ayer');
+    expect(tarjetas[2]?.textContent).toContain('+15 min');
+    expect(tarjetas[3]?.textContent).toContain('Asegurado 2,6 · 4 materias');
+    expect(screen.getByRole('heading', { name: 'Cálculo · Corte 2' })).toBeTruthy();
+    expect(screen.getByText(/El martes 24 · 30 %\. Necesitas al menos 4,3/)).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Ver la materia' }).getAttribute('href')).toBe('/nova/semestre/m1');
   });
 });
