@@ -7,8 +7,11 @@ export type Tema = 'claro' | 'oscuro' | 'automatico';
 
 export const CLAVE_TEMA = 'nova-tema';
 
+/** E20b: la barra lateral del computador plegada a solo íconos ("plegada") o no, recordada en el navegador. */
+export const CLAVE_LATERAL = 'nova-lateral';
+
 /** E11b: el fondo de Nova de cada modo (--nova-fondo), para la barra del navegador y la de estado del iPhone. */
-export const COLOR_FONDO = { claro: '#faf6f0', oscuro: '#1a1613' } as const;
+export const COLOR_FONDO = { claro: '#f3ede4', oscuro: '#14110f' } as const;
 
 export function esTema(valor: unknown): valor is Tema {
   return valor === 'claro' || valor === 'oscuro' || valor === 'automatico';
@@ -23,7 +26,7 @@ export function atributoTema(guardado: string | null): 'claro' | 'oscuro' | null
  * Script mínimo que va en el <head>: aplica el tema guardado antes de pintar, para que no parpadee.
  * Si el navegador bloquea localStorage, queda "automático".
  */
-export const SCRIPT_TEMA = `(function(){try{var t=localStorage.getItem('${CLAVE_TEMA}');if(t==='claro'||t==='oscuro'){document.documentElement.setAttribute('data-tema',t);var f=function(){var c=t==='claro'?'${COLOR_FONDO.claro}':'${COLOR_FONDO.oscuro}';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){var o=m.getAttribute('media');if(o&&!m.getAttribute('data-media-original'))m.setAttribute('data-media-original',o);m.removeAttribute('media');m.setAttribute('content',c);});};f();document.addEventListener('DOMContentLoaded',f);}}catch(e){}})();`;
+export const SCRIPT_TEMA = `(function(){try{if(localStorage.getItem('${CLAVE_LATERAL}')==='plegada')document.documentElement.setAttribute('data-lateral','plegada');}catch(e){}try{var t=localStorage.getItem('${CLAVE_TEMA}');if(t==='claro'||t==='oscuro'){document.documentElement.setAttribute('data-tema',t);var f=function(){var c=t==='claro'?'${COLOR_FONDO.claro}':'${COLOR_FONDO.oscuro}';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){var o=m.getAttribute('media');if(o&&!m.getAttribute('data-media-original'))m.setAttribute('data-media-original',o);m.removeAttribute('media');m.setAttribute('content',c);});};f();document.addEventListener('DOMContentLoaded',f);}}catch(e){}})();`;
 
 /**
  * E11b: la barra de color del navegador y la de estado del iPhone siguen el tema elegido en Nova. Con "claro" u

@@ -52,7 +52,8 @@ describe('pantallas de arranque del iPhone', () => {
   });
 
   it('ajuste de E20: las etiquetas del iPhone van en el <head> real del layout, no en metadata (que Next manda al cuerpo)', async () => {
-    vi.doMock('next/font/google', () => ({ Inter: () => ({ variable: 'fuente' }) }));
+    const fuente = () => ({ variable: 'fuente' });
+    vi.doMock('next/font/google', () => ({ Bricolage_Grotesque: fuente, Instrument_Sans: fuente, JetBrains_Mono: fuente }));
     const { default: RootLayout, metadata } = await import('@/app/layout');
     const html = renderToStaticMarkup(RootLayout({ children: null }));
     const head = html.slice(html.indexOf('<head>'), html.indexOf('</head>'));
@@ -61,6 +62,8 @@ describe('pantallas de arranque del iPhone', () => {
     expect(head).toContain('<meta name="apple-mobile-web-app-capable" content="yes"/>');
     expect(head).toContain('<meta name="apple-mobile-web-app-title" content="Nova"/>');
     expect(head).toContain('<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"/>');
+    // E20b: el favicon con la versión pequeña de la estrella.
+    expect(head).toContain('<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png"/>');
     // Sin repetirlas en metadata: ahí Next las pondría otra vez, al final del cuerpo.
     expect(metadata.appleWebApp).toBeUndefined();
     expect(metadata.icons).toBeUndefined();

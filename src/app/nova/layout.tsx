@@ -16,7 +16,7 @@ export default async function NovaLayout({ children }: Readonly<{ children: Reac
   if (!tieneAccesoNova(sesion.email)) redirect('/home');
   const preferencias = await obtenerPreferencias(sesion.id); // E11: tema y formato de hora
 
-  // Computador: espacio a la izquierda para la barra lateral (w-64).
+  // Computador: espacio a la izquierda para la barra lateral flotante (E20b: su ancho cambia al plegarla).
   // Teléfono: espacio abajo para la barra inferior y el botón "+". El "+" termina a 5,5rem + 3,5rem = 9rem
   // (más el área segura) del borde; 10rem + el área segura dejan 1rem libre: nunca tapa lo último.
   return (
@@ -27,9 +27,10 @@ export default async function NovaLayout({ children }: Readonly<{ children: Reac
     >
       {/* E11e: las tareas creadas sin conexión de este usuario, su envío y el aviso al cerrar sesión. */}
       <ProveedorPendientes usuarioId={sesion.id}>
-        <div data-nova-fondo className="min-h-screen bg-fondo text-texto lg:pl-64">
+        <div data-nova-fondo className="min-h-screen bg-fondo text-texto lg:pl-[calc(var(--nova-ancho-lateral)+1.5rem)] lg:transition-[padding] lg:duration-200">
           <NavegacionNova email={sesion.email} />
-          <main className="mx-auto flex max-w-[1000px] flex-col gap-6 px-4 pt-6 pb-[calc(10rem+var(--nova-seguro-abajo))] lg:px-8 lg:pb-10">
+          {/* E20b: nova-entrada hace que los bloques de cada pantalla entren escalonados (globals.css). */}
+          <main className="nova-entrada mx-auto flex max-w-[1000px] flex-col gap-6 px-4 pt-6 pb-[calc(10rem+var(--nova-seguro-abajo))] lg:px-8 lg:pb-10">
             <ConexionNova />
             {children}
           </main>

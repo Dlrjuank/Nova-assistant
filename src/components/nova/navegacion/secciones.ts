@@ -1,3 +1,4 @@
+import { pestanasSemestre } from '@/components/nova/semestre/pestanas';
 import { CalendarDays, ChartColumn, FileText, GraduationCap, House, ListChecks, MessageCircle, Settings, type LucideIcon } from 'lucide-react';
 
 /**
@@ -44,6 +45,9 @@ export const BARRA_INFERIOR: { izquierda: Seccion[]; centro: Seccion; derecha: S
   centro: SECCIONES.asistente,
   derecha: [SECCIONES.tareas],
 };
+
+/** E20b: las pestañas de Semestre, como submenú de la barra lateral (las mismas de semestre/pestanas.ts). */
+export const SUBMENU_SEMESTRE: Array<{ href: string; texto: string }> = pestanasSemestre('notas').map(({ href, texto }) => ({ href, texto }));
 
 /** Hoja "Más": las secciones que no caben en la barra inferior. */
 export const MENU_MAS: Seccion[] = [SECCIONES.fuentes, SECCIONES.productividad, SECCIONES.semestre, SECCIONES.configuracion];

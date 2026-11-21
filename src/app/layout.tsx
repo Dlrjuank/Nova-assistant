@@ -1,10 +1,13 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
+import { Bricolage_Grotesque, Instrument_Sans, JetBrains_Mono } from 'next/font/google';
 import { imagenesArranque } from '@/lib/arranque';
 import { COLOR_FONDO, SCRIPT_TEMA } from '@/lib/tema';
 import './globals.css';
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
+// E20b: las letras de Nova, servidas desde el mismo sitio (next/font), solo latinas (las tres son variables: un archivo por familia).
+const bricolage = Bricolage_Grotesque({ subsets: ['latin'], variable: '--font-bricolage', display: 'swap' });
+const instrument = Instrument_Sans({ subsets: ['latin'], variable: '--font-instrument', display: 'swap' });
+const jetbrains = JetBrains_Mono({ subsets: ['latin'], variable: '--font-jetbrains', display: 'swap' });
 
 export const metadata: Metadata = {
   title: process.env.NEXT_PUBLIC_APP_NAME ?? 'NovaAssistant',
@@ -46,12 +49,15 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   // suppressHydrationWarning: el script del tema pone data-tema en <html> antes de que React hidrate.
   return (
-    <html lang="es" className={inter.variable} suppressHydrationWarning>
+    <html lang="es" className={`${bricolage.variable} ${instrument.variable} ${jetbrains.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA }} />
         {/* E11b: con credenciales, para que también funcione en la vista previa protegida por Vercel. */}
         <link rel="manifest" href="/manifest.webmanifest" crossOrigin="use-credentials" />
         <EtiquetasIphone />
+        {/* E20b: la versión pequeña de la estrella (solo la estrella con un anillo), para la pestaña del navegador. */}
+        <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16.png" />
       </head>
       <body>{children}</body>
     </html>

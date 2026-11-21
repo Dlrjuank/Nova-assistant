@@ -84,9 +84,9 @@ function pagina(texto) {
   var html =
     '<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">' +
     '<title>Nova</title><style>' +
-    ':root{--fondo:#faf6f0;--texto:#2b2521;--suave:#6b5f57;--acento:#b4471f}' +
-    '@media (prefers-color-scheme:dark){:root:not([data-tema=claro]){--fondo:#1a1613;--texto:#f3ece4;--suave:#c4b8ad;--acento:#e07a52}}' +
-    ':root[data-tema=oscuro]{--fondo:#1a1613;--texto:#f3ece4;--suave:#c4b8ad;--acento:#e07a52}' +
+    ':root{--fondo:#f3ede4;--texto:#211a15;--suave:#665648;--acento:#ae461b}' +
+    '@media (prefers-color-scheme:dark){:root:not([data-tema=claro]){--fondo:#14110f;--texto:#f3eadd;--suave:#b5a698;--acento:#f2946a}}' +
+    ':root[data-tema=oscuro]{--fondo:#14110f;--texto:#f3eadd;--suave:#b5a698;--acento:#f2946a}' +
     'body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--fondo);color:var(--texto);font-family:system-ui,sans-serif;padding:16px;box-sizing:border-box}' +
     'main{max-width:28rem;text-align:center}h1{font-size:1.5rem;color:var(--acento)}p{color:var(--suave)}' +
     'a{display:inline-block;margin-top:1rem;color:var(--acento);font-weight:600;min-height:40px;line-height:40px}' +

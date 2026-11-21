@@ -22,13 +22,13 @@ afterEach(() => {
 });
 
 describe('TarjetaAcceso', () => {
-  it('marca Nova, título como h1, subtítulo y pie', () => {
+  it('marca de Nova (la estrella y "nova", E20b), título como h1, subtítulo y pie', () => {
     render(
       <TarjetaAcceso titulo="Título" subtitulo="Sub" pie={<a href="/x">Pie</a>}>
         <p>Contenido</p>
       </TarjetaAcceso>,
     );
-    expect(screen.getByText('Nova')).toBeTruthy();
+    expect(screen.getByText('nova')).toBeTruthy();
     expect(screen.getByRole('heading', { level: 1, name: 'Título' })).toBeTruthy();
     expect(screen.getByText('Sub')).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Pie' })).toBeTruthy();

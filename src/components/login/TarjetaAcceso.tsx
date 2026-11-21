@@ -1,4 +1,4 @@
-import { Sparkles } from 'lucide-react';
+import { LogoNova } from '@/components/nova/marca/EstrellaNova';
 import type { ReactNode } from 'react';
 
 /**
@@ -18,13 +18,11 @@ export function TarjetaAcceso({
 }) {
   return (
     <main data-nova-fondo className="flex min-h-screen items-center justify-center bg-fondo px-4 py-10 text-texto sm:px-6">
-      <section className="w-full max-w-md rounded-2xl border border-borde bg-superficie p-6 shadow-suave sm:p-9">
+      <section className="w-full max-w-md rounded-[20px] border border-borde bg-superficie p-6 shadow-suave sm:p-9">
         <div className="mb-8">
-          <p className="mb-8 inline-flex items-center gap-2 text-lg font-bold tracking-tight text-acento">
-            <span className="flex size-9 items-center justify-center rounded-xl bg-acento text-acento-texto">
-              <Sparkles aria-hidden="true" className="size-5" />
-            </span>
-            Nova
+          {/* E20b: la estrella de Nova con su halo (la escena de la lámpara llega en el commit de la entrada). */}
+          <p className="mb-8">
+            <LogoNova />
           </p>
           <h1 className="text-2xl font-bold tracking-tight text-texto sm:text-3xl">{titulo}</h1>
           <p className="mt-2 text-sm leading-6 text-texto-suave">{subtitulo}</p>
