@@ -706,7 +706,7 @@ Con `w_j` el peso de cada nota calificada `n_j`:
 - **Nota de cada corte:** la nota actual de ese corte, con sus componentes.
 - **Estado:**
   - Con `W` = 0: "Aprobada" o "Reprobada", según `mostrar(definitiva)`.
-  - Con `W` > 0: "Aprueba" (la nota actual aprueba), "En riesgo" (no aprueba, pero aprobar aún es posible) o "No alcanza" (aprobar ya no es posible, sección 7.5).
+  - Con `W` > 0: "Aprueba" (la nota actual aprueba), "En riesgo" (no aprueba, pero aprobar aún es posible) o "Perdida" (aprobar ya no es posible, sección 7.5; se llamaba "No alcanza" hasta el ajuste de E20 del 2026-11-21). Con las fallas en el límite (7.7), "Perdida" aunque las notas aprueben; "Reprobada" se conserva. "Perdida" y "Reprobada" van en rojo lleno.
 - **Porcentajes que no suman 100 %** (los cortes, o los componentes de algún corte): se muestra la nota actual con el aviso RB-07 o RB-08, pero no el estado ni "¿Cuánto necesito?", porque lo pendiente no está bien definido.
 
 **Ejemplo hecho a mano** (S-12, B-28 y `probar:semestre`; truncar; aprobar con 3,0):

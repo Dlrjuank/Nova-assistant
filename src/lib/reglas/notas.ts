@@ -155,20 +155,21 @@ export function calcularMateria(m: MateriaEntrada): Calculo {
   return armar(calificado, puntos, sumasOk);
 }
 
-export type Estado = 'Aprobada' | 'Reprobada' | 'Aprueba' | 'En riesgo' | 'No alcanza';
+export type Estado = 'Aprobada' | 'Reprobada' | 'Aprueba' | 'En riesgo' | 'Perdida';
 
 /** 7.5: la nota máxima alcanzable (centésimas exactas): lo asegurado más 5,0 en todo lo pendiente. */
 export const maximoAlcanzable = (c: Calculo) => sumar(c.asegurado, multiplicar(fraccion(500), c.pendiente));
 
 /**
  * 7.4: con todo calificado, "Aprobada" o "Reprobada"; si falta algo, "Aprueba", "En riesgo" (aprobar aún es posible)
- * o "No alcanza". Sin estado si los porcentajes no suman 100 % o si no hay notas (RB-13).
+ * o "Perdida" (ni con 5,0 en lo que falta se aprueba; antes del ajuste de E20 se llamaba "No alcanza"). Sin estado si
+ * los porcentajes no suman 100 % o si no hay notas (RB-13).
  */
 export function estadoDe(c: Calculo, notaAprobar: number, redondeo: Redondeo): Estado | null {
   if (!c.sumasOk || c.actual === null) return null;
   if (c.definitiva) return aprueba(c.actual, notaAprobar, redondeo) ? 'Aprobada' : 'Reprobada';
   if (aprueba(c.actual, notaAprobar, redondeo)) return 'Aprueba';
-  return aprueba(maximoAlcanzable(c), notaAprobar, redondeo) ? 'En riesgo' : 'No alcanza';
+  return aprueba(maximoAlcanzable(c), notaAprobar, redondeo) ? 'En riesgo' : 'Perdida';
 }
 
 // ---------- Avisos de suma (RB-07, RB-08) y RB-13 ----------
@@ -400,10 +401,13 @@ export function textoFallas(e: EstadoFallas, limite: number | null, registradas:
   return null;
 }
 
-/** 7.7: una materia perdida por fallas está "En riesgo" aunque sus notas aprueben (o aún no tenga notas). */
+/**
+ * 7.7, ajuste de E20 (decisión del usuario del 2026-11-21): una materia que llegó al límite de fallas está "Perdida"
+ * aunque sus notas aprueben (o aún no tenga notas). "Reprobada" (todo calificado y por debajo) se conserva.
+ */
 export function estadoConFallas(estado: Estado | null, fallas: EstadoFallas): Estado | null {
   if (fallas.tipo !== 'perdida') return estado;
-  return estado === 'No alcanza' || estado === 'Reprobada' ? estado : 'En riesgo';
+  return estado === 'Reprobada' ? estado : 'Perdida';
 }
 
 /** RB-15: fallas enteras ≥ 0 (texto del campo o número). Para el límite, vacío = sin límite (null). */

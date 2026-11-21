@@ -1,6 +1,6 @@
 // E20 (5.7, 7.4, 7.7; B-40): los datos de Estadísticas.
 import { describe, expect, it } from 'vitest';
-import { calcularEstadisticas, textoEnRiesgo, type MateriaParaEstadisticas } from '@/lib/reglas/estadisticas';
+import { calcularEstadisticas, esPerdida, textoEnRiesgo, type MateriaParaEstadisticas } from '@/lib/reglas/estadisticas';
 
 const comp = (porcentaje: number, notas: Array<number | null>) => ({ nombre: `C${porcentaje}`, porcentaje, notas });
 const corte = (nombre: string, porcentaje: number, componentes: ReturnType<typeof comp>[]) => ({ nombre, porcentaje, componentes });
@@ -49,16 +49,16 @@ describe('calcularEstadisticas (5.7)', () => {
     expect(d.aprobar).toBe(30);
   });
 
-  it('riesgo por nota (en riesgo, no alcanza) y por fallas (alerta, perdida), de la más grave a la menos grave', () => {
+  it('riesgo por nota (en riesgo, perdida) y por fallas (alerta, perdida), de la más grave a la menos grave', () => {
     expect(d.enRiesgo.map((m) => [m.nombre, m.estado])).toEqual([
-      ['Ética', 'En riesgo'], // perdida por fallas aunque aprueba por nota
-      ['Química', 'No alcanza'],
+      ['Ética', 'Perdida'], // perdida por fallas aunque aprueba por nota: primero
+      ['Química', 'Perdida'],
       ['Física', 'En riesgo'],
       ['Inglés', 'Aprueba'], // le queda 1 falla
     ]);
-    expect(d.enRiesgo.find((m) => m.id === 'etica')?.riesgo).toEqual([{ motivo: 'fallas', texto: 'Por fallas: perdiste la materia por fallas (6 de 6).' }]);
+    expect(d.enRiesgo.find((m) => m.id === 'etica')?.riesgo).toEqual([{ motivo: 'fallas', texto: 'Perdida por fallas: 6 de 6.' }]);
     expect(d.enRiesgo.find((m) => m.id === 'fisica')?.riesgo).toEqual([{ motivo: 'nota', texto: 'Por nota: hoy tienes 2,0 y aún puedes llegar a 3,0.' }]);
-    expect(d.enRiesgo.find((m) => m.id === 'quimica')?.riesgo[0]?.texto).toBe('Por nota: con lo que falta ya no alcanzas 3,0.');
+    expect(d.enRiesgo.find((m) => m.id === 'quimica')?.riesgo[0]?.texto).toBe('Perdida por nota: aunque saques 5,0 en lo que falta, llegas a 1,8 y necesitas 3,0.');
     expect(d.enRiesgo.find((m) => m.id === 'ingles')?.riesgo[0]?.texto).toBe('Por fallas: te queda 1 falla antes de perder la materia.');
     expect(d.enRiesgo.some((m) => m.id === 'calculo' || m.id === 'arte')).toBe(false);
   });
@@ -74,6 +74,7 @@ describe('calcularEstadisticas (5.7)', () => {
   });
 
   it('textos del resumen', () => {
-    expect([0, 1, 3].map(textoEnRiesgo)).toEqual(['Ninguna materia en riesgo', '1 materia en riesgo', '3 materias en riesgo']);
+    expect([textoEnRiesgo(0, 0), textoEnRiesgo(1, 2), textoEnRiesgo(2, 0), textoEnRiesgo(0, 1)]).toEqual(['Ninguna materia en riesgo', '1 perdida · 2 en riesgo', '2 perdidas', '1 en riesgo']);
+    expect(d.enRiesgo.filter(esPerdida).map((m) => m.nombre)).toEqual(['Ética', 'Química']);
   });
 });

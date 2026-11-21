@@ -141,10 +141,11 @@ describe('DetalleMateria', () => {
     expect(screen.getByText("Las fallas deben ser un número entero mayor o igual a 0.")).toBeTruthy();
   });
 
-  it('E14: en el límite, la pérdida y "En riesgo" aunque las notas aprueben', () => {
+  it('E14 y ajuste de E20: en el límite, la pérdida y "Perdida" aunque las notas aprueben', () => {
     render(<DetalleMateria materia={{ ...SIN_CORTES, fallasLimite: 4, fallasRegistradas: 4, cortes: [{ ...SIN_CORTES.cortes[0]!, componentes: [{ id: "k", orden: 1, nombre: "Final", porcentaje: 10000, notas: [{ id: "n", orden: 1, nombre: null, nota: 450, fecha: null }] }] }] }} plantilla={[3000, 3000, 4000]} />);
     expect(screen.getByText("Perdiste la materia por fallas (4 de 4).")).toBeTruthy();
-    expect(screen.getByText("En riesgo")).toBeTruthy();
+    expect(screen.getByText("Perdida")).toBeTruthy();
+    expect(screen.queryByText("En riesgo")).toBeNull();
     expect((screen.getByRole("button", { name: "Restar una falla" }) as HTMLButtonElement).disabled).toBe(false);
   });
 

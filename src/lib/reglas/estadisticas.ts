@@ -1,4 +1,4 @@
-import { calcularCorte, calcularMateria, estadoConFallas, estadoDe, estadoFallas, formatearDecimas, mostrar, promedioSemestre, textoFallas, type Estado, type MateriaEntrada } from './notas';
+import { calcularCorte, calcularMateria, estadoConFallas, estadoDe, estadoFallas, formatearDecimas, maximoAlcanzable, mostrar, promedioSemestre, textoFallas, type Estado, type MateriaEntrada } from './notas';
 import type { Redondeo } from './preferencias';
 
 /**
@@ -52,19 +52,22 @@ export interface Estadisticas {
   aprobar: number;
 }
 
-/** Riesgo por nota (7.4): "En riesgo", "No alcanza" o "Reprobada", con un texto que dice qué significa. */
-function riesgoPorNota(estado: Estado | null, actual: number | null, aprobar: number): string | null {
+/** Riesgo por nota (7.4): "En riesgo", "Perdida" o "Reprobada", con un texto que dice qué significa. */
+function riesgoPorNota(estado: Estado | null, actual: number | null, aprobar: number, maximo: number): string | null {
   const a = formatearDecimas(aprobar);
   if (estado === 'En riesgo') return `Por nota: hoy tienes ${formatearDecimas(actual ?? 0)} y aún puedes llegar a ${a}.`;
-  if (estado === 'No alcanza') return `Por nota: con lo que falta ya no alcanzas ${a}.`;
+  if (estado === 'Perdida') return `Perdida por nota: aunque saques 5,0 en lo que falta, llegas a ${formatearDecimas(maximo)} y necesitas ${a}.`;
   if (estado === 'Reprobada') return `Por nota: terminó con ${formatearDecimas(actual ?? 0)}, por debajo de ${a}.`;
   return null;
 }
 
-/** Gravedad para ordenar la lista: perdida o reprobada primero, luego no alcanza, luego en riesgo y alertas. */
+/** Ajuste de E20: perdida (o reprobada), la de más gravedad. */
+export const esPerdida = (m: Pick<MateriaEstadistica, 'estado'>) => m.estado === 'Perdida' || m.estado === 'Reprobada';
+
+/** Gravedad para ordenar la lista: perdidas y reprobadas primero (las de fallas antes), luego en riesgo y alertas. */
 function gravedad(m: MateriaEstadistica): number {
-  if (m.estado === 'Reprobada' || m.perdidaPorFallas) return 0;
-  if (m.estado === 'No alcanza') return 1;
+  if (m.perdidaPorFallas) return 0;
+  if (esPerdida(m)) return 1;
   if (m.estado === 'En riesgo') return 2;
   return 3;
 }
@@ -78,10 +81,11 @@ export function calcularEstadisticas(materias: readonly MateriaParaEstadisticas[
     const deNotas = estadoDe(c, notaAprobar, redondeo);
     const fallas = estadoFallas(m.fallasLimite, m.fallasRegistradas);
     const riesgo: MateriaEstadistica['riesgo'] = [];
-    const porNota = riesgoPorNota(deNotas, actual, Math.ceil(notaAprobar / 10));
-    if (porNota) riesgo.push({ motivo: 'nota', texto: porNota });
     const porFallas = textoFallas(fallas, m.fallasLimite, m.fallasRegistradas);
-    if (porFallas) riesgo.push({ motivo: 'fallas', texto: `Por fallas: ${porFallas.charAt(0).toLowerCase()}${porFallas.slice(1)}` });
+    if (fallas.tipo === 'perdida') riesgo.push({ motivo: 'fallas', texto: `Perdida por fallas: ${m.fallasRegistradas} de ${m.fallasLimite}.` });
+    else if (porFallas) riesgo.push({ motivo: 'fallas', texto: `Por fallas: ${porFallas.charAt(0).toLowerCase()}${porFallas.slice(1)}` });
+    const porNota = riesgoPorNota(deNotas, actual, Math.ceil(notaAprobar / 10), mostrar(maximoAlcanzable(c), redondeo));
+    if (porNota) riesgo.push({ motivo: 'nota', texto: porNota });
     return {
       id: m.id,
       nombre: m.nombre,
@@ -107,8 +111,8 @@ export function calcularEstadisticas(materias: readonly MateriaParaEstadisticas[
   return { materias: lista, enRiesgo, promedio: promedio === null ? null : mostrar(promedio, redondeo), aprobar: Math.ceil(notaAprobar / 10) };
 }
 
-/** "3 materias en riesgo", "1 materia en riesgo", "Ninguna materia en riesgo". */
-export function textoEnRiesgo(n: number): string {
-  if (n === 0) return 'Ninguna materia en riesgo';
-  return n === 1 ? '1 materia en riesgo' : `${n} materias en riesgo`;
+/** Ajuste de E20: "1 perdida · 2 en riesgo", "2 perdidas", "1 en riesgo" o "Ninguna materia en riesgo". */
+export function textoEnRiesgo(perdidas: number, enRiesgo: number): string {
+  const partes = [perdidas > 0 ? `${perdidas} ${perdidas === 1 ? 'perdida' : 'perdidas'}` : '', enRiesgo > 0 ? `${enRiesgo} en riesgo` : ''].filter(Boolean);
+  return partes.length === 0 ? 'Ninguna materia en riesgo' : partes.join(' · ');
 }

@@ -122,11 +122,11 @@ describe('S-07 a S-12b: componentes y cortes (7.3, 7.4)', () => {
     expect(textoNota(tercios.actual!, 'truncar')).toBe('3,5');
   });
 
-  it('En riesgo y No alcanza según lo que aún se puede ganar', () => {
+  it('En riesgo y Perdida (antes "No alcanza") según lo que aún se puede ganar', () => {
     const riesgo = calcularMateria(sinCortes([comp('Parcial', 5000, [200]), comp('Final', 5000, [])]));
     expect(estadoDe(riesgo, 300, 'truncar')).toBe('En riesgo'); // con 4,0 en el final llega a 3,0
     const imposible = calcularMateria(sinCortes([comp('Parcial', 8000, [50]), comp('Final', 2000, [])]));
-    expect(estadoDe(imposible, 300, 'truncar')).toBe('No alcanza'); // máximo 0,4 + 1,0 = 1,4
+    expect(estadoDe(imposible, 300, 'truncar')).toBe('Perdida'); // máximo 0,4 + 1,0 = 1,4
   });
 
   it('S-12b: porcentajes que no suman 100 % dan la nota actual con el aviso, sin estado', () => {

@@ -1214,3 +1214,13 @@ Total de fallas: 0
 - **Edge** (`ui_e20sin.mjs`, base real) 16 de 16: con conexión tocando las pestañas, las tres copias; sin las copias de Objetivos y Estadísticas, abrir solo Materias y notas las vuelve a guardar; sin conexión desde Inicio, las tres pestañas visibles y cada una abre su copia.
 - **Al cierre:** `npm test` 1334/1334, `eslint` sin errores (las 3 advertencias de siempre), `npm run build` correcto; `tsc` solo con los 2 errores viejos de `json-db.test.ts`.
 - **Pendiente:** la respuesta del usuario a la propuesta del estado "Perdida" y su nueva prueba (arranque reinstalando la app, fallas, sin conexión).
+
+#### E20: estado "Perdida" (2026-11-21, decisión del usuario)
+
+- **Decisiones del usuario:** el nombre "Perdida", en rojo lleno con texto claro y un ícono; "Reprobada" se queda aparte, con el mismo color; se pierde por fallas al **llegar** al límite (como estaba); "Fallas registradas" no guarda más que el límite. La materia que vio "En riesgo" siendo perdida era la de fallas al límite.
+- **Reglas** (`src/lib/reglas/notas.ts`): `Estado` cambia "No alcanza" por "Perdida" (aún falta calificar y ni con 5,0 en lo que falta se aprueba). `estadoConFallas`: con las fallas en el límite, "Perdida" aunque las notas aprueben (también "Aprobada" o sin notas); "Reprobada" se conserva. "En riesgo" queda para lo que aún se puede salvar.
+- **Insignia** (`estadoMateria.tsx`): "Perdida" (ícono `Ban`) y "Reprobada" con `bg-peligro` y `text-acento-texto`, el par del botón de peligro que ya vigila `contraste.test.ts`: blanco sobre rojo en claro; en oscuro el rojo es claro y el texto, oscuro (con blanco no llegaba a 4,5:1). Se ve en "Materias y notas", en la materia (Calculadora) y en Estadísticas.
+- **Estadísticas** (`src/lib/reglas/estadisticas.ts`): la lista se llama "Materias perdidas y en riesgo"; primero las perdidas por fallas, luego las demás perdidas y reprobadas, luego en riesgo y alertas. Motivos: "Perdida por fallas: 4 de 4." y "Perdida por nota: aunque saques 5,0 en lo que falta, llegas a 1,8 y necesitas 3,0." (el máximo con el redondeo de Configuración). La tarjeta del resumen: "Perdidas y en riesgo", con "1 perdida · 2 en riesgo" (`textoEnRiesgo(perdidas, enRiesgo)`; las reprobadas cuentan como perdidas, `esPerdida`).
+- **Edge** (`ui_e20p.mjs`, base real) 13 de 13 en claro y oscuro: Materias y notas con dos "Perdida", una "Reprobada" del mismo rojo y una "En riesgo"; la materia perdida por fallas; el orden y los motivos en Estadísticas; 390 px sin desborde.
+- **Al cierre:** `npm test` 1335/1335, `eslint` sin errores (las 3 advertencias de siempre), `npm run build` correcto; `tsc` solo con los 2 errores viejos de `json-db.test.ts`.
+- **Pendiente:** la prueba del usuario de todos los ajustes de E20.

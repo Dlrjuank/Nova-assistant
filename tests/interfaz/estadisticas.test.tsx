@@ -25,10 +25,33 @@ const DATOS = calcularEstadisticas(
 afterEach(cleanup);
 
 describe('Estadísticas', () => {
-  it('el resumen: promedio, materias con notas y en riesgo', () => {
+  it('el resumen: promedio, materias con notas y perdidas y en riesgo', () => {
     render(<ResumenEstadisticas datos={DATOS} />);
     expect(screen.getByText('2 de 3')).toBeTruthy();
-    expect(screen.getByText('1 materia en riesgo')).toBeTruthy();
+    expect(screen.getByText('Perdidas y en riesgo')).toBeTruthy();
+    expect(screen.getByText('1 en riesgo')).toBeTruthy();
+  });
+
+  it('ajuste de E20: la perdida por fallas va primero, con "Perdida" en rojo lleno y su motivo', () => {
+    const conPerdida = calcularEstadisticas(
+      [
+        { id: 'fisica', nombre: 'Física', creditos: 3, fallasLimite: 4, fallasRegistradas: 3, entrada: { usaCortes: false, cortes: [{ nombre: 'Corte único', porcentaje: 10000, componentes: comp([200, null]) }] } },
+        { id: 'etica', nombre: 'Ética', creditos: 2, fallasLimite: 4, fallasRegistradas: 4, entrada: { usaCortes: false, cortes: [{ nombre: 'Corte único', porcentaje: 10000, componentes: comp([450]) }] } },
+      ],
+      300,
+      'truncar',
+    );
+    render(<MateriasEnRiesgo datos={conPerdida} />);
+    expect(screen.getByRole('heading', { name: 'Materias perdidas y en riesgo' })).toBeTruthy();
+    const enlaces = screen.getAllByRole('link');
+    expect(enlaces.map((a) => a.getAttribute('href'))).toEqual(['/nova/semestre/etica', '/nova/semestre/fisica']);
+    const insignia = within(enlaces[0] as HTMLElement).getByText('Perdida');
+    expect(insignia.className).toContain('bg-peligro');
+    expect(insignia.className).toContain('text-acento-texto');
+    expect(within(enlaces[0] as HTMLElement).getByText('Perdida por fallas: 4 de 4.')).toBeTruthy();
+    cleanup();
+    render(<ResumenEstadisticas datos={conPerdida} />);
+    expect(screen.getByText('1 perdida · 1 en riesgo')).toBeTruthy();
   });
 
   it('materias en riesgo con su estado, el motivo por nota y por fallas, y el enlace a la materia', () => {

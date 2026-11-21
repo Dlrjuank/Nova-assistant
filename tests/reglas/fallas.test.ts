@@ -25,12 +25,13 @@ describe('S-22 a S-24: fallas (7.7)', () => {
     expect(texto(null, 9)).toBeNull();
   });
 
-  it('perdida por fallas está "En riesgo" aunque sus notas aprueben; lo que ya no alcanza se conserva', () => {
+  it('ajuste de E20: perdida por fallas está "Perdida" aunque sus notas aprueben; "Reprobada" se conserva', () => {
     const perdida = estadoFallas(3, 3);
-    expect(estadoConFallas('Aprueba', perdida)).toBe('En riesgo');
-    expect(estadoConFallas('Aprobada', perdida)).toBe('En riesgo');
-    expect(estadoConFallas(null, perdida)).toBe('En riesgo');
-    expect(estadoConFallas('No alcanza', perdida)).toBe('No alcanza');
+    expect(estadoConFallas('Aprueba', perdida)).toBe('Perdida');
+    expect(estadoConFallas('Aprobada', perdida)).toBe('Perdida');
+    expect(estadoConFallas('En riesgo', perdida)).toBe('Perdida');
+    expect(estadoConFallas(null, perdida)).toBe('Perdida');
+    expect(estadoConFallas('Perdida', perdida)).toBe('Perdida');
     expect(estadoConFallas('Reprobada', perdida)).toBe('Reprobada');
     expect(estadoConFallas('Aprueba', estadoFallas(3, 2))).toBe('Aprueba'); // la alerta no cambia el estado
     expect(estadoConFallas(null, estadoFallas(null, 4))).toBeNull();

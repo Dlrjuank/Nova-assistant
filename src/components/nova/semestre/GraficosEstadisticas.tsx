@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import { CLASE_FOCO } from '@/components/ui/Boton';
 import { Tarjeta } from '@/components/ui/Tarjeta';
 import type { Estadisticas, MateriaEstadistica } from '@/lib/reglas/estadisticas';
-import { textoEnRiesgo } from '@/lib/reglas/estadisticas';
+import { esPerdida, textoEnRiesgo } from '@/lib/reglas/estadisticas';
 import { formatearDecimas } from '@/lib/reglas/notas';
 import { formatearPorcentaje } from '@/lib/reglas/preferencias';
 import { InsigniaEstadoMateria } from './estadoMateria';
@@ -35,13 +35,14 @@ function TablaEquivalente({ titulo, children }: { titulo: string; children: Reac
 const TH = 'border-b border-borde px-2 py-1.5 font-semibold text-texto';
 const TD = 'border-b border-borde px-2 py-1.5 text-texto tabular-nums';
 
-/** Tarjetas de arriba: promedio, materias con notas y materias en riesgo. */
+/** Tarjetas de arriba: promedio, materias con notas y materias perdidas y en riesgo. */
 export function ResumenEstadisticas({ datos }: { datos: Estadisticas }) {
   const conNotas = datos.materias.filter((m) => m.actual !== null).length;
+  const perdidas = datos.enRiesgo.filter(esPerdida).length;
   const tarjetas = [
     { titulo: 'Promedio del semestre', valor: nota(datos.promedio), nota: 'Ponderado por créditos' },
     { titulo: 'Materias con notas', valor: `${conNotas} de ${datos.materias.length}`, nota: 'Las demás aún no tienen notas' },
-    { titulo: 'En riesgo', valor: String(datos.enRiesgo.length), nota: textoEnRiesgo(datos.enRiesgo.length) },
+    { titulo: 'Perdidas y en riesgo', valor: String(datos.enRiesgo.length), nota: textoEnRiesgo(perdidas, datos.enRiesgo.length - perdidas) },
   ];
   return (
     <ul aria-label="Resumen" className="grid max-w-4xl gap-3 sm:grid-cols-3">
@@ -260,11 +261,11 @@ export function EvolucionPorCorte({ datos }: { datos: Estadisticas }) {
   );
 }
 
-/** Materias en riesgo, por nota o por fallas (7.4, 7.7), de la más grave a la menos grave. */
+/** Materias perdidas y en riesgo, por nota o por fallas (7.4, 7.7), de la más grave a la menos grave. */
 export function MateriasEnRiesgo({ datos }: { datos: Estadisticas }) {
   return (
     <Tarjeta className="flex max-w-4xl flex-col gap-3">
-      <h2 className="text-lg font-semibold text-texto">Materias en riesgo</h2>
+      <h2 className="text-lg font-semibold text-texto">Materias perdidas y en riesgo</h2>
       {datos.enRiesgo.length === 0 ? (
         <p className="text-sm text-texto-suave">Ninguna materia está en riesgo por nota ni por fallas.</p>
       ) : (

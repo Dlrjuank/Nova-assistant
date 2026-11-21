@@ -30,7 +30,7 @@ import { mensajeDe } from './peticion';
 export function Calculadora({ materia, notaAprobar, redondeo, metaGuardada = null }: { materia: Materia; notaAprobar: number; redondeo: Redondeo; metaGuardada?: number | null }) {
   const entrada = entradaDe(materia);
   const calculo = calcularMateria(entrada);
-  // E14 (7.7): perdida por fallas, "En riesgo" aunque las notas aprueben.
+  // E14 (7.7) y ajuste de E20: perdida por fallas, "Perdida" aunque las notas aprueben.
   const estado = estadoConFallas(estadoDe(calculo, notaAprobar, redondeo), estadoFallas(materia.fallasLimite, materia.fallasRegistradas));
   // E16: la meta guardada de la materia (Objetivos y plan) es el valor inicial; si no hay, la nota para aprobar.
   const [meta, setMeta] = useState(formatearNota(metaGuardada ?? notaAprobar));
