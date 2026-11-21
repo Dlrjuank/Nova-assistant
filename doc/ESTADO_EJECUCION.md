@@ -1224,3 +1224,8 @@ Total de fallas: 0
 - **Edge** (`ui_e20p.mjs`, base real) 13 de 13 en claro y oscuro: Materias y notas con dos "Perdida", una "Reprobada" del mismo rojo y una "En riesgo"; la materia perdida por fallas; el orden y los motivos en Estadísticas; 390 px sin desborde.
 - **Al cierre:** `npm test` 1335/1335, `eslint` sin errores (las 3 advertencias de siempre), `npm run build` correcto; `tsc` solo con los 2 errores viejos de `json-db.test.ts`.
 - **Pendiente:** la prueba del usuario de todos los ajustes de E20.
+
+#### E20 terminada (2026-11-21)
+
+- **Prueba del usuario** (iPhone con la app reinstalada y PC): bien el logo de Nova al abrir la app, las fallas en el límite (el "+" desactivado) con "Perdida", "Perdida" por nota y "Reprobada" del mismo rojo, el orden y los motivos en "Materias perdidas y en riesgo", el modo oscuro y Semestre sin conexión con sus tres pestañas. Pruebas 1 a 8 de B-40 sin fallas.
+- Sigue **E20b Diseño final**: primero la propuesta sin código, a partir de `doc/PROTOTIPO_DISENO.html` ("Con el video") y `doc/DISENO_PRESENTACION.md`, y la aprobación del usuario.
