@@ -9,7 +9,10 @@
  * E11c: notificaciones de los recordatorios (mostrar, numerito del ícono y abrir la tarea al tocarla).
  * E11e: también guarda el formulario de nueva tarea (y los archivos de cada copia) para crear tareas sin conexión.
  */
-importScripts('/sw-reglas.js');
+// Ajuste de E20: con la huella de las reglas, cada cambio en sw-reglas.js cambia también este archivo, y así todo
+// navegador instala el service worker nuevo (no todos comparan los scripts importados al buscar una versión nueva).
+// tests/reglas/swVersion.test.ts exige que la huella coincida con el contenido de sw-reglas.js.
+importScripts('/sw-reglas.js?v=c481ab4bdfb0');
 
 var R = self.NovaReglas;
 var ESTATICOS = 'nova-estaticos-v1';
@@ -161,8 +164,12 @@ function estatico(evento) {
   });
 }
 
-/** Con conexión: decide si borrar, guarda la copia y la fecha de la última respuesta válida. Sin bloquear la respuesta. */
-function despues(url, metodo, respuesta, ahora) {
+/**
+ * Con conexión: decide si borrar, guarda la copia y la fecha de la última respuesta válida. Sin bloquear la respuesta.
+ * `conExtras` (por omisión, sí): con la copia, también la del formulario de nueva tarea y las de las otras pestañas
+ * de Semestre; esas no piden a su vez otras.
+ */
+function despues(url, metodo, respuesta, ahora, conExtras) {
   return leerMeta().then(function (meta) {
     var usuario = respuesta.headers.get('x-nova-usuario');
     var motivo = R.debeBorrar({
@@ -192,8 +199,16 @@ function despues(url, metodo, respuesta, ahora) {
                   return guardarRecursos(html);
                 })
                 .then(function () {
-                  // E11e: con cada copia, también la del formulario de nueva tarea (si no hay una reciente).
-                  if (url.pathname !== R.NUEVA_TAREA) return guardarRuta(self.location.origin + R.NUEVA_TAREA);
+                  if (conExtras === false) return;
+                  // E11e: con cada copia, también la del formulario de nueva tarea (si no hay una reciente). Ajuste de
+                  // E20: y las otras pestañas de Semestre, una tras otra.
+                  var extras = R.pestanasHermanas(url);
+                  if (url.pathname !== R.NUEVA_TAREA) extras = [R.NUEVA_TAREA].concat(extras);
+                  return extras.reduce(function (paso, ruta) {
+                    return paso.then(function () {
+                      return guardarRuta(self.location.origin + ruta, false);
+                    });
+                  }, Promise.resolve());
                 });
             })
           : Promise.resolve();
@@ -287,7 +302,7 @@ self.addEventListener('fetch', function (evento) {
  * para guardar su copia, con las mismas reglas que una carga completa (solo pantallas guardables, RB-63 incluido).
  * Si ya hay una copia de hace menos de 5 minutos, no se pide: armar la página otra vez le cuesta al servidor.
  */
-function guardarRuta(href) {
+function guardarRuta(href, conExtras) {
   var url;
   try {
     url = new URL(href);
@@ -304,7 +319,7 @@ function guardarRuta(href) {
     .then(function (copia) {
       if (copia && R.copiaReciente(Number(copia.headers.get('x-nova-guardada')), ahora)) return;
       return fetch(url.href, { credentials: 'same-origin', redirect: 'manual', headers: { Accept: 'text/html' } }).then(function (respuesta) {
-        return despues(url, 'GET', respuesta, ahora);
+        return despues(url, 'GET', respuesta, ahora, conExtras);
       });
     })
     .catch(function () {

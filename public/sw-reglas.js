@@ -13,6 +13,12 @@
   var SEMESTRE = /^\/nova\/semestre(\/objetivos|\/estadisticas|\/[0-9a-f-]{36})?$/i;
   /** E11e (5.13): el formulario para crear una tarea, que funciona sin conexión. */
   var NUEVA_TAREA = '/nova/tareas/nueva';
+  /**
+   * Ajuste de E20: las pestañas de Semestre (las mismas de src/components/nova/semestre/pestanas.ts; una prueba lo
+   * vigila). Al guardar una, también se guardan las otras: sin conexión se llega a ellas tocando la fila de pestañas,
+   * aunque con conexión solo se haya abierto una.
+   */
+  var PESTANAS_SEMESTRE = ['/nova/semestre', '/nova/semestre/objetivos', '/nova/semestre/estadisticas'];
 
   /** "2026-11" del momento dado, en Bogotá (igual que el resto de la app). */
   function mesActual(ahora) {
@@ -127,6 +133,15 @@
     return i === -1 ? meta + html : html.slice(0, i) + meta + html.slice(i);
   }
 
+  /** Ajuste de E20: las otras pestañas de Semestre que se guardan junto con esta (ninguna si no es una pestaña). */
+  function pestanasHermanas(url) {
+    if (PESTANAS_SEMESTRE.indexOf(url.pathname) === -1) return [];
+    var clave = clavePagina(url);
+    return PESTANAS_SEMESTRE.filter(function (ruta) {
+      return ruta !== clave;
+    });
+  }
+
   /** E19b (RB-87): lo que dice una pantalla que necesita conexión, con lo que sí se puede ver. */
   var NECESITA_CONEXION = 'Esta pantalla necesita conexión. Sin conexión puedes ver Inicio, Tareas, el Calendario y Semestre.';
 
@@ -141,6 +156,8 @@
     esRsc: esRsc,
     esPaginaNova: esPaginaNova,
     paginaGuardable: paginaGuardable,
+    pestanasHermanas: pestanasHermanas,
+    PESTANAS_SEMESTRE: PESTANAS_SEMESTRE,
     clavePagina: clavePagina,
     debeBorrar: debeBorrar,
     vencida: vencida,

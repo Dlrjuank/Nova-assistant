@@ -3,7 +3,8 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { inflateSync } from 'node:zlib';
-import { describe, expect, it } from 'vitest';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { describe, expect, it, vi } from 'vitest';
 import { archivoArranque, imagenesArranque, mediaArranque, PANTALLAS_IPHONE } from '@/lib/arranque';
 import { manifiesto } from '@/lib/manifiesto';
 import { COLOR_FONDO } from '@/lib/tema';
@@ -48,6 +49,21 @@ describe('pantallas de arranque del iPhone', () => {
     const imagenes = imagenesArranque();
     expect(imagenes).toHaveLength(PANTALLAS_IPHONE.length * 2);
     expect(new Set(imagenes.map((i) => i.media)).size).toBe(imagenes.length); // ninguna se repite
+  });
+
+  it('ajuste de E20: las etiquetas del iPhone van en el <head> real del layout, no en metadata (que Next manda al cuerpo)', async () => {
+    vi.doMock('next/font/google', () => ({ Inter: () => ({ variable: 'fuente' }) }));
+    const { default: RootLayout, metadata } = await import('@/app/layout');
+    const html = renderToStaticMarkup(RootLayout({ children: null }));
+    const head = html.slice(html.indexOf('<head>'), html.indexOf('</head>'));
+    expect(head.match(/rel="apple-touch-startup-image"/g)).toHaveLength(imagenesArranque().length);
+    for (const i of imagenesArranque()) expect(head).toContain(`href="${i.url}" media="${i.media}"`);
+    expect(head).toContain('<meta name="apple-mobile-web-app-capable" content="yes"/>');
+    expect(head).toContain('<meta name="apple-mobile-web-app-title" content="Nova"/>');
+    expect(head).toContain('<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"/>');
+    // Sin repetirlas en metadata: ahí Next las pondría otra vez, al final del cuerpo.
+    expect(metadata.appleWebApp).toBeUndefined();
+    expect(metadata.icons).toBeUndefined();
   });
 
   it('el manifiesto (Android) arranca con el fondo de Nova', () => {

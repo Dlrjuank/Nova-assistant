@@ -4,6 +4,8 @@
  * del tamaño exacto de la pantalla, o negro si no la tiene. Por eso hay una por tamaño de iPhone, en claro y en
  * oscuro (según el tema del sistema: antes de abrir, la app todavía no sabe el tema elegido en Nova).
  * Las imágenes están en public/icons/arranque/ (fondo de Nova con el ícono al centro).
+ * Ajuste de E20: van en el <head> del layout raíz (EtiquetasIphone), no en `metadata`. Next 15.5 manda el
+ * `metadata` al final del cuerpo (streaming metadata) y iOS las lee al agregar a inicio; ahí dejaron de verse.
  */
 export interface PantallaIphone {
   /** Ancho y alto en puntos (CSS), en vertical. */
@@ -26,6 +28,7 @@ export const PANTALLAS_IPHONE: readonly PantallaIphone[] = [
   { ancho: 390, alto: 844, escala: 3 }, // 12, 13, 14, 16e
   { ancho: 375, alto: 812, escala: 3 }, // X, XS, 11 Pro, 12 mini, 13 mini
   { ancho: 375, alto: 667, escala: 2 }, // 8, SE (2.ª y 3.ª)
+  { ancho: 320, alto: 693, escala: 3 }, // 12 a 16 (6,1") con la vista ampliada (zoom de pantalla)
   { ancho: 320, alto: 568, escala: 2 }, // SE (1.ª)
 ];
 
@@ -44,7 +47,7 @@ export function mediaArranque(p: PantallaIphone, modo: ModoArranque): string {
   );
 }
 
-/** Para `metadata.appleWebApp.startupImage`. */
+/** Las etiquetas `apple-touch-startup-image` del <head> (ver EtiquetasIphone en src/app/layout.tsx). */
 export function imagenesArranque(): { url: string; media: string }[] {
   return PANTALLAS_IPHONE.flatMap((p) => (['claro', 'oscuro'] as const).map((modo) => ({ url: archivoArranque(p, modo), media: mediaArranque(p, modo) })));
 }

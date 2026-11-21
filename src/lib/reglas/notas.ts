@@ -413,6 +413,21 @@ export function validarFallas(v: string | number): number {
   return n;
 }
 
+/** E20 (ajuste): con límite, al llegar a él ya no se suman fallas (el "−" sigue). Sin límite, siempre. */
+export function puedeSumarFalla(limite: number | null, registradas: number): boolean {
+  return limite === null || registradas < limite;
+}
+
+/** E20 (ajuste): al llegar al límite, lo que dice la tarjeta junto al "+" desactivado; null si aún se puede sumar. */
+export function textoLimiteFallas(limite: number | null, registradas: number): string | null {
+  return puedeSumarFalla(limite, registradas) ? null : 'Llegaste al límite de fallas: ya no puedes sumar más. Si te equivocaste, usa "−".';
+}
+
+/** E20 (ajuste): escritas a mano, las fallas registradas no pueden pasar del límite. */
+export function validarFallasConLimite(limite: number | null, registradas: number): void {
+  if (limite !== null && registradas > limite) throw new ErrorDeNegocio('FALLAS_SOBRE_LIMITE');
+}
+
 export function validarLimiteFallas(v: string | number | null | undefined): number | null {
   if (v === null || v === undefined || (typeof v === 'string' && v.trim() === '')) return null;
   return validarFallas(v);

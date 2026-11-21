@@ -7,7 +7,7 @@ import { Aviso } from '@/components/ui/Aviso';
 import { Boton } from '@/components/ui/Boton';
 import { Campo } from '@/components/ui/Campo';
 import { Tarjeta } from '@/components/ui/Tarjeta';
-import { estadoFallas, textoFallas, validarFallas, validarLimiteFallas } from '@/lib/reglas/notas';
+import { estadoFallas, puedeSumarFalla, textoFallas, textoLimiteFallas, validarFallas, validarFallasConLimite, validarLimiteFallas } from '@/lib/reglas/notas';
 import { mensajeDe, pedirSemestre, type Resultado } from './peticion';
 
 /**
@@ -23,6 +23,7 @@ export function Fallas({ materiaId, limite, registradas }: { materiaId: string; 
   const [enviando, setEnviando] = useState(false);
   const estado = estadoFallas(limite, registradas);
   const aviso = textoFallas(estado, limite, registradas);
+  const enLimite = textoLimiteFallas(limite, registradas);
 
   async function pedir(pedido: () => Promise<Resultado<unknown>>) {
     setError('');
@@ -38,7 +39,15 @@ export function Fallas({ materiaId, limite, registradas }: { materiaId: string; 
 
   function guardar(evento: FormEvent) {
     evento.preventDefault();
-    const nuevos = { limite: mensajeDe(() => validarLimiteFallas(campoLimite)), registradas: mensajeDe(() => validarFallas(campoRegistradas)) };
+    const errorLimite = mensajeDe(() => validarLimiteFallas(campoLimite));
+    const nuevos = {
+      limite: errorLimite,
+      // Con un límite válido, además, las registradas no pueden pasarlo.
+      registradas: mensajeDe(() => {
+        const n = validarFallas(campoRegistradas);
+        if (!errorLimite) validarFallasConLimite(validarLimiteFallas(campoLimite), n);
+      }),
+    };
     setErrores(nuevos);
     if (nuevos.limite || nuevos.registradas) return;
     void pedir(() => pedirSemestre(`/api/nova/materias/${materiaId}/fallas`, 'PATCH', { limite: campoLimite.trim() || null, registradas: campoRegistradas }));
@@ -58,10 +67,19 @@ export function Fallas({ materiaId, limite, registradas }: { materiaId: string; 
           <span className="text-4xl font-semibold text-texto tabular-nums">{registradas}</span>
           <span className="text-sm text-texto-suave">{limite === null ? (registradas === 1 ? 'falla · sin límite registrado' : 'fallas · sin límite registrado') : `de ${limite} ${limite === 1 ? 'falla' : 'fallas'}`}</span>
         </p>
-        <Boton variante="secundario" className="size-12 rounded-full p-0" aria-label="Sumar una falla" disabled={enviando} onClick={() => cambiar(1)}>
+        <Boton variante="secundario" className="size-12 rounded-full p-0" aria-label="Sumar una falla"
+          aria-describedby={enLimite ? 'fallas-en-limite' : undefined}
+          disabled={enviando || !puedeSumarFalla(limite, registradas)}
+          onClick={() => cambiar(1)}
+        >
           <Plus aria-hidden="true" className="size-5" />
         </Boton>
       </div>
+      {enLimite && (
+        <p id="fallas-en-limite" className="text-sm text-texto-suave">
+          {enLimite}
+        </p>
+      )}
       <form onSubmit={guardar} className="grid gap-3 sm:grid-cols-[12rem_12rem_auto] sm:items-start" noValidate>
         <Campo
           id="fallas-limite"

@@ -203,7 +203,7 @@ describe("E14: fallas (6.5, RB-15)", () => {
     await expect(guardarFallas(U, MAT, { limite: "", registradas: "3" })).resolves.toEqual({ limite: null, registradas: 3 });
     expect(m.consultar.mock.calls[0]?.[1]).toEqual([MAT, U, null, 3]);
     await expect(guardarFallas(U, MAT, { registradas: "-1" })).rejects.toMatchObject({ message: "Las fallas deben ser un número entero mayor o igual a 0." });
-    m.consultar.mockResolvedValueOnce([]);
+    m.consultar.mockResolvedValueOnce([]).mockResolvedValueOnce([]); // el UPDATE y la comprobación de que existe
     await expect(guardarFallas(U, MAT, { limite: 5 })).rejects.toMatchObject({ codigo: "MATERIA_NO_ENCONTRADA" });
   });
 
@@ -212,6 +212,29 @@ describe("E14: fallas (6.5, RB-15)", () => {
     await expect(cambiarFallas(U, MAT, 1)).resolves.toEqual({ limite: 5, registradas: 4 });
     expect(String(m.consultar.mock.calls[0]?.[0])).toContain("GREATEST(0, fallas_registradas + $3)");
     expect(m.consultar.mock.calls[0]?.[1]).toEqual([MAT, U, 1]);
+  });
+
+  it("E20 (ajuste): en el límite, +1 no suma (la condición va en el mismo UPDATE) y responde 409; −1 sigue", async () => {
+    m.consultar.mockResolvedValueOnce([]).mockResolvedValueOnce([{ "?column?": 1 }]);
+    await expect(cambiarFallas(U, MAT, 1)).rejects.toMatchObject({ codigo: "LIMITE_FALLAS", message: "Llegaste al límite de fallas de esta materia: no puedes sumar más." });
+    expect(String(m.consultar.mock.calls[0]?.[0])).toContain("($3 < 0 OR fallas_limite IS NULL OR fallas_registradas < fallas_limite)");
+    m.consultar.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+    await expect(cambiarFallas(U, MAT, 1)).rejects.toMatchObject({ codigo: "MATERIA_NO_ENCONTRADA" });
+    m.consultar.mockResolvedValueOnce([{ fallas_limite: 4, fallas_registradas: 3 }]);
+    await expect(cambiarFallas(U, MAT, -1)).resolves.toEqual({ limite: 4, registradas: 3 });
+    m.consultar.mockResolvedValueOnce([]).mockResolvedValueOnce([{ "?column?": 1 }]);
+    const r = await rutaFallas.POST(new Request("http://x", { method: "POST", body: JSON.stringify({ cambio: 1 }) }), { params: Promise.resolve({ id: MAT }) });
+    expect(r.status).toBe(409);
+    expect((await r.json()).error.mensaje).toBe("Llegaste al límite de fallas de esta materia: no puedes sumar más.");
+  });
+
+  it("E20 (ajuste): a mano, las registradas no pasan del límite (con los valores que quedarían)", async () => {
+    m.consultar.mockResolvedValueOnce([]).mockResolvedValueOnce([{ "?column?": 1 }]);
+    await expect(guardarFallas(U, MAT, { limite: "4", registradas: "6" })).rejects.toMatchObject({ codigo: "FALLAS_SOBRE_LIMITE", message: "Las fallas registradas no pueden pasar del límite." });
+    expect(String(m.consultar.mock.calls[0]?.[0])).toContain("($3::int IS NULL OR $4::int <= $3::int)");
+    m.consultar.mockResolvedValueOnce([{ fallas_limite: 4, fallas_registradas: 2 }]);
+    await guardarFallas(U, MAT, { registradas: "2" });
+    expect(String(m.consultar.mock.calls[2]?.[0])).toContain("(fallas_limite IS NULL OR $3::int <= fallas_limite)");
   });
 
   it("la ruta solo admite +1 o −1", async () => {

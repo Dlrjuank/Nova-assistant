@@ -397,28 +397,47 @@ export interface Fallas {
   registradas: number;
 }
 
-/** E14 (6.5, RB-15): el límite (vacío = sin límite) y las fallas registradas, escritos a mano. */
+/** ¿Existe la materia del usuario? Distingue "no existe" de "no se cumplió la condición" tras un UPDATE vacío. */
+async function existeMateria(usuarioId: string, id: string): Promise<boolean> {
+  return (await consultar('SELECT 1 FROM materias WHERE id = $1 AND usuario_id = $2', [id, usuarioId])).length > 0;
+}
+
+/**
+ * E14 (6.5, RB-15): el límite (vacío = sin límite) y las fallas registradas, escritos a mano. E20 (ajuste): las
+ * registradas no pueden pasar del límite; se comprueba en la misma sentencia, con los valores que quedarían.
+ */
 export async function guardarFallas(usuarioId: string, id: string, d: { limite?: string | number | null | undefined; registradas?: string | number | undefined }): Promise<Fallas> {
   const cambios: string[] = [];
   const valores: unknown[] = [id, usuarioId];
-  if (d.limite !== undefined) cambios.push(`fallas_limite = $${valores.push(validarLimiteFallas(d.limite))}`);
-  if (d.registradas !== undefined) cambios.push(`fallas_registradas = $${valores.push(validarFallas(d.registradas))}`);
+  let limite = 'fallas_limite';
+  let registradas = 'fallas_registradas';
+  if (d.limite !== undefined) {
+    limite = `$${valores.push(validarLimiteFallas(d.limite))}::int`;
+    cambios.push(`fallas_limite = ${limite}`);
+  }
+  if (d.registradas !== undefined) {
+    registradas = `$${valores.push(validarFallas(d.registradas))}::int`;
+    cambios.push(`fallas_registradas = ${registradas}`);
+  }
   if (cambios.length === 0) throw new ErrorDeNegocio('DATOS_INVALIDOS');
   const [fila] = await consultar<{ fallas_limite: number | null; fallas_registradas: number }>(
-    `UPDATE materias SET ${cambios.join(', ')} WHERE id = $1 AND usuario_id = $2 RETURNING fallas_limite, fallas_registradas`,
+    `UPDATE materias SET ${cambios.join(', ')} WHERE id = $1 AND usuario_id = $2 AND (${limite} IS NULL OR ${registradas} <= ${limite}) RETURNING fallas_limite, fallas_registradas`,
     valores,
   );
-  if (!fila) throw new ErrorDeNegocio('MATERIA_NO_ENCONTRADA');
+  if (!fila) throw new ErrorDeNegocio((await existeMateria(usuarioId, id)) ? 'FALLAS_SOBRE_LIMITE' : 'MATERIA_NO_ENCONTRADA');
   return { limite: fila.fallas_limite, registradas: fila.fallas_registradas };
 }
 
-/** E14: +1 o −1 en una sola sentencia (dos toques seguidos no se pisan); nunca baja de 0. */
+/**
+ * E14: +1 o −1 en una sola sentencia (dos toques seguidos no se pisan); nunca baja de 0. E20 (ajuste): con límite,
+ * al llegar a él el +1 no cambia nada y responde LIMITE_FALLAS (la condición va en el mismo UPDATE).
+ */
 export async function cambiarFallas(usuarioId: string, id: string, cambio: 1 | -1): Promise<Fallas> {
   const [fila] = await consultar<{ fallas_limite: number | null; fallas_registradas: number }>(
-    'UPDATE materias SET fallas_registradas = LEAST(32767, GREATEST(0, fallas_registradas + $3)) WHERE id = $1 AND usuario_id = $2 RETURNING fallas_limite, fallas_registradas',
+    'UPDATE materias SET fallas_registradas = LEAST(32767, GREATEST(0, fallas_registradas + $3)) WHERE id = $1 AND usuario_id = $2 AND ($3 < 0 OR fallas_limite IS NULL OR fallas_registradas < fallas_limite) RETURNING fallas_limite, fallas_registradas',
     [id, usuarioId, cambio],
   );
-  if (!fila) throw new ErrorDeNegocio('MATERIA_NO_ENCONTRADA');
+  if (!fila) throw new ErrorDeNegocio((await existeMateria(usuarioId, id)) ? 'LIMITE_FALLAS' : 'MATERIA_NO_ENCONTRADA');
   return { limite: fila.fallas_limite, registradas: fila.fallas_registradas };
 }
 

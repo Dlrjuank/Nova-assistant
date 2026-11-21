@@ -65,6 +65,8 @@ export type CodigoError =
   | 'SIN_CORTES'
   | 'META_INVALIDA'
   | 'FALLAS_INVALIDAS'
+  | 'LIMITE_FALLAS'
+  | 'FALLAS_SOBRE_LIMITE'
   | 'OBJETIVO_INVALIDO'
   | 'META_SEMANAL_DUPLICADA'
   | 'META_SEMANAL_NO_ENCONTRADA'
@@ -165,6 +167,8 @@ export const MENSAJES: Record<CodigoError, string> = {
   SIN_CORTES: 'La materia debe tener al menos un corte.',
   META_INVALIDA: 'La meta debe estar entre 0,1 y 5,0.',
   FALLAS_INVALIDAS: 'Las fallas deben ser un número entero mayor o igual a 0.',
+  LIMITE_FALLAS: 'Llegaste al límite de fallas de esta materia: no puedes sumar más.', // E20 (ajuste)
+  FALLAS_SOBRE_LIMITE: 'Las fallas registradas no pueden pasar del límite.', // E20 (ajuste)
   OBJETIVO_INVALIDO: 'El objetivo debe ser un número entero mayor que 0.', // RB-16
   META_SEMANAL_DUPLICADA: 'Ya tienes una meta igual.', // RB-17
   META_SEMANAL_NO_ENCONTRADA: 'La meta no existe.',
@@ -259,6 +263,8 @@ export const ESTADO_HTTP: Record<CodigoError, number> = {
   SIN_CORTES: 409,
   META_INVALIDA: 422,
   FALLAS_INVALIDAS: 422,
+  LIMITE_FALLAS: 409,
+  FALLAS_SOBRE_LIMITE: 422,
   OBJETIVO_INVALIDO: 422,
   META_SEMANAL_DUPLICADA: 409,
   META_SEMANAL_NO_ENCONTRADA: 404,

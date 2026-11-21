@@ -3,7 +3,11 @@
 // veían atenuados aunque funcionaban, o no funcionaban.
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { render } from '@testing-library/react';
+import { createElement } from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
+import { pestanasSemestre } from '@/components/nova/semestre/pestanas';
+import { Pestanas } from '@/components/ui/Pestanas';
 import { bloqueadoSinConexion } from '@/lib/reglas/sinConexion';
 
 const ORIGEN = 'http://localhost';
@@ -91,6 +95,19 @@ describe('sin conexión: lo atenuado coincide con lo bloqueado', () => {
     }
     expect(bloqueadoSinConexion(document.getElementById('nota-meta') as Element, ORIGEN, AHORA)).toBe(false);
     expect(bloqueadoSinConexion(document.getElementById('pasar') as Element, ORIGEN, AHORA)).toBe(true);
+  });
+
+  it('ajuste de E20: las tres pestañas de Semestre, tal como se dibujan, se ven normales y abren sin conexión', () => {
+    document.documentElement.setAttribute('data-nova-sin-conexion', '');
+    for (const activa of ['notas', 'objetivos', 'estadisticas'] as const) {
+      const { container, unmount } = render(createElement(Pestanas, { etiqueta: 'Secciones de Semestre', pestanas: pestanasSemestre(activa) }));
+      const enlaces = [...container.querySelectorAll('a')];
+      expect(enlaces.map((a) => a.textContent)).toEqual(['Materias y notas', 'Objetivos y plan', 'Estadísticas']);
+      for (const a of enlaces) {
+        expect([a.getAttribute('href'), bloqueadoSinConexion(a, ORIGEN, AHORA), a.matches(selectorAtenuado())]).toEqual([a.getAttribute('href'), false, false]);
+      }
+      unmount();
+    }
   });
 
   it('con conexión no se atenúa nada', () => {

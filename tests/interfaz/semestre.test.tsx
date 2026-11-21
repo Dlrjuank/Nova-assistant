@@ -147,4 +147,27 @@ describe('DetalleMateria', () => {
     expect(screen.getByText("En riesgo")).toBeTruthy();
     expect((screen.getByRole("button", { name: "Restar una falla" }) as HTMLButtonElement).disabled).toBe(false);
   });
+
+  it('E20 (ajuste): en el límite el "+" queda desactivado con el aviso; el "−" sigue; a mano no pasa del límite', async () => {
+    const f = vi.fn().mockResolvedValue(ok({ limite: 4, registradas: 3 }));
+    vi.stubGlobal("fetch", f);
+    render(<DetalleMateria materia={{ ...SIN_CORTES, fallasLimite: 4, fallasRegistradas: 4 }} plantilla={[3000, 3000, 4000]} />);
+    const sumar = screen.getByRole("button", { name: "Sumar una falla" }) as HTMLButtonElement;
+    expect(sumar.disabled).toBe(true);
+    const aviso = 'Llegaste al límite de fallas: ya no puedes sumar más. Si te equivocaste, usa "−".';
+    expect(screen.getByText(aviso)).toBeTruthy();
+    expect(document.getElementById(sumar.getAttribute("aria-describedby") ?? "")?.textContent).toBe(aviso);
+    fireEvent.change(screen.getByLabelText("Fallas registradas"), { target: { value: "5" } });
+    fireEvent.click(screen.getByRole("button", { name: "Guardar fallas" }));
+    expect(screen.getByText("Las fallas registradas no pueden pasar del límite.")).toBeTruthy();
+    expect(f).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Restar una falla" }));
+    await vi.waitFor(() => expect(m.refresh).toHaveBeenCalled());
+    expect(JSON.parse(f.mock.calls[0]?.[1].body)).toEqual({ cambio: -1 });
+  });
+
+  it('E20 (ajuste): sin límite, el "+" siempre suma', () => {
+    render(<DetalleMateria materia={{ ...SIN_CORTES, fallasLimite: null, fallasRegistradas: 40 }} plantilla={[3000, 3000, 4000]} />);
+    expect((screen.getByRole("button", { name: "Sumar una falla" }) as HTMLButtonElement).disabled).toBe(false);
+  });
 });
