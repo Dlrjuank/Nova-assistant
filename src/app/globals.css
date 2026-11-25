@@ -498,6 +498,19 @@ html:has([data-nova-fondo]) body {
   animation: nova-mes-anterior 0.22s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
 }
 
+/* E20c-2: el punto vivo del aviso de cada minuto en "Administración" (prototipo); con "reducir movimiento", quieto. */
+@keyframes nova-punto-vivo {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--nova-exito) 45%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 10px transparent;
+  }
+}
+.nova-punto-vivo {
+  animation: nova-punto-vivo 1.8s ease-out infinite;
+}
+
 /* E20b (commit 5): los tres puntos del Asistente mientras responde; con "reducir movimiento" quedan quietos. */
 @keyframes nova-punto {
   0%,

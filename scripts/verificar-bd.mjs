@@ -717,6 +717,56 @@ try {
       marcar(false, `ei-ep) clave de Gemini: ${e.message}`);
     }
   }
+
+  console.log('== 6t. Cuentas, niveles y administración (M25, E20c-2)');
+  const tablasM25 = await c.query(
+    "SELECT relname FROM pg_class WHERE relname IN ('cuentas', 'administracion', 'acciones_admin') AND relnamespace = 'public'::regnamespace AND relrowsecurity",
+  );
+  marcar(tablasM25.rowCount === 3, 'tablas cuentas, administracion y acciones_admin con RLS');
+  marcar((await c.query("SELECT 1 FROM pg_policies WHERE tablename IN ('cuentas', 'administracion', 'acciones_admin')")).rowCount === 0, 'sin políticas: solo el servidor las lee');
+  if (tablasM25.rowCount === 3 && dueno) {
+    try {
+      const sinFila = (await c.query('SELECT count(*)::int AS n FROM auth.users u WHERE NOT EXISTS (SELECT 1 FROM cuentas c WHERE c.usuario_id = u.id)')).rows[0].n;
+      marcar(sinFila === 0, `eq) toda cuenta de Auth tiene su fila en cuentas (${sinFila} sin fila)`);
+      const duenos = (await c.query("SELECT usuario_id FROM cuentas WHERE nivel = 'dueno'")).rows;
+      marcar(duenos.length === 1 && duenos[0].usuario_id === dueno, 'er) un solo dueño: la cuenta del correo incorporado');
+      await esperaFalla('et) bloquear al dueño', 'P0001', "UPDATE cuentas SET estado = 'bloqueada', bloqueada_en = now() WHERE usuario_id = $1", [dueno]);
+      await esperaFalla('eu) bajarle el nivel al dueño', 'P0001', "UPDATE cuentas SET nivel = 'admin' WHERE usuario_id = $1", [dueno]);
+      await esperaFalla('ev) borrar la fila del dueño', 'P0001', 'DELETE FROM cuentas WHERE usuario_id = $1', [dueno]);
+      await c.query('SAVEPOINT m25');
+      const nueva = (await c.query(
+        "INSERT INTO auth.users (id, instance_id, aud, role, email, raw_app_meta_data, created_at, updated_at) VALUES (gen_random_uuid(), '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'verificar-m25@example.com', '{\"provider\":\"email\"}', now(), now()) RETURNING id",
+      )).rows[0].id;
+      const fila = (await c.query('SELECT estado, nivel FROM cuentas WHERE usuario_id = $1', [nueva])).rows[0];
+      marcar(fila?.estado === 'pendiente' && fila?.nivel === 'usuario', 'ew) una cuenta nueva con correo nace pendiente (RB-92)');
+      await esperaFalla('ex) hacer dueña a otra cuenta', 'P0001', "UPDATE cuentas SET nivel = 'dueno' WHERE usuario_id = $1", [nueva]);
+      await esperaFalla('es) estado fuera de la lista', '23514', "UPDATE cuentas SET estado = 'borrada' WHERE usuario_id = $1", [nueva]);
+      await esperaFalla('ey) bloqueada sin fecha', '23514', "UPDATE cuentas SET estado = 'bloqueada' WHERE usuario_id = $1", [nueva]);
+      await c.query('DELETE FROM auth.users WHERE id = $1', [nueva]);
+      marcar((await c.query('SELECT 1 FROM cuentas WHERE usuario_id = $1', [nueva])).rowCount === 0, 'ez) al borrar la cuenta de Auth se borra su fila');
+      await c.query('ROLLBACK TO SAVEPOINT m25');
+      await esperaFalla('fa) una segunda fila de administracion', '23514', 'INSERT INTO administracion (id) VALUES (2)');
+      await esperaFalla('fb) tope de cuentas fuera de rango', '23514', 'UPDATE administracion SET tope_cuentas = 0 WHERE id = 1');
+      await esperaFalla('fc) tope de espacio fuera de rango', '23514', 'UPDATE administracion SET tope_espacio_mb = 501 WHERE id = 1');
+      await esperaFalla('fd) acción fuera de la lista', '23514', "INSERT INTO acciones_admin (admin_id, accion, correo) VALUES ($1, 'espiar', 'x@x.com')", [dueno]);
+      await esperaFalla('fe) cambio de topes con correo', '23514', "INSERT INTO acciones_admin (admin_id, accion, correo) VALUES ($1, 'topes', 'x@x.com')", [dueno]);
+      const espacio = (await c.query('SELECT bytes FROM nova_espacio($1)', [dueno])).rows[0];
+      marcar(Number(espacio?.bytes ?? 0) > 0, `ff) nova_espacio estima el espacio del dueño (${espacio?.bytes ?? 0} bytes)`);
+      const publicas = (await c.query(
+        "SELECT p.proname FROM pg_proc p WHERE p.proname IN ('nova_espacio', 'nova_limpiar_registros', 'nova_antes_de_crear_usuario', 'nova_cuenta_nueva') AND (has_function_privilege('anon', p.oid, 'EXECUTE') OR has_function_privilege('authenticated', p.oid, 'EXECUTE'))",
+      )).rows.map((r) => r.proname);
+      marcar(publicas.length === 0, `fg) las funciones de M25 no se pueden llamar desde la API pública (${publicas.join(', ') || 'ninguna'})`);
+      marcar((await c.query("SELECT 1 FROM cron.job WHERE jobname = 'nova-limpieza' AND schedule = '0 8 * * *'")).rowCount === 1, 'fh) la limpieza diaria está programada (3:00 a. m. de Bogotá)');
+      await c.query('SAVEPOINT tope');
+      await c.query("UPDATE administracion SET tope_cuentas = (SELECT greatest(1, count(*)) FROM cuentas WHERE nivel = 'usuario') WHERE id = 1");
+      const gancho = (await c.query("SELECT public.nova_antes_de_crear_usuario('{\"user\":{\"email\":\"alguien@example.com\"}}') AS r")).rows[0].r;
+      const ganchoDueno = (await c.query("SELECT public.nova_antes_de_crear_usuario('{\"user\":{\"email\":\"juandelarosa1617@gmail.com\"}}') AS r")).rows[0].r;
+      marcar(gancho?.error?.http_code === 403 && Object.keys(ganchoDueno ?? {}).length === 0, 'fi) con el tope alcanzado el gancho rechaza la cuenta nueva (RB-81)');
+      await c.query('ROLLBACK TO SAVEPOINT tope');
+    } catch (e) {
+      marcar(false, `eq-fi) cuentas: ${e.message}`);
+    }
+  }
   await c.query('ROLLBACK');
 
   console.log(`== 7. Total de fallas: ${fallas}`);

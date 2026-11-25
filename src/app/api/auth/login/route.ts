@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { accesoDe } from '@/lib/datos/cuentas';
+import { MENSAJES } from '@/lib/reglas/errores';
 import { isAdminEmail } from '@/modules/auth/admin';
 
 const loginSchema = z.object({
@@ -27,6 +29,11 @@ export async function POST(request: Request) {
       email: parsed.data.email.trim(),
       password: parsed.data.password,
     });
+
+    // E20c-2 (RB-82): Supabase rechaza a una cuenta bloqueada (ban) aunque la contraseña sea la correcta.
+    if (error?.code === 'user_banned') {
+      return NextResponse.json({ success: false, error: MENSAJES.CUENTA_BLOQUEADA }, { status: 403 });
+    }
 
     if (error || !data.user) {
       return NextResponse.json(
@@ -68,6 +75,13 @@ export async function POST(request: Request) {
         },
         { status: 403 },
       );
+    }
+
+    // E20c-2 (RB-82, RB-92): una cuenta pendiente o bloqueada no entra; se cierra la sesión que se acaba de abrir.
+    const acceso = await accesoDe({ id: data.user.id, email: data.user.email ?? '' });
+    if (!acceso.permitido) {
+      await supabase.auth.signOut().catch(() => {});
+      return NextResponse.json({ success: false, error: MENSAJES[acceso.codigo] }, { status: 403 });
     }
 
     return NextResponse.json({

@@ -483,6 +483,17 @@ Solución que le dio al usuario su profesor para que varias personas usen Nova s
   - queda escrito cómo desactivarlo en un minuto.
 - **Respaldo:** `claves_gemini` y `uso_ia_diario` (M24) entran en `tablas-respaldo.mjs`, y `cuentas`, `administracion` y `acciones_admin` (M25) también, con todas sus columnas. Se comprueba con `db:restaurar --probar`.
 
+**Cómo quedó E20c-2 (2026-11-25), decisiones de detalle:**
+- **M25** (`20261125110000_nova_cuentas.sql`): `cuentas`, `administracion` y `acciones_admin` como en 6.21; `nova_proteger_cuentas` (un solo dueño, solo el correo incorporado, siempre activo, sin bajar de nivel ni borrar su fila salvo en el simulacro de restauración, con `nova.restaurando`); el disparador `nova_cuenta_nueva` en `auth.users` (nace `pendiente`; ya deja `activa` a la que llega con Google, que sigue apagado hasta E20c-3); `nova_espacio(usuario)` (7.16, recorre las tablas con `usuario_id` y suma los fragmentos con su vector otra vez); `nova_antes_de_crear_usuario` (el gancho del tope, creado y probado, se activa en E20c-3); `nova_limpiar_registros` con el trabajo `nova-limpieza` (8:00 UTC, 3:00 a. m. de Bogotá). Ninguna función se puede llamar desde la API pública.
+- **Acceso:** el middleware solo exige la sesión; `exigirSesion` y el layout de Nova leen `cuentas` en cada pedido (`leerCuenta`, que de paso anota el último acceso como mucho una vez por hora). Pendiente o bloqueada: la API responde 403 y las páginas llevan a `/cuenta`, que explica por qué y deja cerrar sesión; el inicio de sesión también lo dice y no deja la sesión abierta. Bloquear además prohíbe la cuenta en Supabase Auth (`ban_duration`).
+- **404 de verdad:** con `loading.tsx`, un `notFound()` de la página llega con 200; el middleware pasa la ruta (`x-nova-ruta`) y el layout de Nova responde 404 en "Administración" a quien no es administrador.
+- **Un administrador solo actúa sobre usuarios:** para bloquear o eliminar a un administrador, el dueño primero le quita el nivel. "Nombrar administrador", como bloquear, pide confirmación.
+- **Filtro "Pendientes"** además de los de B-104.
+- **"Activas · 7 días"** sale del último acceso, que no guarda historia: la tarjeta dice "de N cuentas" en lugar de la variación frente a la semana anterior. "Nuevas esta semana" sí la tiene.
+- **Tope de espacio (RB-85)** ya se exige: al pedir el permiso de subida, al indexar y antes de cada parte (también en segundo plano). Los administradores y el dueño no tienen tope.
+- **Clave del proyecto:** `puedeUsarClaveProyecto` = dueño o `usa_clave_proyecto` con la cuenta activa; al cambiar el permiso, la instancia olvida la clave resuelta (las demás, a más tardar en 5 minutos).
+- **Las 4 cuentas que ya existían** (además del dueño) quedaron `activa` y nivel usuario, como se aprobó: en la vista previa ya entran a Nova (en producción manda la lista de correos de master).
+
 ## 6. Modelo de datos
 
 Migraciones nuevas M5 a M13 en `supabase/migrations/`, numeradas después de `20261003136000`. Todas aditivas.

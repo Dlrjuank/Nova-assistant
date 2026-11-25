@@ -1,5 +1,6 @@
+import { del } from '@vercel/blob';
 import { exigirSesion } from '@/lib/auth/sesion';
-import { indexarDocumento, listarDocumentos } from '@/lib/dataService';
+import { exigirEspacio, indexarDocumento, listarDocumentos } from '@/lib/dataService';
 import { conManejoDeErrores, leerCuerpo, responderConEtapas, responderOk } from '@/lib/http/respuestas';
 import { TIPO_ETAPAS, type EtapaServidor } from '@/lib/reglas/etapasIndexacion';
 import { esquemaIndexar } from '@/lib/validacion/esquemas';
@@ -15,8 +16,15 @@ export const GET = conManejoDeErrores(async () => {
 });
 
 export const POST = conManejoDeErrores(async (peticion: Request) => {
-  const { id } = await exigirSesion();
+  const { id, nivel } = await exigirSesion();
   const datos = await leerCuerpo(peticion, esquemaIndexar);
+  // E20c-2 (RB-85): pasado el tope de espacio no se indexa; el PDF que alcanzó a subir se borra de Blob.
+  try {
+    await exigirEspacio(id, nivel);
+  } catch (error) {
+    await del(datos.urlBlob).catch(() => {});
+    throw error;
+  }
   // E20b (commit 6): la pantalla pide las etapas; los scripts y las pruebas reciben el JSON de siempre.
   if (peticion.headers.get('accept')?.includes(TIPO_ETAPAS)) {
     return responderConEtapas<EtapaServidor, Awaited<ReturnType<typeof indexarDocumento>>>((alEtapa) => indexarDocumento(id, datos, { alEtapa }), TIPO_ETAPAS);

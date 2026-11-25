@@ -5,7 +5,7 @@ import { ErrorDeNegocio } from '@/lib/reglas/errores';
 
 const m = vi.hoisted(() => ({ exigirSesion: vi.fn(), indexarDocumento: vi.fn() }));
 vi.mock('@/lib/auth/sesion', () => ({ exigirSesion: m.exigirSesion }));
-vi.mock('@/lib/dataService', () => ({ indexarDocumento: m.indexarDocumento, listarDocumentos: vi.fn() }));
+vi.mock('@/lib/dataService', () => ({ indexarDocumento: m.indexarDocumento, listarDocumentos: vi.fn(), exigirEspacio: async () => {} }));
 
 import { POST } from '@/app/api/nova/documentos/route';
 import { estadoEtapa, leerLineas, textoEtapa, TIPO_ETAPAS } from '@/lib/reglas/etapasIndexacion';

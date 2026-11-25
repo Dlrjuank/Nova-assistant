@@ -10,11 +10,11 @@ import { BotonAgregar } from './navegacion/BotonAgregar';
  * hoja "Más" y botón "+" en teléfono y tableta. Cuál se ve lo decide el CSS (lg:), no JavaScript. E20b: con los
  * avisos (perfil, vencidas y próximo corte) que piden las dos barras.
  */
-export function NavegacionNova({ email }: { email: string }) {
+export function NavegacionNova({ email, administrador = false }: { email: string; administrador?: boolean }) {
   return (
     <ProveedorAvisos>
-      <BarraLateral email={email} />
-      <BarraInferior email={email} />
+      <BarraLateral email={email} administrador={administrador} />
+      <BarraInferior email={email} administrador={administrador} />
       <BotonAgregar />
     </ProveedorAvisos>
   );

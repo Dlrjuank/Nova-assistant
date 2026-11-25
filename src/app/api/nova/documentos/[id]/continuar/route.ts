@@ -1,5 +1,5 @@
 import { exigirSesion } from '@/lib/auth/sesion';
-import { continuarIndexacion } from '@/lib/dataService';
+import { continuarIndexacion, exigirEspacio } from '@/lib/dataService';
 import { conManejoDeErrores, responderOk } from '@/lib/http/respuestas';
 import { esquemaIdDocumento } from '@/lib/validacion/esquemas';
 
@@ -10,5 +10,7 @@ export const maxDuration = 300;
 export const POST = conManejoDeErrores(async (_peticion: Request, { params }: { params: Promise<{ id: string }> }) => {
   const sesion = await exigirSesion();
   const id = esquemaIdDocumento.parse((await params).id);
+  // E20c-2 (RB-85): pasado el tope de espacio, el libro queda en pausa (no se borra nada).
+  await exigirEspacio(sesion.id, sesion.nivel);
   return responderOk(await continuarIndexacion(sesion.id, id));
 });

@@ -21,6 +21,8 @@ vi.mock('@/lib/supabase/server', () => ({
   }),
 }));
 
+// E20c-2: la cuenta que entra está activa (la tabla `cuentas` la prueban tests/servidor/sesion.test.ts y acceso.test.ts).
+vi.mock('@/lib/datos/cuentas', () => ({ accesoDe: async () => ({ permitido: true, nivel: 'usuario' }) }));
 vi.mock('@/lib/supabase/admin', () => ({
   createSupabaseAdminClient: () => ({
     auth: { admin: { createUser: mocks.createUser } },

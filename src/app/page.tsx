@@ -1,12 +1,11 @@
 import { redirect } from 'next/navigation';
-import { tieneAccesoNova } from '@/lib/auth/acceso';
 import { obtenerSesion } from '@/lib/dataService';
 
 export const dynamic = 'force-dynamic';
 
-// Plan, sección 4: sin sesión va al login; con sesión, a Nova (o a /home si la cuenta no tiene acceso a Nova).
+// Plan, sección 4: sin sesión va al login; con sesión, a Nova. E20c-2: si la cuenta no entra (pendiente o
+// bloqueada), el layout de Nova la lleva a /cuenta.
 export default async function HomePage() {
   const sesion = await obtenerSesion();
-  if (!sesion) redirect('/login');
-  redirect(tieneAccesoNova(sesion.email) ? '/nova' : '/home');
+  redirect(sesion ? '/nova' : '/login');
 }

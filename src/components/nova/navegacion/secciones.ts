@@ -1,5 +1,5 @@
 import { pestanasSemestre } from '@/components/nova/semestre/pestanas';
-import { CalendarDays, ChartColumn, FileText, GraduationCap, House, ListChecks, MessageCircle, Settings, type LucideIcon } from 'lucide-react';
+import { CalendarDays, ChartColumn, FileText, GraduationCap, House, ListChecks, MessageCircle, Settings, ShieldCheck, type LucideIcon } from 'lucide-react';
 
 /**
  * Secciones de Nova (PLAN_AMPLIACION 4.1). Solo las que ya existen: una sección entra al menú en la etapa
@@ -22,6 +22,7 @@ export const SECCIONES = {
   productividad: { href: '/nova/productividad', texto: 'Productividad', icono: ChartColumn },
   semestre: { href: '/nova/semestre', texto: 'Semestre', icono: GraduationCap },
   configuracion: { href: '/nova/configuracion', texto: 'Configuración', icono: Settings },
+  administracion: { href: '/nova/administracion', texto: 'Administración', icono: ShieldCheck },
 } satisfies Record<string, Seccion>;
 
 /** Barra lateral (computador): todas las secciones disponibles, en el orden del plan. */
@@ -51,6 +52,13 @@ export const SUBMENU_SEMESTRE: Array<{ href: string; texto: string }> = pestanas
 
 /** Hoja "Más": las secciones que no caben en la barra inferior. */
 export const MENU_MAS: Seccion[] = [SECCIONES.fuentes, SECCIONES.productividad, SECCIONES.semestre, SECCIONES.configuracion];
+
+/**
+ * E20c-2 (RB-83): "Administración" aparece al final de la barra lateral y de "Más" solo para los administradores (y
+ * el dueño). Para cualquier otra cuenta no está en el menú, su página no existe y su API responde 403.
+ */
+export const menuLateral = (administrador: boolean): Seccion[] => (administrador ? [...MENU_LATERAL, SECCIONES.administracion] : MENU_LATERAL);
+export const menuMas = (administrador: boolean): Seccion[] => (administrador ? [...MENU_MAS, SECCIONES.administracion] : MENU_MAS);
 
 /** Inicio solo está activo en /nova exacto; las demás, también en sus subrutas (/nova/tareas/nueva). */
 export function esActivo(ruta: string, href: string): boolean {

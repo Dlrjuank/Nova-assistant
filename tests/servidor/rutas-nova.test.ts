@@ -24,6 +24,7 @@ vi.mock('@/lib/dataService', () => ({
   indexarDocumento: m.indexarDocumento,
   listarDocumentos: m.listarDocumentos,
   emitirTokenSubida: m.emitirTokenSubida,
+  exigirEspacio: async () => {}, // E20c-2 (RB-85): con espacio
   consultarYRegistrar: m.consultarYRegistrar,
   conversacionActual: m.conversacionActual,
   crearConversacion: m.crearConversacion,

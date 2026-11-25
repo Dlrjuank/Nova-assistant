@@ -2,6 +2,10 @@
 // nova_config va primero porque el disparador de dueño por defecto (M5) la lee al insertar.
 export const TABLAS_RESPALDO = [
   'nova_config',
+  // M25 (E20c-2): cuentas con su nivel y estado, los topes y el registro de acciones (sin FK a las cuentas)
+  'cuentas',
+  'administracion',
+  'acciones_admin',
   'categorias',
   'preferencias_usuario', // M7 (E11)
   'tareas_personales',

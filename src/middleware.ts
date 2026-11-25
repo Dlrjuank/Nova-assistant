@@ -1,6 +1,5 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
-import { tieneAccesoNova } from '@/lib/auth/acceso';
 import { getSupabaseConfig } from '@/lib/supabase/config';
 
 export async function middleware(request: NextRequest) {
@@ -23,6 +22,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // E20c-2 (RB-83): la ruta pedida, para que el layout de Nova responda 404 en "Administración" a quien no es
+  // administrador antes de empezar a enviar la página (con loading.tsx, un notFound() de la página llega con 200).
+  // Se escribe siempre aquí: lo que mande el navegador con ese nombre se reemplaza.
+  request.headers.set('x-nova-ruta', ruta);
   let response = NextResponse.next({ request });
   const { url, publishableKey } = getSupabaseConfig();
   const supabase = createServerClient(url, publishableKey, {
@@ -51,18 +54,17 @@ export async function middleware(request: NextRequest) {
   const esApiNova = ruta === '/api/nova' || ruta.startsWith('/api/nova/');
   const esPaginaNova = ruta === '/nova' || ruta.startsWith('/nova/');
   if (esApiNova || esPaginaNova) {
-    const sinSesion = !data.user;
-    if (sinSesion || !tieneAccesoNova(data.user?.email)) {
+    // E20c-2: aquí solo se exige la sesión. Si la cuenta entra (activa, pendiente o bloqueada, y con qué nivel) lo
+    // decide la tabla `cuentas` en cada pedido, en exigirSesion y en el layout de Nova: el middleware corre en el
+    // runtime edge y no consulta la base.
+    if (!data.user) {
       if (esApiNova) {
-        const [estado, codigo, mensaje] = sinSesion
-          ? [401, 'NO_AUTORIZADO', 'Debes iniciar sesión.']
-          : [403, 'ACCESO_DENEGADO', 'Tu cuenta no tiene acceso a Nova Assistant.'];
         return NextResponse.json(
-          { ok: false, error: { codigo, mensaje, detalles: null } },
-          { status: estado, headers: { 'Cache-Control': 'no-store' } },
+          { ok: false, error: { codigo: 'NO_AUTORIZADO', mensaje: 'Debes iniciar sesión.', detalles: null } },
+          { status: 401, headers: { 'Cache-Control': 'no-store' } },
         );
       }
-      return NextResponse.redirect(new URL(sinSesion ? '/login' : '/home', request.url));
+      return NextResponse.redirect(new URL('/login', request.url));
     }
     // E11b (RB-63): el service worker guarda la copia sin conexión a nombre de este usuario; si cambia, la borra.
     if (esPaginaNova && data.user) response.headers.set('x-nova-usuario', data.user.id);

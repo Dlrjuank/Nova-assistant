@@ -1544,4 +1544,27 @@ Total de fallas: 0
     - "reducir movimiento", navegar y recargar;
     - la imagen de arranque de un solo color.
   - Sin conexión: `ui_e20sin` 16 de 16, `ui_e19b` 12 de 12 y `ui_e11e` 34 de 34. `ui_e20sin` ahora espera a que se quite la pantalla de carga antes de tocar: al entrar en frío cubre la app hasta 1,5 s, también para quien toca en el teléfono. Una corrida dio 15 de 16 por tiempos, y las siguientes, 16 de 16.
-- **Pendiente:** la prueba del usuario (con la app reinstalada, por la imagen de arranque); luego E20c-2.
+- **Probado por el usuario sin fallas** (2026-11-25, iPhone con la app reinstalada y PC). Aceptó que dure alrededor de 1,5 s solo en frío.
+
+#### E20c-2: Administración con niveles (2026-11-25)
+
+- **Respaldo antes de M25:** `respaldos/2026-11-25_194715`. M25 se probó primero dentro de una transacción revertida y luego se aplicó. Respaldo después: `respaldos/2026-11-25_202117`, con `cuentas` (5 filas) y `administracion`; `db:restaurar --probar` correcto.
+- **Código:** reglas en `src/lib/reglas/cuentas.ts`; `src/lib/datos/cuentas.ts` (`leerCuenta`, `accesoDe`, `exigirEspacio`); `src/lib/datos/administracion.ts` (`panelAdministracion`, `accionSobreCuenta`, `eliminarCuenta`, `cambiarTopes`); `exigirSesion` con nivel, `exigirAdministrador` y `exigirDueno` en `src/lib/auth/sesion.ts` (`src/lib/auth/acceso.ts` ya no existe); rutas `/api/nova/administracion` (GET, PATCH) y `/api/nova/administracion/cuentas/[id]` (POST, DELETE); `/nova/administracion` con `src/components/nova/administracion/`; `/cuenta`; "Administración" en el menú con `menuLateral` y `menuMas`.
+**Cómo quedó E20c-2 (2026-11-25), decisiones de detalle:**
+- **M25** (`20261125110000_nova_cuentas.sql`): `cuentas`, `administracion` y `acciones_admin` como en 6.21; `nova_proteger_cuentas` (un solo dueño, solo el correo incorporado, siempre activo, sin bajar de nivel ni borrar su fila salvo en el simulacro de restauración, con `nova.restaurando`); el disparador `nova_cuenta_nueva` en `auth.users` (nace `pendiente`; ya deja `activa` a la que llega con Google, que sigue apagado hasta E20c-3); `nova_espacio(usuario)` (7.16, recorre las tablas con `usuario_id` y suma los fragmentos con su vector otra vez); `nova_antes_de_crear_usuario` (el gancho del tope, creado y probado, se activa en E20c-3); `nova_limpiar_registros` con el trabajo `nova-limpieza` (8:00 UTC, 3:00 a. m. de Bogotá). Ninguna función se puede llamar desde la API pública.
+- **Acceso:** el middleware solo exige la sesión; `exigirSesion` y el layout de Nova leen `cuentas` en cada pedido (`leerCuenta`, que de paso anota el último acceso como mucho una vez por hora). Pendiente o bloqueada: la API responde 403 y las páginas llevan a `/cuenta`, que explica por qué y deja cerrar sesión; el inicio de sesión también lo dice y no deja la sesión abierta. Bloquear además prohíbe la cuenta en Supabase Auth (`ban_duration`).
+- **404 de verdad:** con `loading.tsx`, un `notFound()` de la página llega con 200; el middleware pasa la ruta (`x-nova-ruta`) y el layout de Nova responde 404 en "Administración" a quien no es administrador.
+- **Un administrador solo actúa sobre usuarios:** para bloquear o eliminar a un administrador, el dueño primero le quita el nivel. "Nombrar administrador", como bloquear, pide confirmación.
+- **Filtro "Pendientes"** además de los de B-104.
+- **"Activas · 7 días"** sale del último acceso, que no guarda historia: la tarjeta dice "de N cuentas" en lugar de la variación frente a la semana anterior. "Nuevas esta semana" sí la tiene.
+- **Tope de espacio (RB-85)** ya se exige: al pedir el permiso de subida, al indexar y antes de cada parte (también en segundo plano). Los administradores y el dueño no tienen tope.
+- **Clave del proyecto:** `puedeUsarClaveProyecto` = dueño o `usa_clave_proyecto` con la cuenta activa; al cambiar el permiso, la instancia olvida la clave resuelta (las demás, a más tardar en 5 minutos).
+- **Las 4 cuentas que ya existían** (además del dueño) quedaron `activa` y nivel usuario, como se aprobó: en la vista previa ya entran a Nova (en producción manda la lista de correos de master).
+- **Pruebas:**
+  - `npm test` 1545 de 1545 (nuevas: `reglas/cuentas`, `servidor/sesion` reescrita, `servidor/administracion`, `servidor/administracionRutas`, `interfaz/administracion`), `eslint` sin errores (3 advertencias de antes) y build correcto.
+  - `db:verificar` 0 fallas, con la sección 6t (eq a fi).
+  - Edge (`ui_e20c2.mjs`), 33 de 33, con dos cuentas temporales y sin `SUPABASE_ADMIN_EMAILS`: nacen pendientes; la pendiente no entra y ve su mensaje; la administradora (nombrada en la base) ve el panel, habilita, bloquea con la confirmación y desbloquea; con la sesión abierta, el pedido siguiente al bloqueo responde `CUENTA_BLOQUEADA` y la página lleva a `/cuenta`; bloqueada no entra; la cuenta normal no ve el menú, la página da 404 y la API 403 sin datos; eliminar, nombrar, topes y bloquear al dueño dan "No tienes permiso para esto."; el registro de acciones; 1280 px claro y 393 px oscuro (tarjetas) sin desborde. Las cuentas y sus filas del registro se borraron al final.
+  - Sin conexión: `ui_e20sin` 16 de 16, `ui_e19b` 12 de 12 y `ui_e11e` 34 de 34.
+  - `master` desde una copia temporal: `db:verificar` y `probar:rag` con 0 fallas.
+- **Sin probar en Edge (lo prueba el usuario como dueño):** eliminar una cuenta, guardar los topes, nombrar y quitar administradores y el permiso de la clave del proyecto (cubiertos por las pruebas automáticas con la base simulada).
+- **Pendiente:** la prueba del usuario; luego E20c-3.

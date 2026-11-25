@@ -1,3 +1,4 @@
+import { ACCIONES_CUENTA } from '@/lib/reglas/cuentas';
 import { AUTOEVALUACIONES, TEXTO_ABIERTA_MAX, TIPOS_CUESTIONARIO } from '@/lib/reglas/tiposPregunta';
 import { z } from 'zod';
 import { CONSULTA_MAX_CARACTERES, WEB_MAX_CARACTERES } from '@/lib/config/nova';
@@ -242,3 +243,9 @@ export const esquemaQuitarMetaNota = z.object({ materiaId: z.uuid(), corteId: z.
 
 /** E20c-1 (RB-77): el formato fino (sin espacios, de 30 a 200) lo revisa el servicio, con su mensaje. */
 export const esquemaClaveGemini = z.object({ clave: z.string().max(1000) }).strict();
+
+// E20c-2 (Administración): las reglas finas (niveles, topes de 1 a 1000 y de 1 a 500) están en reglas/cuentas.ts.
+export const esquemaIdCuenta = z.uuid();
+export const esquemaAccionCuenta = z.object({ accion: z.enum(ACCIONES_CUENTA) }).strict();
+export const esquemaEliminarCuenta = z.object({ correo: z.string().max(320) }).strict();
+export const esquemaTopes = z.object({ cuentas: z.number(), mb: z.number() }).strict();

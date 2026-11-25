@@ -72,6 +72,8 @@ const cliente = new pg.Client(opcionesConexion(url));
 try {
   await cliente.connect();
   await cliente.query('BEGIN');
+  // M25: el simulacro también vacía cuentas; la fila del dueño solo se deja borrar con esta marca (dura la transacción).
+  if (probar) await cliente.query("SELECT set_config('nova.restaurando', 'si', true)");
   if (probar) await cliente.query(`DELETE FROM ${[...TABLAS].reverse().join('; DELETE FROM ')}`);
   for (const tabla of TABLAS) {
     const [encabezado, ...datos] = leerCsv(readFileSync(join(carpeta, `${tabla}.csv`), 'utf8'));
@@ -101,6 +103,11 @@ try {
   await cliente.query(
     "SELECT setval(pg_get_serial_sequence('mensajes_chat', 'id'), GREATEST((SELECT max(id) FROM mensajes_chat), 1))",
   );
+  if (TABLAS.includes('acciones_admin')) {
+    await cliente.query(
+      "SELECT setval(pg_get_serial_sequence('acciones_admin', 'id'), GREATEST((SELECT max(id) FROM acciones_admin), 1))",
+    );
+  }
   if (confirmar && !probar) {
     await cliente.query('COMMIT');
     console.log('Restauración aplicada.');

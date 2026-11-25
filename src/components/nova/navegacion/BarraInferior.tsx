@@ -8,7 +8,7 @@ import { EstrellaNova } from '@/components/nova/marca/EstrellaNova';
 import { Boton, CLASE_FOCO } from '@/components/ui/Boton';
 import { ATRIBUTO_PILDORA, estiloPildora, usePildora } from '@/components/ui/usePildora';
 import { useAvisosNavegacion } from './AvisosNavegacion';
-import { BARRA_INFERIOR, MENU_MAS, esActivo, type Seccion } from './secciones';
+import { BARRA_INFERIOR, esActivo, menuMas, type Seccion } from './secciones';
 import { useCerrarSesion } from './useCerrarSesion';
 import { useFocoAtrapado } from './useFocoAtrapado';
 
@@ -49,7 +49,8 @@ function ItemBarra({ seccion, ruta, globo }: { seccion: Seccion; ruta: string; g
  * (redondo, con el halo de la estrella), Tareas (con un globo si hay vencidas) y "Más"; la opción activa lleva una
  * píldora que se desliza. "Más" abre un menú de cristal casi a pantalla completa, con letras grandes.
  */
-export function BarraInferior({ email }: { email: string }) {
+export function BarraInferior({ email, administrador = false }: { email: string; administrador?: boolean }) {
+  const MENU_MAS = menuMas(administrador);
   const ruta = usePathname();
   const avisos = useAvisosNavegacion();
   const [abierta, setAbierta] = useState(false);

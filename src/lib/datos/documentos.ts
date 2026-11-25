@@ -11,7 +11,6 @@ import { hoyBogota } from '@/lib/reglas/fechas';
 import { detectarCapitulos, fragmentarPaginas, inicioDePaginas, validarPaginas, type FragmentoLibro } from '@/lib/reglas/libros';
 import type { Capitulo, CapitulosDocumento, Documento, ResultadoIndexacion } from './tipos';
 import { conIaDe } from '@/lib/llm/contextoIa';
-import { CORREO_DUENO } from '@/modules/auth/admin';
 
 /**
  * Protocolo de subida client-side de Vercel Blob; devuelve lo que espera upload() en el navegador.
@@ -233,8 +232,10 @@ export async function continuarIndexacion(
  * (respeta indexando_hasta, RB-38). Si Gemini pide esperar por la cuota, no espera: lo intenta en el minuto
  * siguiente. Con la pantalla abierta, el navegador sigue pidiendo partes y no se repiten (el mismo bloqueo).
  * E20c-1 (7.15): cada libro avanza con la clave de su dueño. Solo se toman libros cuyo dueño tiene una clave que
- * sirve (activa o sin cuota por ahora) o, sin clave, puede usar la del proyecto: con la clave rechazada, ilegible
- * o sin clave, el libro queda en pausa hasta que vincule una que funcione.
+ * sirve (activa o sin cuota por ahora) o, sin clave, puede usar la del proyecto (el dueño de Nova o quien tenga el
+ * permiso, E20c-2): con la clave rechazada, ilegible o sin clave, el libro queda en pausa hasta que vincule una que
+ * funcione. E20c-2: además, la cuenta debe estar activa y, si no es administradora, por debajo del tope de espacio
+ * (RB-85); si no, el libro queda en pausa.
  */
 const ERRORES_DE_IA = new Set(['ERROR_LLM', 'CUOTA_CLAVE_AGOTADA', 'CLAVE_GEMINI_RECHAZADA', 'CLAVE_GEMINI_ILEGIBLE', 'SIN_CLAVE_GEMINI']);
 
@@ -246,15 +247,22 @@ export async function avanzarLibroEnSegundoPlano(): Promise<
      WHERE id = (
        SELECT d.id FROM documentos d
        WHERE d.progreso IS NOT NULL AND (d.indexando_hasta IS NULL OR d.indexando_hasta < NOW())
-         AND (
-           EXISTS (SELECT 1 FROM claves_gemini k WHERE k.usuario_id = d.usuario_id AND k.estado IN ('activa', 'sin_cuota'))
-           OR (NOT EXISTS (SELECT 1 FROM claves_gemini k WHERE k.usuario_id = d.usuario_id)
-               AND EXISTS (SELECT 1 FROM auth.users u WHERE u.id = d.usuario_id AND lower(u.email) = $2))
+         AND EXISTS (
+           SELECT 1 FROM cuentas c
+           WHERE c.usuario_id = d.usuario_id AND c.estado = 'activa'
+             AND (c.nivel IN ('dueno', 'admin')
+                  OR coalesce((SELECT e.bytes FROM nova_espacio(d.usuario_id) e), 0)
+                     < (SELECT a.tope_espacio_mb FROM administracion a WHERE a.id = 1)::bigint * 1048576)
+             AND (
+               EXISTS (SELECT 1 FROM claves_gemini k WHERE k.usuario_id = d.usuario_id AND k.estado IN ('activa', 'sin_cuota'))
+               OR (NOT EXISTS (SELECT 1 FROM claves_gemini k WHERE k.usuario_id = d.usuario_id)
+                   AND (c.nivel = 'dueno' OR c.usa_clave_proyecto))
+             )
          )
        ORDER BY d.created_at LIMIT 1 FOR UPDATE OF d SKIP LOCKED
      ) AND progreso IS NOT NULL AND (indexando_hasta IS NULL OR indexando_hasta < NOW())
      RETURNING id, usuario_id, por_indexar, progreso`,
-    [LEASE_MINUTOS, CORREO_DUENO],
+    [LEASE_MINUTOS],
   );
   if (!tomado) return null;
   try {

@@ -11,7 +11,7 @@ import { avisoLateral, inicialPerfil, nombrePerfil } from '@/lib/reglas/avisos';
 import { hoyBogota } from '@/lib/reglas/fechas';
 import { CLAVE_LATERAL } from '@/lib/tema';
 import { useAvisosNavegacion } from './AvisosNavegacion';
-import { MENU_LATERAL, SUBMENU_SEMESTRE, esActivo, type Seccion } from './secciones';
+import { SUBMENU_SEMESTRE, esActivo, menuLateral, type Seccion } from './secciones';
 import { useCerrarSesion } from './useCerrarSesion';
 
 const ESTILO_FILA = `relative z-10 flex min-h-10 items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors duration-150 ${CLASE_FOCO}`;
@@ -39,7 +39,8 @@ function Fila({ seccion, activa, extra, conFondo }: { seccion: Seccion; activa: 
  * una píldora que se desliza a la activa, Semestre con sus tres pestañas, una tarjeta de aviso (tareas vencidas o
  * el próximo corte) y "Cerrar sesión". Se pliega a solo íconos; se recuerda en el navegador (CLAVE_LATERAL).
  */
-export function BarraLateral({ email }: { email: string }) {
+export function BarraLateral({ email, administrador = false }: { email: string; administrador?: boolean }) {
+  const MENU_LATERAL = menuLateral(administrador);
   const ruta = usePathname();
   const avisos = useAvisosNavegacion();
   const { cerrarSesion, error, saliendo } = useCerrarSesion();

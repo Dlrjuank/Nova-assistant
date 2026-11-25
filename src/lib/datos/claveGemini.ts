@@ -62,8 +62,13 @@ async function filaDe(usuarioId: string): Promise<FilaClave | undefined> {
  * quien tenga el permiso `usa_clave_proyecto`. Un administrador no la usa por serlo.
  */
 export async function puedeUsarClaveProyecto(usuarioId: string): Promise<boolean> {
-  const [cuenta] = await consultar<{ email: string | null }>('SELECT email FROM auth.users WHERE id = $1', [usuarioId]);
-  return esCorreoDueno(cuenta?.email);
+  const [cuenta] = await consultar<{ email: string | null; permiso: boolean | null }>(
+    `SELECT u.email, c.usa_clave_proyecto AS permiso
+     FROM auth.users u LEFT JOIN cuentas c ON c.usuario_id = u.id AND c.estado = 'activa'
+     WHERE u.id = $1`,
+    [usuarioId],
+  );
+  return esCorreoDueno(cuenta?.email) || cuenta?.permiso === true;
 }
 
 /** La clave con la que esa persona llama a Gemini, o el error de RB-78, RB-79 o RB-90 (nunca la del proyecto en su lugar). */
