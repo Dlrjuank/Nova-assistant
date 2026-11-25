@@ -37,6 +37,12 @@
   --color-anillo-2: var(--nova-anillo-2);
   --color-anillo-3: var(--nova-anillo-3);
   --color-cristal: var(--nova-cristal);
+  /* E20b (commit 10): el cielo de la entrada, de noche en los dos temas. */
+  --color-cielo-arriba: var(--nova-cielo-arriba);
+  --color-cielo-abajo: var(--nova-cielo-abajo);
+  --color-cielo-estrella: var(--nova-cielo-estrella);
+  --color-cielo-texto: var(--nova-cielo-texto);
+  --color-cielo-texto-suave: var(--nova-cielo-texto-suave);
 
   /* E20b: títulos en Bricolage Grotesque, texto en Instrument Sans, datos y etiquetas en JetBrains Mono. */
   --font-sans: var(--font-instrument), 'Segoe UI', system-ui, sans-serif;
@@ -77,6 +83,13 @@
   --nova-anillo-3: #e9b798;
   --nova-halo: rgb(174 70 27 / 0.35);
   --nova-cristal: rgb(255 251 246 / 0.8);
+  /* E20b (commit 10): el cielo de la entrada es de noche también en modo claro, así que no cambia con el tema. */
+  --nova-cielo-arriba: #0b0a12;
+  --nova-cielo-abajo: #1d1410;
+  --nova-cielo-estrella: #fbf3e8;
+  --nova-cielo-texto: #f3eadd;
+  --nova-cielo-texto-suave: #c8b8a6;
+  --nova-cielo-luz: rgb(242 160 110 / 0.2);
 }
 
 /* Modo oscuro elegido por el usuario. Los mismos valores se repiten abajo para "automático". */
@@ -492,4 +505,136 @@ html:has([data-nova-fondo]) body {
 }
 .nova-punto {
   animation: nova-punto 1.2s ease-in-out infinite;
+}
+
+/*
+ * E20b (commit 10): la entrada con la Estrella nova en un cielo de noche. Dentro de la escena, la estrella usa
+ * sus colores de noche aunque el tema sea claro. Todo es CSS salvo la luz que sigue al puntero y el viaje de la
+ * estrella (transform en requestAnimationFrame y Web Animations). Con la pestaña oculta, todo se detiene.
+ */
+.nova-cielo {
+  --nova-estrella: #f2a47c;
+  --nova-estrella-centro: #fff3e6;
+  --nova-anillo-1: #221812;
+  --nova-anillo-2: #3e2115;
+  --nova-anillo-3: #6b3017;
+  --nova-halo: rgb(226 112 63 / 0.5);
+}
+.nova-cielo[data-pausado],
+.nova-cielo[data-pausado] * {
+  animation-play-state: paused !important;
+}
+@keyframes nova-titilar {
+  from {
+    opacity: var(--nova-brillo-min, 0.25);
+  }
+  to {
+    opacity: 1;
+  }
+}
+.nova-titilar {
+  animation: nova-titilar var(--nova-dur, 3s) ease-in-out var(--nova-ret, 0s) infinite alternate;
+  transition:
+    transform 0.25s ease-out,
+    box-shadow 0.25s ease-out;
+}
+.nova-titilar[data-cerca] {
+  transform: scale(1.9);
+  box-shadow: 0 0 8px 1px var(--nova-cielo-estrella);
+}
+@keyframes nova-cielo-deriva {
+  to {
+    transform: translate3d(-36px, -20px, 0);
+  }
+}
+.nova-cielo-deriva {
+  animation: nova-cielo-deriva 90s linear infinite alternate;
+}
+.nova-luz {
+  background: radial-gradient(circle closest-side, var(--nova-cielo-luz), transparent);
+  transition: opacity 0.6s ease-out;
+}
+@keyframes nova-latido {
+  50% {
+    transform: scale(1.06);
+  }
+}
+.nova-latido {
+  animation: nova-latido 2.4s ease-in-out infinite;
+}
+.nova-estrella-apagada {
+  filter: saturate(0.35) brightness(0.55);
+  transition: filter 0.6s ease-out;
+}
+.nova-estrella-encendida {
+  filter: none;
+  transition: filter 0.6s ease-out;
+}
+@keyframes nova-halo-nova {
+  from {
+    transform: scale(0.2);
+    opacity: 0;
+  }
+  40% {
+    opacity: 0.9;
+  }
+  to {
+    transform: scale(1.5);
+    opacity: 0.45;
+  }
+}
+.nova-halo-nova {
+  background: radial-gradient(circle closest-side, var(--nova-halo), transparent);
+  animation: nova-halo-nova 1.2s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@keyframes nova-onda {
+  from {
+    transform: scale(0.7);
+    opacity: 0.6;
+  }
+  to {
+    transform: scale(3.2);
+    opacity: 0;
+  }
+}
+.nova-onda {
+  border: 2px solid var(--nova-estrella);
+  animation: nova-onda 1.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@keyframes nova-indicacion {
+  50% {
+    text-shadow: 0 0 14px var(--nova-cielo-luz), 0 0 2px var(--nova-cielo-texto);
+    opacity: 1;
+  }
+}
+.nova-indicacion {
+  opacity: 0.8;
+  animation: nova-indicacion 2.2s ease-in-out infinite;
+}
+@keyframes nova-entrar-derecha {
+  from {
+    opacity: 0;
+    transform: translateX(48px);
+  }
+}
+/* El formulario sube en el teléfono y entra desde la derecha en pantalla ancha. */
+.nova-entrada-formulario[data-visible] {
+  animation: nova-subir 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+}
+@media (min-width: 1024px) {
+  .nova-entrada-formulario[data-visible] {
+    animation: nova-entrar-derecha 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* Todo ya encendido desde el principio: sin la estrella en el centro, con el formulario a la vista. */
+  .nova-entrada-escena {
+    display: none;
+  }
+  .nova-entrada-formulario {
+    opacity: 1 !important;
+  }
+  .nova-luz {
+    display: none;
+  }
 }

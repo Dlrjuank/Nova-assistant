@@ -11,8 +11,8 @@ import {
   CLASE_ERROR_CAMPO,
   CLASE_ETIQUETA_ACCESO,
   CLASE_EXITO_ACCESO,
-  TarjetaAcceso,
 } from './TarjetaAcceso';
+import { EntradaNova } from './EntradaNova';
 
 type FormErrors = {
   email?: string;
@@ -78,7 +78,8 @@ export function LoginForm({ successMessage }: LoginFormProps) {
   }
 
   return (
-    <TarjetaAcceso
+    // E20b (commit 10): la entrada con la Estrella nova en un cielo de noche. El formulario y su lógica no cambian.
+    <EntradaNova
       titulo="Bienvenido de nuevo"
       subtitulo="Inicia sesión para continuar."
       pie={
@@ -167,6 +168,6 @@ export function LoginForm({ successMessage }: LoginFormProps) {
         </button>
       </form>
 
-    </TarjetaAcceso>
+    </EntradaNova>
   );
 }

@@ -42,6 +42,8 @@ describe('sin colores sueltos en Nova', () => {
   // E04: el acceso (login, registro y recuperación) también usa solo tokens.
   const ACCESO = [
     'src/components/login/TarjetaAcceso.tsx',
+    'src/components/login/EntradaNova.tsx', // E20b (commit 10)
+    'src/components/login/CieloNoche.tsx',
     'src/components/login/LoginForm.tsx',
     'src/components/login/RegisterForm.tsx',
     'src/components/login/RecoveryRequestForm.tsx',
