@@ -12,6 +12,7 @@ import { hoyBogota, sumarDias } from '@/lib/reglas/fechas';
 import { cargarEnv, opcionesConexion } from './cargar-env.mjs';
 import { instalarCacheEmbeddings } from './cache-embeddings';
 import { generarLibroPdf } from './pdf-libro';
+import { conClaveDelProyecto } from '@/lib/llm/contextoIa';
 
 cargarEnv();
 instalarCacheEmbeddings(llm);
@@ -111,4 +112,5 @@ async function main(): Promise<void> {
   process.exit(fallas ? 1 : 0);
 }
 
-if (process.argv[1]?.replace(/\\/g, '/').endsWith('scripts/probar-temas.ts')) void main();
+if (process.argv[1]?.replace(/\\/g, '/').endsWith('scripts/probar-temas.ts')) // E20c-1: con Gemini real y la clave del proyecto (fuera de conIaDe, gemini.ts no llama a Gemini).
+void conClaveDelProyecto(main);

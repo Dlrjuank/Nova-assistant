@@ -13,6 +13,7 @@ import { CATEGORIA_POR_DEFECTO } from '@/lib/config/nova';
 import { validarTamanoPdf } from '@/lib/reglas/documento';
 import { ErrorDeNegocio, MENSAJES } from '@/lib/reglas/errores';
 import { esEtapaServidor, leerLineas, TIPO_ETAPAS, type EtapaIndexacion } from '@/lib/reglas/etapasIndexacion';
+import { RequiereIa } from '@/components/nova/ia/RequiereIa';
 
 /** Cuánto se ve "Indexado" en el botón antes de volver (E20b, botones con estados). */
 const LISTO_MS = 2500;
@@ -182,7 +183,9 @@ export function SubidorPdf({ materias = [] }: { materias?: ReadonlyArray<{ id: s
     }
   }
 
+  // E20c-1 (RB-79): indexar necesita la IA (embeddings); sin una que sirva, el aviso con la guía.
   return (
+    <RequiereIa>
     <form onSubmit={enviar} className="flex flex-col gap-5">
       <div className="flex flex-col gap-1.5">
         <label htmlFor="archivo" className="text-sm font-medium text-texto">
@@ -269,5 +272,6 @@ export function SubidorPdf({ materias = [] }: { materias?: ReadonlyArray<{ id: s
         </Boton>
       </div>
     </form>
+    </RequiereIa>
   );
 }

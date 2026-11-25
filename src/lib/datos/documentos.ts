@@ -10,6 +10,8 @@ import type { EtapaServidor } from '@/lib/reglas/etapasIndexacion';
 import { hoyBogota } from '@/lib/reglas/fechas';
 import { detectarCapitulos, fragmentarPaginas, inicioDePaginas, validarPaginas, type FragmentoLibro } from '@/lib/reglas/libros';
 import type { Capitulo, CapitulosDocumento, Documento, ResultadoIndexacion } from './tipos';
+import { conIaDe } from '@/lib/llm/contextoIa';
+import { CORREO_DUENO } from '@/modules/auth/admin';
 
 /**
  * Protocolo de subida client-side de Vercel Blob; devuelve lo que espera upload() en el navegador.
@@ -230,25 +232,38 @@ export async function continuarIndexacion(
  * RB-57 (E11c): el aviso de cada minuto avanza una parte del libro a medias más antiguo que nadie esté indexando
  * (respeta indexando_hasta, RB-38). Si Gemini pide esperar por la cuota, no espera: lo intenta en el minuto
  * siguiente. Con la pantalla abierta, el navegador sigue pidiendo partes y no se repiten (el mismo bloqueo).
+ * E20c-1 (7.15): cada libro avanza con la clave de su dueño. Solo se toman libros cuyo dueño tiene una clave que
+ * sirve (activa o sin cuota por ahora) o, sin clave, puede usar la del proyecto: con la clave rechazada, ilegible
+ * o sin clave, el libro queda en pausa hasta que vincule una que funcione.
  */
+const ERRORES_DE_IA = new Set(['ERROR_LLM', 'CUOTA_CLAVE_AGOTADA', 'CLAVE_GEMINI_RECHAZADA', 'CLAVE_GEMINI_ILEGIBLE', 'SIN_CLAVE_GEMINI']);
+
 export async function avanzarLibroEnSegundoPlano(): Promise<
   { documentoId: string; progreso: number | null; esperaCuota?: boolean } | null
 > {
-  const [tomado] = await consultar<{ id: string; por_indexar: Pendiente[]; progreso: number }>(
+  const [tomado] = await consultar<{ id: string; usuario_id: string; por_indexar: Pendiente[]; progreso: number }>(
     `UPDATE documentos SET indexando_hasta = NOW() + make_interval(mins => $1)
      WHERE id = (
-       SELECT id FROM documentos
-       WHERE progreso IS NOT NULL AND (indexando_hasta IS NULL OR indexando_hasta < NOW())
-       ORDER BY created_at LIMIT 1 FOR UPDATE SKIP LOCKED
+       SELECT d.id FROM documentos d
+       WHERE d.progreso IS NOT NULL AND (d.indexando_hasta IS NULL OR d.indexando_hasta < NOW())
+         AND (
+           EXISTS (SELECT 1 FROM claves_gemini k WHERE k.usuario_id = d.usuario_id AND k.estado IN ('activa', 'sin_cuota'))
+           OR (NOT EXISTS (SELECT 1 FROM claves_gemini k WHERE k.usuario_id = d.usuario_id)
+               AND EXISTS (SELECT 1 FROM auth.users u WHERE u.id = d.usuario_id AND lower(u.email) = $2))
+         )
+       ORDER BY d.created_at LIMIT 1 FOR UPDATE OF d SKIP LOCKED
      ) AND progreso IS NOT NULL AND (indexando_hasta IS NULL OR indexando_hasta < NOW())
-     RETURNING id, por_indexar, progreso`,
-    [LEASE_MINUTOS],
+     RETURNING id, usuario_id, por_indexar, progreso`,
+    [LEASE_MINUTOS, CORREO_DUENO],
   );
   if (!tomado) return null;
   try {
-    return { documentoId: tomado.id, progreso: await avanzarIndexacion(tomado.id, tomado.por_indexar, 0, { sinEsperarCuota: true }) };
+    const progreso = await conIaDe(tomado.usuario_id, () => avanzarIndexacion(tomado.id, tomado.por_indexar, 0, { sinEsperarCuota: true }));
+    return { documentoId: tomado.id, progreso };
   } catch (error) {
-    if (error instanceof ErrorDeNegocio && error.codigo === 'ERROR_LLM') return { documentoId: tomado.id, progreso: tomado.progreso, esperaCuota: true };
+    // Sin cuota o con un problema de la clave: se intenta en el minuto siguiente (la consulta de arriba ya deja
+    // fuera a quien tenga la clave rechazada o ilegible).
+    if (error instanceof ErrorDeNegocio && ERRORES_DE_IA.has(error.codigo)) return { documentoId: tomado.id, progreso: tomado.progreso, esperaCuota: true };
     throw error;
   }
 }

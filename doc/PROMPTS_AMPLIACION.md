@@ -880,7 +880,56 @@ Recuperar la contraseña (pedido del usuario, 2026-11-24; va en la propuesta de 
 VERIFICACIÓN: B-87 a B-101 y B-103 a B-105; A-01 a A-21 y B-01 a B-86 siguen pasando con la cuenta del usuario (administrador).
 ```
 
-**Commits:** `feat(configuracion): clave de Gemini propia` y, aparte, `feat(administracion): registro con Google y pestaña de administración`.
+**Cambios aprobados por el usuario el 2026-11-25 (prevalecen sobre lo anterior de E20c donde choquen):**
+- **Partes:** E20c-1 clave propia (M24), E20c-2 Administración con niveles (M25), E20c-3 "Entrar con Google", control de registro y contraseña temporal. Cada una con la prueba del usuario antes de la siguiente.
+- **Llave de cifrado con versiones (7.15):**
+  - Variables `NOVA_LLAVE_CLAVES_V{n}` (32 bytes en base64) y `NOVA_LLAVE_CLAVES_ACTUAL` (la versión con la que se cifra). Van en Preview y en Production con el mismo valor desde E20c-1.
+  - Es una variable visible en Vercel, no "Sensitive": el usuario guarda su copia desde Settings → Environment Variables.
+  - Cada clave guarda su `version_llave` y se descifra con esa versión.
+  - Para cambiar la llave: se agrega `V{n+1}`, se pasa `ACTUAL` y `npm run claves:recifrar` vuelve a cifrar todas. La versión anterior se borra cuando ya ninguna la usa.
+- **Clave que no se puede descifrar:** estado `ilegible`. Nunca se usa la del proyecto en su lugar y se le pide a esa persona vincularla otra vez (RB-90).
+- **Uso por cuenta:** tabla `uso_ia_diario` (M24), con solo el conteo de llamadas a Gemini por cuenta y día de Bogotá. Nunca guarda preguntas ni respuestas. "Administración" muestra MB y consultas de cada cuenta.
+- **Niveles (M25, RB-93):** `cuentas.nivel` es `dueno`, `admin` o `usuario`. Se revisan en el servidor y en la base, no solo en la pantalla.
+  - **Dueño:**
+    - solo el correo incorporado, y uno solo (lo garantiza la base);
+    - puede todo: nombrar y quitar administradores, cambiar topes, eliminar cuentas y dar el permiso de la clave del proyecto;
+    - nadie lo puede bloquear, bajar de nivel ni eliminar.
+  - **Administrador:**
+    - ve las cuentas con su uso (MB y consultas) y el registro de acciones;
+    - bloquea y desbloquea usuarios, habilita cuentas pendientes y da contraseñas temporales;
+    - no elimina cuentas, no nombra ni quita administradores, no cambia topes ni el permiso de la clave del proyecto;
+    - no puede bloquear a otro administrador, al dueño ni a sí mismo.
+  - **Usuario:** Nova normal, sin "Administración".
+  - Nadie, tampoco el dueño, ve desde "Administración" tareas, documentos ni conversaciones de otros: solo correo, registro, uso, estado y nivel.
+  - Cada cambio de nivel y de permiso queda en `acciones_admin` con quién y cuándo.
+- **Clave del proyecto:** es un permiso por persona (`cuentas.usa_clave_proyecto`, apagado por defecto) que da el dueño. El dueño sin clave propia la usa siempre, como hoy. Un administrador no la usa por serlo (cambia RB-76, RB-79 y B-93). En E20c-1, antes de M25, solo el dueño la usa.
+- **`SUPABASE_ADMIN_EMAILS` solo para emergencias:** sus correos cuentan como administrador (nunca como dueño) aunque la base diga otra cosa. En Vercel no existe; sirve para recuperar el acceso sin desplegar código y para las pruebas automáticas.
+- **Acceso desde E20c-2:** lo decide la tabla `cuentas`. Entra quien tiene una fila en estado `activa`.
+- **Condición del usuario (2026-11-25), cuentas creadas con correo antes del control de registro:**
+  - **Al nacer:** un disparador de M25 en `auth.users` crea la fila de `cuentas` de toda cuenta nueva en estado `pendiente`.
+  - **Al migrar:** las cuentas que ya existen quedan `activa`, y la del dueño con nivel `dueno`.
+  - **Mientras está pendiente:** no entra a Nova ni a su API (`CUENTA_PENDIENTE`, 403, RB-92).
+  - **Sin fila:** tampoco entra. Si se borrara el disparador, la regla falla cerrada.
+  - **Habilitar:** un administrador o el dueño la habilita desde "Administración", y queda en el registro.
+  - **Desde E20c-3:** las cuentas que llegan con Google pasan el gancho de registro y nacen `activa`. Las creadas con correo siguen `pendiente`.
+  - **Prueba:** S-92 y una prueba en Edge crean una cuenta con correo y comprueban que no entra hasta habilitarla.
+- **Contraseña temporal (E20c-3, RB-91):**
+  - Nova la genera al azar, de 16 caracteres, y se muestra una sola vez a quien la da.
+  - Sirve para entrar una sola vez (`temporal_usada_en`). Un segundo ingreso con ella antes de cambiarla se rechaza.
+  - Vence a las 24 horas si no se usa: el aviso de cada minuto la reemplaza por una al azar que nadie conoce.
+  - Al entrar con ella, solo se puede ver la pantalla para poner una contraseña propia. Todo lo demás, también la API, responde `DEBE_CAMBIAR_CONTRASENA` (403).
+  - Nunca se guarda: las columnas de M25 son `debe_cambiar_contrasena`, `temporal_vence_en` y `temporal_usada_en`.
+  - Queda en el registro quién la dio y cuándo.
+- **Control de registro (E20c-3):**
+  - se activa en E20c-3, avisándole antes al usuario;
+  - las cuentas existentes siguen entrando en producción;
+  - el registro de producción muestra `Por ahora las cuentas nuevas se crean con "Entrar con Google".` en vez de un error; es un cambio pequeño en master que se consulta ese día;
+  - queda escrito cómo desactivarlo en un minuto.
+- **Respaldo:** `claves_gemini` y `uso_ia_diario` (M24) entran en `tablas-respaldo.mjs`, y `cuentas`, `administracion` y `acciones_admin` (M25) también, con todas sus columnas. Se comprueba con `db:restaurar --probar`.
+
+Guía de la clave (TAREA 1, revisada el 2026-11-25 en aistudio.google.com/docs/api-key y en sus términos): las claves nuevas desde el 28 de mayo de 2026 ya vienen limitadas a la API de Gemini y la API rechaza las claves sin restricción; 18 años o más; en el plan gratuito Google usa lo enviado para mejorar sus productos y personas pueden leerlo. La frase de que la cuota es por proyecto y la prohibición de crear varios proyectos no aparecen en esas páginas: no van en la guía.
+
+**Commits:** uno por parte: `feat(configuracion): clave de Gemini propia` (E20c-1), `feat(administracion): pestaña de administración con niveles` (E20c-2) y `feat(acceso): entrar con Google, control de registro y contraseña temporal` (E20c-3).
 
 **Qué cambia en E21:** `NOVA_LLAVE_CLAVES` debe estar en Production antes de unir; la tabla de aceptación pasa a B-01 a B-105; la revisión final busca la clave en registros, respuestas y en el repositorio; el acceso de otras personas se abre solo después de unir y de quitar el disparador de dueño por defecto (TAREA 4 de E21); se prueba con una segunda cuenta no administradora en producción.
 

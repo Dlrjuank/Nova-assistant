@@ -7,7 +7,7 @@ import { PantallaCarga } from '@/components/nova/PantallaCarga';
 import { tieneAccesoNova } from '@/lib/auth/acceso';
 import { ProveedorPreferencias } from '@/components/nova/PreferenciasNova';
 import { ProveedorPendientes } from '@/components/nova/pendientes/ProveedorPendientes';
-import { obtenerPreferencias, obtenerSesion } from '@/lib/dataService';
+import { estadoIa, obtenerPreferencias, obtenerSesion } from '@/lib/dataService';
 
 export const metadata: Metadata = { title: 'Nova Assistant' };
 export const dynamic = 'force-dynamic';
@@ -16,7 +16,8 @@ export default async function NovaLayout({ children }: Readonly<{ children: Reac
   const sesion = await obtenerSesion();
   if (!sesion) redirect('/login');
   if (!tieneAccesoNova(sesion.email)) redirect('/home');
-  const preferencias = await obtenerPreferencias(sesion.id); // E11: tema y formato de hora
+  // E11: tema y formato de hora. E20c-1: qué IA tiene (para el aviso de RB-79 en lugar de los botones de IA).
+  const [preferencias, ia] = await Promise.all([obtenerPreferencias(sesion.id), estadoIa(sesion.id)]);
 
   // Computador: espacio a la izquierda para la barra lateral flotante (E20b: su ancho cambia al plegarla).
   // Teléfono: espacio abajo para la barra inferior y el botón "+". El "+" termina a 5,5rem + 3,5rem = 9rem
@@ -27,6 +28,7 @@ export default async function NovaLayout({ children }: Readonly<{ children: Reac
       tema={preferencias.tema}
       formatoHora={preferencias.formatoHora}
       horaRecordatorio={preferencias.horaRecordatorio}
+      estadoIa={ia}
     >
       {/* E11e: las tareas creadas sin conexión de este usuario, su envío y el aviso al cerrar sesión. */}
       <ProveedorPendientes usuarioId={sesion.id}>

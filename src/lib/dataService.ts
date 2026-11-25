@@ -124,32 +124,54 @@ export async function actualizarContrasena(usuarioId: string, contrasena: string
 }
 
 // Nova Assistant: fachada única de datos (plan, sección 10.6).
+// E20c-1 (RB-76): todo servicio que llama a Gemini se exporta envuelto con `usaIa`, que lo corre con la clave de
+// su dueño (el primer argumento). Sin ese contexto, gemini.ts no llama a Gemini. Las rutas usan esta fachada.
+import { consultar as consultarSinIa } from '@/lib/datos/consulta';
+import { consultarYRegistrar as consultarYRegistrarSinIa, explicarRespuesta as explicarRespuestaSinIa } from '@/lib/datos/conversacion';
+import { continuarIndexacion as continuarIndexacionSinIa, indexarDocumento as indexarDocumentoSinIa } from '@/lib/datos/documentos';
+import { calcularProductividad as calcularProductividadSinIa } from '@/lib/datos/productividad';
+import { proponerTemas as proponerTemasSinIa } from '@/lib/datos/temas';
+import { generarPlan as generarPlanSinIa } from '@/lib/datos/planEstudio';
+import { buscarEnWikipedia as buscarEnWikipediaSinIa, guardarFuenteWeb as guardarFuenteWebSinIa } from '@/lib/datos/wikipedia';
+import { crearCuestionario as crearCuestionarioSinIa } from '@/lib/datos/cuestionarios';
+import { usaIa } from '@/lib/llm/contextoIa';
+
+export const consultar = usaIa(consultarSinIa);
+export const consultarYRegistrar = usaIa(consultarYRegistrarSinIa);
+export const explicarRespuesta = usaIa(explicarRespuestaSinIa);
+export const indexarDocumento = usaIa(indexarDocumentoSinIa);
+export const continuarIndexacion = usaIa(continuarIndexacionSinIa);
+export const calcularProductividad = usaIa(calcularProductividadSinIa);
+export const proponerTemas = usaIa(proponerTemasSinIa);
+export const generarPlan = usaIa(generarPlanSinIa);
+export const guardarFuenteWeb = usaIa(guardarFuenteWebSinIa);
+export const crearCuestionario = usaIa(crearCuestionarioSinIa);
+/** La búsqueda en Wikipedia resume con la IA: va con la clave de quien busca. */
+export const buscarEnWikipedia = usaIa((_usuarioId: string, consulta: string) => buscarEnWikipediaSinIa(consulta));
+export { desvincularClaveGemini, estadoIa, guardarClaveGemini, infoClaveGemini } from '@/lib/datos/claveGemini';
+
 export { exigirSesion, obtenerSesion } from '@/lib/auth/sesion';
-export { consultar } from '@/lib/datos/consulta';
-export { consultarYRegistrar, conversacionActual, crearConversacion, explicarRespuesta } from '@/lib/datos/conversacion';
+export { conversacionActual, crearConversacion } from '@/lib/datos/conversacion';
 export {
   eliminarDocumento,
   emitirTokenSubida,
   existenDocumentos,
-  indexarDocumento,
   listarDocumentos,
   capitulosDeDocumento,
-  continuarIndexacion,
 } from '@/lib/datos/documentos';
 export { completarTarea, crearTarea, crearTareaConResultado, editarTarea, eliminarTarea, hayTareasPendientes, listarTareas, obtenerTarea } from '@/lib/datos/tareas';
-export { calcularProductividad } from '@/lib/datos/productividad';
 export { semanaDeTareas, type Semana } from '@/lib/datos/semana';
 export { mesDeTareas, type Mes } from '@/lib/datos/calendario';
 export { actualizarCategoria, crearCategoria, eliminarCategoria, listarCategorias } from '@/lib/datos/categorias';
 export { estadisticasSemestre } from '@/lib/datos/estadisticas';
 export { avisosNavegacion } from '@/lib/datos/avisos';
 export { resumenInicio, type ResumenInicio } from '@/lib/datos/inicio';
-export { crearTema, documentosDeMaterias, editarTema, eliminarTema, listarTemas, proponerTemas, type Tema } from '@/lib/datos/temas';
-export { generarPlan, guardarVersionManual, obtenerPlan, pasarPasoATarea, planesDeMateria, restaurarVersion, type PlanCorte, type ResumenVersion, type VersionPlan } from '@/lib/datos/planEstudio';
+export { crearTema, documentosDeMaterias, editarTema, eliminarTema, listarTemas, type Tema } from '@/lib/datos/temas';
+export { guardarVersionManual, obtenerPlan, pasarPasoATarea, planesDeMateria, restaurarVersion, type PlanCorte, type ResumenVersion, type VersionPlan } from '@/lib/datos/planEstudio';
 export { crearMetaSemanal, eliminarMetaSemanal, listarMetasSemanales, type MetaConProgreso, type MetasDeLaSemana } from '@/lib/datos/metasSemanales';
-export { buscarEnWikipedia, eliminarFuenteWeb, guardarFuenteWeb, listarFuentesWeb } from '@/lib/datos/wikipedia';
+export { eliminarFuenteWeb, listarFuentesWeb } from '@/lib/datos/wikipedia';
 export { confirmarPlanLectura, vistaPreviaPlanLectura } from '@/lib/datos/planLectura';
-export { autoevaluarPregunta, crearCuestionario, empezarIntento, obtenerCuestionario, responderPregunta } from '@/lib/datos/cuestionarios';
+export { autoevaluarPregunta, empezarIntento, obtenerCuestionario, responderPregunta } from '@/lib/datos/cuestionarios';
 export { crearTareaRepaso, listarCuestionarios } from '@/lib/datos/historialCuestionarios';
 export {
   crearComponente,

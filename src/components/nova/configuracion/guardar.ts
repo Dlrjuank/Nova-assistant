@@ -4,7 +4,7 @@ import { MENSAJES } from '@/lib/reglas/errores';
 export type Resultado<T> = { ok: true; datos: T } | { ok: false; mensaje: string };
 
 /** Llama a una ruta de Nova y devuelve los datos o el mensaje exacto del error. */
-export async function pedirNova<T>(url: string, metodo: 'PATCH' | 'DELETE', cuerpo?: unknown): Promise<Resultado<T>> {
+export async function pedirNova<T>(url: string, metodo: 'PATCH' | 'PUT' | 'DELETE', cuerpo?: unknown): Promise<Resultado<T>> {
   try {
     const r = await fetch(url, {
       method: metodo,

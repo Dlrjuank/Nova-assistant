@@ -13,6 +13,7 @@ import { aplicarMascaraFecha } from '@/lib/reglas/fechas';
 import { minutosDe, pasosDe, textoCambiosPlan, textoDia, textoMinutos, textoOrigen, textoSemana, validarPlanManual, type PasoEditado } from '@/lib/reglas/planEstudio';
 import { EnTareas, PasarATareas } from './PasarATareas';
 import { mensajeDe, pedirSemestre } from './peticion';
+import { RequiereIa } from '@/components/nova/ia/RequiereIa';
 
 /** "17/11/2026 a las 19:40" a partir de 'YYYY-MM-DDTHH:MM' (ya en Bogotá). */
 function textoCreada(v: string): string {
@@ -291,10 +292,12 @@ export function PlanEstudio({
             <Aviso tipo="advertencia">
               <span className="flex flex-col items-start gap-2">
                 <span>{textoCambiosPlan(plan.cambios)}</span>
+                <RequiereIa compacto>
                 <Boton variante="secundario" className="min-h-9 py-1.5" cargando={generando} disabled={generando || ocupado} onClick={() => void generar()}>
                   <Sparkles aria-hidden="true" className="size-4" />
                   {generando ? 'Armando el plan…' : 'Actualizar plan'}
                 </Boton>
+                </RequiereIa>
               </span>
             </Aviso>
           )}
@@ -333,10 +336,12 @@ export function PlanEstudio({
       {!editando && (
         <div className="flex flex-wrap gap-2 border-t border-borde pt-3">
           {(!plan || plan.cambios.length === 0 || viendoOtra) && (
+            <RequiereIa compacto>
             <Boton variante={plan ? 'fantasma' : 'primario'} cargando={generando} disabled={generando || ocupado} onClick={() => void generar()}>
               <Sparkles aria-hidden="true" className="size-4" />
               {generando ? 'Armando el plan…' : plan ? 'Generar de nuevo' : 'Generar plan'}
             </Boton>
+            </RequiereIa>
           )}
           {plan && !viendoOtra && (
             <Boton

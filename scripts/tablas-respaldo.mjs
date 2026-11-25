@@ -31,4 +31,7 @@ export const TABLAS_RESPALDO = [
   'fuentes_web',
   'conversaciones',
   'mensajes_chat',
+  // M24 (E20c-1): la clave de Gemini va cifrada (sin NOVA_LLAVE_CLAVES_V{n} no sirve de nada) y el uso solo en conteos
+  'claves_gemini',
+  'uso_ia_diario',
 ];

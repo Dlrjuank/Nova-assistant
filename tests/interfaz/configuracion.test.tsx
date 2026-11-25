@@ -130,7 +130,7 @@ describe('Académico (RB-11)', () => {
 
 describe('Asistente (RB-25, B-23)', () => {
   it('avisa qué se envía a Gemini y que el plan gratuito puede usarlo', () => {
-    render(<BloqueAsistente />);
+    render(<BloqueAsistente claveGemini={{ vinculada: false, ultimos4: null, estado: null, verificadaEn: null }} />);
     expect(screen.getByText(/Nova envía a Gemini, de Google, tus preguntas/)).toBeTruthy();
     expect(screen.getByText(/No escribas ni subas información sensible, confidencial o personal\./)).toBeTruthy();
   });
@@ -138,7 +138,7 @@ describe('Asistente (RB-25, B-23)', () => {
   it('pide confirmación con el texto exacto y borra solo al confirmar', async () => {
     const f = vi.fn().mockResolvedValue(ok({ borradas: 3 }));
     vi.stubGlobal('fetch', f);
-    render(<BloqueAsistente />);
+    render(<BloqueAsistente claveGemini={{ vinculada: false, ultimos4: null, estado: null, verificadaEn: null }} />);
     fireEvent.click(screen.getByRole('button', { name: 'Borrar historial' }));
     const dialogo = screen.getByRole('dialog');
     expect(within(dialogo).getByText('Se borrará todo tu historial con el asistente. No se puede deshacer.')).toBeTruthy();

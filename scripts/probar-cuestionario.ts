@@ -11,6 +11,7 @@ import { hoyBogota } from '@/lib/reglas/fechas';
 import { etiquetaIncluye } from '@/lib/reglas/preguntasLibro';
 import { fragmentarPaginas, inicioDePaginas } from '@/lib/reglas/libros';
 import { cargarEnv, opcionesConexion } from './cargar-env.mjs';
+import { conClaveDelProyecto } from '@/lib/llm/contextoIa';
 
 cargarEnv();
 
@@ -247,4 +248,5 @@ async function main(): Promise<void> {
   process.exit(fallas ? 1 : 0);
 }
 
-void main();
+// E20c-1: con Gemini real y la clave del proyecto (fuera de conIaDe, gemini.ts no llama a Gemini).
+void conClaveDelProyecto(main);

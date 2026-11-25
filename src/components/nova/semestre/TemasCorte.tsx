@@ -14,6 +14,7 @@ import type { Tema } from '@/lib/dataService';
 import { MENSAJES } from '@/lib/reglas/errores';
 import { textoConfirmados, validarNombreTema } from '@/lib/reglas/temas';
 import { mensajeDe, pedirSemestre } from './peticion';
+import { RequiereIa } from '@/components/nova/ia/RequiereIa';
 
 function FilaTema({ tema }: { tema: Tema }) {
   const router = useRouter();
@@ -209,10 +210,12 @@ export function TemasCorte({
             <div className="min-w-0 flex-1 basis-56">
               <Selector id={`pdf-temas-${corteId}`} etiqueta="PDF de la materia" value={documento} onChange={(e) => setDocumento(e.target.value)} opciones={documentos.map((d) => ({ valor: d.id, texto: d.nombre }))} />
             </div>
+            <RequiereIa compacto>
             <Boton variante="secundario" cargando={proponiendo} listo={propuestos} textoListo="Temas propuestos" disabled={proponiendo || !documento} onClick={() => void proponer()}>
               {!propuestos && <Sparkles aria-hidden="true" className="size-4" />}
               {proponiendo ? 'Leyendo el PDF…' : 'Proponer temas'}
             </Boton>
+            </RequiereIa>
           </div>
         )}
         {resultado && <Aviso tipo={resultado.tipo === 'exito' ? 'exito' : 'error'}>{resultado.texto}</Aviso>}

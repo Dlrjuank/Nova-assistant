@@ -5,6 +5,9 @@ import {
   MODELO_CHAT_RESPALDO,
   MODELO_EMBEDDING,
 } from '@/lib/config/nova';
+import { marcarEstadoClave, resolverClave } from '@/lib/datos/claveGemini';
+import { errorSinClave } from '@/lib/ia/ocultarClave';
+import { contextoIa } from '@/lib/llm/contextoIa';
 import type { TurnoConversacion } from '@/lib/llm/prompts';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
 
@@ -49,23 +52,78 @@ const TIEMPO_RESPONDER_LARGO_MS = 110_000;
 const MEMORIA_SATURACION_MS = 5 * 60_000;
 
 // Vive en la memoria de cada instancia de Vercel: no se comparte entre instancias y se pierde al apagarse.
-let principalSaturadoHasta = 0;
+// E20c-1 (7.15): es por clave (cada persona con la suya, o la del proyecto), no global.
+const saturadoHasta = new Map<string, number>();
+const claveDeMemoria = () => contextoIa()?.usuarioId ?? 'proyecto';
+const principalSaturadoHasta = () => saturadoHasta.get(claveDeMemoria()) ?? 0;
+const recordarSaturacion = (hasta: number) => saturadoHasta.set(claveDeMemoria(), hasta);
 
-let cliente: GoogleGenAI | undefined;
-function obtenerCliente(): GoogleGenAI {
-  const clave = process.env.GEMINI_API_KEY;
-  if (!clave) {
+/**
+ * E20c-1 (RB-76): el cliente con la clave de quien está usando la IA (contextoIa). Sin contexto no llama a Gemini:
+ * así ningún camino olvidado gasta la clave del proyecto. La clave del proyecto con `usuarioId: null` es solo de los
+ * scripts de prueba; el dueño la recibe por resolverClave.
+ */
+async function obtenerCliente(): Promise<GoogleGenAI> {
+  const contexto = contextoIa();
+  if (!contexto) {
+    console.error('Llamada a Gemini fuera de conIaDe: no se sabe de quién es la clave.');
+    throw new ErrorDeNegocio('ERROR_LLM');
+  }
+  let apiKey: string | undefined;
+  if (contexto.usuarioId === null) {
+    apiKey = process.env.GEMINI_API_KEY;
+    contexto.origen = 'proyecto';
+  } else {
+    const resuelta = await resolverClave(contexto.usuarioId);
+    apiKey = resuelta.apiKey;
+    contexto.origen = resuelta.origen;
+    contexto.estadoClave = resuelta.estado;
+  }
+  if (!apiKey) {
     console.error('Falta la variable de entorno GEMINI_API_KEY.');
     throw new ErrorDeNegocio('ERROR_LLM');
   }
-  cliente ??= new GoogleGenAI({ apiKey: clave });
-  return cliente;
+  return new GoogleGenAI({ apiKey });
 }
 
-/** Registra el fallo del proveedor y lo expone como ERROR_LLM sin detalles técnicos. */
-function comoErrorLlm(error: unknown): never {
+/** Una llamada más a Gemini (solo el conteo, para uso_ia_diario). */
+function contarLlamada(): void {
+  const contexto = contextoIa();
+  if (contexto) contexto.llamadas += 1;
+}
+
+/** 7.15: con la clave de la persona, si Google la rechaza o la dejó sin cuota, se dice así y se anota su estado. */
+async function errorDeClavePropia(error: unknown): Promise<ErrorDeNegocio | null> {
+  const contexto = contextoIa();
+  if (contexto?.origen !== 'propia' || !contexto.usuarioId) return null;
+  const estado = estadoDe(error);
+  const mensaje = String((error as Error)?.message ?? '');
+  if (estado === 401 || estado === 403 || (estado === 400 && /API_KEY_INVALID|API key not valid|API key expired/i.test(mensaje))) {
+    await marcarEstadoClave(contexto.usuarioId, 'rechazada').catch(() => {});
+    return new ErrorDeNegocio('CLAVE_GEMINI_RECHAZADA');
+  }
+  if (estado === 429) {
+    await marcarEstadoClave(contexto.usuarioId, 'sin_cuota').catch(() => {});
+    return new ErrorDeNegocio('CUOTA_CLAVE_AGOTADA');
+  }
+  return null;
+}
+
+/** 7.15: una clave que estaba sin cuota y volvió a funcionar queda activa. */
+async function claveFunciono(): Promise<void> {
+  const contexto = contextoIa();
+  if (contexto?.origen === 'propia' && contexto.usuarioId && contexto.estadoClave === 'sin_cuota') {
+    contexto.estadoClave = 'activa';
+    await marcarEstadoClave(contexto.usuarioId, 'activa').catch(() => {});
+  }
+}
+
+/** Registra el fallo del proveedor (sin la clave) y lo expone como ERROR_LLM sin detalles técnicos. */
+async function comoErrorLlm(error: unknown): Promise<never> {
   if (error instanceof ErrorDeNegocio) throw error;
-  console.error('Fallo al llamar a Gemini:', error);
+  const deClave = await errorDeClavePropia(error);
+  if (deClave) throw deClave;
+  console.error('Fallo al llamar a Gemini:', errorSinClave(error));
   throw new ErrorDeNegocio('ERROR_LLM');
 }
 
@@ -123,7 +181,9 @@ async function conEsperaDeCuota<T>(trabajo: () => Promise<T>, limite: number): P
       if (estadoDe(error) !== 429) throw error;
       const espera = milisegundosDeEspera(error);
       if (Date.now() + espera > limite) {
-        console.error('Cuota de Gemini agotada y sin tiempo para esperar:', error);
+        const deClave = await errorDeClavePropia(error);
+        if (deClave) throw deClave;
+        console.error('Cuota de Gemini agotada y sin tiempo para esperar:', errorSinClave(error));
         throw new ErrorDeNegocio('ERROR_LLM', MENSAJE_CUOTA);
       }
       await new Promise((resolver) => setTimeout(resolver, espera));
@@ -137,14 +197,14 @@ async function embeber(
   esperaMaximaMs: number,
   tiempoIntentoMs?: number,
 ): Promise<number[][]> {
-  const ai = obtenerCliente();
   const vectores: number[][] = [];
   const limite = Date.now() + esperaMaximaMs;
   try {
+    const ai = await obtenerCliente();
     for (let i = 0; i < textos.length; i += TAMANO_LOTE) {
       const respuesta = await conEsperaDeCuota(
         () =>
-          ai.models.embedContent({
+          (contarLlamada(), ai.models).embedContent({
             model: MODELO_EMBEDDING,
             contents: textos.slice(i, i + TAMANO_LOTE),
             config: { outputDimensionality: EMBEDDING_DIMENSIONES, taskType: tipo, ...(tiempoIntentoMs ? { httpOptions: { timeout: tiempoIntentoMs } } : {}) },
@@ -161,6 +221,7 @@ async function embeber(
     if (vectores.length !== textos.length) {
       throw new Error(`Se recibieron ${vectores.length} embeddings para ${textos.length} textos`);
     }
+    await claveFunciono();
     return vectores;
   } catch (error) {
     return comoErrorLlm(error);
@@ -188,7 +249,9 @@ export const llm: LLMClient = {
       { role: 'user', parts: [{ text: contexto ? `CONTEXTO:\n${contexto}\n\nPREGUNTA:\n${pregunta}` : pregunta }] },
     ];
     try {
-      return await conRespaldo(contents, { systemInstruction: sistema, temperature: 0.2 }, contexto.length);
+      const texto = await conRespaldo(contents, { systemInstruction: sistema, temperature: 0.2 }, contexto.length);
+      await claveFunciono();
+      return texto;
     } catch (error) {
       return comoErrorLlm(error);
     }
@@ -201,11 +264,14 @@ export const llm: LLMClient = {
       texto = await conRespaldo([{ role: 'user', parts: [{ text: contenido }] }], config, contenido.length, tiempoMaximoMs);
     } catch (error) {
       if (estadoDe(error) === 429) {
-        console.error('Cuota de Gemini agotada en los dos modelos:', error);
+        const deClave = await errorDeClavePropia(error);
+        if (deClave) throw deClave;
+        console.error('Cuota de Gemini agotada en los dos modelos:', errorSinClave(error));
         throw new ErrorDeNegocio('CUOTA_AGOTADA');
       }
       return comoErrorLlm(error);
     }
+    await claveFunciono();
     try {
       return JSON.parse(texto) as unknown;
     } catch {
@@ -224,16 +290,17 @@ type Turno = { role: string; parts: Array<{ text: string }> };
  * Devuelve el texto o lanza el error del último modelo.
  */
 async function conRespaldo(contents: Turno[], config: Record<string, unknown>, caracteres: number, tiempoMaximoMs = Infinity): Promise<string> {
-  const ai = obtenerCliente();
+  const ai = await obtenerCliente();
   const largo = caracteres >= CONTEXTO_LARGO_CARACTERES;
   const limite = Date.now() + Math.min(largo ? TIEMPO_RESPONDER_LARGO_MS : TIEMPO_RESPONDER_MS, tiempoMaximoMs);
   const generar = async (model: string, tiempoMs: number) => {
+    contarLlamada();
     const respuesta = await ai.models.generateContent({ model, contents, config: { ...config, httpOptions: { timeout: tiempoMs } } });
     const texto = respuesta.text?.trim();
     if (!texto) throw new Error('Respuesta vacía de Gemini');
     return texto;
   };
-  const primero = !largo && Date.now() < principalSaturadoHasta ? MODELO_CHAT_RESPALDO : MODELO_CHAT;
+  const primero = !largo && Date.now() < principalSaturadoHasta() ? MODELO_CHAT_RESPALDO : MODELO_CHAT;
   const segundo = primero === MODELO_CHAT ? MODELO_CHAT_RESPALDO : MODELO_CHAT;
   const tiempoPrimero = Math.max(Math.min(largo ? TIEMPO_PRINCIPAL_LARGO_MS : TIEMPO_MODELO_PRINCIPAL_MS, limite - Date.now()), 1);
   try {
@@ -241,16 +308,16 @@ async function conRespaldo(contents: Turno[], config: Record<string, unknown>, c
     return await generar(primero, tiempoPrimero).catch((error: unknown) => {
       if (primero === MODELO_CHAT) {
         if (!ameritaRespaldo(error)) throw error;
-        if (indicaSaturacion(error, caracteres)) principalSaturadoHasta = Date.now() + MEMORIA_SATURACION_MS;
+        if (indicaSaturacion(error, caracteres)) recordarSaturacion(Date.now() + MEMORIA_SATURACION_MS);
       } else {
-        principalSaturadoHasta = 0;
+        recordarSaturacion(0);
       }
       if (Date.now() >= limite) throw error;
       console.warn(`${primero} no disponible (${estadoDe(error) ?? (error as Error)?.name}); se usa ${segundo}.`);
       return conReintentos(() => generar(segundo, Math.max(limite - Date.now(), 1)), limite);
     });
   } catch (error) {
-    principalSaturadoHasta = 0; // ninguno respondió: la próxima pregunta vuelve a probar el principal
+    recordarSaturacion(0); // ninguno respondió: la próxima pregunta vuelve a probar el principal
     throw error;
   }
 }

@@ -239,3 +239,6 @@ export const esquemaGuardarPlan = z
   .strict();
 export const esquemaRestaurarPlan = z.object({ numero: z.number().int().min(1) }).strict();
 export const esquemaQuitarMetaNota = z.object({ materiaId: z.uuid(), corteId: z.union([z.uuid(), z.null()]) });
+
+/** E20c-1 (RB-77): el formato fino (sin espacios, de 30 a 200) lo revisa el servicio, con su mensaje. */
+export const esquemaClaveGemini = z.object({ clave: z.string().max(1000) }).strict();

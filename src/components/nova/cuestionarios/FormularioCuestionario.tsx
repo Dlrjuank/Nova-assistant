@@ -11,6 +11,7 @@ import { CANTIDADES, DIFICULTADES, NOMBRE_DIFICULTAD, rangoValido, type Cantidad
 import { MENSAJES } from '@/lib/reglas/errores';
 import { citaDePaginas } from '@/lib/reglas/libros';
 import { NOMBRE_TIPO, ORDEN_FORMULARIO, TIPO_POR_DEFECTO, type TipoCuestionario } from '@/lib/reglas/tiposPregunta';
+import { RequiereIa } from '@/components/nova/ia/RequiereIa';
 
 type Alcance = 'documento' | 'capitulo' | 'paginas';
 
@@ -107,7 +108,9 @@ export function FormularioCuestionario({
     { valor: 'paginas', texto: 'Un rango de páginas' },
   ];
 
+  // E20c-1 (RB-79): crear un cuestionario usa la IA.
   return (
+    <RequiereIa>
     <form onSubmit={(e) => void crear(e)} className="flex flex-col gap-5">
       <Opciones leyenda="¿De qué parte?" nombre="alcance" valor={alcance} opciones={alcances} alCambiar={setAlcance} />
       {alcance === 'capitulo' && (
@@ -144,5 +147,6 @@ export function FormularioCuestionario({
         )}
       </div>
     </form>
+    </RequiereIa>
   );
 }

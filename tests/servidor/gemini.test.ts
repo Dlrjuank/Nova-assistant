@@ -4,6 +4,9 @@ import { MODELO_CHAT, MODELO_CHAT_RESPALDO } from '@/lib/config/nova';
 
 const generateContent = vi.fn();
 const embedContent = vi.fn();
+// E20c-1: estas pruebas son del cliente con la clave del proyecto (el contexto de los scripts de prueba).
+vi.mock('@/lib/llm/contextoIa', () => ({ contextoIa: () => ({ usuarioId: null, llamadas: 0 }) }));
+vi.mock('@/lib/datos/claveGemini', () => ({ resolverClave: vi.fn(), marcarEstadoClave: vi.fn() }));
 vi.mock('@google/genai', () => ({
   GoogleGenAI: class {
     models = { generateContent, embedContent };

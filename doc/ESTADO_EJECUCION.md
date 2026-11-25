@@ -1442,3 +1442,72 @@ Total de fallas: 0
 
 - El usuario cambió la entrada: en vez de la lámpara, la Estrella nova en un cielo de noche que se enciende al tocarla (detalle en el prompt de E20b, "Commit 10, Entrada"). Se programa al llegar al commit 10.
 
+
+### E20c Ampliación: clave de Gemini propia y acceso de otras personas
+
+#### Propuesta y decisiones (2026-11-25)
+
+- **Partes:** E20c-1 clave propia, E20c-2 Administración con niveles, E20c-3 "Entrar con Google", control de registro y contraseña temporal. Cada una con la prueba del usuario antes de la siguiente.
+- **Cambios del usuario:** llave con versiones, `ilegible`, `uso_ia_diario`, niveles dueño, administrador y usuario, y permiso de la clave del proyecto por persona y apagado. `SUPABASE_ADMIN_EMAILS` queda solo para emergencias. Las cuentas nuevas nacen `pendiente` hasta que se habiliten. Detalle en el plan (5.14, "Cambios aprobados el 2026-11-25") y en el prompt de E20c.
+- **E20d:** aprobada; su migración pasa a M26.
+- **Pasos de Google Cloud y Supabase** para "Entrar con Google": se le dieron al usuario aparte. Los hace mientras se programan E20c-1 y E20c-2, con el proveedor apagado en Supabase hasta E20c-3.
+
+#### E20c-1: clave de Gemini propia (2026-11-25)
+
+- **Antes de migrar:** `db:respaldar` (`respaldos/2026-11-25_163257`).
+- **M24** (`20261125100000_nova_claves_gemini.sql`), aplicada y solo aditiva:
+  - `claves_gemini`: texto cifrado, IV, etiqueta, `version_llave`, últimos 4 y estado `activa`, `rechazada`, `sin_cuota` o `ilegible`;
+  - `uso_ia_diario`: solo conteos por cuenta y día de Bogotá;
+  - las dos con RLS y sin políticas, y en `tablas-respaldo.mjs`.
+- **Comprobaciones de M24:**
+  - `db:verificar` 0 fallas, con las restricciones nuevas (ei a ep).
+  - Respaldo con filas de un usuario temporal: `db:respaldar` incluye las dos tablas con todas sus columnas, y `db:restaurar --probar` las restaura (BYTEA incluido) y revierte. Después se borraron el usuario y ese respaldo de prueba.
+  - Compatibilidad con `master` (worktree temporal, borrado al terminar sin tocar el `node_modules` real): `db:verificar` y `probar:rag` con 0 fallas.
+- **Llave:**
+  - `NOVA_LLAVE_CLAVES_V1` (32 bytes al azar) y `NOVA_LLAVE_CLAVES_ACTUAL=1`, en `.env.local` y en Vercel Production y Preview como "Config" (visibles, para que el usuario guarde su copia).
+  - Se comprobó por huella que el valor de Vercel es igual al local. Nunca se mostró.
+- **Cifrado** (`src/lib/ia/cifrado.ts`):
+  - AES-256-GCM con datos asociados `nova-gemini:v{versión}:{usuario}` y la llave de la versión de cada clave.
+  - `npm run claves:recifrar` (`-- --probar` para el simulacro) pasa todas a la llave actual. Una clave que no se descifra queda `ilegible`.
+  - Sin `server-only`: Next lo resuelve por dentro y rompía los scripts. Solo lo importa el servicio de la clave, y en las pruebas se simula en `src/test/setup.ts`.
+- **Quién usa qué clave** (`src/lib/llm/contextoIa.ts` y `src/lib/datos/claveGemini.ts`):
+  - **Contexto:** cada servicio con IA corre dentro de `conIaDe(usuario)`. `dataService` los exporta envueltos con `usaIa`, y el aviso de cada minuto avanza cada libro con la clave de su dueño.
+  - **Sin contexto,** `gemini.ts` no llama a Gemini (falla cerrado). Los scripts `probar:*` usan `conClaveDelProyecto`.
+  - **Clave del proyecto:** sin clave propia, solo la usa el dueño. Antes de M25 no hay más permisos.
+  - **Memoria:** la clave descifrada vive en la memoria como mucho 5 minutos. La memoria del modelo saturado es por clave.
+  - **Errores de la clave propia:** 401, 403 o `API_KEY_INVALID` la dejan `rechazada`; un 429 la deja `sin_cuota` (el chat prueba antes el respaldo con la misma clave) y vuelve a `activa` al funcionar. Nunca cae en la clave del proyecto.
+  - **Registros:** pasan por `ocultarClave`.
+  - **Uso:** cada llamada a Gemini suma 1 en `uso_ia_diario`.
+- **Segundo plano (RB-57):** solo toma libros cuyo dueño tiene una clave `activa` o `sin_cuota` o, sin clave, puede usar la del proyecto. Los demás quedan en pausa.
+- **API:** `GET/PUT/DELETE /api/nova/clave-gemini`.
+  - Solo devuelve `{ vinculada, ultimos4, estado, verificadaEn }`.
+  - La verificación es `models.get` con la clave en el encabezado `x-goog-api-key`, nunca en la dirección.
+  - `/api/nova/web` pasa el usuario.
+  - Errores nuevos: `SIN_CLAVE_GEMINI`, `CLAVE_GEMINI_INVALIDA`, `CLAVE_GEMINI_RECHAZADA`, `CUOTA_CLAVE_AGOTADA`, `CLAVE_GEMINI_NO_VERIFICADA` y `CLAVE_GEMINI_ILEGIBLE` (RB-90).
+- **Pantallas:**
+  - **Configuración → Asistente → "Vincular mi clave de Gemini"** (`ClaveGemini`):
+    - campo de contraseña sin autocompletar, con "Mostrar", que se vacía siempre;
+    - "Verificar y guardar"; ya vinculada, `••••{últimos 4}`, su estado y la fecha en palabras;
+    - "Cambiar clave" y "Desvincular" con confirmación.
+  - **La guía** `/nova/configuracion/gemini`: pasos revisados en la documentación oficial. Se quitó lo de la cuota por proyecto, que no aparece en esas páginas.
+  - **El estado de la IA** va en `ProveedorPreferencias` (el layout lo calcula sin descifrar).
+  - **`RequiereIa` muestra el aviso** con "Cómo crear tu clave" y "Vincular en Configuración" en lugar del Asistente (campo, sugerencias, "Explicar de otra manera" y "Preguntarle a la IA"), subir un PDF, crear un cuestionario, "Proponer temas" y "Generar plan".
+  - **La recomendación de Productividad** ya quedaba con el texto fijo si la IA falla.
+- **Pruebas:**
+  - **Automáticas:** `cifradoClaves` (S-81 y S-84), `claveGemini` (S-82 y S-83, `uso_ia_diario`), `geminiClavePropia` (contexto, errores de la clave propia y conteo), `claveGeminiRuta` (la API sin la clave) y `interfaz/claveGemini` (bloque y aviso). `npm test` 1497 de 1497, `eslint` sin errores y build correcto.
+  - **`npm run probar:clave`** con Google real, 17 de 17 con una sola pregunta corta:
+    - una clave inventada se rechaza sin guardar;
+    - la real se verifica y queda solo cifrada;
+    - se descifra con su usuario y no con otro;
+    - la pregunta usa la clave de la persona y queda contada;
+    - el simulacro de cambio de llave la recifra sin cambiar nada;
+    - desvincular la borra.
+  - **Edge (`ui_e20c1.mjs`), 28 de 28** con una cuenta temporal que no es la dueña, a 390 y 1280 px en claro y oscuro:
+    - el aviso en el Asistente, Fuentes y Cuestionarios, con sus enlaces;
+    - la guía y la API con `SIN_CLAVE_GEMINI`;
+    - una clave inventada rechazada con el campo vacío;
+    - una real con `••••` y ausente del HTML y de la API, también al recargar;
+    - el Asistente con su campo;
+    - desvincular con confirmación y el aviso de vuelta.
+  - **Sin conexión:** `ui_e20sin` 16 de 16, `ui_e19b` 12 de 12 y `ui_e11e` 34 de 34 (al segundo intento; el primero no dejó resultado).
+- **Pendiente:** la prueba del usuario. El dueño no ve cambios porque sigue con la clave del proyecto; lo nuevo se ve en Configuración y en la guía. Opcional: vincular su propia clave.

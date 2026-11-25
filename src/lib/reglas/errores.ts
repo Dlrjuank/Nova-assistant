@@ -1,3 +1,12 @@
+import {
+  TEXTO_CLAVE_ILEGIBLE,
+  TEXTO_CLAVE_INVALIDA,
+  TEXTO_CLAVE_NO_VERIFICADA,
+  TEXTO_CLAVE_RECHAZADA,
+  TEXTO_CUOTA_CLAVE,
+  TEXTO_SIN_CLAVE,
+} from '@/lib/reglas/claveGemini';
+
 export type CodigoError =
   | 'DATOS_INVALIDOS'
   | 'NO_AUTORIZADO'
@@ -89,6 +98,12 @@ export type CodigoError =
   | 'PLAN_MUY_LARGO'
   | 'PASO_NO_ENCONTRADO'
   | 'PASO_YA_EN_TAREAS'
+  | 'SIN_CLAVE_GEMINI'
+  | 'CLAVE_GEMINI_INVALIDA'
+  | 'CLAVE_GEMINI_RECHAZADA'
+  | 'CUOTA_CLAVE_AGOTADA'
+  | 'CLAVE_GEMINI_NO_VERIFICADA'
+  | 'CLAVE_GEMINI_ILEGIBLE'
   | 'ERROR_INTERNO';
 
 // Textos de la sección 12.2; los de la sección 5.1 se usan literalmente.
@@ -193,6 +208,13 @@ export const MENSAJES: Record<CodigoError, string> = {
   // E19 (9.5)
   PASO_NO_ENCONTRADO: 'Ese paso ya no está en el plan vigente.',
   PASO_YA_EN_TAREAS: 'Este paso ya está en Tareas.', // RB-24
+  // E20c-1 (RB-77 a RB-79, RB-90): textos en src/lib/reglas/claveGemini.ts
+  SIN_CLAVE_GEMINI: TEXTO_SIN_CLAVE,
+  CLAVE_GEMINI_INVALIDA: TEXTO_CLAVE_INVALIDA,
+  CLAVE_GEMINI_RECHAZADA: TEXTO_CLAVE_RECHAZADA,
+  CUOTA_CLAVE_AGOTADA: TEXTO_CUOTA_CLAVE,
+  CLAVE_GEMINI_NO_VERIFICADA: TEXTO_CLAVE_NO_VERIFICADA,
+  CLAVE_GEMINI_ILEGIBLE: TEXTO_CLAVE_ILEGIBLE,
   ERROR_INTERNO: 'Ocurrió un error inesperado. Intenta de nuevo.',
 };
 
@@ -287,6 +309,12 @@ export const ESTADO_HTTP: Record<CodigoError, number> = {
   PLAN_MUY_LARGO: 422,
   PASO_NO_ENCONTRADO: 404,
   PASO_YA_EN_TAREAS: 409,
+  SIN_CLAVE_GEMINI: 409,
+  CLAVE_GEMINI_INVALIDA: 422,
+  CLAVE_GEMINI_RECHAZADA: 403,
+  CUOTA_CLAVE_AGOTADA: 429,
+  CLAVE_GEMINI_NO_VERIFICADA: 503,
+  CLAVE_GEMINI_ILEGIBLE: 409,
   ERROR_INTERNO: 500,
 };
 

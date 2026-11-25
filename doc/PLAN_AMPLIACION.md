@@ -436,6 +436,53 @@ Solución que le dio al usuario su profesor para que varias personas usen Nova s
   - **Pausa por inactividad de Supabase gratis (revisada el 2026-11-16):** Supabase pausa un proyecto gratuito tras 1 semana sin actividad. Si pasa, **Nova entera deja de funcionar** (no solo los recordatorios) hasta reanudarlo en el panel, con los datos intactos. Con 10 personas y el aviso de cada minuto, que entra por Vercel y consulta la base, es muy poco probable; el riesgo está en vacaciones largas sin uso si `pg_cron` no cuenta como actividad (Supabase no lo documenta). Por eso sigue en pie la protección de E21: el cron diario de Vercel a `GET /api/nova/salud`, que no depende de la base. Supabase avisa por correo antes de pausar. Supabase Pro no pausa (13).
 
 
+**Cambios aprobados por el usuario el 2026-11-25 (prevalecen sobre lo anterior de E20c donde choquen):**
+- **Partes:** E20c-1 clave propia (M24), E20c-2 Administración con niveles (M25), E20c-3 "Entrar con Google", control de registro y contraseña temporal. Cada una con la prueba del usuario antes de la siguiente.
+- **Llave de cifrado con versiones (7.15):**
+  - Variables `NOVA_LLAVE_CLAVES_V{n}` (32 bytes en base64) y `NOVA_LLAVE_CLAVES_ACTUAL` (la versión con la que se cifra). Van en Preview y en Production con el mismo valor desde E20c-1.
+  - Es una variable visible en Vercel, no "Sensitive": el usuario guarda su copia desde Settings → Environment Variables.
+  - Cada clave guarda su `version_llave` y se descifra con esa versión.
+  - Para cambiar la llave: se agrega `V{n+1}`, se pasa `ACTUAL` y `npm run claves:recifrar` vuelve a cifrar todas. La versión anterior se borra cuando ya ninguna la usa.
+- **Clave que no se puede descifrar:** estado `ilegible`. Nunca se usa la del proyecto en su lugar y se le pide a esa persona vincularla otra vez (RB-90).
+- **Uso por cuenta:** tabla `uso_ia_diario` (M24), con solo el conteo de llamadas a Gemini por cuenta y día de Bogotá. Nunca guarda preguntas ni respuestas. "Administración" muestra MB y consultas de cada cuenta.
+- **Niveles (M25, RB-93):** `cuentas.nivel` es `dueno`, `admin` o `usuario`. Se revisan en el servidor y en la base, no solo en la pantalla.
+  - **Dueño:**
+    - solo el correo incorporado, y uno solo (lo garantiza la base);
+    - puede todo: nombrar y quitar administradores, cambiar topes, eliminar cuentas y dar el permiso de la clave del proyecto;
+    - nadie lo puede bloquear, bajar de nivel ni eliminar.
+  - **Administrador:**
+    - ve las cuentas con su uso (MB y consultas) y el registro de acciones;
+    - bloquea y desbloquea usuarios, habilita cuentas pendientes y da contraseñas temporales;
+    - no elimina cuentas, no nombra ni quita administradores, no cambia topes ni el permiso de la clave del proyecto;
+    - no puede bloquear a otro administrador, al dueño ni a sí mismo.
+  - **Usuario:** Nova normal, sin "Administración".
+  - Nadie, tampoco el dueño, ve desde "Administración" tareas, documentos ni conversaciones de otros: solo correo, registro, uso, estado y nivel.
+  - Cada cambio de nivel y de permiso queda en `acciones_admin` con quién y cuándo.
+- **Clave del proyecto:** es un permiso por persona (`cuentas.usa_clave_proyecto`, apagado por defecto) que da el dueño. El dueño sin clave propia la usa siempre, como hoy. Un administrador no la usa por serlo (cambia RB-76, RB-79 y B-93). En E20c-1, antes de M25, solo el dueño la usa.
+- **`SUPABASE_ADMIN_EMAILS` solo para emergencias:** sus correos cuentan como administrador (nunca como dueño) aunque la base diga otra cosa. En Vercel no existe; sirve para recuperar el acceso sin desplegar código y para las pruebas automáticas.
+- **Acceso desde E20c-2:** lo decide la tabla `cuentas`. Entra quien tiene una fila en estado `activa`.
+- **Condición del usuario (2026-11-25), cuentas creadas con correo antes del control de registro:**
+  - **Al nacer:** un disparador de M25 en `auth.users` crea la fila de `cuentas` de toda cuenta nueva en estado `pendiente`.
+  - **Al migrar:** las cuentas que ya existen quedan `activa`, y la del dueño con nivel `dueno`.
+  - **Mientras está pendiente:** no entra a Nova ni a su API (`CUENTA_PENDIENTE`, 403, RB-92).
+  - **Sin fila:** tampoco entra. Si se borrara el disparador, la regla falla cerrada.
+  - **Habilitar:** un administrador o el dueño la habilita desde "Administración", y queda en el registro.
+  - **Desde E20c-3:** las cuentas que llegan con Google pasan el gancho de registro y nacen `activa`. Las creadas con correo siguen `pendiente`.
+  - **Prueba:** S-92 y una prueba en Edge crean una cuenta con correo y comprueban que no entra hasta habilitarla.
+- **Contraseña temporal (E20c-3, RB-91):**
+  - Nova la genera al azar, de 16 caracteres, y se muestra una sola vez a quien la da.
+  - Sirve para entrar una sola vez (`temporal_usada_en`). Un segundo ingreso con ella antes de cambiarla se rechaza.
+  - Vence a las 24 horas si no se usa: el aviso de cada minuto la reemplaza por una al azar que nadie conoce.
+  - Al entrar con ella, solo se puede ver la pantalla para poner una contraseña propia. Todo lo demás, también la API, responde `DEBE_CAMBIAR_CONTRASENA` (403).
+  - Nunca se guarda: las columnas de M25 son `debe_cambiar_contrasena`, `temporal_vence_en` y `temporal_usada_en`.
+  - Queda en el registro quién la dio y cuándo.
+- **Control de registro (E20c-3):**
+  - se activa en E20c-3, avisándole antes al usuario;
+  - las cuentas existentes siguen entrando en producción;
+  - el registro de producción muestra `Por ahora las cuentas nuevas se crean con "Entrar con Google".` en vez de un error; es un cambio pequeño en master que se consulta ese día;
+  - queda escrito cómo desactivarlo en un minuto.
+- **Respaldo:** `claves_gemini` y `uso_ia_diario` (M24) entran en `tablas-respaldo.mjs`, y `cuentas`, `administracion` y `acciones_admin` (M25) también, con todas sus columnas. Se comprueba con `db:restaurar --probar`.
+
 ## 6. Modelo de datos
 
 Migraciones nuevas M5 a M13 en `supabase/migrations/`, numeradas después de `20261003136000`. Todas aditivas.
@@ -654,8 +701,9 @@ Antes de migrar: `npm run db:respaldar`, y la tabla nueva entra en `scripts/tabl
 
 | Tabla | Columnas | Restricciones |
 |---|---|---|
-| `claves_gemini` | `usuario_id` (PK), `cifrada` BYTEA, `iv` BYTEA (12 bytes), `etiqueta` BYTEA (16 bytes), `version_llave` SMALLINT, `ultimos4` CHAR(4), `estado` (`activa`/`rechazada`/`sin_cuota`), `verificada_en`, `actualizada_en` | FK a `auth.users` con `ON DELETE CASCADE`; CHECK de longitudes y de estado; RLS activo y sin políticas: solo el servidor la lee |
+| `claves_gemini` | `usuario_id` (PK), `cifrada` BYTEA, `iv` BYTEA (12 bytes), `etiqueta` BYTEA (16 bytes), `version_llave` SMALLINT, `ultimos4` CHAR(4), `estado` (`activa`/`rechazada`/`sin_cuota`/`ilegible`, este último desde el 2026-11-25), `verificada_en`, `actualizada_en` | FK a `auth.users` con `ON DELETE CASCADE`; CHECK de longitudes y de estado; RLS activo y sin políticas: solo el servidor la lee |
 
+- **`uso_ia_diario`** (agregada el 2026-11-25): `usuario_id`, `dia` DATE (Bogotá), `consultas` INTEGER (≥ 0); PK `(usuario_id, dia)`; FK a `auth.users` con `ON DELETE CASCADE`; RLS activo y sin políticas. Solo conteos.
 - Solo aditiva: `master` no la usa y sigue con `GEMINI_API_KEY`.
 - Nunca se guarda la clave en claro ni un hash que permita probar claves.
 
@@ -663,14 +711,14 @@ Antes de migrar: `npm run db:respaldar`, y la tabla nueva entra en `scripts/tabl
 
 | Tabla | Columnas | Restricciones |
 |---|---|---|
-| `cuentas` | `usuario_id` (PK), `bloqueada` BOOLEAN (false), `bloqueada_en`, `ultimo_acceso` TIMESTAMPTZ, `creada_en` | FK a `auth.users` con `ON DELETE CASCADE`; RLS activo y sin políticas |
+| `cuentas` | `usuario_id` (PK), `estado` (`activa`/`pendiente`/`bloqueada`, desde el 2026-11-25 en lugar de `bloqueada` BOOLEAN), `bloqueada_en`, `nivel` (`dueno`/`admin`/`usuario`), `usa_clave_proyecto` BOOLEAN (false), `debe_cambiar_contrasena` BOOLEAN (false), `temporal_vence_en`, `temporal_usada_en`, `ultimo_acceso` TIMESTAMPTZ, `creada_en` | FK a `auth.users` con `ON DELETE CASCADE`; RLS activo y sin políticas |
 | `administracion` | una sola fila: `tope_cuentas` SMALLINT (15), `tope_espacio_mb` SMALLINT (30), `actualizada_en` | CHECK `id = 1`; `tope_cuentas` de 1 a 1000; `tope_espacio_mb` de 1 a 500; RLS activo y sin políticas |
 | `acciones_admin` (agregada el 2026-11-18, por el diseño del prototipo) | `id`, `admin_id` (sin FK: queda aunque se borre la cuenta), `accion` (`bloquear`/`desbloquear`/`eliminar`/`topes`), `correo` VARCHAR(320) de la cuenta afectada (o NULL en `topes`), `detalle` JSONB (topes anterior y nuevo), `creada_en` | CHECK de `accion`; RLS activo y sin políticas; se borran las de más de 180 días con la limpieza diaria |
 - **Limpieza del registro de cron:** el trabajo diario guarda cuándo corrió y cuántas filas borró (en `administracion.ultima_limpieza` y `filas_limpiadas`), para el bloque "Sistema".
 
 - Una fila de `cuentas` por persona: se crea al primer ingreso (y para las cuentas que ya existen, al migrar). `ultimo_acceso` se actualiza como mucho una vez por hora, para no escribir en cada petición.
 - La función del gancho "Before User Created" (`nova_antes_de_crear_usuario`) lee `administracion.tope_cuentas` y cuenta las cuentas que no son de administrador.
-- Los administradores siguen saliendo de `SUPABASE_ADMIN_EMAILS` y del correo incorporado; no se guardan en la base.
+- Desde el 2026-11-25 el nivel se guarda en `cuentas.nivel` (un solo `dueno`, con índice único parcial; un disparador impide cambiarle el nivel, bloquearlo o borrar su fila). `SUPABASE_ADMIN_EMAILS` queda solo para emergencias. Un disparador en `auth.users` crea la fila de cada cuenta nueva en `pendiente` (ver "Cambios aprobados el 2026-11-25" en 5.14). `acciones_admin.accion` suma `habilitar`, `nombrar_admin`, `quitar_admin`, `permiso_clave_on`, `permiso_clave_off` y `contrasena_temporal`.
 - Las tres tablas entran en `scripts/tablas-respaldo.mjs`.
 
 ## 7. Reglas de cálculo
@@ -908,10 +956,10 @@ Los mensajes se usan **textualmente** en la interfaz y en la API. Los de `PLAN_N
 | RB-73 | (E11e) El recordatorio lo calcula el servidor al recibir la tarea (7.10). Si su momento pasó mientras estaba sin conexión, queda `omitido` y se avisa | `El recordatorio de «{t}» no se enviará: su momento pasó mientras estaba sin conexión.` |
 | RB-74 | (E11e) Si el servidor rechaza una tarea pendiente, queda en el dispositivo con el mensaje exacto del servidor; "Corregir" abre el formulario lleno y la vuelve a enviar con el mismo `id_cliente`; "Descartar" la borra | `No se pudo enviar: {mensaje del servidor}` |
 | RB-75 | (E11e) Cerrar sesión con tareas sin enviar: primero se avisa; al confirmar, se borran del dispositivo con la copia de RB-63. Las de otro usuario nunca se envían con la sesión actual y se borran al detectar otro usuario (RB-63) | `Tienes {n} tareas sin enviar. Si cierras sesión, se borrarán de este dispositivo.` (con 1: `Tienes 1 tarea sin enviar. Si cierras sesión, se borrará de este dispositivo.`) · Botones `Cerrar sesión y borrarlas` y `Cancelar` |
-| RB-76 | (E20c) Cada usuario usa su propia clave de Gemini en todo lo que llama a la IA (5.14); la del proyecto solo la usan los administradores sin clave propia; nunca se usa la del proyecto si la del usuario falla | — |
+| RB-76 | (E20c) Cada usuario usa su propia clave de Gemini en todo lo que llama a la IA (5.14); la del proyecto solo la usan los administradores sin clave propia; nunca se usa la del proyecto si la del usuario falla (desde el 2026-11-25: la del proyecto solo la usan el dueño sin clave propia y quien tenga el permiso `usa_clave_proyecto`) | — |
 | RB-77 | (E20c) "Verificar y guardar": la clave se prueba con Google antes de guardarla; si no pasa, no se guarda nada | Vacía o con espacios: `Pega tu clave de Gemini completa.` · Rechazada: `Google no aceptó esta clave. Revisa que la copiaste completa o crea una nueva.` · Sin cuota: `Clave guardada. Por ahora no tiene cuota disponible; se podrá usar cuando Google la renueve.` · Guardada: `Clave verificada y guardada.` |
 | RB-78 | (E20c) La clave del usuario falla al usarla (`CLAVE_GEMINI_RECHAZADA`, 403; `CUOTA_CLAVE_AGOTADA`, 429) | `Tu clave de Gemini ya no funciona: puede que no sea válida o que la hayas revocado. Vincula una nueva en Configuración → Asistente.` · `Tu clave de Gemini llegó a su límite de uso por ahora. Intenta más tarde o revisa tu cuota en Google AI Studio.` |
-| RB-79 | (E20c) Sin clave vinculada y sin ser administrador, lo que usa IA no llama a Gemini (`SIN_CLAVE_GEMINI`, 409) | `Para usar la IA de Nova, vincula tu clave de Gemini.` con el enlace `Cómo crear tu clave` |
+| RB-79 | (E20c) Sin clave vinculada y sin ser administrador (desde el 2026-11-25: sin clave vinculada y sin el permiso de la clave del proyecto), lo que usa IA no llama a Gemini (`SIN_CLAVE_GEMINI`, 409) | `Para usar la IA de Nova, vincula tu clave de Gemini.` con el enlace `Cómo crear tu clave` |
 | RB-80 | (E20c) Desvincular pide confirmación y borra la clave; lo que estaba indexándose en segundo plano queda en pausa | `¿Desvincular tu clave de Gemini? Nova no podrá usar la IA hasta que vincules otra.` · Botones `Desvincular` y `Cancelar` · Hecho: `Clave desvinculada.` |
 | RB-81 | (E20c) Registro: solo con "Entrar con Google"; con el tope de cuentas alcanzado, la cuenta no se crea; el correo y la contraseña quedan para los administradores | `Para crear tu cuenta, usa "Entrar con Google".` · Tope: `Nova llegó al máximo de cuentas por ahora. Escríbele al administrador.` |
 | RB-82 | (E20c) Bloquear y desbloquear una cuenta (solo administradores, con confirmación); una cuenta bloqueada no entra ni usa la API, también con una sesión ya abierta (`CUENTA_BLOQUEADA`, 403) | `¿Bloquear a {correo}? No podrá entrar a Nova hasta que la desbloquees.` · Al entrar o en la API: `Tu cuenta está bloqueada. Escríbele al administrador.` |
@@ -920,6 +968,10 @@ Los mensajes se usan **textualmente** en la interfaz y en la API. Los de `PLAN_N
 | RB-85 | (E20c) Tope de espacio por persona (30 MB al empezar, editable): pasado el tope no se sube ni se indexa más; nada se borra (`ESPACIO_AGOTADO`, 409) | `Llegaste al espacio máximo de tu cuenta ({n} MB). Elimina documentos para subir más.` · Tope editable: `Escribe un número entero de 1 a 500.` / cuentas: `Escribe un número entero de 1 a 1000.` |
 | RB-87 | (E19b) Sin conexión, "Materias y notas", la página de cada materia y "Objetivos y plan" (con y sin `?materia=`) muestran la última copia válida del usuario, como RB-62; registrar notas o fallas, cambiar componentes, metas o temas, proponer temas, generar o editar el plan y pasar a Tareas quedan desactivados. Una materia que nunca se abrió con conexión no tiene copia | Los de RB-62. Pantalla sin copia que necesita conexión: `Esta pantalla necesita conexión. Sin conexión puedes ver Inicio, Tareas, el Calendario y Semestre.` |
 | RB-88 | (E20c) Topes en "Administración": mientras se cambian, se calcula el peor caso (cuentas × espacio por persona) frente a los 300 MB disponibles (7.16); pasarlo solo avisa | `{c} × {m} MB = {t} MB de 300 MB disponibles.` · Pasado: `{c} × {m} MB = {t} MB: pasa de los 300 MB disponibles. Baja un tope o pasa a Supabase Pro.` |
+| RB-90 | (E20c, 2026-11-25) La clave guardada no se puede descifrar (estado `ilegible`, `CLAVE_GEMINI_ILEGIBLE`, 409): no se usa la del proyecto en su lugar | `No pudimos leer tu clave de Gemini guardada. Vincúlala de nuevo en Configuración → Asistente.` |
+| RB-91 | (E20c-3, 2026-11-25) Contraseña temporal: al azar, se muestra una vez, sirve una vez, vence a las 24 h; al entrar con ella hay que cambiarla (`DEBE_CAMBIAR_CONTRASENA`, 403) | `Contraseña temporal para {correo}: {contraseña}. Cópiala ahora: no se vuelve a mostrar. Vence en 24 horas.` · Usada otra vez: `Esta contraseña temporal ya se usó. Pide otra al administrador.` · Vencida: `Esta contraseña temporal venció. Pide otra al administrador.` · `Pon una contraseña nueva para seguir.` |
+| RB-92 | (E20c-2, 2026-11-25) Una cuenta nueva nace `pendiente` hasta que la habilite un administrador (desde E20c-3, las de Google nacen activas); sin fila en `cuentas` tampoco entra (`CUENTA_PENDIENTE`, 403) | `Tu cuenta está esperando que el administrador la habilite.` |
+| RB-93 | (E20c-2, 2026-11-25) Niveles dueño, administrador y usuario, revisados en el servidor y en la base; el dueño no se puede bloquear, bajar ni eliminar; cada cambio de nivel o de permiso queda en el registro | `No tienes permiso para esto.` (403 `ACCESO_DENEGADO`) |
 | RB-89 | (E20c) Cada bloqueo, desbloqueo, eliminación y cambio de topes queda en el registro de acciones con el administrador, la cuenta y la hora; el registro solo lo ven los administradores y nunca guarda claves ni datos de la cuenta, solo su correo | Fila: `{fecha hora} · {admin} bloqueó a {correo}` (desbloqueó, eliminó, cambió los topes a {c} cuentas y {m} MB) |
 | RB-86 | (E20c) Uso total frente al plan gratuito: aviso al 80 % y aviso fuerte al 95 % de la base o de Blob | `La base va en {p} % del plan gratuito.` · `La base está casi llena ({p} %). Elimina datos o pasa a Supabase Pro.` (igual para Blob, con "Blob" y "Vercel Pro") |
 | RB-63 | (E11b) La copia sin conexión se borra: al cerrar sesión; si, con conexión, el servidor rechaza la sesión (401, 403 o redirección a `/login`); si inicia sesión otro usuario; y tras 7 días sin una respuesta válida del servidor, porque sin conexión no se puede saber si la sesión venció | — |

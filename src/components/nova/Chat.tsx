@@ -17,6 +17,9 @@ import { BUSCAR_EN_IA, BUSCAR_EN_WEB, BUSCAR_EN_WIKIPEDIA, type OrigenMensaje } 
 import { ofrecePreguntarIa } from '@/lib/reglas/iaGeneral';
 import type { ModoExplicar } from '@/lib/reglas/preguntasLibro';
 import { useSeguirConversacion } from './seguirConversacion';
+import { RequiereIa } from '@/components/nova/ia/RequiereIa';
+import { useEstadoIa } from '@/components/nova/PreferenciasNova';
+import { avisoDeIa } from '@/lib/reglas/claveGemini';
 
 interface Mensaje {
   id: number;
@@ -88,6 +91,8 @@ export function Chat({
   const [buscarEn, setBuscarEn] = useState('');
   const [conversacionId, setConversacionId] = useState(idInicial);
   const [texto, setTexto] = useState('');
+  // E20c-1 (RB-79): sin una IA que sirva, ni preguntar ni explicar; en su lugar, el aviso con la guía.
+  const iaDisponible = avisoDeIa(useEstadoIa()) === null;
   const [pensando, setPensando] = useState(false);
   const [error, setError] = useState<ErrorChat | null>(null);
   const [sinGuardar, setSinGuardar] = useState(false);
@@ -300,11 +305,11 @@ export function Chat({
               autor={m.autor}
               texto={m.texto}
               {...(m.fuentes ? { fuentes: m.fuentes } : {})}
-              {...(m.explicableId ? { alExplicar: (modo: ModoExplicar, nombre: string) => explicar(m.explicableId as number, modo, nombre) } : {})}
+              {...(m.explicableId && iaDisponible ? { alExplicar: (modo: ModoExplicar, nombre: string) => explicar(m.explicableId as number, modo, nombre) } : {})}
               ocupado={pensando}
               guardable={m.autor === 'asistente' && m.origen === BUSCAR_EN_WIKIPEDIA}
               deIa={m.autor === 'asistente' && m.origen === BUSCAR_EN_IA}
-              {...(paraIa ? { alPreguntarIa: () => preguntarIa(paraIa) } : {})}
+              {...(paraIa && iaDisponible ? { alPreguntarIa: () => preguntarIa(paraIa) } : {})}
               nuevo={m.nuevo === true}
             />
           );
@@ -359,6 +364,7 @@ export function Chat({
         </button>
       )}
 
+      <RequiereIa>
       {/* E20b (commit 5, presentación): preguntas de ejemplo bajo el chat; con "Todos los documentos", porque
           mezclan tareas y documentos. Tocar una la envía. */}
       {sugerencias.length > 0 && buscarEn === '' && !pensando && (
@@ -424,6 +430,7 @@ export function Chat({
           </Boton>
         </div>
       </form>
+      </RequiereIa>
     </div>
   );
 }

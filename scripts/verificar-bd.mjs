@@ -690,6 +690,33 @@ try {
       marcar(false, `dz-eh) plan de estudio: ${e.message}`);
     }
   }
+
+  console.log('== 6s. Clave de Gemini y uso por cuenta (M24, E20c-1)');
+  const tablasM24 = await c.query(
+    "SELECT relname FROM pg_class WHERE relname IN ('claves_gemini', 'uso_ia_diario') AND relnamespace = 'public'::regnamespace AND relrowsecurity",
+  );
+  marcar(tablasM24.rowCount === 2, 'tablas claves_gemini y uso_ia_diario con RLS');
+  const politicasM24 = await c.query("SELECT 1 FROM pg_policies WHERE tablename IN ('claves_gemini', 'uso_ia_diario')");
+  marcar(politicasM24.rowCount === 0, 'sin políticas: solo el servidor las lee');
+  if (tablasM24.rowCount === 2 && dueno) {
+    try {
+      const ins = 'INSERT INTO claves_gemini (usuario_id, cifrada, iv, etiqueta, version_llave, ultimos4, estado) VALUES ($1, $2, $3, $4, $5, $6, $7)';
+      const bytes = (n) => Buffer.alloc(n, 7);
+      await esperaFalla('ei) IV que no mide 12 bytes', '23514', ins, [dueno, bytes(39), bytes(11), bytes(16), 1, 'abcd', 'activa']);
+      await esperaFalla('ej) etiqueta que no mide 16 bytes', '23514', ins, [dueno, bytes(39), bytes(12), bytes(15), 1, 'abcd', 'activa']);
+      await esperaFalla('ek) estado fuera de la lista', '23514', ins, [dueno, bytes(39), bytes(12), bytes(16), 1, 'abcd', 'robada']);
+      await esperaFalla('el) versión de llave 0', '23514', ins, [dueno, bytes(39), bytes(12), bytes(16), 0, 'abcd', 'activa']);
+      await esperaFalla('em) usuario que no existe', '23503', ins, ['00000000-0000-4000-8000-0000000000ff', bytes(39), bytes(12), bytes(16), 1, 'abcd', 'activa']);
+      await c.query('SAVEPOINT m24');
+      await c.query(ins, [dueno, bytes(39), bytes(12), bytes(16), 1, 'abcd', 'ilegible']);
+      await esperaFalla('en) una segunda clave para la misma cuenta', '23505', ins, [dueno, bytes(39), bytes(12), bytes(16), 1, 'abcd', 'activa']);
+      await c.query('ROLLBACK TO SAVEPOINT m24');
+      marcar(true, 'eo) una clave cifrada con estado ilegible se guarda');
+      await esperaFalla('ep) consultas negativas', '23514', "INSERT INTO uso_ia_diario (usuario_id, dia, consultas) VALUES ($1, '2026-11-25', -1)", [dueno]);
+    } catch (e) {
+      marcar(false, `ei-ep) clave de Gemini: ${e.message}`);
+    }
+  }
   await c.query('ROLLBACK');
 
   console.log(`== 7. Total de fallas: ${fallas}`);

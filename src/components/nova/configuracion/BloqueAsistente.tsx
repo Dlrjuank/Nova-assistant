@@ -7,11 +7,13 @@ import { Aviso } from '@/components/ui/Aviso';
 import { Boton } from '@/components/ui/Boton';
 import { Dialogo } from '@/components/ui/Dialogo';
 import { Tarjeta } from '@/components/ui/Tarjeta';
+import type { InfoClave } from '@/lib/reglas/claveGemini';
 import { CONFIRMAR_BORRAR_HISTORIAL, HISTORIAL_BORRADO } from '@/lib/reglas/preferencias';
+import { ClaveGemini } from './ClaveGemini';
 import { pedirNova } from './guardar';
 
-/** E11 (5.8, RB-25, riesgo de privacidad de la sección 13): aviso de Gemini y borrar todo el historial. */
-export function BloqueAsistente() {
+/** E11 (5.8, RB-25, riesgo de privacidad de la sección 13): aviso de Gemini y borrar todo el historial. E20c-1: la clave propia. */
+export function BloqueAsistente({ claveGemini }: { claveGemini: InfoClave }) {
   const [abierto, setAbierto] = useState(false);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState('');
@@ -44,6 +46,7 @@ export function BloqueAsistente() {
           leerlo. No escribas ni subas información sensible, confidencial o personal.
         </p>
       </div>
+      <ClaveGemini inicial={claveGemini} />
       <div className="flex flex-col gap-2 border-t border-borde pt-4">
         <h3 className="text-sm font-semibold text-texto">Historial</h3>
         <p className="text-sm text-texto-suave">Borra todas tus conversaciones con el asistente.</p>

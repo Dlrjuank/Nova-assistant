@@ -9,7 +9,7 @@ export const maxDuration = 60;
 
 /** CU-06: desde E10c2 solo busca; guardar es POST /api/nova/web/fuentes (RB-55). */
 export const POST = conManejoDeErrores(async (peticion: Request) => {
-  await exigirSesion();
+  const sesion = await exigirSesion();
   const { consulta } = await leerCuerpo(peticion, esquemaWeb);
-  return responderOk(await buscarEnWikipedia(consulta));
+  return responderOk(await buscarEnWikipedia(sesion.id, consulta));
 });

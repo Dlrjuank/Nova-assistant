@@ -10,9 +10,12 @@ const m = vi.hoisted(() => ({
   enviar: vi.fn(),
   setVapid: vi.fn(),
   generarEmbeddings: vi.fn(),
+  conIaDe: vi.fn((_usuario: string, trabajo: () => Promise<unknown>) => trabajo()),
 }));
 vi.mock('web-push', () => ({ default: { sendNotification: m.enviar, setVapidDetails: m.setVapid } }));
 vi.mock('@/lib/llm/gemini', () => ({ llm: { generarEmbeddings: m.generarEmbeddings } }));
+// E20c-1: el libro avanza con la clave de su dueño.
+vi.mock('@/lib/llm/contextoIa', () => ({ conIaDe: m.conIaDe }));
 vi.mock('@vercel/blob', () => ({ del: vi.fn() }));
 vi.mock('@/lib/db/conexion', () => ({
   aLiteralVector: (v: number[]) => `[${v.join(',')}]`,
@@ -166,20 +169,23 @@ describe('S-62 y S-63 · RB-57: indexación en segundo plano', () => {
   const pendientes = [{ numero: 3, contenido: 'texto', paginaInicio: 1, paginaFin: 2, etiquetaPaginas: '1–2' }];
 
   it('S-62: toma el libro a medias más antiguo que nadie esté indexando, con su bloqueo', async () => {
-    m.consultar.mockImplementation(async (sql: string) => (String(sql).includes('RETURNING id, por_indexar') ? [{ id: 'd1', por_indexar: pendientes, progreso: 40 }] : []));
+    m.consultar.mockImplementation(async (sql: string) => (String(sql).includes('RETURNING id, usuario_id, por_indexar') ? [{ id: 'd1', usuario_id: U, por_indexar: pendientes, progreso: 40 }] : []));
     m.generarEmbeddings.mockResolvedValue([[0.1]]);
     m.tx.query.mockResolvedValue({ rows: [{}] });
     await expect(avanzarLibroEnSegundoPlano()).resolves.toEqual({ documentoId: 'd1', progreso: null });
     const tomar = String(m.consultar.mock.calls[0]?.[0]);
-    expect(tomar).toContain('ORDER BY created_at LIMIT 1 FOR UPDATE SKIP LOCKED');
-    expect(tomar).toContain('indexando_hasta IS NULL OR indexando_hasta < NOW()');
+    expect(tomar).toContain('ORDER BY d.created_at LIMIT 1 FOR UPDATE OF d SKIP LOCKED');
+    expect(tomar).toContain('d.indexando_hasta IS NULL OR d.indexando_hasta < NOW()');
+    // E20c-1 (7.15): solo libros cuyo dueño tiene una clave que sirve o, sin clave, puede usar la del proyecto.
+    expect(tomar).toContain("k.estado IN ('activa', 'sin_cuota')");
+    expect(m.conIaDe).toHaveBeenCalledWith(U, expect.any(Function));
     expect(m.generarEmbeddings).toHaveBeenCalledWith(['texto'], { sinEsperarCuota: true });
     // Al terminar suelta el bloqueo, para que la pantalla (o el minuto siguiente) siga.
     expect(m.consultar.mock.calls.some((c) => String(c[0]).includes('SET indexando_hasta = NULL'))).toBe(true);
   });
 
   it('S-63: con la cuota agotada no espera: deja el libro como estaba para el minuto siguiente', async () => {
-    m.consultar.mockImplementation(async (sql: string) => (String(sql).includes('RETURNING id, por_indexar') ? [{ id: 'd1', por_indexar: pendientes, progreso: 40 }] : []));
+    m.consultar.mockImplementation(async (sql: string) => (String(sql).includes('RETURNING id, usuario_id, por_indexar') ? [{ id: 'd1', usuario_id: U, por_indexar: pendientes, progreso: 40 }] : []));
     m.generarEmbeddings.mockRejectedValue(new ErrorDeNegocio('ERROR_LLM'));
     await expect(avanzarLibroEnSegundoPlano()).resolves.toEqual({ documentoId: 'd1', progreso: 40, esperaCuota: true });
     expect(m.tx.query).not.toHaveBeenCalled();

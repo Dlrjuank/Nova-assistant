@@ -113,7 +113,7 @@ describe('POST /api/nova/web', () => {
   it('pasa la consulta; una consulta vacía o muy larga es 400', async () => {
     m.buscarEnWikipedia.mockResolvedValue({ resumen: 'R', url: '', articulos: [] });
     await webRuta.POST(post({ consulta: 'Sierra Nevada' }));
-    expect(m.buscarEnWikipedia).toHaveBeenLastCalledWith('Sierra Nevada');
+    expect(m.buscarEnWikipedia).toHaveBeenLastCalledWith('u1', 'Sierra Nevada'); // E20c-1: con la clave de quien busca
     expect((await webRuta.POST(post({ consulta: '' }))).status).toBe(400);
     expect((await webRuta.POST(post({ consulta: 'a'.repeat(301) }))).status).toBe(400);
     expect(m.buscarEnWikipedia).toHaveBeenCalledTimes(1);
