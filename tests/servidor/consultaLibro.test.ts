@@ -50,7 +50,7 @@ describe('página (RB-39)', () => {
     expect(contextoDe()).toContain('[l.pdf · p. 2]\ntexto 2');
     expect(contextoDe()).not.toContain('texto 1');
     expect(m.responder.mock.calls[0]?.[0].pregunta).toBe('Los fragmentos del contexto son de la página 2 del documento. ¿Qué dice la página 2?');
-    expect(r.fuentes).toEqual([{ tipo: 'pdf', etiqueta: 'l.pdf · p. 2' }]);
+    expect(r.fuentes).toEqual([{ tipo: 'pdf', etiqueta: 'l.pdf · p. 2', fragmento: 'texto 2' }]);
     expect(r.contexto).toEqual({ fragmentos: ['f2'], limitePaginas: '2' });
   });
 
@@ -86,7 +86,7 @@ describe('página (RB-39)', () => {
     const r = await consultar(U, '¿Qué dice la página 2?', [], { documentoId: D });
     expect(r.respuesta).toContain('Dice algo [p. 2].');
     expect(r.respuesta).toContain('puede incluir texto de páginas vecinas');
-    expect(r.fuentes).toEqual([{ tipo: 'pdf', etiqueta: 'l.pdf · p. 2' }]);
+    expect(r.fuentes).toEqual([{ tipo: 'pdf', etiqueta: 'l.pdf · p. 2', fragmento: 'texto 1' }]);
   });
 
   it('una página que no existe dice cuántas tiene, sin llamar a Gemini', async () => {

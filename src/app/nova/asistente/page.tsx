@@ -3,6 +3,7 @@ import { Chat } from '@/components/nova/Chat';
 import { Aviso } from '@/components/ui/Aviso';
 import { EncabezadoPantalla } from '@/components/ui/EncabezadoPantalla';
 import { conversacionActual, exigirSesion, existenDocumentos, hayTareasPendientes, listarDocumentos } from '@/lib/dataService';
+import { sugerenciasAsistente } from '@/lib/reglas/asistente';
 import { AVISO_PROVEEDOR, AVISO_SIN_FUENTES, AVISO_SOLO_TAREAS, avisoAsistente } from '@/lib/reglas/consulta';
 
 export const dynamic = 'force-dynamic';
@@ -20,6 +21,7 @@ export default async function AsistentePage({ searchParams }: { searchParams: Pr
     listarDocumentos(id),
   ]);
   const aviso = avisoAsistente(hayDocumentos, hayTareas); // RB-30
+  const listos = documentos.filter((d) => d.progreso === null && d.numFragmentos > 0).map((d) => ({ id: d.id, nombre: d.nombreArchivo }));
   const enlaceIndexar = (
     <Link href="/nova/fuentes?pestana=pdf" className="font-semibold text-acento underline">
       Indexar un PDF
@@ -44,7 +46,8 @@ export default async function AsistentePage({ searchParams }: { searchParams: Pr
       <Chat
         conversacionId={conversacion?.id ?? null}
         historial={conversacion?.mensajes ?? []}
-        documentos={documentos.filter((d) => d.progreso === null && d.numFragmentos > 0).map((d) => ({ id: d.id, nombre: d.nombreArchivo }))}
+        documentos={listos}
+        sugerencias={sugerenciasAsistente({ hayTareas, documentos: listos })}
         {...(preguntaInicial ? { preguntaInicial } : {})}
       />
     </>

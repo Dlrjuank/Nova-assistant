@@ -13,6 +13,7 @@ import {
   type TareaContexto,
   type TurnoConversacion,
 } from '@/lib/llm/prompts';
+import { conExtractos } from '@/lib/reglas/asistente';
 import { citaCorta, compactarCitas } from '@/lib/reglas/citas';
 import { mencionaTareas, normalizarConsulta, textoDeBusqueda, validarConsulta } from '@/lib/reglas/consulta';
 import { lineaHoy } from '@/lib/reglas/fechas';
@@ -77,7 +78,7 @@ export async function consultar(
     const corto = compactarCitas(texto, { limite: libro.limitePaginas }); // RB-36
     return {
       respuesta: libro.aviso ? `${corto}\n\n${libro.aviso}` : corto,
-      fuentes: libro.fuente ? [{ tipo: 'pdf', etiqueta: libro.fuente }] : armarFuentes(texto, libro.fragmentos, []),
+      fuentes: libro.fuente ? [{ tipo: 'pdf', etiqueta: libro.fuente }] : conExtractos(armarFuentes(texto, libro.fragmentos, []), libro.fragmentos, etiquetaFragmento),
       contexto: {
         fragmentos: libro.fragmentos.map((f) => f.id),
         ...(libro.continuacion ? { continuacion: libro.continuacion } : {}),
@@ -120,7 +121,8 @@ export async function consultar(
     if (elegido) return { respuesta: sinRespuestaEnDocumento(elegido), fuentes: [] };
     return { respuesta: hayDocumentos ? SIN_RESPUESTA : SIN_DOCUMENTOS_RESPUESTA, fuentes: [] };
   }
-  const fuentes = armarFuentes(respuesta, fragmentos, tareas);
+  // E20b (commit 5): cada cita de PDF lleva el extracto de su fragmento, para desplegarlo en la pantalla.
+  const fuentes = conExtractos(armarFuentes(respuesta, fragmentos, tareas), fragmentos, etiquetaFragmento);
   // RB-41: solo las respuestas que citan documentos se pueden explicar de otra manera.
   return { respuesta: compactarCitas(respuesta), fuentes, ...(fuentes.some((f) => f.tipo === 'pdf') ? { contexto: { fragmentos: fragmentos.map((f) => f.id) } } : {}) };
 }

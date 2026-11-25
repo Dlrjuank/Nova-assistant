@@ -223,6 +223,8 @@ export interface Fuente {
   etiqueta: string;
   /** Solo en las fuentes web (RB-56): el enlace al artículo. */
   url?: string;
+  /** E20b (commit 5): en las de PDF, el extracto del fragmento citado, que se despliega al tocar la cita. */
+  fragmento?: string;
 }
 
 /** RB-40: dónde sigue un capítulo que se responde por partes. */

@@ -27,6 +27,8 @@ interface Mensaje {
   explicableId?: number;
   /** E10c2 (M21): sin origen, documentos y tareas. */
   origen?: OrigenMensaje | null;
+  /** E20b: llegó en esta visita; sube al aparecer. */
+  nuevo?: boolean;
 }
 
 interface ErrorChat {
@@ -69,6 +71,7 @@ export function Chat({
   historial = [],
   preguntaInicial,
   documentos = [],
+  sugerencias = [],
 }: {
   conversacionId?: string | null;
   historial?: MensajeGuardado[];
@@ -76,6 +79,8 @@ export function Chat({
   preguntaInicial?: string;
   /** E10c: los documentos listos, para el selector "Buscar en". */
   documentos?: ReadonlyArray<{ id: string; nombre: string }>;
+  /** E20b (commit 5): preguntas de ejemplo que se envían al tocarlas (solo con "Todos los documentos"). */
+  sugerencias?: readonly string[];
 }) {
   const [mensajes, setMensajes] = useState<Mensaje[]>(() =>
     historial.map((m, i) => ({ id: i, autor: m.autor, texto: m.texto, fuentes: m.fuentes, origen: m.origen ?? null, ...(m.explicable ? { explicableId: Number(m.id) } : {}) })),
@@ -150,7 +155,7 @@ export function Chat({
   const agregar = (autor: AutorMensaje, contenido: string, fuentes?: Fuente[], explicableId?: number, origen?: OrigenMensaje) => {
     pendiente.current = autor === 'usuario' ? 'enviada' : 'llegada';
     const id = siguienteId.current++;
-    setMensajes((previos) => [...previos, { id, autor, texto: contenido, ...(fuentes ? { fuentes } : {}), ...(explicableId ? { explicableId } : {}), ...(origen ? { origen } : {}) }]);
+    setMensajes((previos) => [...previos, { id, autor, texto: contenido, nuevo: true, ...(fuentes ? { fuentes } : {}), ...(explicableId ? { explicableId } : {}), ...(origen ? { origen } : {}) }]);
   };
 
   function preguntar(pregunta: string) {
@@ -300,15 +305,23 @@ export function Chat({
               guardable={m.autor === 'asistente' && m.origen === BUSCAR_EN_WIKIPEDIA}
               deIa={m.autor === 'asistente' && m.origen === BUSCAR_EN_IA}
               {...(paraIa ? { alPreguntarIa: () => preguntarIa(paraIa) } : {})}
+              nuevo={m.nuevo === true}
             />
           );
         })}
       </ul>
 
+      {/* E20b (commit 5, presentación): tres puntos que laten en una burbuja de Nova mientras responde. */}
       {pensando && (
-        <p role="status" className="px-1 text-sm text-texto-suave">
-          Pensando…{demora && <span className="block">{AVISO_DEMORA}</span>}
-        </p>
+        <div role="status" className="nova-subir flex flex-col items-start gap-1">
+          <span className="sr-only">Pensando…</span>
+          <span aria-hidden="true" data-pensando className="inline-flex items-center gap-1.5 rounded-[20px] rounded-tl-[6px] border border-borde bg-superficie px-4 py-3.5 shadow-suave">
+            {[0, 1, 2].map((i) => (
+              <span key={i} className="nova-punto size-2 rounded-full bg-acento" style={{ animationDelay: `${i * 160}ms` }} />
+            ))}
+          </span>
+          {demora && <span className="px-1 text-sm text-texto-suave">{AVISO_DEMORA}</span>}
+        </div>
       )}
 
       {error?.codigo === 'SIN_DOCUMENTOS' && (
@@ -344,6 +357,23 @@ export function Chat({
           <ArrowDown aria-hidden="true" className="size-4" />
           Ir al final
         </button>
+      )}
+
+      {/* E20b (commit 5, presentación): preguntas de ejemplo bajo el chat; con "Todos los documentos", porque
+          mezclan tareas y documentos. Tocar una la envía. */}
+      {sugerencias.length > 0 && buscarEn === '' && !pensando && (
+        <div role="group" aria-label="Preguntas sugeridas" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] sm:flex-wrap sm:overflow-visible">
+          {sugerencias.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => void preguntar(normalizarConsulta(s))}
+              className="shrink-0 rounded-full border border-borde bg-superficie px-3 py-1.5 text-left text-xs font-medium text-texto transition-colors duration-150 hover:border-acento hover:text-acento focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento"
+            >
+              {s}
+            </button>
+          ))}
+        </div>
       )}
 
       <form ref={formulario} onSubmit={enviar} className="flex scroll-mb-24 flex-col gap-2">

@@ -94,7 +94,7 @@ describe('consultar', () => {
     const r = await consultar(U, '¿Qué dice la factura?');
     expect(m.recuperarFragmentos).toHaveBeenCalledWith(U, [0.1], 4);
     expect(m.tareasPendientesComoTexto).not.toHaveBeenCalled();
-    expect(r.fuentes).toEqual([{ tipo: 'pdf', etiqueta: 'a.pdf · fragmento 1' }]);
+    expect(r.fuentes).toEqual([{ tipo: 'pdf', etiqueta: 'a.pdf · fragmento 1', fragmento: 'uno' }]); // E20b: con el extracto de la cita
   });
 
   it('RB-01: documentos, fragmentos y tareas se buscan solo del usuario de la sesión', async () => {
