@@ -48,7 +48,7 @@ function FilaTema({ tema }: { tema: Tema }) {
       {editando ? (
         <form onSubmit={guardar} noValidate className="flex flex-wrap items-start gap-2">
           <div className="min-w-0 flex-1">
-            <Campo id={`tema-${tema.id}`} etiqueta="Nombre del tema" value={nombre} maxLength={200} onChange={(e) => setNombre(e.target.value)} error={error || undefined} />
+            <Campo id={`tema-${tema.id}`} etiqueta="Tema" autoComplete="off" value={nombre} maxLength={200} onChange={(e) => setNombre(e.target.value)} error={error || undefined} />
           </div>
           <div className="flex gap-2 pt-7">
             <Boton type="submit" cargando={enviando} disabled={enviando}>

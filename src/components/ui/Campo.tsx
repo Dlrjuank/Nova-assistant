@@ -10,7 +10,12 @@ interface Props extends InputHTMLAttributes<HTMLInputElement> {
 export const CLASE_CONTROL =
   'min-h-10 w-full rounded-xl border bg-superficie px-3 py-2 text-sm text-texto transition-colors duration-150 placeholder:text-texto-suave focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-acento';
 
-export function Campo({ etiqueta, id, error, ayuda, className = '', ...resto }: Props) {
+/**
+ * E20b: sin autorrelleno por defecto (`autoComplete="off"`); los campos de la persona (nombre, correo, contraseña)
+ * piden el suyo. Safari ignora "off" y ofrece contactos por palabras como "nombre" en el id, la etiqueta o el
+ * ejemplo, así que los campos que no son de personas no usan esa palabra (Materia, Categoría, Componente...).
+ */
+export function Campo({ etiqueta, id, error, ayuda, className = '', autoComplete = 'off', ...resto }: Props) {
   const idAyuda = ayuda ? `${id}-ayuda` : undefined;
   const idError = error ? `${id}-error` : undefined;
   return (
@@ -20,6 +25,7 @@ export function Campo({ etiqueta, id, error, ayuda, className = '', ...resto }: 
       </label>
       <input
         id={id}
+        autoComplete={autoComplete}
         {...resto}
         aria-invalid={error ? true : undefined}
         aria-describedby={[idAyuda, idError].filter(Boolean).join(' ') || undefined}

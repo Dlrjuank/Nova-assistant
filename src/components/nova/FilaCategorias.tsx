@@ -169,7 +169,7 @@ export function FilaCategorias({
       titulo: 'Nueva categoría',
       cuerpo: (
         <form onSubmit={(e) => void crear(e)} className="flex flex-col gap-4">
-          <Campo etiqueta="Nombre" id="categoria-nombre" value={nombre} maxLength={80} onChange={(e) => setNombre(e.target.value)} placeholder="Por ejemplo: Universidad" />
+          <Campo etiqueta="Categoría" id="categoria-texto" value={nombre} maxLength={80} onChange={(e) => setNombre(e.target.value)} placeholder="Por ejemplo: Universidad" />
           <SelectorColor nombre="categoria-color" valor={color} alCambiar={setColor} />
           {botonesFormulario('Crear categoría')}
           {mensajeError}
@@ -209,7 +209,7 @@ export function FilaCategorias({
         descripcion: 'Sus tareas cambian de categoría con ella.',
         cuerpo: (
           <form onSubmit={(e) => void renombrar(e, c)} className="flex flex-col gap-4">
-            <Campo etiqueta="Nombre" id="categoria-nombre" value={nombre} maxLength={80} onChange={(e) => setNombre(e.target.value)} />
+            <Campo etiqueta="Categoría" id="categoria-texto" value={nombre} maxLength={80} onChange={(e) => setNombre(e.target.value)} />
             {botonesFormulario('Guardar')}
             {mensajeError}
           </form>

@@ -42,7 +42,7 @@ export function FormularioMateria({ materia, alTerminar }: { materia?: DatosForm
 
   return (
     <form onSubmit={(e) => void guardar(e)} className="flex flex-col gap-4" noValidate>
-      <Campo id="materia-nombre" etiqueta="Nombre" value={nombre} maxLength={MAX_NOMBRE_MATERIA} onChange={(e) => setNombre(e.target.value)} error={errores.nombre} autoComplete="off" />
+      <Campo id="materia-texto" etiqueta="Materia" value={nombre} maxLength={MAX_NOMBRE_MATERIA} onChange={(e) => setNombre(e.target.value)} error={errores.nombre} autoComplete="off" />
       <Campo
         id="materia-creditos"
         etiqueta="Créditos"

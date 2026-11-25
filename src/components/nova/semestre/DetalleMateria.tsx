@@ -78,7 +78,7 @@ function FormularioComponente({ componente, corteId, cerrar }: { componente?: Co
 
   return (
     <form onSubmit={enviar} className="flex flex-col gap-4" noValidate>
-      <Campo id="componente-nombre" etiqueta="Nombre" placeholder="Parcial, Talleres, Quizzes…" value={nombre} maxLength={MAX_NOMBRE_COMPONENTE} onChange={(e) => setNombre(e.target.value)} error={errores.nombre} autoComplete="off" />
+      <Campo id="componente-texto" etiqueta="Componente" placeholder="Parcial, Talleres, Quizzes…" value={nombre} maxLength={MAX_NOMBRE_COMPONENTE} onChange={(e) => setNombre(e.target.value)} error={errores.nombre} autoComplete="off" />
       <Campo
         id="componente-porcentaje"
         etiqueta="Porcentaje (%)"
@@ -123,7 +123,7 @@ function FormularioNota({ nota, componenteId, cerrar }: { nota?: NotaRegistrada;
 
   return (
     <form onSubmit={enviar} className="flex flex-col gap-4" noValidate>
-      <Campo id="nota-nombre" etiqueta="Nombre (opcional)" placeholder="Quiz 1" value={nombre} maxLength={MAX_NOMBRE_NOTA} onChange={(e) => setNombre(e.target.value)} error={errores.nombre} autoComplete="off" />
+      <Campo id="nota-texto" etiqueta="Descripción (opcional)" placeholder="Quiz 1" value={nombre} maxLength={MAX_NOMBRE_NOTA} onChange={(e) => setNombre(e.target.value)} error={errores.nombre} autoComplete="off" />
       <label className="flex min-h-10 items-center gap-2 text-sm text-texto">
         <input type="checkbox" checked={sinNota} onChange={(e) => setSinNota(e.target.checked)} className="size-5 accent-acento" />
         Sin nota (aún no la tengo)
@@ -304,7 +304,7 @@ function EditorCortes({ materia }: { materia: Materia }) {
         {filas.map((f, i) => (
           <li key={f.clave} className="grid grid-cols-2 gap-3 rounded-xl border border-borde p-3 sm:grid-cols-[1fr_8rem_10rem_auto] sm:items-start">
             <div className="col-span-2 sm:col-span-1">
-              <Campo id={`corte-nombre-${f.clave}`} etiqueta={`Nombre del corte ${i + 1}`} value={f.nombre} maxLength={MAX_NOMBRE_CORTE} onChange={(e) => cambiar(f.clave, 'nombre', e.target.value)} />
+              <Campo id={`corte-texto-${f.clave}`} etiqueta={`Título del corte ${i + 1}`} autoComplete="off" value={f.nombre} maxLength={MAX_NOMBRE_CORTE} onChange={(e) => cambiar(f.clave, 'nombre', e.target.value)} />
             </div>
             <Campo id={`corte-porcentaje-${f.clave}`} etiqueta="Porcentaje (%)" value={f.porcentaje} inputMode="decimal" maxLength={6} onChange={(e) => cambiar(f.clave, 'porcentaje', e.target.value)} />
             <Campo

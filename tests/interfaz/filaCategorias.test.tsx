@@ -68,10 +68,10 @@ describe('FilaCategorias', () => {
     fireEvent.click(within(fila()).getByRole('button', { name: 'Nueva' }));
     const dialogo = screen.getByRole('dialog', { name: 'Nueva categoría' });
     expect((within(dialogo).getByRole('radio', { name: 'Ámbar' }) as HTMLInputElement).checked).toBe(true); // siguiente libre
-    fireEvent.change(within(dialogo).getByLabelText('Nombre'), { target: { value: 'casa' } });
+    fireEvent.change(within(dialogo).getByLabelText('Categoría'), { target: { value: 'casa' } });
     fireEvent.click(within(dialogo).getByRole('button', { name: 'Crear categoría' }));
     expect((await within(dialogo).findByRole('alert')).textContent).toBe('Ya existe una categoría con ese nombre.');
-    fireEvent.change(within(dialogo).getByLabelText('Nombre'), { target: { value: 'Universidad' } });
+    fireEvent.change(within(dialogo).getByLabelText('Categoría'), { target: { value: 'Universidad' } });
     fireEvent.click(within(dialogo).getByRole('button', { name: 'Crear categoría' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(JSON.parse(f.mock.calls[1]?.[1].body)).toEqual({ nombre: 'Universidad', color: 'ambar' });
@@ -82,7 +82,7 @@ describe('FilaCategorias', () => {
   it('al escribir el nombre, el foco se queda en el campo (no salta a "Cerrar" ni a "+ Nueva")', () => {
     render(<FilaCategorias categorias={CATEGORIAS} activa={null} />);
     fireEvent.click(within(fila()).getByRole('button', { name: 'Nueva' }));
-    const campo = within(screen.getByRole('dialog')).getByLabelText('Nombre') as HTMLInputElement;
+    const campo = within(screen.getByRole('dialog')).getByLabelText('Categoría') as HTMLInputElement;
     expect(document.activeElement).toBe(campo); // el foco entra al campo, no al botón "Cerrar"
     fireEvent.change(campo, { target: { value: 'U' } });
     expect(document.activeElement).toBe(campo);
@@ -106,7 +106,7 @@ describe('FilaCategorias', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Opciones de la categoría Casa' }));
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Renombrar' }));
     const dialogo = screen.getByRole('dialog', { name: 'Renombrar «Casa»' });
-    fireEvent.change(within(dialogo).getByLabelText('Nombre'), { target: { value: 'Hogar' } });
+    fireEvent.change(within(dialogo).getByLabelText('Categoría'), { target: { value: 'Hogar' } });
     fireEvent.click(within(dialogo).getByRole('button', { name: 'Guardar' }));
     await waitFor(() => expect(nav.replace).toHaveBeenCalledWith('/nova/tareas?vista=hoy&categoria=Hogar'));
     expect(f.mock.calls[0]?.[0]).toBe('/api/nova/categorias/c');

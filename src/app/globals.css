@@ -281,7 +281,9 @@ html:has([data-nova-fondo]) body {
   }
 }
 .nova-entrada > * {
-  animation: nova-entrar 0.2s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  /* backwards, no both: al terminar no queda un transform puesto, que haría que lo fixed de adentro (los diálogos)
+     se ubicara respecto al bloque y no a la pantalla (en el iPhone, la hoja quedaba bajo la franja de arriba). */
+  animation: nova-entrar 0.2s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
 }
 .nova-entrada > :nth-child(2) { animation-delay: 20ms; }
 .nova-entrada > :nth-child(3) { animation-delay: 40ms; }
@@ -318,7 +320,7 @@ html:has([data-nova-fondo]) body {
   animation: nova-aparecer 0.2s ease-out both;
 }
 .nova-subir {
-  animation: nova-subir 0.32s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation: nova-subir 0.32s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
 }
 
 /*
@@ -426,8 +428,8 @@ html:has([data-nova-fondo]) body {
   }
 }
 .nova-mes-siguiente {
-  animation: nova-mes-siguiente 0.22s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation: nova-mes-siguiente 0.22s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
 }
 .nova-mes-anterior {
-  animation: nova-mes-anterior 0.22s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation: nova-mes-anterior 0.22s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
 }

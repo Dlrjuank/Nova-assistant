@@ -55,7 +55,7 @@ describe('FormularioMateria (RB-05, RB-06)', () => {
     vi.stubGlobal('fetch', f);
     const alTerminar = vi.fn();
     render(<FormularioMateria alTerminar={alTerminar} />);
-    fireEvent.change(screen.getByLabelText('Nombre'), { target: { value: 'Cálculo' } });
+    fireEvent.change(screen.getByLabelText('Materia'), { target: { value: 'Cálculo' } });
     fireEvent.change(screen.getByLabelText('Créditos'), { target: { value: '11' } });
     fireEvent.click(screen.getByRole('button', { name: 'Crear materia' }));
     expect(screen.getByText('Los créditos deben ser un número entero entre 1 y 10.')).toBeTruthy();
@@ -99,7 +99,7 @@ describe('DetalleMateria', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Agregar nota a Parcial' }));
     fireEvent.click(screen.getByLabelText('Sin nota (aún no la tengo)'));
     expect(screen.queryByLabelText('Nota')).toBeNull();
-    fireEvent.change(screen.getByLabelText('Nombre (opcional)'), { target: { value: 'Quiz 3' } });
+    fireEvent.change(screen.getByLabelText('Descripción (opcional)'), { target: { value: 'Quiz 3' } });
     fireEvent.click(screen.getByRole('button', { name: 'Agregar nota' }));
     await vi.waitFor(() => expect(m.refresh).toHaveBeenCalled());
     expect(f.mock.calls[0]?.[0]).toBe('/api/nova/componentes/k1/notas');
