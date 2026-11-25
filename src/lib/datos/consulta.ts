@@ -13,7 +13,7 @@ import {
   type TareaContexto,
   type TurnoConversacion,
 } from '@/lib/llm/prompts';
-import { conExtractos } from '@/lib/reglas/asistente';
+import { conExtractos, sinMarcasInternas } from '@/lib/reglas/asistente';
 import { citaCorta, compactarCitas } from '@/lib/reglas/citas';
 import { mencionaTareas, normalizarConsulta, textoDeBusqueda, validarConsulta } from '@/lib/reglas/consulta';
 import { lineaHoy } from '@/lib/reglas/fechas';
@@ -38,6 +38,10 @@ export function armarFuentes(
     ...etiquetas.map((etiqueta): Fuente => ({ tipo: 'pdf', etiqueta })),
     ...tareas.map((t): Fuente => ({ tipo: 'tarea', etiqueta: etiquetaTarea(t.id) })),
   ];
+  // E20b: la tarea se reconoce por su etiqueta interna (el modelo a veces la escribe en minúscula) y se muestra por su título.
+  const titulos = new Map(tareas.map((t) => [etiquetaTarea(t.id), t.titulo]));
+  const visible = (f: Fuente): Fuente => (f.tipo === 'tarea' ? { ...f, etiqueta: titulos.get(f.etiqueta) ?? f.etiqueta } : f);
+  const unicas = (lista: Fuente[]) => lista.map(visible).filter((f, i, todas) => todas.findIndex((o) => o.tipo === f.tipo && o.etiqueta === f.etiqueta) === i);
   // El modelo a veces cambia la raya de "pp. 45–46" por un guion.
   const sinRaya = (texto: string) => texto.replaceAll('–', '-');
   const citada = sinRaya(respuesta);
@@ -46,9 +50,9 @@ export function armarFuentes(
   const citadas = entregadas.filter((f) => {
     // También la forma corta "[p. 20]": el modelo puede imitarla de las respuestas anteriores.
     const corta = f.tipo === 'pdf' ? citaCorta(f.etiqueta) : null;
-    return new RegExp(`${escapar(f.etiqueta)}(?!\\d)`).test(citada) || (corta !== null && citada.includes(sinRaya(corta)));
+    return new RegExp(`${escapar(f.etiqueta)}(?!\\d)`, f.tipo === 'tarea' ? 'i' : '').test(citada) || (corta !== null && citada.includes(sinRaya(corta)));
   });
-  return citadas.length > 0 ? citadas : entregadas;
+  return unicas(citadas.length > 0 ? citadas : entregadas);
 }
 
 /** CU-03, secuencia de la sección 7.1. `historial`: los últimos mensajes de la conversación (RN-21). */
@@ -124,5 +128,6 @@ export async function consultar(
   // E20b (commit 5): cada cita de PDF lleva el extracto de su fragmento, para desplegarlo en la pantalla.
   const fuentes = conExtractos(armarFuentes(respuesta, fragmentos, tareas), fragmentos, etiquetaFragmento);
   // RB-41: solo las respuestas que citan documentos se pueden explicar de otra manera.
-  return { respuesta: compactarCitas(respuesta), fuentes, ...(fuentes.some((f) => f.tipo === 'pdf') ? { contexto: { fragmentos: fragmentos.map((f) => f.id) } } : {}) };
+  // E20b: la etiqueta interna de una tarea ("[Tarea 1a2b3c4d]") no se ve; la respuesta ya dice su título y su fecha.
+  return { respuesta: compactarCitas(sinMarcasInternas(respuesta)), fuentes, ...(fuentes.some((f) => f.tipo === 'pdf') ? { contexto: { fragmentos: fragmentos.map((f) => f.id) } } : {}) };
 }

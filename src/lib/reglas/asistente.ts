@@ -35,6 +35,37 @@ export function conExtractos<F extends { tipo: string; etiqueta: string }, G ext
   });
 }
 
+/** La etiqueta interna con que una tarea va al modelo ("Tarea 1a2b3c4d"): la persona nunca la ve. */
+export const MARCA_TAREA = /^tarea\s+[0-9a-f]{6,}$/i;
+/** Las etiquetas cortas de temas y fragmentos en los planes y los temas ("T2", "F3"). */
+const MARCA_CORTA = /^[TF]\d{1,3}$/;
+
+/**
+ * Quita del texto del modelo las marcas internas que copió del contexto: "[Tarea 1a2b3c4d]" o "(tarea 1a2b3c4d)"
+ * y, con `cortas`, "[T2]" o "[F3]". En una cita con varias partes ("[a.pdf · p. 4; Tarea 1a2b3c4d]") se quita
+ * solo la marca. Las demás citas (páginas de PDF, fuentes web) quedan igual.
+ */
+export function sinMarcasInternas(texto: string, opciones: { cortas?: boolean } = {}): string {
+  const esMarca = (parte: string) => MARCA_TAREA.test(parte) || (opciones.cortas === true && MARCA_CORTA.test(parte));
+  return texto
+    .split('\n')
+    .map((linea) => {
+      const limpia = linea.replace(/[ \t]*([[(])([^\])\n]*)([\])])/g, (todo, abre: string, dentro: string, cierra: string) => {
+        if ((abre === '[') !== (cierra === ']')) return todo;
+        const partes = dentro.split(/\s*[;,]\s*/);
+        const quedan = partes.filter((p) => !esMarca(p.trim()));
+        if (quedan.length === partes.length) return todo;
+        if (quedan.length === 0) return '';
+        return `${/^[ \t]*/.exec(todo)?.[0] ?? ''}${abre}${quedan.join('; ')}${cierra}`;
+      });
+      if (limpia === linea) return linea;
+      const sangria = /^[ \t]*/.exec(linea)?.[0] ?? '';
+      const resto = limpia.slice(sangria.length).trimStart();
+      return sangria + resto.replace(/(\S)[ \t]{2,}/g, '$1 ').replace(/[ \t]+([.,;:!?])/g, '$1').trimEnd();
+    })
+    .join('\n');
+}
+
 /** Cuántas preguntas sugeridas se muestran. */
 export const MAX_SUGERENCIAS = 4;
 

@@ -1,3 +1,4 @@
+import { sinMarcasInternas } from './asistente';
 import { ErrorDeNegocio } from './errores';
 import { esFechaISOValida, semanaDe } from './fechas';
 
@@ -75,7 +76,9 @@ export function armarSemanas(pasos: readonly PasoConFecha[]): ContenidoPlan {
 export const minutosDe = (contenido: ContenidoPlan) => pasosDe(contenido).reduce((s, p) => s + p.minutos, 0);
 
 const limpiarTitulo = (v: string) => v.trim().replace(/\s+/g, ' ');
-const tituloValido = (t: string) => t.length >= 1 && t.length <= MAX_TITULO_PASO;
+/** E20b: el título que escribió el modelo, sin las etiquetas internas ("[T2]", "[F3]"). */
+const tituloDelModelo = (v: string) => limpiarTitulo(sinMarcasInternas(v, { cortas: true }));
+const tituloValido =(t: string) => t.length >= 1 && t.length <= MAX_TITULO_PASO;
 const minutosValidos = (m: unknown): m is number => typeof m === 'number' && Number.isInteger(m) && m >= MIN_MINUTOS_PASO && m <= MAX_MINUTOS_PASO;
 const fechaEnRango = (f: unknown, hoy: string, fechaCorte: string): f is string => typeof f === 'string' && esFechaISOValida(f) && f >= hoy && f <= fechaCorte;
 
@@ -107,7 +110,7 @@ export function validarPlanGenerado(crudo: unknown, ctx: ContextoGenerado): Resu
     if (!Array.isArray(crudos)) return { ok: false, motivo: 'día sin pasos' };
     for (const c of crudos) {
       const { titulo, tema, minutos, fuentes } = (c ?? {}) as { titulo?: unknown; tema?: unknown; minutos?: unknown; fuentes?: unknown };
-      if (typeof titulo !== 'string' || !tituloValido(limpiarTitulo(titulo))) return { ok: false, motivo: 'título inválido' };
+      if (typeof titulo !== 'string' || !tituloValido(tituloDelModelo(titulo))) return { ok: false, motivo: 'título inválido' };
       const temaId = typeof tema === 'string' ? ctx.temas.get(tema.trim()) : undefined;
       if (!temaId) return { ok: false, motivo: `tema no confirmado: ${String(tema)}` };
       if (!minutosValidos(minutos)) return { ok: false, motivo: `minutos inválidos: ${String(minutos)}` };
@@ -118,7 +121,7 @@ export function validarPlanGenerado(crudo: unknown, ctx: ContextoGenerado): Resu
         if (!legible) return { ok: false, motivo: `fuente inventada: ${String(f)}` };
         if (!legibles.includes(legible)) legibles.push(legible);
       }
-      pasos.push({ id: ctx.nuevoId(), fecha, titulo: limpiarTitulo(titulo), tema_id: temaId, minutos, fuentes: legibles });
+      pasos.push({ id: ctx.nuevoId(), fecha, titulo: tituloDelModelo(titulo), tema_id: temaId, minutos, fuentes: legibles });
     }
   }
   if (pasos.length === 0) return { ok: false, motivo: 'sin pasos' };

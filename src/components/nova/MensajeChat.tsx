@@ -3,6 +3,7 @@ import { GuardarFuente } from '@/components/nova/GuardarFuente';
 import { ListaFuentes } from '@/components/nova/ListaFuentes';
 import { Boton } from '@/components/ui/Boton';
 import type { Fuente } from '@/lib/dataService';
+import { sinMarcasInternas } from '@/lib/reglas/asistente';
 import { BOTON_PREGUNTAR_IA, MARCA_IA } from '@/lib/reglas/iaGeneral';
 import { MODOS_EXPLICAR, type ModoExplicar } from '@/lib/reglas/preguntasLibro';
 
@@ -54,7 +55,10 @@ export function MensajeChat({
             {MARCA_IA}
           </p>
         )}
-        <p className={`whitespace-pre-wrap break-words ${esUsuario ? 'text-acento-texto' : 'text-texto'}`}>{texto}</p>
+        <p className={`whitespace-pre-wrap break-words ${esUsuario ? 'text-acento-texto' : 'text-texto'}`}>
+          {/* E20b: las respuestas guardadas antes pueden traer "[Tarea 1a2b3c4d]"; esa marca interna no se ve. */}
+          {esUsuario ? texto : sinMarcasInternas(texto)}
+        </p>
         <ListaFuentes fuentes={fuentes} />
         {guardable && fuentes[0]?.url && <GuardarFuente url={fuentes[0].url} resumen={texto} />}
         {alPreguntarIa && (

@@ -95,6 +95,20 @@ describe('pantalla del Asistente', () => {
     expect(screen.getByRole('group', { name: 'Preguntas sugeridas' })).toBeTruthy();
   });
 
+  it('una respuesta guardada antes con "[Tarea 397a5717]" no muestra la marca ni el chip del identificador', () => {
+    const { container } = render(
+      <ul>
+        <MensajeChat autor="asistente" texto="Tienes el Taller de cálculo para el 2026-11-25 [tarea 397a5717]." fuentes={[{ tipo: 'tarea', etiqueta: 'Tarea 397a5717' }]} />
+      </ul>,
+    );
+    expect(container.textContent).not.toMatch(/397a5717/);
+    expect(screen.getByText('Tienes el Taller de cálculo para el 2026-11-25.')).toBeTruthy();
+    // La cita nueva de una tarea se ve como las demás, con su título.
+    cleanup();
+    render(<ListaFuentes fuentes={[{ tipo: 'tarea', etiqueta: 'Taller de cálculo' }]} />);
+    expect(screen.getByText('Taller de cálculo')).toBeTruthy();
+  });
+
   it('con otro "Buscar en" (por ejemplo Wikipedia) no hay sugerencias', () => {
     render(<Chat sugerencias={['¿Qué tengo esta semana?']} />);
     fireEvent.change(screen.getByLabelText('Buscar en'), { target: { value: 'wikipedia' } });

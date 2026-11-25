@@ -2,6 +2,7 @@ import { CONVERSACION_MAX_MENSAJES, CONVERSACION_MENSAJES_CONTEXTO } from '@/lib
 import { consultar as consultarBd, conTransaccion } from '@/lib/db/conexion';
 import { llm } from '@/lib/llm/gemini';
 import { construirContexto, SYSTEM_PROMPT, type TurnoConversacion } from '@/lib/llm/prompts';
+import { sinMarcasInternas } from '@/lib/reglas/asistente';
 import { compactarCitas, recortarEtiqueta } from '@/lib/reglas/citas';
 import { normalizarConsulta } from '@/lib/reglas/consulta';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
@@ -196,7 +197,7 @@ export async function explicarRespuesta(usuarioId: string, mensajeId: number, mo
     historial: [...(pregunta ? [{ autor: 'usuario' as const, texto: pregunta.texto }] : []), { autor: 'asistente' as const, texto: original.texto }],
   });
   return guardarTurno(usuarioId, original.conversacion_id, `Explícalo: ${opcion.texto}`, {
-    respuesta: compactarCitas(explicada, { limite }),
+    respuesta: compactarCitas(sinMarcasInternas(explicada), { limite }),
     fuentes: original.fuentes,
     contexto: { fragmentos: ids, ...(limite ? { limitePaginas: limite } : {}), ...(paginaPdf ? { paginaPdf } : {}) },
   });

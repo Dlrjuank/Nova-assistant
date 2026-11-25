@@ -29,7 +29,7 @@ import { hoyBogota } from '@/lib/reglas/fechas';
 const U = '33333333-3333-4333-8333-333333333333';
 const F1 = { nombre_archivo: 'a.pdf', numero: 1, contenido: 'uno' };
 const F2 = { nombre_archivo: 'a.pdf', numero: 2, contenido: 'dos' };
-const T1 = { id: '1a2b3c4d-0000', texto: 'Pagar luz' };
+const T1 = { id: '1a2b3c4d-0000', titulo: 'Pagar luz', texto: 'Pagar luz' };
 
 describe('construirContexto', () => {
   it('encabeza cada fuente con su etiqueta citable, sin índices como [1] o [T1]', () => {
@@ -69,7 +69,7 @@ describe('armarFuentes', () => {
   it('sin citas reconocibles devuelve todas las entregadas', () => {
     expect(armarFuentes('Dura 24 meses.', [F1], [T1])).toEqual([
       { tipo: 'pdf', etiqueta: 'a.pdf · fragmento 1' },
-      { tipo: 'tarea', etiqueta: 'Tarea 1a2b3c4d' },
+      { tipo: 'tarea', etiqueta: 'Pagar luz' },
     ]);
   });
 });
@@ -109,7 +109,7 @@ describe('consultar', () => {
     m.responder.mockResolvedValue('Pagar luz [Tarea 1a2b3c4d].');
     const r = await consultar(U, '¿Qué tareas tengo pendientes?');
     expect(m.responder.mock.calls[0]?.[0].contexto).toContain('Pagar luz');
-    expect(r.fuentes).toEqual([{ tipo: 'tarea', etiqueta: 'Tarea 1a2b3c4d' }]);
+    expect(r.fuentes).toEqual([{ tipo: 'tarea', etiqueta: 'Pagar luz' }]);
   });
 
   it('RN-21 seguimiento "¿y el segundo?": busca con la pregunta anterior y la nueva, y el modelo recibe el historial', async () => {
@@ -165,7 +165,7 @@ describe('RB-30: con documentos, solo tareas, solo documentos o ninguno', () => 
     expect(m.generarEmbedding).toHaveBeenCalled();
     expect(m.recuperarFragmentos).toHaveBeenCalled();
     expect(m.responder.mock.calls[0]?.[0].contexto).toContain('[a.pdf · fragmento 1]');
-    expect(r.fuentes).toEqual([{ tipo: 'tarea', etiqueta: 'Tarea 1a2b3c4d' }]);
+    expect(r.fuentes).toEqual([{ tipo: 'tarea', etiqueta: 'Pagar luz' }]);
   });
 
   it('solo tareas: responde con las tareas aunque la pregunta no diga "tarea", sin vector ni fragmentos', async () => {
@@ -179,7 +179,7 @@ describe('RB-30: con documentos, solo tareas, solo documentos o ninguno', () => 
     const { contexto } = m.responder.mock.calls[0]?.[0];
     expect(contexto).toContain('Pagar luz');
     expect(contexto).not.toContain('fragmento');
-    expect(r).toEqual({ respuesta: 'Debes pagar la luz [Tarea 1a2b3c4d].', fuentes: [{ tipo: 'tarea', etiqueta: 'Tarea 1a2b3c4d' }] });
+    expect(r).toEqual({ respuesta: 'Debes pagar la luz.', fuentes: [{ tipo: 'tarea', etiqueta: 'Pagar luz' }] });
   });
 
   it('solo tareas: una pregunta de PDF explica que no hay documentos (RB-32), sin fuentes', async () => {
@@ -288,7 +288,7 @@ describe('RB-32: la pregunta nunca se bloquea; tareas y documentos que faltan se
       m.tareasPendientesComoTexto.mockResolvedValue([T1]);
       m.responder.mockResolvedValue('Sí: Pagar luz [Tarea 1a2b3c4d].');
       const r = await consultar(U, '¿Tengo alguna tarea?');
-      expect(r).toEqual({ respuesta: 'Sí: Pagar luz [Tarea 1a2b3c4d].', fuentes: [{ tipo: 'tarea', etiqueta: 'Tarea 1a2b3c4d' }] });
+      expect(r).toEqual({ respuesta: 'Sí: Pagar luz.', fuentes: [{ tipo: 'tarea', etiqueta: 'Pagar luz' }] });
       const { contexto } = m.responder.mock.calls[0]?.[0];
       expect(contexto).toContain(LINEA_SIN_DOCUMENTOS);
       expect(contexto).not.toContain(LINEA_SIN_TAREAS);

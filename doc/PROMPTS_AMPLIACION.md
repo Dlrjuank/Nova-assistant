@@ -817,13 +817,35 @@ Esos seis no son "solo presentación": cada uno lleva sus pruebas y se avisa ant
 - barra lateral de cristal con el perfil arriba, submenú de Semestre (Materias y notas, Objetivos y plan) y una tarjeta de aviso abajo (próximo corte, tarea vencida o cuota);
 - barra inferior flotante en el teléfono, con el indicador que se desliza al activo;
 - menú "Más" de cristal;
-- entrada (inicio de sesión) con la lámpara;
+- entrada (inicio de sesión) con la lámpara (**reemplazada el 2026-11-24 por la Estrella nova**: ver "Commit 10, Entrada" más abajo);
 - botones con estados "cargando" y "listo";
 - Inicio con el saludo según la hora, tarjetas con mini gráficos y números que cuentan.
 
 Cómo se hace: se pasa a componentes reales de Nova (TSX, tokens `--nova-*`, `lucide-react`), **sin copiar el código del prototipo tal cual**, cuidando el contraste en claro y en oscuro (`tests/reglas/contraste.test.ts`), "reducir movimiento" en cada animación y el rendimiento en el teléfono (cristal con moderación, `motion` liviano si se usa, sin empeorar el tiempo de carga). La propuesta que se presenta primero, sin código, se apoya en el prototipo en lugar de describirlo desde cero.
 
 **Opción anotada el 2026-11-13 para E20b, junto con bajar el tiempo de carga (el usuario decidió no hacerla por ahora):** Abrir la app mostrando al instante la copia guardada de Inicio con un aviso "Actualizando…" y reemplazarla en su lugar al llegar la respuesta del servidor, con completar, crear y editar desactivados mientras tanto; solo Inicio, con una copia del mismo usuario de menos de 24 h, sin pedidos extra al servidor. Riesgo: por un momento puede verse una tarea ya completada en otro dispositivo, o la copia antes de llevar al inicio de sesión si la sesión venció. Propuesta del 2026-11-13, no hecha por decisión del usuario.
+
+**Commit 10, Entrada: cambio del usuario del 2026-11-24 (reemplaza a la lámpara; se programa al llegar al commit 10, no antes).** Lo interactivo es el logo de Nova. La pantalla empieza con un cielo de noche (también en modo claro) y la Estrella nova en el centro, apagada y latiendo suave.
+
+*Cielo vivo:*
+- las estrellas del fondo titilan, cada una a su ritmo, y el cielo se desplaza muy despacio;
+- en el PC, una luz cálida suave sigue al mouse y las estrellas cercanas brillan un poco más; el cielo se mueve un poco al lado contrario del mouse (profundidad);
+- la luz va pegada al cursor, sin retraso visible: se mueve con `transform` (`translate3d`) dentro de `requestAnimationFrame`, sin transición en la posición; las estrellas cercanas pueden encenderse con una transición corta;
+- en el teléfono, la luz sigue al dedo mientras se arrastra por el cielo (sin la inclinación del teléfono, que en el iPhone pide permiso);
+- después de encender la estrella, la luz se vuelve más tenue para no estorbar el formulario;
+- liviano: sin librerías, solo CSS y un poco de JavaScript; sin gastar batería de más ni trabar teléfonos lentos; se detiene si la pestaña no está visible.
+
+*Indicación:* debajo de la estrella, un texto claro con un ícono y un brillo suave que va y viene: "Toca la estrella" en el teléfono y "Haz clic en la estrella" en el PC, con "o pulsa Enter" debajo. La estrella se elige con Tab y se enciende con Enter o Espacio, con un contorno visible al tener el foco. La indicación desaparece al encenderla.
+
+*Al encenderla, como una nova:*
+- el centro y los anillos se iluminan y crece un brillo cálido detrás que queda tenue como halo;
+- salen tres ondas desde la estrella que viajan con ella mientras se mueve (no se quedan en el centro);
+- se mueve en un solo movimiento suave (arranca despacio, acelera y frena al llegar);
+- el formulario aparece mientras la estrella termina de llegar, todo encadenado.
+
+*Teléfono:* la estrella sube y se encoge hasta ser el logo arriba del formulario. *PC (pantalla ancha):* la estrella se desliza a la izquierda y queda grande, con "Nova" y una frase corta debajo; el formulario entra desde la derecha.
+
+*Además:* con "reducir movimiento", el cielo queda quieto, sin luz que sigue al mouse, y todo se ve ya encendido desde el principio. Si nadie toca la estrella, se enciende sola a los 2 segundos. El formulario se puede usar con el teclado y con lectores de pantalla aunque no se haya encendido. Queda el lugar de "Entrar con Google" y del texto nuevo de "¿Olvidaste tu contraseña?" para E20c.
 
 ---
 

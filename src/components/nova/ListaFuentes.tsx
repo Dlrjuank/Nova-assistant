@@ -4,6 +4,7 @@ import { ChevronDown, FileText } from 'lucide-react';
 import { useId, useState } from 'react';
 import { CLASE_FOCO } from '@/components/ui/Boton';
 import type { Fuente } from '@/lib/dataService';
+import { MARCA_TAREA } from '@/lib/reglas/asistente';
 import { esUrlDeWikipedia } from '@/lib/reglas/fuentesWeb';
 
 /**
@@ -11,9 +12,11 @@ import { esUrlDeWikipedia } from '@/lib/reglas/fuentesWeb';
  * despliega al tocarla y muestra el fragmento en cursiva con un borde de acento. Las respuestas guardadas antes
  * de E20b no traen extracto: su chip no se despliega.
  */
-export function ListaFuentes({ fuentes }: { fuentes: Fuente[] }) {
+export function ListaFuentes({ fuentes: todas }: { fuentes: Fuente[] }) {
   const [abierta, setAbierta] = useState<string | null>(null);
   const base = useId();
+  // E20b: las respuestas guardadas antes nombraban la tarea con su etiqueta interna ("Tarea 1a2b3c4d"): no se muestra.
+  const fuentes = todas.filter((f) => !(f.tipo === 'tarea' && MARCA_TAREA.test(f.etiqueta)));
   if (fuentes.length === 0) return null;
   const elegida = fuentes.find((f) => f.etiqueta === abierta && f.fragmento);
   const idExtracto = `${base}-extracto`;

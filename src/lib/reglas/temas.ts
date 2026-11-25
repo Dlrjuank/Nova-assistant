@@ -1,3 +1,4 @@
+import { sinMarcasInternas } from './asistente';
 import { ErrorDeNegocio } from './errores';
 
 /**
@@ -63,7 +64,7 @@ export function validarTemasPropuestos(crudos: unknown, etiquetas: ReadonlyMap<s
     if (!legible) continue; // fuente inventada
     let limpio: string;
     try {
-      limpio = validarNombreTema(nombre);
+      limpio = validarNombreTema(sinMarcasInternas(nombre, { cortas: true })); // E20b: sin "[F2]" en el nombre
     } catch {
       continue;
     }

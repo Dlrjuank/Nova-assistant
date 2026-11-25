@@ -242,6 +242,7 @@ export async function tareasPendientesComoTexto(usuarioId: string): Promise<Tare
   const tareas = await listarTareas(usuarioId, { estado: 'Pendiente', limite: TAREAS_CONTEXTO_MAX });
   return tareas.map((t) => ({
     id: t.id,
+    titulo: t.titulo,
     // RB-31: la fecha también como AAAA-MM-DD, para que el modelo la compare con la línea HOY sin ambigüedad.
     // RB-34: con su horario, para preguntas como "¿qué tengo a las 3?".
     texto: `${t.titulo} (categoría: ${t.categoria}; prioridad: ${formatearPrioridad(t.prioridad)}; fecha límite: ${formatearFecha(t.fechaLimite)}, ${String(t.fechaLimite).slice(0, 10)}${t.horaInicio ? `; horario: ${formatearHorario(t)}` : ''})`,

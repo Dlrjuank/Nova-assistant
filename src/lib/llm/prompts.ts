@@ -86,6 +86,8 @@ export interface TurnoConversacion {
 
 export interface TareaContexto {
   id: string;
+  /** E20b: el nombre con que la tarea se ve como fuente (la etiqueta del contexto es interna). */
+  titulo: string;
   texto: string;
 }
 
@@ -94,6 +96,7 @@ export function etiquetaFragmento(f: Pick<FragmentoContexto, 'nombre_archivo' | 
   return f.etiqueta_paginas ? `${f.nombre_archivo} · ${citaDePaginas(f.etiqueta_paginas)}` : `${f.nombre_archivo} · fragmento ${f.numero}`;
 }
 
+/** Etiqueta interna de la tarea en el contexto: el servidor la quita de la respuesta y la fuente lleva el título. */
 export function etiquetaTarea(id: string): string {
   return `Tarea ${id.slice(0, 8)}`;
 }
