@@ -1343,7 +1343,7 @@ Total de fallas: 0
 - **Causa:** cada tarea va al modelo con la etiqueta interna `Tarea` y los 8 primeros caracteres de su id (`etiquetaTarea`), y el prompt le pide citar copiando la etiqueta; el servidor la usaba para elegir las fuentes pero nunca la quitaba del texto, y el chip de la tarea mostraba esa misma etiqueta. A veces el modelo la escribe en minúscula.
 - **Corrección:** `sinMarcasInternas` en `src/lib/reglas/asistente.ts` quita "[Tarea 1a2b3c4d]" o "(tarea 1a2b3c4d)" (también dentro de una cita con varias partes, dejando la del PDF); la respuesta queda con el título y la fecha. `armarFuentes` reconoce la etiqueta sin importar mayúsculas y la fuente de la tarea lleva su título (`TareaContexto.titulo`), así que se ve como las demás citas. También al explicar de otra manera (`conversacion.ts`). En los temas propuestos y en los títulos de los pasos del plan se quitan además "[T2]" o "[F3]" (en el chat no, porque pueden ser texto de un documento). Las respuestas guardadas antes se limpian al mostrarlas (`MensajeChat`) y su chip con el identificador no se muestra (`ListaFuentes`). Las citas de PDF y de fuentes web no cambian.
 - **Pruebas:** `tests/servidor/marcasInternas.test.ts` con respuestas simuladas (sin Gemini): en minúscula, como en el contexto, entre paréntesis, en una lista y junto a una cita de PDF; las demás citas quedan igual; temas y plan. `asistenteE20b.test.tsx` con una respuesta guardada antes. `consulta.test.ts` actualizado (la fuente de la tarea es su título). `npm test` 1402/1402, `eslint` sin errores.
-- **Pendiente:** la prueba del usuario.
+- **Probado por el usuario sin fallas** (2026-11-25, iPhone y PC).
 
 #### Commit 6: Fuentes (2026-11-24)
 
@@ -1362,7 +1362,7 @@ Total de fallas: 0
   - el prompt pide una frase natural ("Taller de cálculo: vence el viernes 28 de noviembre (prioridad media)"), sin copiar las líneas del contexto ni escribir fechas en números;
   - respaldo del servidor (`fechasNaturales` en `src/lib/reglas/asistente.ts`), solo cuando hubo tareas en el contexto: el paréntesis copiado pasa a ": vence el … (prioridad …)", la fecha repetida queda una vez y las fechas AAAA-MM-DD o DD/MM/AAAA sueltas pasan a palabras. Una respuesta solo de documentos conserva sus fechas.
 - **Pruebas:** `tests/servidor/respuestaTareas.test.ts` con respuestas simuladas (sin Gemini): el caso reportado, con horario, la forma nueva copiada, fechas sueltas y de otro año, una respuesta de documentos sin cambios, el prompt y el contexto. `aislamiento.test.ts` con el formato nuevo; `marcasInternas.test.ts` con la fecha en palabras. `npm test` 1419/1419, `eslint` sin errores.
-- **Pendiente:** la prueba del usuario.
+- **Probado por el usuario sin fallas** (2026-11-25, iPhone y PC).
 
 #### Commit 7: Semestre (2026-11-24)
 
@@ -1372,7 +1372,7 @@ Total de fallas: 0
 - **Objetivos y plan:** los temas propuestos llevan borde punteado ámbar hasta confirmarlos; "Proponer temas" termina en "Temas propuestos" con el check unos 2,5 s.
 - **Sin cambios de reglas:** los cálculos, los estados y los textos son los de siempre.
 - **Pruebas:** `tests/interfaz/semestreE20b.test.tsx` (puntos de fallas, el pulso, el borde en el límite, los campos que siguen a los datos, el tono de "¿Cuánto necesito?", la barra de cortes, la nota que cuenta, los temas propuestos y el botón con "listo"); `temas.test.tsx` espera a que el botón vuelva. Edge (`ui_e20b7.mjs`) 36 de 36 a 390 y 1280 px en claro y oscuro: el fondo de riesgo, los puntos, la barra, los tres colores, los temas punteados, el pulso, el borde rojo en el límite y "reducir movimiento". Sin conexión: `ui_e20sin` 16/16, `ui_e19b` 12/12 y `ui_e11e` 34/34. `npm test` 1427/1427, `eslint` sin errores y build correcto.
-- **Pendiente:** la prueba del usuario.
+- **Probado por el usuario sin fallas** (2026-11-25, iPhone y PC).
 
 #### Forma de trabajo desde el commit 8 (pedido del usuario, 2026-11-25)
 
@@ -1387,7 +1387,7 @@ Total de fallas: 0
 - **Cuestionarios:** el resultado de un intento en un anillo con la nota que cuenta (verde con todo bien); en "Mis cuestionarios", la tendencia ("Mejoraste", "Igual", "Bajaste") en una píldora de color con ícono, y un minigráfico con la evolución de los puntajes (sin los repasos), del color de la última tendencia; "Crear cuestionario" termina en "Cuestionario listo" mientras se abre.
 - **Sin cambios de reglas:** los cálculos y los textos son los de siempre.
 - **Pruebas:** `tests/interfaz/productividadE20b.test.tsx` (el anillo, el minigráfico, Productividad con su anillo y sus barras, el resultado en verde, la evolución sin repasos, la píldora y el botón con "listo"). Edge (`ui_e20b8.mjs`) 26 de 26 a 390 y 1280 px en claro y oscuro, con Productividad respondida en el navegador (sin Gemini) y "reducir movimiento". Sin conexión: `ui_e20sin` 16/16, `ui_e19b` 12/12 y `ui_e11e` 34/34. `eslint` sin errores y build correcto.
-- **Pendiente:** la prueba del usuario, junto con los commits 9 y 10.
+- **Probado por el usuario sin fallas** (2026-11-25, iPhone y PC).
 
 #### Commit 9: Configuración (2026-11-25)
 
@@ -1396,7 +1396,7 @@ Total de fallas: 0
 - **Botones con "listo"** (`useListo` en `src/components/ui/useListo.ts`): "Guardar nombre" y "Guardar" de Académico terminan en "Guardado", y "Guardar hora" en "Guardada", unos 2,5 s; los avisos de siempre siguen.
 - **Pantalla ancha (desde 1280 px):** un índice de secciones fijo a la izquierda (`IndiceConfiguracion`) que lleva a cada bloque y marca el que se está viendo; sus enlaces solo desplazan la página (permitidos sin conexión). En el teléfono no aparece.
 - **Pruebas:** `tests/interfaz/configuracionE20b.test.tsx` (la inicial y "Guardado", las tarjetas del tema con los mismos nombres, el índice); `configuracion.test.tsx` sin cambios. Edge (`ui_e20b9.mjs`) 17 de 17 a 390 y 1280 px en claro y oscuro: títulos, inicial, tarjetas, el índice solo en pantalla ancha, ir a Notificaciones, la tarjeta "Oscuro" aplica el tema y "Guardado". `eslint` sin errores y build correcto.
-- **Pendiente:** la prueba del usuario, junto con los commits 8 y 10.
+- **Probado por el usuario sin fallas** (2026-11-25, iPhone y PC).
 
 #### Commit 10: Entrada con la Estrella nova (2026-11-25)
 
@@ -1407,7 +1407,7 @@ Total de fallas: 0
 - **Siempre usable:** el formulario está en la página desde el principio (ni oculto para lectores de pantalla ni fuera del orden de Tab); al llegar a él con Tab, la estrella se enciende. Si nadie la toca, se enciende sola a los 2 s. Con "reducir movimiento", todo está encendido desde el principio, sin la escena ni la luz.
 - **E20c:** `EntradaNova` recibe `extra`, el lugar para "Entrar con Google" y el texto nuevo de "¿Olvidaste tu contraseña?". El inicio de sesión, sus mensajes y su lógica no cambian; registro y recuperación siguen con `TarjetaAcceso`.
 - **Pruebas:** `tests/interfaz/entradaE20b.test.tsx` (apagada con la indicación y el formulario usable, encender con la estrella y las tres ondas dentro de la que viaja, sola a los 2 s, con Tab al formulario, "reducir movimiento", las estrellas iguales y el contraste del cielo); `contraste.test.ts` vigila también `EntradaNova` y `CieloNoche`. Edge (`ui_e20b10.mjs`) 37 de 37 a 390 y 1280 px en claro y oscuro: la estrella en el centro, la indicación según el dispositivo, las ondas que viajan, el formulario a mitad del viaje, la estrella en su lugar y el foco en el correo, la luz pegada al mouse y sin transición en la posición, las estrellas cercanas, el cielo detenido con la pestaña oculta, sola a los 2 s, la luz tenue, Tab con contorno, Enter, Espacio, "reducir movimiento" e iniciar sesión. Además, el índice de Configuración se ve al lado de la barra lateral en una captura normal. Sin conexión: `ui_e20sin` 16/16, `ui_e19b` 12/12 y `ui_e11e` 34/34 (la entrada no toca el service worker). `npm test` 1443/1443, `eslint` sin errores y build correcto.
-- **Pendiente:** la prueba del usuario de los commits 8, 9 y 10; con ella se cierra E20b.
+- **Probado por el usuario sin fallas** (2026-11-25, iPhone y PC).
 
 #### Pantalla de carga con la Estrella nova (2026-11-25, pedida por el usuario antes de cerrar E20b)
 
@@ -1424,11 +1424,19 @@ Total de fallas: 0
   - `tests/interfaz/pantallaCarga.test.tsx`: cuándo se muestra y cuándo no, el desvanecido sin tiempo mínimo, que no parpadea, el centro en la app instalada, el marcado, el CSS y que el tema no toca su barra. `arranque.test.ts` exige el fondo oscuro en las 28 imágenes y en el manifiesto. `serviceWorker.test.ts` prueba la activación. `npm test` 1455 de 1455, `eslint` sin errores y build correcto.
   - Edge (`ui_e20b11.mjs`), 26 de 26, a 393 y 1280 px en claro y oscuro con la red lenta: el fondo y la estrella al centro, el primer cuadro igual a la imagen de arranque, el desvanecido y la barra oscura, unos 400 ms desde que la página está lista hasta quitarla, contando el desvanecido, y nada puesto después. También que no aparece al navegar, al recargar, al volver desde segundo plano, en la Entrada ni después de iniciar sesión, "reducir movimiento" y sin errores de página.
   - Sin conexión: `ui_e20sin` 16 de 16, `ui_e19b` 12 de 12 y `ui_e11e` 34 de 34. Entrada: `ui_e20b10` 37 de 37.
-- **Pendiente:** la prueba del usuario en el iPhone (app instalada) de esto y de los commits 8, 9 y 10. Si en el iPhone queda una franja clara arriba mientras se ve la carga, es la barra de estado: `apple-mobile-web-app-status-bar-style` es `default`, e iOS puede no tomar `theme-color`. Las salidas cambian lo acordado y hay que consultarlas.
+- **Probado por el usuario sin fallas** (2026-11-25, iPhone con la app reinstalada, en claro y oscuro, y PC): pasa del arranque a la estrella sin saltos, sin franjas de otro color arriba ni abajo, no aparece al navegar ni al volver desde segundo plano; en el PC solo en una pestaña nueva.
+
+#### Cierre de E20b (2026-11-25)
+
+- **Terminada el 2026-11-25** tras la prueba del usuario en iPhone (app reinstalada) y PC, sin fallas: la fecha en palabras en el Asistente, el commit 7 (Semestre), los commits 8, 9 y 10 y la pantalla de carga. Antes ya había probado los commits 1 a 6, el 11 adelantado, el ajuste del teclado del iPhone y la corrección de "[Tarea …]".
+- **Lo que quedó:** paleta "noche de estudio" y letras con `next/font`; logo "Estrella nova" con ícono, favicon y arranque; barra lateral de cristal plegable y barra inferior flotante con píldora; Inicio con tarjetas animadas y próximo corte; celebración al completar tareas; Calendario con "Próximos"; Asistente con burbujas, citas desplegables y preguntas sugeridas; Fuentes con las etapas reales de indexación; Semestre con fallas en puntos, barra de cortes y "¿Cuánto necesito?" con color; anillos y minigráficos en Productividad y Cuestionarios; Configuración con íconos, tarjetas e índice; la Entrada con la Estrella nova en un cielo de noche; la pantalla de carga al abrir en frío; y la sesión verificada sin ir a Supabase con consultas en paralelo (tiempo de carga). Todo sin librería de animación y con "reducir movimiento" respetado; sin conexión revisado en cada commit.
+- **Quedó fuera:** la respuesta palabra por palabra del Asistente (choca con las respuestas exactas del servidor y el respaldo entre modelos).
+- **El mismo día:** el usuario aprobó la propuesta E20d tal como está escrita, para después de E20c. Sus columnas pasan a ser **M26**, porque E20c ya usa M24 (`claves_gemini`) y M25 (cuentas y administración).
+- **Sigue:** la propuesta de cómo hacer E20c y E20d, que espera la confirmación del usuario antes de programar.
 
 #### Propuesta E20d (2026-11-24)
 
-- A pedido del usuario, sin programar: leer PDF escaneados con OCR (comparación de solo Gemini, solo Tesseract y combinado; recomendación: Gemini solo para las páginas sin texto, preguntando antes de gastar) y subir Markdown, texto, Word, PowerPoint y fotos, cada uno con su estructura. Escrita en `PROMPTS_AMPLIACION.md`, sección E20d, entre E20c y E21. Pendiente la aprobación del usuario.
+- A pedido del usuario, sin programar: leer PDF escaneados con OCR (comparación de solo Gemini, solo Tesseract y combinado; recomendación: Gemini solo para las páginas sin texto, preguntando antes de gastar) y subir Markdown, texto, Word, PowerPoint y fotos, cada uno con su estructura. Escrita en `PROMPTS_AMPLIACION.md`, sección E20d, entre E20c y E21. **Aprobada por el usuario el 2026-11-25** tal como está, para después de E20c (migración M26).
 
 #### Cambio para el commit 10 (2026-11-24)
 

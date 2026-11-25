@@ -886,9 +886,9 @@ VERIFICACIÓN: B-87 a B-101 y B-103 a B-105; A-01 a A-21 y B-01 a B-86 siguen pa
 
 ---
 
-## E20d · PDF escaneados (OCR) y más tipos de documento (propuesta del 2026-11-24, sin aprobar)
+## E20d · PDF escaneados (OCR) y más tipos de documento (propuesta del 2026-11-24, aprobada el 2026-11-25)
 
-**Cuándo:** después de E20c y antes de E21. Con la clave propia de cada persona (E20c), leer páginas con Gemini gasta su cuota, no la compartida. **Requisito:** E20c. **Estado:** solo propuesta; no se programa hasta que el usuario la apruebe.
+**Cuándo:** después de E20c y antes de E21. Con la clave propia de cada persona (E20c), leer páginas con Gemini gasta su cuota, no la compartida. **Requisito:** E20c. **Estado:** aprobada por el usuario el 2026-11-25 tal como está escrita; se programa después de E20c. La migración es **M26** (E20c usa M24 y M25).
 
 **Pedido del usuario (2026-11-24):**
 - Un libro escaneado (cada página es una imagen) no se pudo leer.
@@ -953,7 +953,7 @@ VERIFICACIÓN: B-87 a B-101 y B-103 a B-105; A-01 a A-21 y B-01 a B-86 siguen pa
 - En el iPhone, al elegir con `accept="image/jpeg,image/png"`, Safari convierte las fotos HEIC a JPEG.
 
 **Base de datos (la base es compartida con producción: nada se renombra ni se borra, solo se agrega):**
-- **M24:**
+- **M26** (antes decía M24, que es de E20c):
   - `documentos.tipo`, con CHECK (`pdf`, `pdf_escaneado`, `docx`, `md`, `txt`, `pptx`, `imagen`) y por defecto `pdf`, así lo existente y el código de `master` siguen igual;
   - `documentos.unidad` (`pagina`, `diapositiva`, `seccion`, `parte`);
   - `fragmentos_pdf.ocr` (booleano, por defecto falso).
@@ -973,7 +973,7 @@ VERIFICACIÓN: B-87 a B-101 y B-103 a B-105; A-01 a A-21 y B-01 a B-86 siguen pa
 
 ### 3. Orden propuesto (un commit por paso, con la prueba del usuario entre uno y otro)
 
-1. **E20d-1:** M24 (con `db:respaldar` antes); Markdown y texto; sellos, filtro y "Ver contenido".
+1. **E20d-1:** M26 (con `db:respaldar` antes); Markdown y texto; sellos, filtro y "Ver contenido".
 2. **E20d-2:** Word y PowerPoint.
 3. **E20d-3:** PDF escaneados con OCR (detección, pregunta antes de gastar, lectura por partes, citas marcadas).
 4. **E20d-4:** fotos con el mismo OCR.
