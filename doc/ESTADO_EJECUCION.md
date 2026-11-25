@@ -1510,4 +1510,38 @@ Total de fallas: 0
     - el Asistente con su campo;
     - desvincular con confirmación y el aviso de vuelta.
   - **Sin conexión:** `ui_e20sin` 16 de 16, `ui_e19b` 12 de 12 y `ui_e11e` 34 de 34 (al segundo intento; el primero no dejó resultado).
-- **Pendiente:** la prueba del usuario. El dueño no ve cambios porque sigue con la clave del proyecto; lo nuevo se ve en Configuración y en la guía. Opcional: vincular su propia clave.
+- **Probado por el usuario sin fallas** (2026-11-25, iPhone con la app instalada y PC): el bloque, la guía y la clave inventada rechazada con el campo vacío. No probó una clave real. Guardó su copia de `NOVA_LLAVE_CLAVES_V1`.
+
+#### Ajuste de la pantalla de carga: cometa, estrella y portal (2026-11-25, pedido del usuario antes de E20c-2)
+
+- **Secuencia** (`PantallaCarga`, `SCRIPT_CARGA` en `src/lib/pantallaCarga.ts` y CSS `nova-carga-*`; solo CSS y un poco de JavaScript, todo de frente):
+  1. Fondo #14110F sin nada.
+  2. Un cometa dibuja el anillo en 0,7 s: cabeza crema con halo y cola crema sobre el trazo en el acento. La cabeza gira con la misma curva que el trazo; medido en Edge, coinciden.
+  3. Al cerrarse el anillo, la estrella se enciende con rebote y un destello, y aparecen "Nova" y "Tu noche de estudio, en orden." (de 0,7 a 1 s).
+  4. Cuando la app está lista, se abre el portal (0,5 s): la app (`[data-nova-fondo]`) pasa encima y se ve por dentro de `clip-path: circle()`, que crece desde el centro de la estrella hasta salirse de la pantalla, con un aro de luz en el borde que se desvanece.
+- **Tiempos:** el reloj empieza en el primer cuadro pintado.
+  - Si la app ya está lista, todo dura 1,5 s (medido en Edge: de 1516 a 1554 ms).
+  - Si tarda, la estrella respira hasta que esté lista.
+  - La secuencia corre aunque la app esté lista antes del primer cuadro; se salta solo con la pestaña oculta.
+  - Sigue solo en frío: nada al navegar, recargar o volver.
+- **Números:** cuentan al abrirse el portal (`alVerseLaApp` y el evento `nova-carga-fin` en `Contador`).
+- **"Reducir movimiento":** sin cometa ni portal; la estrella encendida y quieta, con su texto, y un desvanecido de 0,35 s.
+- **Arranque:** las 28 imágenes del iPhone son solo el fondo #14110F, sin la estrella. El `background_color` del manifiesto ya era #14110F. La barra de estado sigue oscura mientras carga.
+- **Service worker:** las imágenes cambian sin cambiar de nombre. `sw.js` lleva `// VERSION_ICONOS: <huella de public/icons>` (lo vigila `arranque.test.ts`), así cambia, se instala el nuevo y al activarse borra los íconos guardados.
+- **Pruebas:**
+  - `pantallaCarga.test.tsx` con reloj y cuadros simulados: la secuencia completa en 1,5 s, la espera si tarda, el portal sin cuadros, la app lista antes del primer cuadro, la pestaña oculta, "reducir movimiento", `alVerseLaApp`, el marcado de frente y el CSS. `npm test` 1502 de 1502, `eslint` sin errores y build correcto.
+  - Edge (`ui_e20b12.mjs`), 36 de 36, a 393 y 1280 px en claro y oscuro, con el estado anotado en cada cuadro:
+    - empieza vacío;
+    - el cometa con el trazo a medias;
+    - la estrella y el texto hacia los 0,83 s;
+    - el portal hacia 1 s y el fin antes de 1,55 s;
+    - el círculo crece desde la estrella hasta salirse;
+    - el aro se desvanece;
+    - la barra oscura hasta el portal;
+    - los números en 0 al abrirse y luego contando;
+    - nada puesto después;
+    - con la app lenta, el portal a los 2,55 s;
+    - "reducir movimiento", navegar y recargar;
+    - la imagen de arranque de un solo color.
+  - Sin conexión: `ui_e20sin` 16 de 16, `ui_e19b` 12 de 12 y `ui_e11e` 34 de 34. `ui_e20sin` ahora espera a que se quite la pantalla de carga antes de tocar: al entrar en frío cubre la app hasta 1,5 s, también para quien toca en el teléfono. Una corrida dio 15 de 16 por tiempos, y las siguientes, 16 de 16.
+- **Pendiente:** la prueba del usuario (con la app reinstalada, por la imagen de arranque); luego E20c-2.

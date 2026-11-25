@@ -14,6 +14,10 @@
 // tests/reglas/swVersion.test.ts exige que la huella coincida con el contenido de sw-reglas.js.
 importScripts('/sw-reglas.js?v=28563b12a5c7');
 
+// E20b: los íconos y las imágenes de arranque cambian sin cambiar de nombre. Esta versión es la huella de public/icons:
+// al cambiarlos cambia sw.js, el navegador instala el service worker nuevo y al activarse borra los guardados
+// (seRenuevaAlActualizar). tests/reglas/arranque.test.ts exige que coincida.
+// VERSION_ICONOS: b09216a5099f
 var R = self.NovaReglas;
 var ESTATICOS = 'nova-estaticos-v1';
 var DATOS = 'nova-datos-v1';

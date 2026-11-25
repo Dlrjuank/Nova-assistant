@@ -1,7 +1,8 @@
 // @vitest-environment node
 // Corrección de E11b: la app instalada en el iPhone abre con el fondo de Nova y su ícono, no en negro.
-import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { createHash } from 'node:crypto';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { join, relative, sep } from 'node:path';
 import { inflateSync } from 'node:zlib';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
@@ -72,5 +73,28 @@ describe('pantallas de arranque del iPhone', () => {
   it('el manifiesto (Android) arranca con el fondo oscuro de la carga (E20b) y la barra con el fondo de Nova', () => {
     expect(manifiesto().background_color).toBe(COLOR_FONDO.oscuro);
     expect(manifiesto().theme_color).toBe(COLOR_FONDO.claro);
+  });
+});
+
+describe('el service worker vuelve a pedir los íconos cuando cambian (E20b)', () => {
+  it('VERSION_ICONOS de sw.js es la huella de public/icons (al cambiar un ícono o una imagen de arranque, cambia sw.js)', () => {
+    const raiz = join(process.cwd(), 'public', 'icons');
+    const h = createHash('sha256');
+    const recorrer = (d: string) =>
+      readdirSync(d, { withFileTypes: true })
+        .sort((x, y) => (x.name < y.name ? -1 : 1))
+        .forEach((e) => {
+          const r = join(d, e.name);
+          if (e.isDirectory()) recorrer(r);
+          else {
+            h.update(relative(raiz, r).split(sep).join('/'));
+            h.update(readFileSync(r));
+          }
+        });
+    recorrer(raiz);
+    const huella = h.digest('hex').slice(0, 12);
+    expect(readFileSync(join(process.cwd(), 'public', 'sw.js'), 'utf8'), `actualiza VERSION_ICONOS en public/sw.js a '${huella}'`).toContain(
+      `// VERSION_ICONOS: ${huella}`,
+    );
   });
 });

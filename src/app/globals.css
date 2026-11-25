@@ -97,6 +97,7 @@
   --nova-carga-anillo-3: #6b3017;
   --nova-carga-estrella: #f2a47c;
   --nova-carga-centro: #fff3e6;
+  --nova-carga-texto-suave: #c8b8a6;
 }
 
 /* Modo oscuro elegido por el usuario. Los mismos valores se repiten abajo para "automático". */
@@ -647,10 +648,11 @@ html:has([data-nova-fondo]) body {
 }
 
 /*
- * E20b: pantalla de carga al abrir la app en frío (PantallaCarga en el layout de Nova). Solo se ve si el script
- * del HTML inicial puso data-nova-carga en <html> (src/lib/pantallaCarga.ts); al navegar dentro de la app ese
- * script no corre y queda oculta. La estrella va centrada en la pantalla completa (--nova-carga-y, en la app
- * instalada), igual que en la imagen de arranque del iPhone.
+ * E20b: pantalla de carga al abrir la app en frío (PantallaCarga en el layout de Nova; versión del 2026-11-25).
+ * Solo se ve si el script del HTML inicial puso data-nova-carga en <html> (src/lib/pantallaCarga.ts); al navegar
+ * dentro de la app ese script no corre y queda oculta. Secuencia: el cometa dibuja el anillo (0 a 0,7 s), la estrella
+ * se enciende con rebote y aparece el texto (0,7 a 1 s), la estrella respira si la app aún no está lista, y el script
+ * abre el portal (clip-path circular sobre la app, 0,5 s). Todo de frente: sin perspectiva ni inclinación.
  */
 .nova-carga {
   display: none;
@@ -670,60 +672,208 @@ html[data-nova-carga='saliendo'] .nova-carga {
   opacity: 0;
   pointer-events: none;
 }
-.nova-carga svg {
+/* El portal: la app queda encima y se ve por dentro del círculo que el script hace crecer. */
+html[data-nova-carga='portal'] [data-nova-fondo] {
+  position: relative;
+  z-index: 10000;
+}
+.nova-carga-aro {
+  display: none;
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 10001;
+  border-radius: 9999px;
+  border: 2px solid var(--nova-carga-estrella);
+  box-shadow:
+    0 0 22px 5px rgb(242 164 124 / 0.5),
+    inset 0 0 14px 2px rgb(255 243 230 / 0.35);
+  pointer-events: none;
+  will-change: transform, width, height, opacity;
+}
+html[data-nova-carga='portal'] .nova-carga-aro {
+  display: block;
+}
+.nova-carga-centro {
   position: absolute;
   left: 50%;
   top: var(--nova-carga-y, 50%);
   width: 112px;
   height: 112px;
-  overflow: visible;
   transform: translate(-50%, -50%);
 }
-.nova-carga-onda {
+.nova-carga-centro svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.nova-carga-texto {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 22px);
+  transform: translateX(-50%);
+  white-space: nowrap;
+  text-align: center;
+  animation: nova-carga-texto 0.25s ease-out 0.7s both;
+}
+.nova-carga-nombre {
+  font-family: var(--font-bricolage), 'Trebuchet MS', system-ui, sans-serif;
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: var(--nova-carga-centro);
+}
+.nova-carga-frase {
+  margin-top: 0.35rem;
+  font-size: 0.9375rem;
+  color: var(--nova-carga-texto-suave);
+}
+/* 1. El trazo del anillo (acento) y la cola del cometa (crema), con la misma curva que la cabeza. */
+.nova-carga-trazo,
+.nova-carga-cola {
   fill: none;
+  stroke-linecap: round;
+}
+.nova-carga-trazo {
   stroke: var(--nova-carga-estrella);
-  stroke-width: 1.5;
+  stroke-width: 2;
+  stroke-dasharray: 100 100;
+  stroke-dashoffset: 0;
+  opacity: 0.75;
+  animation: nova-carga-trazo 0.7s cubic-bezier(0.45, 0, 0.25, 1) both;
+}
+.nova-carga-cola {
+  stroke: var(--nova-carga-centro);
+  stroke-width: 2.6;
+  stroke-dasharray: 9 91;
   opacity: 0;
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: nova-carga-onda 2.4s cubic-bezier(0.2, 0.7, 0.3, 1) infinite;
+  animation: nova-carga-cola 0.7s cubic-bezier(0.45, 0, 0.25, 1) both;
 }
-.nova-carga-onda-2 {
-  animation-delay: 1.2s;
-}
-.nova-carga-latido {
+.nova-carga-cometa {
+  transform-box: view-box;
   transform-origin: 60px 60px;
-  animation: nova-carga-latido 2.4s ease-in-out infinite;
+  opacity: 0;
+  animation: nova-carga-girar 0.7s cubic-bezier(0.45, 0, 0.25, 1) both;
 }
-.nova-carga-brillo {
+.nova-carga-cabeza {
+  fill: var(--nova-carga-centro);
+  filter: drop-shadow(0 0 3px var(--nova-carga-centro));
+}
+.nova-carga-halo-cabeza {
+  fill: var(--nova-carga-centro);
+  opacity: 0.3;
+}
+/* 2. La estrella se enciende con un pequeño rebote, con un destello, y luego respira. */
+.nova-carga-estrella {
+  transform-box: view-box;
   transform-origin: 60px 60px;
-  animation: nova-carga-brillo 2.4s ease-in-out infinite;
+  animation: nova-carga-encender 0.34s cubic-bezier(0.34, 1.56, 0.64, 1) 0.68s both;
 }
-@keyframes nova-carga-onda {
+.nova-carga-destello {
+  fill: var(--nova-carga-centro);
+  opacity: 0;
+  transform-box: view-box;
+  transform-origin: 60px 60px;
+  animation: nova-carga-destello 0.55s ease-out 0.68s both;
+}
+.nova-carga-respira {
+  transform-box: view-box;
+  transform-origin: 60px 60px;
+  animation: nova-carga-respirar 2.4s ease-in-out 1.05s infinite;
+}
+@keyframes nova-carga-trazo {
   0% {
-    opacity: 0.7;
-    transform: scale(1);
+    stroke-dashoffset: 100;
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
   }
   100% {
-    opacity: 0;
-    transform: scale(2.2);
-  }
-}
-@keyframes nova-carga-latido {
-  50% {
-    transform: scale(1.06);
-  }
-}
-@keyframes nova-carga-brillo {
-  50% {
+    stroke-dashoffset: 0;
     opacity: 0.75;
   }
 }
+@keyframes nova-carga-cola {
+  0% {
+    stroke-dashoffset: 9;
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: -91;
+    opacity: 0;
+  }
+}
+@keyframes nova-carga-girar {
+  0% {
+    transform: rotate(0deg);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(360deg);
+    opacity: 0;
+  }
+}
+@keyframes nova-carga-encender {
+  from {
+    opacity: 0;
+    transform: scale(0.55);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes nova-carga-destello {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  30% {
+    opacity: 0.45;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+@keyframes nova-carga-respirar {
+  50% {
+    transform: scale(1.05);
+  }
+}
+@keyframes nova-carga-texto {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 6px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
 @media (prefers-reduced-motion: reduce) {
-  /* La estrella quieta y sin ondas; el desvanecido sí queda (la regla general lo acortaría a 0). */
-  .nova-carga-onda,
-  .nova-carga-latido,
-  .nova-carga-brillo {
+  /* Sin cometa ni portal: la estrella ya encendida y quieta, con su texto; solo el desvanecido. */
+  .nova-carga-trazo,
+  .nova-carga-cola,
+  .nova-carga-cometa,
+  .nova-carga-estrella,
+  .nova-carga-destello,
+  .nova-carga-respira,
+  .nova-carga-texto {
     animation: none !important;
   }
   .nova-carga {
