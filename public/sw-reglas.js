@@ -37,6 +37,15 @@
     return url.pathname.indexOf('/_next/static/') === 0 || url.pathname.indexOf('/icons/') === 0 || url.pathname === '/manifest.webmanifest';
   }
 
+  /**
+   * E20b: los íconos, las imágenes de arranque y el manifiesto no cambian de nombre entre versiones. Al activarse un
+   * service worker nuevo se borran de la caché, para pedirlos otra vez (los de /_next/static/ sí cambian de nombre
+   * y se quedan, porque las copias sin conexión los usan).
+   */
+  function seRenuevaAlActualizar(url) {
+    return url.pathname.indexOf('/icons/') === 0 || url.pathname === '/manifest.webmanifest';
+  }
+
   /** Pedido interno de Next para navegar sin recargar (RSC): nunca se guarda. */
   function esRsc(url, encabezados) {
     return url.searchParams.has('_rsc') || (encabezados && encabezados.get && encabezados.get('RSC') === '1');
@@ -153,6 +162,7 @@
     urlNotificacion: urlNotificacion,
     mesActual: mesActual,
     esEstatico: esEstatico,
+    seRenuevaAlActualizar: seRenuevaAlActualizar,
     esRsc: esRsc,
     esPaginaNova: esPaginaNova,
     paginaGuardable: paginaGuardable,

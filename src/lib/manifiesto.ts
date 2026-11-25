@@ -17,9 +17,10 @@ export function manifiesto(): MetadataRoute.Manifest {
     start_url: '/nova',
     scope: '/',
     display: 'standalone',
-    // Pantalla de arranque en Android: el fondo de Nova (el manifiesto no distingue claro y oscuro). En el
-    // iPhone la ponen las imágenes de src/lib/arranque.ts. La barra toma el fondo, como en la app (theme-color).
-    background_color: COLOR_FONDO.claro,
+    // Pantalla de arranque en Android: E20b, el fondo oscuro de la pantalla de carga en los dos modos, para que
+    // siga sin salto a la animación. En el iPhone la ponen las imágenes de src/lib/arranque.ts. La barra toma el
+    // fondo claro, como en la app (theme-color).
+    background_color: COLOR_FONDO.oscuro,
     theme_color: COLOR_FONDO.claro,
     icons: [
       { src: '/icons/icono-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },

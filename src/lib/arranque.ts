@@ -3,7 +3,9 @@
  * del manifiesto: mientras llega la primera respuesta del servidor muestra una imagen `apple-touch-startup-image`
  * del tamaño exacto de la pantalla, o negro si no la tiene. Por eso hay una por tamaño de iPhone, en claro y en
  * oscuro (según el tema del sistema: antes de abrir, la app todavía no sabe el tema elegido en Nova).
- * Las imágenes están en public/icons/arranque/ (fondo de Nova con el ícono al centro).
+ * Las imágenes están en public/icons/arranque/. E20b: las dos (claro y oscuro) son el primer cuadro de la pantalla de
+ * carga (PantallaCarga): fondo #14110f y la estrella quieta de 112 puntos al centro de la pantalla, para que no se
+ * note el paso de la imagen a la animación.
  * Ajuste de E20: van en el <head> del layout raíz (EtiquetasIphone), no en `metadata`. Next 15.5 manda el
  * `metadata` al final del cuerpo (streaming metadata) y iOS las lee al agregar a inicio; ahí dejaron de verse.
  */

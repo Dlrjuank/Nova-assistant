@@ -90,6 +90,13 @@
   --nova-cielo-texto: #f3eadd;
   --nova-cielo-texto-suave: #c8b8a6;
   --nova-cielo-luz: rgb(242 160 110 / 0.2);
+  /* E20b: la pantalla de carga al abrir la app es oscura en los dos modos (sigue a la imagen de arranque del iPhone). */
+  --nova-carga-fondo: #14110f;
+  --nova-carga-anillo-1: #221812;
+  --nova-carga-anillo-2: #3e2115;
+  --nova-carga-anillo-3: #6b3017;
+  --nova-carga-estrella: #f2a47c;
+  --nova-carga-centro: #fff3e6;
 }
 
 /* Modo oscuro elegido por el usuario. Los mismos valores se repiten abajo para "automático". */
@@ -636,5 +643,90 @@ html:has([data-nova-fondo]) body {
   }
   .nova-luz {
     display: none;
+  }
+}
+
+/*
+ * E20b: pantalla de carga al abrir la app en frío (PantallaCarga en el layout de Nova). Solo se ve si el script
+ * del HTML inicial puso data-nova-carga en <html> (src/lib/pantallaCarga.ts); al navegar dentro de la app ese
+ * script no corre y queda oculta. La estrella va centrada en la pantalla completa (--nova-carga-y, en la app
+ * instalada), igual que en la imagen de arranque del iPhone.
+ */
+.nova-carga {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: var(--nova-carga-fondo);
+  transition: opacity 0.35s ease;
+}
+html[data-nova-carga] {
+  background: var(--nova-carga-fondo);
+}
+html[data-nova-carga] .nova-carga {
+  display: block;
+}
+html[data-nova-carga='saliendo'] .nova-carga {
+  opacity: 0;
+  pointer-events: none;
+}
+.nova-carga svg {
+  position: absolute;
+  left: 50%;
+  top: var(--nova-carga-y, 50%);
+  width: 112px;
+  height: 112px;
+  overflow: visible;
+  transform: translate(-50%, -50%);
+}
+.nova-carga-onda {
+  fill: none;
+  stroke: var(--nova-carga-estrella);
+  stroke-width: 1.5;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: nova-carga-onda 2.4s cubic-bezier(0.2, 0.7, 0.3, 1) infinite;
+}
+.nova-carga-onda-2 {
+  animation-delay: 1.2s;
+}
+.nova-carga-latido {
+  transform-origin: 60px 60px;
+  animation: nova-carga-latido 2.4s ease-in-out infinite;
+}
+.nova-carga-brillo {
+  transform-origin: 60px 60px;
+  animation: nova-carga-brillo 2.4s ease-in-out infinite;
+}
+@keyframes nova-carga-onda {
+  0% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.2);
+  }
+}
+@keyframes nova-carga-latido {
+  50% {
+    transform: scale(1.06);
+  }
+}
+@keyframes nova-carga-brillo {
+  50% {
+    opacity: 0.75;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* La estrella quieta y sin ondas; el desvanecido sí queda (la regla general lo acortaría a 0). */
+  .nova-carga-onda,
+  .nova-carga-latido,
+  .nova-carga-brillo {
+    animation: none !important;
+  }
+  .nova-carga {
+    transition-duration: 0.35s !important;
   }
 }

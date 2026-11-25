@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { Celebracion } from '@/components/nova/Celebracion';
 import { ConexionNova } from '@/components/nova/ConexionNova';
 import { NavegacionNova } from '@/components/nova/NavegacionNova';
+import { PantallaCarga } from '@/components/nova/PantallaCarga';
 import { tieneAccesoNova } from '@/lib/auth/acceso';
 import { ProveedorPreferencias } from '@/components/nova/PreferenciasNova';
 import { ProveedorPendientes } from '@/components/nova/pendientes/ProveedorPendientes';
@@ -29,6 +30,8 @@ export default async function NovaLayout({ children }: Readonly<{ children: Reac
     >
       {/* E11e: las tareas creadas sin conexión de este usuario, su envío y el aviso al cerrar sesión. */}
       <ProveedorPendientes usuarioId={sesion.id}>
+        {/* E20b: la Estrella nova mientras carga, solo al abrir la app en frío (se oculta sola). */}
+        <PantallaCarga />
         <div data-nova-fondo className="min-h-screen bg-fondo text-texto lg:pl-[calc(var(--nova-ancho-lateral)+1.5rem)] lg:transition-[padding] lg:duration-200">
           <NavegacionNova email={sesion.email} />
           {/* E20b: nova-entrada hace que los bloques de cada pantalla entren escalonados (globals.css). */}

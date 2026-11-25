@@ -75,7 +75,13 @@ function entorno() {
 
   const copias = () => [...(almacen.get('nova-datos-v1')?.keys() ?? [])].map((k) => new URL(k).pathname + new URL(k).search);
   const estaticos = () => [...(almacen.get('nova-estaticos-v1')?.keys() ?? [])].map((k) => new URL(k).pathname);
-  return { red, redNueva, pedir, avisarRuta, copias, estaticos, mensajes };
+  /** Activa el service worker (como al instalar una versión nueva). */
+  async function activar() {
+    const pendientes: Promise<unknown>[] = [];
+    for (const f of manejadores.activate ?? []) f({ waitUntil: (p: Promise<unknown>) => pendientes.push(p) });
+    await Promise.all(pendientes);
+  }
+  return { red, redNueva, pedir, avisarRuta, activar, copias, estaticos, mensajes };
 }
 
 const pagina = (cuerpo: string, usuario = 'u1') =>
@@ -359,5 +365,18 @@ describe('E19b (S-89, RB-87): Semestre sin conexión', () => {
     const r = await sw.pedir('/nova/productividad');
     expect(r?.status).toBe(503);
     expect(await r?.text()).toContain('Esta pantalla necesita conexión. Sin conexión puedes ver Inicio, Tareas, el Calendario y Semestre.');
+  });
+});
+
+describe('service worker: íconos e imágenes de arranque nuevos (E20b)', () => {
+  it('al activarse una versión nueva, vuelve a pedir los íconos y el manifiesto, y conserva los archivos de Next', async () => {
+    const sw = entorno();
+    sw.red.mockImplementation(async () => new Response('x', { status: 200 }));
+    for (const r of ['/_next/static/css/a1.css', '/icons/arranque/arranque-1179x2556-claro.png', '/icons/icono-192.png', '/manifest.webmanifest']) {
+      await sw.pedir(r, { modo: 'no-cors' });
+    }
+    expect(sw.estaticos()).toHaveLength(4);
+    await sw.activar();
+    expect(sw.estaticos()).toEqual(['/_next/static/css/a1.css']);
   });
 });

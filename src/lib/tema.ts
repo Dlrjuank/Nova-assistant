@@ -26,15 +26,15 @@ export function atributoTema(guardado: string | null): 'claro' | 'oscuro' | null
  * Script mínimo que va en el <head>: aplica el tema guardado antes de pintar, para que no parpadee.
  * Si el navegador bloquea localStorage, queda "automático".
  */
-export const SCRIPT_TEMA = `(function(){try{if(localStorage.getItem('${CLAVE_LATERAL}')==='plegada')document.documentElement.setAttribute('data-lateral','plegada');}catch(e){}try{var t=localStorage.getItem('${CLAVE_TEMA}');if(t==='claro'||t==='oscuro'){document.documentElement.setAttribute('data-tema',t);var f=function(){var c=t==='claro'?'${COLOR_FONDO.claro}':'${COLOR_FONDO.oscuro}';document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){var o=m.getAttribute('media');if(o&&!m.getAttribute('data-media-original'))m.setAttribute('data-media-original',o);m.removeAttribute('media');m.setAttribute('content',c);});};f();document.addEventListener('DOMContentLoaded',f);}}catch(e){}})();`;
+export const SCRIPT_TEMA = `(function(){try{if(localStorage.getItem('${CLAVE_LATERAL}')==='plegada')document.documentElement.setAttribute('data-lateral','plegada');}catch(e){}try{var t=localStorage.getItem('${CLAVE_TEMA}');if(t==='claro'||t==='oscuro'){document.documentElement.setAttribute('data-tema',t);var f=function(){var c=t==='claro'?'${COLOR_FONDO.claro}':'${COLOR_FONDO.oscuro}';document.querySelectorAll('meta[name="theme-color"]:not([data-nova-carga])').forEach(function(m){var o=m.getAttribute('media');if(o&&!m.getAttribute('data-media-original'))m.setAttribute('data-media-original',o);m.removeAttribute('media');m.setAttribute('content',c);});};f();document.addEventListener('DOMContentLoaded',f);}}catch(e){}})();`;
 
 /**
  * E11b: la barra de color del navegador y la de estado del iPhone siguen el tema elegido en Nova. Con "claro" u
  * "oscuro", todas las etiquetas theme-color toman ese fondo sin importar el sistema; con "automático", cada una
- * vuelve a su `media` (claro u oscuro según el sistema).
+ * vuelve a su `media` (claro u oscuro según el sistema). La etiqueta de la pantalla de carga (data-nova-carga) no se toca.
  */
 export function aplicarColorBarra(tema: Tema): void {
-  document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]').forEach((m) => {
+  document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]:not([data-nova-carga])').forEach((m) => {
     const actual = m.getAttribute('media');
     if (!m.dataset.mediaOriginal && actual) m.dataset.mediaOriginal = actual;
     const media = m.dataset.mediaOriginal ?? '';

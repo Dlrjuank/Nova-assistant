@@ -28,14 +28,14 @@ function leerPng(ruta: string) {
 }
 
 describe('pantallas de arranque del iPhone', () => {
-  it('una imagen por tamaño de iPhone, en claro y oscuro, del tamaño exacto en píxeles y con el fondo de Nova', () => {
+  it('una imagen por tamaño de iPhone, en claro y oscuro, del tamaño exacto en píxeles y con el fondo oscuro de la carga (E20b)', () => {
     for (const p of PANTALLAS_IPHONE) {
       for (const modo of ['claro', 'oscuro'] as const) {
         const ruta = join(process.cwd(), 'public', archivoArranque(p, modo));
         expect(existsSync(ruta), ruta).toBe(true);
         const png = leerPng(ruta);
         expect([png.ancho, png.alto]).toEqual([p.ancho * p.escala, p.alto * p.escala]);
-        expect(png.color).toBe(COLOR_FONDO[modo]);
+        expect(png.color).toBe(COLOR_FONDO.oscuro); // E20b: oscura en los dos modos, como la pantalla de carga
       }
     }
   });
@@ -69,8 +69,8 @@ describe('pantallas de arranque del iPhone', () => {
     expect(metadata.icons).toBeUndefined();
   });
 
-  it('el manifiesto (Android) arranca con el fondo de Nova', () => {
-    expect(manifiesto().background_color).toBe(COLOR_FONDO.claro);
+  it('el manifiesto (Android) arranca con el fondo oscuro de la carga (E20b) y la barra con el fondo de Nova', () => {
+    expect(manifiesto().background_color).toBe(COLOR_FONDO.oscuro);
     expect(manifiesto().theme_color).toBe(COLOR_FONDO.claro);
   });
 });

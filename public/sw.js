@@ -12,7 +12,7 @@
 // Ajuste de E20: con la huella de las reglas, cada cambio en sw-reglas.js cambia también este archivo, y así todo
 // navegador instala el service worker nuevo (no todos comparan los scripts importados al buscar una versión nueva).
 // tests/reglas/swVersion.test.ts exige que la huella coincida con el contenido de sw-reglas.js.
-importScripts('/sw-reglas.js?v=c481ab4bdfb0');
+importScripts('/sw-reglas.js?v=28563b12a5c7');
 
 var R = self.NovaReglas;
 var ESTATICOS = 'nova-estaticos-v1';
@@ -39,6 +39,22 @@ self.addEventListener('activate', function (evento) {
               return caches.delete(n);
             }),
         );
+      })
+      .then(function () {
+        // E20b: los íconos y el manifiesto guardados se vuelven a pedir (pueden haber cambiado con el mismo nombre).
+        return caches.open(ESTATICOS).then(function (cache) {
+          return cache.keys().then(function (llaves) {
+            return Promise.all(
+              llaves
+                .filter(function (k) {
+                  return R.seRenuevaAlActualizar(new URL(k.url));
+                })
+                .map(function (k) {
+                  return cache.delete(k);
+                }),
+            );
+          });
+        });
       })
       .then(function () {
         return self.clients.claim();
