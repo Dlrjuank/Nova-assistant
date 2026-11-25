@@ -1364,6 +1364,20 @@ Total de fallas: 0
 - **Pruebas:** `tests/servidor/respuestaTareas.test.ts` con respuestas simuladas (sin Gemini): el caso reportado, con horario, la forma nueva copiada, fechas sueltas y de otro año, una respuesta de documentos sin cambios, el prompt y el contexto. `aislamiento.test.ts` con el formato nuevo; `marcasInternas.test.ts` con la fecha en palabras. `npm test` 1419/1419, `eslint` sin errores.
 - **Pendiente:** la prueba del usuario.
 
+#### Commit 7: Semestre (2026-11-24)
+
+- **Materias:** la tarjeta de una materia perdida o reprobada lleva fondo y borde rojizos; la que está en riesgo (por nota o a 2 fallas del límite), ámbar; la insignia del estado sigue igual. El promedio del semestre y la nota de cada materia cuentan al aparecer (`Contador` con décimas).
+- **Fallas en puntos:** un punto por falla permitida (con límite de hasta 40), los de las registradas en rojo; al sumar una falla, el punto nuevo se pinta con un pulso; en el límite, la tarjeta de Fallas va con borde rojo. Los puntos van ocultos para lectores de pantalla (el número ya lo dice). `Fallas` ya no se monta de nuevo con una `key` al cambiar: reinicia sus campos cuando llegan datos nuevos (si no, el pulso no se veía).
+- **Calculadora:** la nota actual cuenta; los cortes como una barra, cada uno con su ancho según su porcentaje y lleno hasta su nota, y el corte sin notas rayado; "¿Cuánto necesito?" cambia de color al instante con la meta: verde (asegurada o hasta 4,2), ámbar (más de 4,2) y rojo (no alcanzable), con su ícono (`tonoNecesito`).
+- **Objetivos y plan:** los temas propuestos llevan borde punteado ámbar hasta confirmarlos; "Proponer temas" termina en "Temas propuestos" con el check unos 2,5 s.
+- **Sin cambios de reglas:** los cálculos, los estados y los textos son los de siempre.
+- **Pruebas:** `tests/interfaz/semestreE20b.test.tsx` (puntos de fallas, el pulso, el borde en el límite, los campos que siguen a los datos, el tono de "¿Cuánto necesito?", la barra de cortes, la nota que cuenta, los temas propuestos y el botón con "listo"); `temas.test.tsx` espera a que el botón vuelva. Edge (`ui_e20b7.mjs`) 36 de 36 a 390 y 1280 px en claro y oscuro: el fondo de riesgo, los puntos, la barra, los tres colores, los temas punteados, el pulso, el borde rojo en el límite y "reducir movimiento". Sin conexión: `ui_e20sin` 16/16, `ui_e19b` 12/12 y `ui_e11e` 34/34. `npm test` 1427/1427, `eslint` sin errores y build correcto.
+- **Pendiente:** la prueba del usuario.
+
+#### Propuesta E20d (2026-11-24)
+
+- A pedido del usuario, sin programar: leer PDF escaneados con OCR (comparación de solo Gemini, solo Tesseract y combinado; recomendación: Gemini solo para las páginas sin texto, preguntando antes de gastar) y subir Markdown, texto, Word, PowerPoint y fotos, cada uno con su estructura. Escrita en `PROMPTS_AMPLIACION.md`, sección E20d, entre E20c y E21. Pendiente la aprobación del usuario.
+
 #### Cambio para el commit 10 (2026-11-24)
 
 - El usuario cambió la entrada: en vez de la lámpara, la Estrella nova en un cielo de noche que se enciende al tocarla (detalle en el prompt de E20b, "Commit 10, Entrada"). Se programa al llegar al commit 10.

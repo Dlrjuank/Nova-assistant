@@ -478,8 +478,8 @@ export function DetalleMateria({
         <EliminarMateria materia={materia} />
       </div>
       <Calculadora key={metaGuardada ?? 'sin-meta'} materia={materia} notaAprobar={notaAprobar} redondeo={redondeo} metaGuardada={metaGuardada} />
+      {/* E20b (commit 7): sin `key`, para que el punto de la falla nueva se pinte con su pulso; Fallas reinicia sus campos sola. */}
       <Fallas
-        key={`${materia.fallasLimite}:${materia.fallasRegistradas}`}
         materiaId={materia.id}
         limite={materia.fallasLimite}
         registradas={materia.fallasRegistradas}

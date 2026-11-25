@@ -886,6 +886,102 @@ VERIFICACIÓN: B-87 a B-101 y B-103 a B-105; A-01 a A-21 y B-01 a B-86 siguen pa
 
 ---
 
+## E20d · PDF escaneados (OCR) y más tipos de documento (propuesta del 2026-11-24, sin aprobar)
+
+**Cuándo:** después de E20c y antes de E21. Con la clave propia de cada persona (E20c), leer páginas con Gemini gasta su cuota, no la compartida. **Requisito:** E20c. **Estado:** solo propuesta; no se programa hasta que el usuario la apruebe.
+
+**Pedido del usuario (2026-11-24):**
+- Un libro escaneado (cada página es una imagen) no se pudo leer.
+- Quiere leer PDF escaneados con OCR, con tres opciones comparadas.
+- Quiere subir más que PDF:
+  - primero Markdown (.md), texto (.txt), Word (.docx) y PowerPoint (.pptx);
+  - después fotos (.jpg, .png) con el mismo OCR;
+  - sin .doc ni .ppt antiguos.
+- Cada tipo con su propia estructura, un sello con su color e ícono en Fuentes, un filtro por tipo, "Ver contenido" en lugar de "Ver capítulos", y elegir una sección o diapositiva en "Buscar en", en los cuestionarios y en el plan de lectura. Citas como "Apuntes.docx · Unidad 2" o "Clase3.pptx · diapositiva 7".
+- En cualquier caso, Nova detecta sola que el PDF es escaneado y pregunta antes de gastar consultas.
+
+### 1. Leer PDF escaneados: comparación
+
+**Cómo se detecta (igual en las tres opciones):**
+- Al leer el PDF, `unpdf` ya da el texto de cada página.
+- Una página con menos de unos 20 caracteres de texto es "de imagen".
+- Si hay páginas de imagen, Nova no rechaza el PDF como hoy (`PDF_SIN_TEXTO`): guarda lo que tiene texto y pregunta antes de gastar consultas. Por ejemplo: "Este PDF tiene 180 páginas escaneadas. Leerlas usa unas 12 consultas de tu clave de Gemini (unos 5 minutos). ¿Leerlas?". Las respuestas posibles son "Leerlas" y "Ahora no".
+- Un PDF mixto (portada escaneada y el resto con texto) solo lee con OCR las páginas que lo necesitan.
+
+| | A. Solo Gemini, por grupos de páginas | B. Solo un OCR gratuito (Tesseract) | C. Combinado (Tesseract primero, Gemini para las difíciles) |
+|---|---|---|---|
+| Calidad | La mejor: texto impreso, columnas, tablas, fórmulas y letra a mano legible | Buena en escaneos limpios de texto impreso; mala en fotos torcidas, letra a mano, fórmulas, tablas y columnas | Como A en las páginas difíciles; como B en las demás. Una página "segura" para Tesseract puede salir con errores que la confianza no detecta |
+| Tiempo (libro de 300 páginas escaneadas) | Unas 20 llamadas de 15 páginas, de 10 a 30 s cada una: de 5 a 10 minutos, por partes | De 2 a 5 s por página en una función de Vercel (un solo núcleo): de 10 a 25 minutos, por partes | B más las llamadas de las difíciles |
+| Cuota de Gemini | Cerca de 260 tokens por página de entrada más el texto de salida: unas 20 llamadas por libro, dentro del plan gratuito de una clave propia | Ninguna | Solo las páginas difíciles |
+| Límites de Vercel | Cada llamada cabe en una parte de la indexación (`maxDuration` 300). Hay que guardar el PDF en Blob hasta terminar y separarlo en grupos de páginas con `pdf-lib` (JavaScript puro) | El paquete WASM (unos 10 MB) más el idioma español (de 4 a 15 MB). Además hay que convertir cada página en imagen: con `@napi-rs/canvas`, nativo, de unos 30 MB, o sacando la imagen que el PDF ya trae con pdf.js. Arranque en frío más lento | Lo de A más lo de B |
+| Peso para el proyecto | `pdf-lib` (unos 1,5 MB, solo en el servidor) | De 15 a 45 MB en la función | El mayor de los tres |
+| Teléfono | Nada cambia: el teléfono solo sube el archivo y ve el avance; sigue solo con el aviso de cada minuto (RB-57) | Igual en el servidor. Hacer el OCR en el navegador del teléfono gastaría batería y se detendría al bloquearlo | Igual que A y B |
+| Complejidad | Baja: reusa la indexación por partes y la pregunta antes de gastar | Media: canvas o extracción de imágenes, idioma y limpieza del texto | Alta: dos caminos, un umbral de confianza que ajustar y dos preguntas posibles |
+
+**Recomendación: A, con una mejora: Gemini solo para las páginas sin texto.**
+- Es la de mejor calidad, la más liviana y la más sencilla de mantener. Con la clave propia de E20c, la cuota alcanza de sobra.
+- Ninguna página de un PDF con texto gasta consultas.
+- Topes:
+  - hasta 300 páginas escaneadas por documento;
+  - de 10 a 15 páginas por llamada;
+  - el PDF sigue con el límite de 15 MB.
+- Si la cuota de una clave se agota, se detiene y sigue al día siguiente sin perder lo leído, como los libros largos.
+
+**Si el usuario prefiere C:** es viable, pero suma de 15 a 45 MB a la función, hace más lentas las primeras llamadas y la confianza de Tesseract no siempre avisa sus errores. Se podría agregar después de A, si la cuota resulta corta.
+
+**Detalles de A:**
+- Prompt de transcripción literal: "copia el texto de cada página, sin resumir ni corregir; marca `[ilegible]` lo que no se lea".
+- Una página se marca como "leída con OCR".
+- La cita dice "Libro.pdf · p. 45 (escaneada)".
+- El PDF se guarda en Blob con un nombre al azar mientras se lee y se borra al terminar. Si la persona responde "Ahora no" o no responde en 24 horas, se borra con el aviso de cada minuto. El almacén es público: es un riesgo corto y conocido.
+- Las etapas del commit 6 suman "Leer con OCR (12 de 20 grupos)".
+
+### 2. Más tipos de documento
+
+**Cómo se leería cada uno:**
+
+| Tipo | Lectura | Librería | Estructura |
+|---|---|---|---|
+| Markdown (.md) | Texto UTF-8 | Ninguna (encabezados `#` a `###`, sin contar los bloques de código) | Secciones por encabezado |
+| Texto (.txt) | Texto UTF-8 (con respaldo Latin-1 si no es UTF-8 válido) | Ninguna | Partes numeradas de unas 1.500 palabras, cortadas en un párrafo |
+| Word (.docx) | Es un ZIP: `word/document.xml` con párrafos, tablas y listas | `fflate` (unos 30 KB) y lectura propia del XML. Alternativa: `mammoth` (unos 2 MB), más completa pero más pesada | Secciones por títulos: los estilos con nivel de esquema (`w:outlineLvl` en `styles.xml`, así sirve también "Título 1" en un Word en español) |
+| PowerPoint (.pptx) | ZIP: `ppt/slides/slideN.xml` en el orden de `presentation.xml`, el texto de `a:t` y las notas del orador | `fflate` | Diapositivas con su título (el marcador `title` o `ctrTitle`; sin título: "Diapositiva 7") |
+| PDF escaneado | OCR (sección 1) | `pdf-lib` | Páginas leídas con OCR, marcadas |
+| Fotos (.jpg, .png) | OCR con Gemini, una imagen por llamada o varias juntas | Ninguna | Páginas leídas con OCR; varias fotos pueden ser un solo documento ("Apuntes de clase", 5 páginas) |
+
+- Las imágenes dentro de un Word o un PowerPoint no se leen. Se puede agregar después con el mismo OCR.
+- En el iPhone, al elegir con `accept="image/jpeg,image/png"`, Safari convierte las fotos HEIC a JPEG.
+
+**Base de datos (la base es compartida con producción: nada se renombra ni se borra, solo se agrega):**
+- **M24:**
+  - `documentos.tipo`, con CHECK (`pdf`, `pdf_escaneado`, `docx`, `md`, `txt`, `pptx`, `imagen`) y por defecto `pdf`, así lo existente y el código de `master` siguen igual;
+  - `documentos.unidad` (`pagina`, `diapositiva`, `seccion`, `parte`);
+  - `fragmentos_pdf.ocr` (booleano, por defecto falso).
+- **Mejor que crear "partes del documento" aparte:** se reusa el modelo de páginas que ya funciona. `pagina_inicio` y `pagina_fin` pasan a ser la "unidad" (la diapositiva, la sección o la parte, según el tipo). La tabla `capitulos` guarda los grupos (capítulos de un libro, títulos de nivel 1 de un Word con sus subsecciones) y suma una columna `tipo`. Así "Buscar en" por página o capítulo, los cuestionarios por alcance, el plan de lectura y las citas compactas (RB-36) sirven sin rehacerlos. Solo cambian las etiquetas: "p. 4", "diapositiva 7", "Unidad 2", "parte 3".
+- El nombre `fragmentos_pdf` queda aunque guarde otros tipos (se aclara en el plan).
+- **Respaldo:** como solo hay columnas nuevas en tablas que ya están en `tablas-respaldo.mjs`, el respaldo las incluye sin cambios. Se prueba restaurar en una copia.
+- El tope de 30 MB por persona de E20c cuenta el texto guardado de cada tipo, como hoy.
+
+**Pantallas:**
+- **Fuentes:**
+  - la zona de subida acepta los nuevos tipos;
+  - cada documento lleva su sello con su color e ícono de `lucide-react`: PDF (`FileText`), Word (`FileType`), Markdown (`Hash`), Texto (`AlignLeft`), PowerPoint (`Presentation`), Escaneado (`ScanLine`) y Foto (`Image`), con colores de las categorías que pasen `contraste.test.ts`;
+  - un filtro por tipo en una fila de píldoras, como las categorías de Tareas.
+- **"Ver contenido"** (antes "Ver capítulos") muestra la estructura de cada tipo: capítulos y páginas, secciones, diapositivas con su título, partes o páginas escaneadas.
+- **"Buscar en", cuestionarios y plan de lectura:** elegir una sección o una diapositiva igual que hoy un capítulo o una página.
+- **Citas:** "Apuntes.docx · Unidad 2", "Clase3.pptx · diapositiva 7", "Notas.txt · parte 3", "Libro.pdf · p. 45 (escaneada)".
+
+### 3. Orden propuesto (un commit por paso, con la prueba del usuario entre uno y otro)
+
+1. **E20d-1:** M24 (con `db:respaldar` antes); Markdown y texto; sellos, filtro y "Ver contenido".
+2. **E20d-2:** Word y PowerPoint.
+3. **E20d-3:** PDF escaneados con OCR (detección, pregunta antes de gastar, lectura por partes, citas marcadas).
+4. **E20d-4:** fotos con el mismo OCR.
+
+**Pruebas:** reglas de cada lector con archivos pequeños de ejemplo en `tests/`; el OCR con respuestas simuladas de Gemini; un solo `npm run probar:ocr` con Gemini real y pocas páginas, ejecutado una vez.
+
+---
+
 ## E21 · Aceptación de la ampliación
 
 **Plan:** 12. **Requisito:** E20c.

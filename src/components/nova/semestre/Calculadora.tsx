@@ -1,8 +1,10 @@
 'use client';
 
+import { CheckCircle2, CircleAlert, Sparkles, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import { Aviso } from '@/components/ui/Aviso';
 import { Campo } from '@/components/ui/Campo';
+import { Contador } from '@/components/ui/Contador';
 import { Tarjeta } from '@/components/ui/Tarjeta';
 import type { Materia } from '@/lib/dataService';
 import {
@@ -12,7 +14,9 @@ import {
   estadoConFallas,
   estadoDe,
   estadoFallas,
+  mostrar,
   SIN_NOTAS,
+  type CuantoNecesito,
   textoCuantoNecesito,
   textoNota,
   textoPeso,
@@ -21,6 +25,51 @@ import {
 import { formatearNota, formatearPorcentaje, type Redondeo } from '@/lib/reglas/preferencias';
 import { entradaDe, InsigniaEstadoMateria } from './estadoMateria';
 import { mensajeDe } from './peticion';
+
+type Tono = 'exito' | 'aviso' | 'peligro';
+
+/** Desde cuántas décimas por obtener la meta se ve difícil (ámbar), como en el prototipo (4,2). */
+export const NECESITO_DIFICIL = 42;
+
+/**
+ * E20b (commit 7): el color de la respuesta de "¿Cuánto necesito?". Verde: ya la aseguraste, la cumpliste o
+ * necesitas hasta 4,2; ámbar: necesitas más de 4,2; rojo: no alcanzable o no la alcanzaste.
+ */
+export function tonoNecesito(r: CuantoNecesito, metaCentesimas: number): Tono {
+  if (r.tipo === 'asegurado') return 'exito';
+  if (r.tipo === 'imposible') return 'peligro';
+  if (r.tipo === 'definitiva') return r.nota * 10 >= metaCentesimas ? 'exito' : 'peligro';
+  return r.decimas > NECESITO_DIFICIL ? 'aviso' : 'exito';
+}
+
+const CLASE_TONO: Record<Tono, string> = {
+  exito: 'border-exito/40 bg-exito/10',
+  aviso: 'border-aviso/40 bg-aviso/10',
+  peligro: 'border-peligro/40 bg-peligro/10',
+};
+const ICONO_TONO = { exito: CheckCircle2, aviso: CircleAlert, peligro: XCircle } as const;
+const COLOR_ICONO: Record<Tono, string> = { exito: 'text-exito', aviso: 'text-aviso', peligro: 'text-peligro' };
+
+/**
+ * E20b (commit 7): los cortes como una barra, cada uno con su ancho según su porcentaje, lleno hasta su nota (de 5);
+ * el corte sin notas va rayado. Solo de presentación: la lista de debajo dice lo mismo en texto.
+ */
+function BarraCortes({ cortes }: { cortes: Array<{ id: string; porcentaje: number; decimas: number | null }> }) {
+  return (
+    <div aria-hidden="true" data-barra-cortes className="flex h-3 gap-1">
+      {cortes.map((c) => (
+        <div
+          key={c.id}
+          data-corte-pendiente={c.decimas === null || undefined}
+          style={{ flexGrow: Math.max(c.porcentaje, 1), flexBasis: 0 }}
+          className={`overflow-hidden rounded-full bg-superficie-2 ${c.decimas === null ? 'nova-rayado' : ''}`}
+        >
+          {c.decimas !== null && <div className="nova-avance h-full rounded-full bg-acento" style={{ width: `${Math.min(100, (c.decimas / 50) * 100)}%` }} />}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 /**
  * E13 (5.7, 7.4, 7.5; RB-12, RB-18): nota actual, asegurado, nota de cada corte, estado y "¿Cuánto necesito?" con
@@ -50,7 +99,9 @@ export function Calculadora({ materia, notaAprobar, redondeo, metaGuardada = nul
           <div>
             <p className="text-sm text-texto-suave">{calculo.definitiva ? 'Nota definitiva' : 'Nota actual'}</p>
             <p className="flex items-center gap-3">
-              <span className="text-4xl font-semibold text-texto tabular-nums">{textoNota(calculo.actual, redondeo)}</span>
+              <span className="text-4xl font-semibold text-texto tabular-nums">
+                <Contador valor={mostrar(calculo.actual, redondeo)} formato="decimas" />
+              </span>
               {estado && <InsigniaEstadoMateria estado={estado} />}
             </p>
           </div>
@@ -67,6 +118,14 @@ export function Calculadora({ materia, notaAprobar, redondeo, metaGuardada = nul
       )}
       {calculo.actual !== null && <p className="text-xs text-texto-suave">La nota actual promedia solo lo calificado: lo que falta no cuenta como 0.</p>}
 
+      {materia.usaCortes && materia.cortes.length > 0 && (
+        <BarraCortes
+          cortes={materia.cortes.map((c, i) => {
+            const nota = calcularCorte(entrada.cortes[i] as (typeof entrada.cortes)[number]).actual;
+            return { id: c.id, porcentaje: c.porcentaje, decimas: nota ? mostrar(nota, redondeo) : null };
+          })}
+        />
+      )}
       {materia.usaCortes && (
         <ul aria-label="Nota de cada corte" className="flex flex-col divide-y divide-borde rounded-xl border border-borde">
           {materia.cortes.map((c, i) => {
@@ -101,13 +160,21 @@ export function Calculadora({ materia, notaAprobar, redondeo, metaGuardada = nul
               ayuda={metaGuardada === null ? 'Por defecto, la nota para aprobar. No se guarda.' : 'Por defecto, tu meta de Objetivos y plan. Lo que escribas aquí no se guarda.'}
             />
           </div>
-          {necesito && (
-            <p role="status" className="text-base font-medium text-texto">
-              {textoCuantoNecesito(necesito, validarMeta(meta))}
-            </p>
-          )}
+          {necesito && <RespuestaNecesito necesito={necesito} meta={validarMeta(meta)} />}
         </div>
       )}
     </Tarjeta>
+  );
+}
+
+/** E20b (commit 7): la respuesta cambia de color al instante con la meta (verde, ámbar o rojo), con su ícono. */
+function RespuestaNecesito({ necesito, meta }: { necesito: CuantoNecesito; meta: number }) {
+  const tono = tonoNecesito(necesito, meta);
+  const Icono = necesito.tipo === 'necesitas' && tono === 'exito' ? Sparkles : ICONO_TONO[tono];
+  return (
+    <p role="status" data-tono={tono} className={`flex items-start gap-2 rounded-xl border px-3 py-2.5 text-base font-medium text-texto transition-colors duration-200 ${CLASE_TONO[tono]}`}>
+      <Icono aria-hidden="true" className={`mt-0.5 size-5 shrink-0 ${COLOR_ICONO[tono]}`} />
+      {textoCuantoNecesito(necesito, meta)}
+    </p>
   );
 }

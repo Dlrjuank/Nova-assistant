@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { entradaDe, InsigniaEstadoMateria } from '@/components/nova/semestre/estadoMateria';
 import { NuevaMateria } from '@/components/nova/semestre/NuevaMateria';
 import { CLASE_FOCO } from '@/components/ui/Boton';
+import { Contador } from '@/components/ui/Contador';
 import { EncabezadoPantalla } from '@/components/ui/EncabezadoPantalla';
 import { EstadoVacio } from '@/components/ui/EstadoVacio';
 import { pestanasSemestre } from '@/components/nova/semestre/pestanas';
@@ -17,6 +18,7 @@ import {
   estadoConFallas,
   estadoDe,
   estadoFallas,
+  mostrar,
   promedioSemestre,
   SIN_NOTAS,
   textoFallas,
@@ -35,12 +37,16 @@ function TarjetaMateria({ materia, calculo, notaAprobar, redondeo }: { materia: 
   const fallas = estadoFallas(materia.fallasLimite, materia.fallasRegistradas);
   const estado = estadoConFallas(estadoDe(calculo, notaAprobar, redondeo), fallas);
   const avisoFallas = textoFallas(fallas, materia.fallasLimite, materia.fallasRegistradas);
+  // E20b (commit 7): la materia perdida o reprobada lleva fondo rojizo; en riesgo (por nota o a 2 fallas del límite), ámbar.
+  const riesgo = estado === 'Perdida' || estado === 'Reprobada' ? 'perdida' : estado === 'En riesgo' || fallas.tipo === 'alerta' ? 'riesgo' : null;
+  const tono = riesgo === 'perdida' ? 'border-peligro/50 bg-peligro/10 hover:border-peligro' : riesgo === 'riesgo' ? 'border-aviso/50 bg-aviso/10 hover:border-aviso' : 'border-borde bg-superficie hover:border-acento';
   return (
     <li>
       <Link
         href={`/nova/semestre/${materia.id}`}
         prefetch={false}
-        className={`flex h-full items-center gap-3 rounded-2xl border border-borde bg-superficie p-4 shadow-suave transition-colors hover:border-acento ${CLASE_FOCO}`}
+        data-riesgo={riesgo ?? undefined}
+        className={`flex h-full items-center gap-3 rounded-2xl border p-4 shadow-suave transition-colors ${tono} ${CLASE_FOCO}`}
       >
         <span className="flex min-w-0 flex-1 flex-col gap-1.5">
           <span className="break-words text-base font-semibold text-texto">{materia.nombre}</span>
@@ -57,7 +63,10 @@ function TarjetaMateria({ materia, calculo, notaAprobar, redondeo }: { materia: 
           ) : (
             <span className="flex flex-wrap items-center gap-2">
               <span className="text-sm text-texto">
-                {calculo.definitiva ? 'Nota definitiva' : 'Nota actual'} <strong className="text-lg tabular-nums">{textoNota(calculo.actual, redondeo)}</strong>
+                {calculo.definitiva ? 'Nota definitiva' : 'Nota actual'}{' '}
+                <strong className="text-lg tabular-nums">
+                  <Contador valor={mostrar(calculo.actual, redondeo)} formato="decimas" />
+                </strong>
               </span>
               {estado && <InsigniaEstadoMateria estado={estado} />}
             </span>
@@ -98,7 +107,9 @@ export default async function SemestrePage() {
             ) : (
               <div className="flex flex-wrap items-end gap-x-8 gap-y-2">
                 <p className="flex items-baseline gap-2">
-                  <span className="text-4xl font-semibold text-texto tabular-nums">{textoNota(promedio.actual, redondeo)}</span>
+                  <span className="text-4xl font-semibold text-texto tabular-nums">
+                    <Contador valor={mostrar(promedio.actual, redondeo)} formato="decimas" />
+                  </span>
                   <span className="text-sm text-texto-suave">actual</span>
                 </p>
                 {promedio.asegurado && (

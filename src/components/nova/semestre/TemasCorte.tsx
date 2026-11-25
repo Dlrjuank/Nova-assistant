@@ -3,7 +3,7 @@
 import { CheckCircle2, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { EliminarConConfirmacion } from '@/components/nova/EliminarConConfirmacion';
 import { Aviso } from '@/components/ui/Aviso';
 import { Boton, CLASE_FOCO } from '@/components/ui/Boton';
@@ -44,7 +44,11 @@ function FilaTema({ tema }: { tema: Tema }) {
 
   const propuesto = tema.estado === 'propuesto';
   return (
-    <li className="flex flex-col gap-2 px-3 py-2.5">
+    // E20b (commit 7): un tema propuesto lleva borde punteado hasta que lo confirmas.
+    <li
+      data-tema={tema.estado}
+      className={`flex flex-col gap-2 px-3 py-2.5 ${propuesto ? 'm-1.5 rounded-lg border border-dashed border-aviso/60 bg-aviso/10' : ''}`}
+    >
       {editando ? (
         <form onSubmit={guardar} noValidate className="flex flex-wrap items-start gap-2">
           <div className="min-w-0 flex-1">
@@ -125,6 +129,13 @@ export function TemasCorte({
   const [agregando, setAgregando] = useState(false);
   const [documento, setDocumento] = useState(documentos[0]?.id ?? '');
   const [proponiendo, setProponiendo] = useState(false);
+  // E20b (commit 7): "Proponer temas" termina en "Temas propuestos" con el check y vuelve.
+  const [propuestos, setPropuestos] = useState(false);
+  useEffect(() => {
+    if (!propuestos) return;
+    const t = setTimeout(() => setPropuestos(false), 2500);
+    return () => clearTimeout(t);
+  }, [propuestos]);
   const [resultado, setResultado] = useState<{ tipo: 'exito' | 'error'; texto: string } | null>(null);
   const confirmados = temas.filter((t) => t.estado === 'confirmado').length;
 
@@ -154,6 +165,7 @@ export function TemasCorte({
       return;
     }
     const n = r.datos.length;
+    setPropuestos(n > 0);
     setResultado({ tipo: 'exito', texto: `${n === 1 ? 'Se propuso 1 tema' : `Se propusieron ${n} temas`}. Confírmalos o descártalos: solo cuentan los confirmados.` });
     router.refresh();
   }
@@ -197,8 +209,8 @@ export function TemasCorte({
             <div className="min-w-0 flex-1 basis-56">
               <Selector id={`pdf-temas-${corteId}`} etiqueta="PDF de la materia" value={documento} onChange={(e) => setDocumento(e.target.value)} opciones={documentos.map((d) => ({ valor: d.id, texto: d.nombre }))} />
             </div>
-            <Boton variante="secundario" cargando={proponiendo} disabled={proponiendo || !documento} onClick={() => void proponer()}>
-              <Sparkles aria-hidden="true" className="size-4" />
+            <Boton variante="secundario" cargando={proponiendo} listo={propuestos} textoListo="Temas propuestos" disabled={proponiendo || !documento} onClick={() => void proponer()}>
+              {!propuestos && <Sparkles aria-hidden="true" className="size-4" />}
               {proponiendo ? 'Leyendo el PDF…' : 'Proponer temas'}
             </Boton>
           </div>

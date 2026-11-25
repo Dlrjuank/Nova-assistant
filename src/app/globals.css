@@ -428,6 +428,24 @@ html:has([data-nova-fondo]) body {
   animation: nova-etapa-ahora 1.4s ease-in-out infinite;
 }
 
+/* E20b (commit 7): el punto de la falla que se acaba de sumar se pinta con un pulso. */
+@keyframes nova-falla-nueva {
+  0% {
+    transform: scale(0.4);
+  }
+  60% {
+    transform: scale(1.35);
+  }
+}
+.nova-falla-nueva {
+  animation: nova-falla-nueva 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+}
+
+/* E20b (commit 7): lo que falta por calificar en la barra de cortes va rayado. */
+.nova-rayado {
+  background-image: repeating-linear-gradient(-45deg, var(--nova-borde) 0 4px, transparent 4px 8px);
+}
+
 /* E20b (commit 4): el mes del Calendario entra deslizándose desde el lado de la flecha que se tocó. */
 @keyframes nova-mes-siguiente {
   from {

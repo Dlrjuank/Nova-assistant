@@ -10,6 +10,35 @@ import { Tarjeta } from '@/components/ui/Tarjeta';
 import { estadoFallas, puedeSumarFalla, textoFallas, textoLimiteFallas, validarFallas, validarFallasConLimite, validarLimiteFallas } from '@/lib/reglas/notas';
 import { mensajeDe, pedirSemestre, type Resultado } from './peticion';
 
+/** E20b (commit 7): con un límite de hasta tantas fallas se dibuja un punto por falla permitida. */
+export const MAX_PUNTOS_FALLAS = 40;
+
+/**
+ * E20b (commit 7): un punto por falla permitida; los de las fallas registradas, en rojo. Al sumar una falla en esta
+ * visita, el punto nuevo se pinta con un pulso. Solo de presentación (oculto para lectores de pantalla: el número
+ * de al lado ya lo dice).
+ */
+function PuntosFallas({ limite, registradas }: { limite: number; registradas: number }) {
+  // Se ajusta durante el render (no en un efecto) para que el pulso salga en el mismo cuadro que el punto rojo.
+  const [previa, setPrevia] = useState(registradas);
+  const [nueva, setNueva] = useState<number | null>(null);
+  if (registradas !== previa) {
+    setPrevia(registradas);
+    setNueva(registradas > previa ? registradas - 1 : null);
+  }
+  return (
+    <div aria-hidden="true" data-puntos-fallas className="flex flex-wrap gap-1.5">
+      {Array.from({ length: limite }, (_, i) => (
+        <span
+          key={i}
+          data-falla={i < registradas ? 'si' : 'no'}
+          className={`size-3.5 rounded-full border transition-colors duration-200 ${i < registradas ? 'border-peligro bg-peligro' : 'border-borde bg-superficie-2'} ${i === nueva ? 'nova-falla-nueva' : ''}`}
+        />
+      ))}
+    </div>
+  );
+}
+
 /**
  * E14 (5.7, 7.7; RB-14, RB-15): el límite y las fallas registradas de una materia, con +1 y −1 y la alerta a 2 o
  * menos del límite. Sin límite, solo se cuentan.
@@ -21,6 +50,14 @@ export function Fallas({ materiaId, limite, registradas }: { materiaId: string; 
   const [errores, setErrores] = useState<{ limite?: string; registradas?: string }>({});
   const [error, setError] = useState('');
   const [enviando, setEnviando] = useState(false);
+  // Al llegar datos nuevos del servidor, los campos vuelven a ellos (antes lo hacía una `key` que montaba todo de nuevo).
+  const [datos, setDatos] = useState({ limite, registradas });
+  if (datos.limite !== limite || datos.registradas !== registradas) {
+    setDatos({ limite, registradas });
+    setCampoLimite(limite === null ? '' : String(limite));
+    setCampoRegistradas(String(registradas));
+    setErrores({});
+  }
   const estado = estadoFallas(limite, registradas);
   const aviso = textoFallas(estado, limite, registradas);
   const enLimite = textoLimiteFallas(limite, registradas);
@@ -56,8 +93,9 @@ export function Fallas({ materiaId, limite, registradas }: { materiaId: string; 
   const cambiar = (cambio: 1 | -1) => void pedir(() => pedirSemestre(`/api/nova/materias/${materiaId}/fallas`, 'POST', { cambio }));
 
   return (
-    <Tarjeta className="flex flex-col gap-4">
+    <Tarjeta className={`flex flex-col gap-4 ${estado.tipo === 'perdida' ? 'border-peligro!' : ''}`}>
       <h2 className="text-lg font-semibold text-texto">Fallas</h2>
+      {limite !== null && limite > 0 && limite <= MAX_PUNTOS_FALLAS && <PuntosFallas limite={limite} registradas={Math.min(registradas, limite)} />}
       {aviso && <Aviso tipo={estado.tipo === 'perdida' ? 'error' : 'advertencia'}>{aviso}</Aviso>}
       <div className="flex flex-wrap items-center gap-4">
         <Boton variante="secundario" className="size-12 rounded-full p-0" aria-label="Restar una falla" disabled={enviando || registradas === 0} onClick={() => cambiar(-1)}>

@@ -72,7 +72,8 @@ describe('TemasCorte', () => {
     expect(await screen.findByText('Se propusieron 2 temas. Confírmalos o descártalos: solo cuentan los confirmados.')).toBeTruthy();
     expect(fetch.mock.calls[0]?.[0]).toBe('/api/nova/cortes/c1/temas/proponer');
     expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toEqual({ documentoId: 'd1' });
-    fireEvent.click(screen.getByRole('button', { name: /Proponer temas/ }));
+    // E20b (commit 7): el botón dice "Temas propuestos" unos 2,5 s antes de volver.
+    fireEvent.click(await screen.findByRole('button', { name: /Proponer temas/ }, { timeout: 4000 }));
     expect(await screen.findByText('Pon una fecha futura al corte para proponer temas.')).toBeTruthy();
   });
 });
