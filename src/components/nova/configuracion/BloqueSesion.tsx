@@ -1,6 +1,7 @@
 'use client';
 
-import { LogOut } from 'lucide-react';
+import { KeyRound, LogOut } from 'lucide-react';
+import { TituloBloque } from './TituloBloque';
 import { useCerrarSesion } from '@/components/nova/navegacion/useCerrarSesion';
 import { Boton } from '@/components/ui/Boton';
 import { Tarjeta } from '@/components/ui/Tarjeta';
@@ -10,7 +11,7 @@ export function BloqueSesion() {
   const { cerrarSesion, error, saliendo } = useCerrarSesion();
   return (
     <Tarjeta className="flex flex-col gap-3">
-      <h2 className="text-base font-semibold text-texto">Sesión</h2>
+      <TituloBloque icono={KeyRound}>Sesión</TituloBloque>
       <div>
         <Boton variante="secundario" cargando={saliendo} onClick={() => void cerrarSesion()}>
           <LogOut aria-hidden="true" className="size-4" />

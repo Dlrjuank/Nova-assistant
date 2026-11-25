@@ -1,9 +1,11 @@
 'use client';
 
-import { Plus, X } from 'lucide-react';
+import { GraduationCap, Plus, X } from 'lucide-react';
+import { TituloBloque } from './TituloBloque';
 import { useState, type FormEvent } from 'react';
 import { Aviso } from '@/components/ui/Aviso';
 import { Boton } from '@/components/ui/Boton';
+import { useListo } from '@/components/ui/useListo';
 import { Campo } from '@/components/ui/Campo';
 import { Tarjeta } from '@/components/ui/Tarjeta';
 import { MENSAJES } from '@/lib/reglas/errores';
@@ -32,6 +34,7 @@ export function BloqueAcademico({ notaAprobar, redondeo: redondeoInicial, cortes
   const [cortes, setCortes] = useState(cortesDefecto.map(formatearPorcentaje));
   const [errores, setErrores] = useState<{ nota?: string; cortes?: string; general?: string }>({});
   const [hecho, setHecho] = useState(false);
+  const [listo, marcarListo] = useListo();
   const [cargando, setCargando] = useState(false);
 
   const cambiar = () => {
@@ -63,12 +66,13 @@ export function BloqueAcademico({ notaAprobar, redondeo: redondeoInicial, cortes
     setNota(formatearNota(p.notaAprobar));
     setCortes(p.cortesDefecto.map(formatearPorcentaje));
     setHecho(true);
+    marcarListo();
   }
 
   return (
     <Tarjeta>
       <form className="flex flex-col gap-5" onSubmit={(e) => void guardar(e)} noValidate>
-        <h2 className="text-base font-semibold text-texto">Académico</h2>
+        <TituloBloque icono={GraduationCap}>Académico</TituloBloque>
         <div className="flex flex-col gap-1">
           <span className="text-sm font-medium text-texto">Escala de notas</span>
           <span className="text-sm text-texto-suave">De 0,0 a 5,0</span>
@@ -171,7 +175,7 @@ export function BloqueAcademico({ notaAprobar, redondeo: redondeoInicial, cortes
         {errores.general && <Aviso tipo="error">{errores.general}</Aviso>}
         {hecho && <Aviso tipo="exito">Se guardaron tus preferencias académicas.</Aviso>}
         <div>
-          <Boton type="submit" cargando={cargando} disabled={cargando}>
+          <Boton type="submit" cargando={cargando} listo={listo} textoListo="Guardado" disabled={cargando}>
             Guardar
           </Boton>
         </div>

@@ -1,5 +1,7 @@
 'use client';
 
+import { Clock3, Clock9, MonitorSmartphone, Moon, Palette, Sun, type LucideIcon } from 'lucide-react';
+import { TituloBloque } from './TituloBloque';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Aviso } from '@/components/ui/Aviso';
@@ -13,6 +15,9 @@ const TEMAS: ReadonlyArray<[Tema, string]> = [
   ['oscuro', 'Oscuro'],
   ['automatico', 'Automático (como el teléfono o el computador)'],
 ];
+
+// E20b (commit 9): cada opción como una tarjeta con su ícono.
+const ICONOS: Record<string, LucideIcon> = { claro: Sun, oscuro: Moon, automatico: MonitorSmartphone, '24': Clock9, '12': Clock3 };
 
 const FORMATOS: ReadonlyArray<[FormatoHora, string]> = [
   ['24', '24 horas (13:30)'],
@@ -35,14 +40,24 @@ function Opciones<T extends string>({
   alCambiar: (v: T) => void;
 }) {
   return (
-    <fieldset className="flex flex-col gap-1">
+    <fieldset className="flex flex-col gap-2">
       <legend className="mb-1 text-sm font-medium text-texto">{leyenda}</legend>
-      {opciones.map(([v, texto]) => (
-        <label key={v} className="flex min-h-10 items-center gap-3 text-sm text-texto">
-          <input type="radio" name={nombre} value={v} checked={valor === v} disabled={deshabilitado} onChange={() => alCambiar(v)} className="size-4 accent-acento" />
-          {texto}
-        </label>
-      ))}
+      <div className={`grid gap-2 ${opciones.length === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
+        {opciones.map(([v, texto]) => {
+          const Icono = ICONOS[v];
+          return (
+            <label
+              key={v}
+              data-opcion={v}
+              className="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border border-borde bg-superficie px-3 py-2.5 text-sm text-texto transition-colors duration-150 hover:border-acento has-[:checked]:border-acento has-[:checked]:bg-acento-suave has-[:disabled]:cursor-default has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-acento sm:flex-col sm:items-start sm:gap-2"
+            >
+              <input type="radio" name={nombre} value={v} checked={valor === v} disabled={deshabilitado} onChange={() => alCambiar(v)} className="sr-only" />
+              {Icono && <Icono aria-hidden="true" className={`size-5 shrink-0 ${valor === v ? 'text-acento' : 'text-texto-suave'}`} />}
+              {texto}
+            </label>
+          );
+        })}
+      </div>
     </fieldset>
   );
 }
@@ -92,7 +107,7 @@ export function BloqueApariencia({ tema: temaInicial, formatoHora: formatoInicia
 
   return (
     <Tarjeta className="flex flex-col gap-5">
-      <h2 className="text-base font-semibold text-texto">Apariencia</h2>
+      <TituloBloque icono={Palette}>Apariencia</TituloBloque>
       <Opciones nombre="tema" leyenda="Tema" opciones={TEMAS} valor={tema} deshabilitado={guardando} alCambiar={(v) => void cambiarTema(v)} />
       <Opciones nombre="formato-hora" leyenda="Formato de hora" opciones={FORMATOS} valor={formato} deshabilitado={guardando} alCambiar={(v) => void cambiarFormato(v)} />
       {error && <Aviso tipo="error">{error}</Aviso>}

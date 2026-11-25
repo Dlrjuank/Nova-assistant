@@ -1,10 +1,13 @@
 'use client';
 
+import { UserRound } from 'lucide-react';
+import { TituloBloque } from './TituloBloque';
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { Aviso } from '@/components/ui/Aviso';
 import { Boton } from '@/components/ui/Boton';
 import { Campo } from '@/components/ui/Campo';
+import { useListo } from '@/components/ui/useListo';
 import { Tarjeta } from '@/components/ui/Tarjeta';
 import { MENSAJES } from '@/lib/reglas/errores';
 import { MAX_NOMBRE } from '@/lib/reglas/preferencias';
@@ -18,6 +21,7 @@ function Nombre({ nombreInicial, email }: { nombreInicial: string; email: string
   const [error, setError] = useState('');
   const [hecho, setHecho] = useState(false);
   const [cargando, setCargando] = useState(false);
+  const [listo, marcarListo] = useListo();
 
   async function guardar(e: FormEvent) {
     e.preventDefault();
@@ -37,11 +41,22 @@ function Nombre({ nombreInicial, email }: { nombreInicial: string; email: string
     setNombre(r.datos.perfil.nombre);
     setGuardado(r.datos.perfil.nombre);
     setHecho(true);
+    marcarListo();
     router.refresh();
   }
 
   return (
     <form className="flex flex-col gap-4" onSubmit={(e) => void guardar(e)}>
+      {/* E20b (commit 9): la inicial del nombre, como en la barra lateral. */}
+      <div className="flex items-center gap-3">
+        <span aria-hidden="true" data-inicial-perfil className="grid size-12 shrink-0 place-items-center rounded-full bg-acento font-display text-lg font-extrabold text-acento-texto">
+          {(guardado.trim() || email).charAt(0).toUpperCase()}
+        </span>
+        <div className="min-w-0">
+          <p className="truncate font-semibold text-texto">{guardado.trim() || 'Sin nombre'}</p>
+          <p className="truncate text-sm text-texto-suave">{email}</p>
+        </div>
+      </div>
       <Campo
         id="perfil-nombre"
         etiqueta="Nombre"
@@ -58,7 +73,7 @@ function Nombre({ nombreInicial, email }: { nombreInicial: string; email: string
       <Campo id="perfil-correo" etiqueta="Correo" value={email} readOnly ayuda="El correo no se puede cambiar." className="text-texto-suave" />
       {hecho && <Aviso tipo="exito">Se guardó tu nombre.</Aviso>}
       <div>
-        <Boton type="submit" cargando={cargando} disabled={cargando || nombre.trim() === guardado}>
+        <Boton type="submit" cargando={cargando} listo={listo} textoListo="Guardado" disabled={cargando || nombre.trim() === guardado}>
           Guardar nombre
         </Boton>
       </div>
@@ -147,7 +162,7 @@ function CambiarContrasena() {
 export function BloquePerfil({ nombre, email }: { nombre: string; email: string }) {
   return (
     <Tarjeta className="flex flex-col gap-5">
-      <h2 className="text-base font-semibold text-texto">Perfil</h2>
+      <TituloBloque icono={UserRound}>Perfil</TituloBloque>
       <Nombre nombreInicial={nombre} email={email} />
       <CambiarContrasena />
     </Tarjeta>

@@ -1,10 +1,13 @@
 'use client';
 
+import { Bell } from 'lucide-react';
+import { TituloBloque } from './TituloBloque';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { PanelNotificaciones } from '@/components/nova/PanelNotificaciones';
 import { Aviso } from '@/components/ui/Aviso';
 import { Boton } from '@/components/ui/Boton';
+import { useListo } from '@/components/ui/useListo';
 import { Campo } from '@/components/ui/Campo';
 import { Tarjeta } from '@/components/ui/Tarjeta';
 import { MENSAJES } from '@/lib/reglas/errores';
@@ -34,6 +37,7 @@ export function BloqueNotificaciones({
   const [error, setError] = useState('');
   const [listo, setListo] = useState(false);
   const [guardando, setGuardando] = useState(false);
+  const [hecha, marcarHecha] = useListo();
 
   async function guardar() {
     setError('');
@@ -51,12 +55,13 @@ export function BloqueNotificaciones({
     }
     setGuardada(hora);
     setListo(true);
+    marcarHecha();
     router.refresh();
   }
 
   return (
     <Tarjeta className="flex flex-col gap-4">
-      <h2 className="text-base font-semibold text-texto">Notificaciones</h2>
+      <TituloBloque icono={Bell}>Notificaciones</TituloBloque>
       <p className="text-sm text-texto">
         Recibe el recordatorio de una tarea en la pantalla de bloqueo, como cualquier app. Se activan en cada dispositivo por separado.
       </p>
@@ -75,7 +80,7 @@ export function BloqueNotificaciones({
               error={error || undefined}
             />
           </div>
-          <Boton variante="secundario" cargando={guardando} disabled={hora === guardada} onClick={() => void guardar()}>
+          <Boton variante="secundario" cargando={guardando} listo={hecha} textoListo="Guardada" disabled={hora === guardada} onClick={() => void guardar()}>
             Guardar hora
           </Boton>
         </div>

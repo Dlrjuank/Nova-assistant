@@ -1389,6 +1389,15 @@ Total de fallas: 0
 - **Pruebas:** `tests/interfaz/productividadE20b.test.tsx` (el anillo, el minigráfico, Productividad con su anillo y sus barras, el resultado en verde, la evolución sin repasos, la píldora y el botón con "listo"). Edge (`ui_e20b8.mjs`) 26 de 26 a 390 y 1280 px en claro y oscuro, con Productividad respondida en el navegador (sin Gemini) y "reducir movimiento". Sin conexión: `ui_e20sin` 16/16, `ui_e19b` 12/12 y `ui_e11e` 34/34. `eslint` sin errores y build correcto.
 - **Pendiente:** la prueba del usuario, junto con los commits 9 y 10.
 
+#### Commit 9: Configuración (2026-11-25)
+
+- **Títulos con ícono** en cada bloque (`TituloBloque`), **el perfil con su inicial** y el correo arriba del formulario.
+- **Apariencia:** el tema (claro, oscuro, automático) y el formato de hora como tarjetas con ícono; los textos y el guardado son los de siempre.
+- **Botones con "listo"** (`useListo` en `src/components/ui/useListo.ts`): "Guardar nombre" y "Guardar" de Académico terminan en "Guardado", y "Guardar hora" en "Guardada", unos 2,5 s; los avisos de siempre siguen.
+- **Pantalla ancha (desde 1280 px):** un índice de secciones fijo a la izquierda (`IndiceConfiguracion`) que lleva a cada bloque y marca el que se está viendo; sus enlaces solo desplazan la página (permitidos sin conexión). En el teléfono no aparece.
+- **Pruebas:** `tests/interfaz/configuracionE20b.test.tsx` (la inicial y "Guardado", las tarjetas del tema con los mismos nombres, el índice); `configuracion.test.tsx` sin cambios. Edge (`ui_e20b9.mjs`) 17 de 17 a 390 y 1280 px en claro y oscuro: títulos, inicial, tarjetas, el índice solo en pantalla ancha, ir a Notificaciones, la tarjeta "Oscuro" aplica el tema y "Guardado". `eslint` sin errores y build correcto.
+- **Pendiente:** la prueba del usuario, junto con los commits 8 y 10.
+
 #### Propuesta E20d (2026-11-24)
 
 - A pedido del usuario, sin programar: leer PDF escaneados con OCR (comparación de solo Gemini, solo Tesseract y combinado; recomendación: Gemini solo para las páginas sin texto, preguntando antes de gastar) y subir Markdown, texto, Word, PowerPoint y fotos, cada uno con su estructura. Escrita en `PROMPTS_AMPLIACION.md`, sección E20d, entre E20c y E21. Pendiente la aprobación del usuario.

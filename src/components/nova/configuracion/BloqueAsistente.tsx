@@ -1,5 +1,7 @@
 'use client';
 
+import { Sparkles } from 'lucide-react';
+import { TituloBloque } from './TituloBloque';
 import { useRef, useState } from 'react';
 import { Aviso } from '@/components/ui/Aviso';
 import { Boton } from '@/components/ui/Boton';
@@ -31,7 +33,7 @@ export function BloqueAsistente() {
 
   return (
     <Tarjeta className="flex flex-col gap-4">
-      <h2 className="text-base font-semibold text-texto">Asistente</h2>
+      <TituloBloque icono={Sparkles}>Asistente</TituloBloque>
       <div className="flex flex-col gap-2 text-sm text-texto">
         <p>
           Para responder, Nova envía a Gemini, de Google, tus preguntas, los fragmentos de tus documentos que sirven para

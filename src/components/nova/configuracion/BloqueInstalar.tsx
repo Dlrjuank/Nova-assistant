@@ -1,6 +1,7 @@
 'use client';
 
 import { Download } from 'lucide-react';
+import { TituloBloque } from './TituloBloque';
 import { useEffect, useState } from 'react';
 import { Aviso } from '@/components/ui/Aviso';
 import { Boton } from '@/components/ui/Boton';
@@ -36,7 +37,7 @@ export function BloqueInstalar() {
 
   return (
     <Tarjeta className="flex flex-col gap-4">
-      <h2 className="text-base font-semibold text-texto">Instalar Nova</h2>
+      <TituloBloque icono={Download}>Instalar Nova</TituloBloque>
       {estado.tipo === 'instalada' ? (
         <Aviso tipo="exito">Nova ya está instalada en este dispositivo.</Aviso>
       ) : (

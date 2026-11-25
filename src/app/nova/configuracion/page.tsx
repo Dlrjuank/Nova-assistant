@@ -5,6 +5,7 @@ import { BloqueInstalar } from '@/components/nova/configuracion/BloqueInstalar';
 import { BloqueNotificaciones } from '@/components/nova/configuracion/BloqueNotificaciones';
 import { BloquePerfil } from '@/components/nova/configuracion/BloquePerfil';
 import { BloqueSesion } from '@/components/nova/configuracion/BloqueSesion';
+import { IndiceConfiguracion } from '@/components/nova/configuracion/IndiceConfiguracion';
 import { EncabezadoPantalla } from '@/components/ui/EncabezadoPantalla';
 import { exigirSesion, obtenerConfiguracion } from '@/lib/dataService';
 
@@ -17,19 +18,37 @@ export default async function ConfiguracionPage() {
   return (
     <>
       <EncabezadoPantalla titulo="Configuración" subtitulo="Tu perfil y cómo se ve y funciona Nova." />
-      <div className="flex max-w-2xl flex-col gap-6">
-        <BloquePerfil nombre={perfil.nombre} email={perfil.email} />
-        <BloqueApariencia tema={preferencias.tema} formatoHora={preferencias.formatoHora} />
-        <BloqueAcademico notaAprobar={preferencias.notaAprobar} redondeo={preferencias.redondeo} cortesDefecto={preferencias.cortesDefecto} />
-        <BloqueNotificaciones
-          horaRecordatorio={preferencias.horaRecordatorio}
-          formatoHora={preferencias.formatoHora}
-          resumenDiario={preferencias.resumenDiario}
-          horaResumen={preferencias.horaResumen}
-        />
-        <BloqueAsistente />
-        <BloqueInstalar />
-        <BloqueSesion />
+      {/* E20b (commit 9): en pantalla ancha, el índice de secciones queda fijo a la izquierda. */}
+      <div className="xl:grid xl:grid-cols-[11rem_minmax(0,42rem)] xl:gap-8">
+        <IndiceConfiguracion />
+        <div className="flex max-w-2xl flex-col gap-6 [&>div]:scroll-mt-6">
+          <div id="config-perfil">
+            <BloquePerfil nombre={perfil.nombre} email={perfil.email} />
+          </div>
+          <div id="config-apariencia">
+            <BloqueApariencia tema={preferencias.tema} formatoHora={preferencias.formatoHora} />
+          </div>
+          <div id="config-academico">
+            <BloqueAcademico notaAprobar={preferencias.notaAprobar} redondeo={preferencias.redondeo} cortesDefecto={preferencias.cortesDefecto} />
+          </div>
+          <div id="config-notificaciones">
+            <BloqueNotificaciones
+              horaRecordatorio={preferencias.horaRecordatorio}
+              formatoHora={preferencias.formatoHora}
+              resumenDiario={preferencias.resumenDiario}
+              horaResumen={preferencias.horaResumen}
+            />
+          </div>
+          <div id="config-asistente">
+            <BloqueAsistente />
+          </div>
+          <div id="config-instalar">
+            <BloqueInstalar />
+          </div>
+          <div id="config-sesion">
+            <BloqueSesion />
+          </div>
+        </div>
       </div>
     </>
   );
