@@ -6,6 +6,7 @@ import { llm } from '@/lib/llm/gemini';
 import { extraerPdf } from '@/lib/pdf/extraer';
 import { validarTamanoPdf, validarTextoExtraido } from '@/lib/reglas/documento';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
+import type { EtapaServidor } from '@/lib/reglas/etapasIndexacion';
 import { hoyBogota } from '@/lib/reglas/fechas';
 import { detectarCapitulos, fragmentarPaginas, inicioDePaginas, validarPaginas, type FragmentoLibro } from '@/lib/reglas/libros';
 import type { Capitulo, CapitulosDocumento, Documento, ResultadoIndexacion } from './tipos';
@@ -73,6 +74,7 @@ async function avanzarIndexacion(
   iniciales: Pendiente[],
   presupuestoMs: number,
   opcionesEmbeddings: { sinEsperarCuota?: boolean } = {},
+  alEtapa: (etapa: EtapaServidor) => void = () => {},
 ): Promise<number | null> {
   const limite = Date.now() + presupuestoMs;
   const hechosAntes = (iniciales[0]?.numero ?? 1) - 1;
@@ -86,6 +88,7 @@ async function avanzarIndexacion(
       let vectores: number[][];
       try {
         // Los embeddings van antes de la transacción para no retener una conexión durante las llamadas a Gemini.
+        alEtapa('vectores'); // E20b: etapa visible
         vectores = await llm.generarEmbeddings(lote.map((f) => f.contenido), opcionesEmbeddings);
       } catch (error) {
         // Sin cuota por ahora, pero ya se avanzó: se conserva y se sigue en la próxima llamada.
@@ -93,6 +96,7 @@ async function avanzarIndexacion(
         throw error;
       }
       const resto = pendientes.slice(lote.length);
+      alEtapa('guardar');
       const existe = await conTransaccion(async (tx) => {
         // Si lo eliminaron mientras se indexaba, no hay nada que guardar.
         const { rows } = await tx.query('SELECT 1 FROM documentos WHERE id = $1 FOR UPDATE', [documentoId]);
@@ -142,8 +146,9 @@ export async function indexarContenido(
   usuarioId: string,
   contenido: Uint8Array,
   d: { nombreArchivo: string; categoria?: string | undefined; materiaId?: string | undefined },
-  opciones: { presupuestoMs?: number } = {},
+  opciones: { presupuestoMs?: number; alEtapa?: ((etapa: EtapaServidor) => void) | undefined } = {},
 ): Promise<ResultadoIndexacion> {
+  const alEtapa = opciones.alEtapa ?? (() => {});
   // E13 (B-21): con una materia del usuario, su nombre es la categoría; una ajena responde como inexistente.
   let categoria = d.categoria?.trim() || CATEGORIA_POR_DEFECTO;
   if (d.materiaId) {
@@ -158,6 +163,7 @@ export async function indexarContenido(
   validarPaginas(paginas.length); // RB-38
   validarTextoExtraido(paginas.join(' '));
 
+  alEtapa('dividir');
   const fragmentos = fragmentarPaginas(paginas, extraido.etiquetas);
   const capitulos = detectarCapitulos(paginas, extraido.indice, extraido.etiquetas); // RB-37
 
@@ -191,7 +197,7 @@ export async function indexarContenido(
   });
 
   try {
-    const progreso = await avanzarIndexacion(documentoId, fragmentos, opciones.presupuestoMs ?? INDEXACION_PRESUPUESTO_MS);
+    const progreso = await avanzarIndexacion(documentoId, fragmentos, opciones.presupuestoMs ?? INDEXACION_PRESUPUESTO_MS, {}, alEtapa);
     return { documentoId, numFragmentos: fragmentos.length, progreso };
   } catch (error) {
     // Si falla antes de guardar nada, como antes de E10b: no queda un documento a medias.
@@ -273,10 +279,11 @@ export async function indexarDocumento(usuarioId: string, d: {
   nombreArchivo: string;
   categoria?: string | undefined;
   materiaId?: string | undefined;
-}): Promise<ResultadoIndexacion> {
+}, opciones: { alEtapa?: ((etapa: EtapaServidor) => void) | undefined } = {}): Promise<ResultadoIndexacion> {
   try {
+    opciones.alEtapa?.('leer'); // E20b: etapas visibles (descargar y extraer el texto)
     const contenido = await descargarPdf(d.urlBlob);
-    return await indexarContenido(usuarioId, contenido, d);
+    return await indexarContenido(usuarioId, contenido, d, { alEtapa: opciones.alEtapa });
   } finally {
     // Un fallo al borrar no invalida la indexación; queda en el registro para limpiarlo a mano.
     await del(d.urlBlob).catch((error: unknown) => {

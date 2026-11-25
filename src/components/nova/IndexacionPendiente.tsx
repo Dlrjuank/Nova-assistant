@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
+import { EtapasIndexacion } from '@/components/nova/EtapasIndexacion';
 import { Aviso } from '@/components/ui/Aviso';
 import { Boton } from '@/components/ui/Boton';
 import { Tarjeta } from '@/components/ui/Tarjeta';
@@ -98,6 +99,8 @@ function Avance({ documento, enCola, alTerminar }: { documento: Pendiente; enCol
         </label>
         <progress id="avance-indexacion" value={avance} max={100} className="h-2 w-full accent-acento" />
       </div>
+      {/* E20b (commit 6): el libro ya se subió, se leyó y se dividió; falta crear los vectores por partes. */}
+      <EtapasIndexacion actual="vectores" fallo={Boolean(error)} avance={avance} />
       <p className="text-sm font-medium text-texto">Puedes cerrar esta pantalla: seguirá sola.</p>
       <p className="text-xs text-texto-suave">
         Si sales o se bloquea el teléfono, se detiene y sigue cuando vuelvas a Fuentes, sin perder lo avanzado. Entre una parte y otra puede

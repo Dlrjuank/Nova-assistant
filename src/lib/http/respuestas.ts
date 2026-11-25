@@ -38,6 +38,33 @@ export function responderError(error: unknown): NextResponse {
   return NextResponse.json(cuerpoError(codigo), { status: ESTADO_HTTP[codigo], headers: CABECERAS });
 }
 
+/**
+ * E20b (commit 6): una respuesta que avisa cada etapa mientras trabaja. Una línea JSON por etapa ({"etapa":"leer"})
+ * y al final la respuesta del contrato ({"ok":true,"datos":…} o {"ok":false,"error":…}). El estado HTTP ya salió
+ * con la primera línea (200): el resultado va en la última. Sesión y datos se validan antes, con su estado normal.
+ */
+export function responderConEtapas<E extends string, T>(trabajo: (alEtapa: (etapa: E) => void) => Promise<T>, tipo: string): NextResponse {
+  const codificador = new TextEncoder();
+  const flujo = new ReadableStream<Uint8Array>({
+    async start(control) {
+      const escribir = (objeto: unknown) => control.enqueue(codificador.encode(`${JSON.stringify(objeto)}\n`));
+      let ultima: E | null = null;
+      try {
+        const datos = await trabajo((etapa) => {
+          if (etapa === ultima) return; // cada lote repite "vectores" y "guardar": se avisa al cambiar
+          ultima = etapa;
+          escribir({ etapa });
+        });
+        escribir({ ok: true, datos });
+      } catch (error) {
+        escribir(await responderError(error).json());
+      }
+      control.close();
+    },
+  });
+  return new NextResponse(flujo, { status: 200, headers: { ...CABECERAS, 'Content-Type': tipo } });
+}
+
 /** Envuelve un handler para que cualquier error salga con el formato del contrato. */
 export function conManejoDeErrores<A extends unknown[]>(
   handler: (...args: A) => Promise<NextResponse>,

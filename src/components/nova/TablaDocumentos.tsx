@@ -13,6 +13,15 @@ function Estado({ d }: { d: Documento }) {
   return <>{d.progreso === null || d.progreso === undefined ? d.numFragmentos : `Indexando… ${d.progreso} %`}</>;
 }
 
+/** E20b (commit 6): el sello "PDF" de cada documento, como en el prototipo. */
+function SelloPdf() {
+  return (
+    <span aria-hidden="true" data-sello-pdf className="grid size-9 shrink-0 place-items-center rounded-lg bg-acento-suave font-mono text-[0.62rem] font-bold tracking-wider text-acento">
+      PDF
+    </span>
+  );
+}
+
 function Nota({ d }: { d: Documento }) {
   if (d.paginas !== null || d.progreso !== null) return null;
   return <p className="mt-1 text-xs font-normal break-normal text-texto-suave">{MENSAJE_REINDEXAR}</p>;
@@ -66,9 +75,14 @@ export function TablaDocumentos({ documentos }: { documentos: Documento[] }) {
           <tbody className="divide-y divide-borde">
             {documentos.map((d) => (
               <tr key={d.id}>
-                <th scope="row" className="break-all px-4 py-3 font-medium text-texto">
-                  {d.nombreArchivo}
-                  <Nota d={d} />
+                <th scope="row" className="min-w-56 px-4 py-3 font-medium text-texto">
+                  <div className="flex items-start gap-3">
+                    <SelloPdf />
+                    <div className="min-w-0 break-all">
+                      {d.nombreArchivo}
+                      <Nota d={d} />
+                    </div>
+                  </div>
                 </th>
                 <td className="px-4 py-3 text-texto-suave">
                   <Categoria d={d} />
@@ -90,8 +104,13 @@ export function TablaDocumentos({ documentos }: { documentos: Documento[] }) {
       <ul className="flex flex-col gap-3 sm:hidden">
         {documentos.map((d) => (
           <li key={d.id} className="rounded-xl border border-borde bg-superficie p-4">
-            <p className="break-all font-semibold text-texto">{d.nombreArchivo}</p>
-            <Nota d={d} />
+            <div className="flex items-start gap-3">
+              <SelloPdf />
+              <div className="min-w-0">
+                <p className="break-all font-semibold text-texto">{d.nombreArchivo}</p>
+                <Nota d={d} />
+              </div>
+            </div>
             <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
               <dt className="text-texto-suave">{d.materia ? 'Materia' : 'Categoría'}</dt>
               <dd>

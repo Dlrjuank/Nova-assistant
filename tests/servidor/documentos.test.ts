@@ -86,6 +86,19 @@ describe('indexarDocumento', () => {
     expect(m.generarEmbeddings).not.toHaveBeenCalled();
   });
 
+  it('E20b: avisa las etapas en orden; un PDF sin texto se detiene en "leer"', async () => {
+    const etapas: string[] = [];
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(respuestaEnTrozos([10]).respuesta));
+    await indexarDocumento('u1', DATOS, { alEtapa: (e) => etapas.push(e) });
+    expect(etapas).toEqual(['leer', 'dividir', 'vectores', 'guardar']);
+
+    etapas.length = 0;
+    m.extraerPdf.mockResolvedValue(extraido(['  \n ']));
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(respuestaEnTrozos([10]).respuesta));
+    await expect(indexarDocumento('u1', DATOS, { alEtapa: (e) => etapas.push(e) })).rejects.toMatchObject({ codigo: 'PDF_SIN_TEXTO' });
+    expect(etapas).toEqual(['leer']);
+  });
+
   it('borra el PDF del Blob al indexar', async () => {
     const { respuesta } = respuestaEnTrozos([10]);
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(respuesta));

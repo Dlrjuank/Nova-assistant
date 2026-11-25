@@ -414,6 +414,20 @@ html:has([data-nova-fondo]) body {
   animation: nova-avance 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both; /* E20b (tiempo de carga): antes 0,7 s tras 0,15 s */
 }
 
+/* E20b (commit 6): la etapa de indexación en curso late con un anillo suave. */
+@keyframes nova-etapa-ahora {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--nova-acento) 45%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 5px color-mix(in oklab, var(--nova-acento) 0%, transparent);
+  }
+}
+.nova-etapa-ahora {
+  animation: nova-etapa-ahora 1.4s ease-in-out infinite;
+}
+
 /* E20b (commit 4): el mes del Calendario entra deslizándose desde el lado de la flecha que se tocó. */
 @keyframes nova-mes-siguiente {
   from {
