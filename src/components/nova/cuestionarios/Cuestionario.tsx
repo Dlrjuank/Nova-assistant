@@ -4,7 +4,9 @@ import { CheckCircle2, CircleMinus, XCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { Aviso } from '@/components/ui/Aviso';
+import { Anillo } from '@/components/ui/Anillo';
 import { Boton, CLASE_FOCO } from '@/components/ui/Boton';
+import { Contador } from '@/components/ui/Contador';
 import { CLASE_CONTROL } from '@/components/ui/Campo';
 import { Tarjeta } from '@/components/ui/Tarjeta';
 import type { CuestionarioVista, PreguntaVista, ResultadoRespuesta, SugerenciaRepaso } from '@/lib/dataService';
@@ -415,13 +417,26 @@ export function Cuestionario({
         {encabezado}
         <Tarjeta>
           <h2 className="text-lg font-semibold text-texto">{intento.repaso ? 'Resultado del repaso' : 'Resultado'}</h2>
-          <p className="mt-2 text-3xl font-semibold text-texto tabular-nums">
-            {formatearPuntaje(final.puntaje)} <span className="text-base font-normal text-texto-suave">de 5</span>
-          </p>
-          <p className="text-sm text-texto-suave">
-            {final.aciertos} de {final.total} bien
-            {aMedias > 0 ? ` · ${aMedias} a medias` : ''}
-          </p>
+          {/* E20b (commit 8): la nota en un anillo que se llena y cuenta al aparecer. */}
+          <div className="mt-3 flex flex-wrap items-center gap-5" data-resultado-cuestionario>
+            <Anillo fraccion={final.puntaje / 500} tono={final.aciertos === final.total ? 'exito' : 'acento'}>
+              <p className="flex flex-col items-center leading-none">
+                <span className="font-display text-3xl font-extrabold text-texto">
+                  <Contador valor={Math.trunc(final.puntaje / 10)} formato="decimas" />
+                </span>
+                <span className="mt-1 text-xs text-texto-suave">de 5</span>
+              </p>
+            </Anillo>
+            <div className="flex flex-col gap-1">
+              <p className="sr-only">
+                {formatearPuntaje(final.puntaje)} de 5
+              </p>
+              <p className="text-base font-semibold text-texto">
+                {final.aciertos} de {final.total} bien
+                {aMedias > 0 ? ` · ${aMedias} a medias` : ''}
+              </p>
+            </div>
+          </div>
         </Tarjeta>
         {falladas.length > 0 && (
           <Tarjeta>

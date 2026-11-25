@@ -167,7 +167,7 @@ export function MetasSemanales({ semana, categorias }: { semana: MetasDeLaSemana
                   aria-valuetext={`${texto}${m.cumplida ? ', cumplida' : ''}`}
                   className="h-2.5 overflow-hidden rounded-full bg-superficie-2"
                 >
-                  <div className={`h-full rounded-full ${m.cumplida ? 'bg-exito' : 'bg-acento'}`} style={{ width: `${m.porcentaje}%` }} />
+                  <div className={`nova-avance h-full rounded-full ${m.cumplida ? 'bg-exito' : 'bg-acento'}`} style={{ width: `${m.porcentaje}%` }} />
                 </div>
               </li>
             );

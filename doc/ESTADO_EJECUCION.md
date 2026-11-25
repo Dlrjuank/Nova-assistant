@@ -1374,6 +1374,21 @@ Total de fallas: 0
 - **Pruebas:** `tests/interfaz/semestreE20b.test.tsx` (puntos de fallas, el pulso, el borde en el límite, los campos que siguen a los datos, el tono de "¿Cuánto necesito?", la barra de cortes, la nota que cuenta, los temas propuestos y el botón con "listo"); `temas.test.tsx` espera a que el botón vuelva. Edge (`ui_e20b7.mjs`) 36 de 36 a 390 y 1280 px en claro y oscuro: el fondo de riesgo, los puntos, la barra, los tres colores, los temas punteados, el pulso, el borde rojo en el límite y "reducir movimiento". Sin conexión: `ui_e20sin` 16/16, `ui_e19b` 12/12 y `ui_e11e` 34/34. `npm test` 1427/1427, `eslint` sin errores y build correcto.
 - **Pendiente:** la prueba del usuario.
 
+#### Forma de trabajo desde el commit 8 (pedido del usuario, 2026-11-25)
+
+- Los commits 8, 9 y 10 van seguidos, cada uno en su commit, sin esperar la prueba del usuario entre ellos; al final, una sola lista de pruebas agrupada por pantalla.
+- Pruebas para el usuario: solo lo nuevo y visible en el iPhone, y en el PC lo que cambie en pantalla ancha. Sin conexión, modo oscuro, tamaños y "reducir movimiento" los cubren las pruebas automáticas (se informa el resultado); se le pide probarlos solo si un commit toca el service worker o algo que no cubren.
+- Si una decisión cambia lo acordado, se pregunta antes de seguir.
+
+#### Commit 8: Productividad y Cuestionarios (2026-11-25)
+
+- **Anillo y minigráfico** (`src/components/ui/Anillo.tsx`): un anillo que se llena al aparecer (el mismo de Progreso semanal, ahora reutilizable) y un minigráfico de línea que se dibuja de izquierda a derecha. Decorativos: el dato va en texto.
+- **Productividad:** los puntos del día en un anillo del color del nivel (verde, ámbar o rojo) con el número que cuenta; barras que se llenan para las tareas completadas y los minutos (hasta el tope de 120); la recomendación en un recuadro con ícono. Las barras de las metas semanales también se llenan al aparecer.
+- **Cuestionarios:** el resultado de un intento en un anillo con la nota que cuenta (verde con todo bien); en "Mis cuestionarios", la tendencia ("Mejoraste", "Igual", "Bajaste") en una píldora de color con ícono, y un minigráfico con la evolución de los puntajes (sin los repasos), del color de la última tendencia; "Crear cuestionario" termina en "Cuestionario listo" mientras se abre.
+- **Sin cambios de reglas:** los cálculos y los textos son los de siempre.
+- **Pruebas:** `tests/interfaz/productividadE20b.test.tsx` (el anillo, el minigráfico, Productividad con su anillo y sus barras, el resultado en verde, la evolución sin repasos, la píldora y el botón con "listo"). Edge (`ui_e20b8.mjs`) 26 de 26 a 390 y 1280 px en claro y oscuro, con Productividad respondida en el navegador (sin Gemini) y "reducir movimiento". Sin conexión: `ui_e20sin` 16/16, `ui_e19b` 12/12 y `ui_e11e` 34/34. `eslint` sin errores y build correcto.
+- **Pendiente:** la prueba del usuario, junto con los commits 9 y 10.
+
 #### Propuesta E20d (2026-11-24)
 
 - A pedido del usuario, sin programar: leer PDF escaneados con OCR (comparación de solo Gemini, solo Tesseract y combinado; recomendación: Gemini solo para las páginas sin texto, preguntando antes de gastar) y subir Markdown, texto, Word, PowerPoint y fotos, cada uno con su estructura. Escrita en `PROMPTS_AMPLIACION.md`, sección E20d, entre E20c y E21. Pendiente la aprobación del usuario.

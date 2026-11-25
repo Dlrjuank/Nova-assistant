@@ -62,6 +62,8 @@ export function FormularioCuestionario({
   const [dificultad, setDificultad] = useState<Dificultad>('media');
   const [tipo, setTipo] = useState<TipoCuestionario>(TIPO_POR_DEFECTO);
   const [creando, setCreando] = useState(false);
+  // E20b (commit 8): "Crear cuestionario" pasa por "cargando" y termina en "Cuestionario listo" mientras se abre.
+  const [listo, setListo] = useState(false);
   const [error, setError] = useState('');
 
   const mensajeRango = `El rango de páginas no es válido: este documento tiene ${documento.paginas} páginas.`;
@@ -90,6 +92,7 @@ export function FormularioCuestionario({
         return;
       }
       const { id, creadas } = datos.datos;
+      setListo(true);
       router.refresh(); // E20b (tiempo de carga): que "Mis cuestionarios" no muestre una lista vieja.
       router.push(`/nova/cuestionarios/${id}${creadas < datos.datos.pedidas ? `?obtenidas=${creadas}&pedidas=${datos.datos.pedidas}` : ''}`);
     } catch {
@@ -131,10 +134,10 @@ export function FormularioCuestionario({
       </p>
       {error && <Aviso tipo="error">{error}</Aviso>}
       <div className="flex flex-col items-start gap-2">
-        <Boton type="submit" cargando={creando} disabled={creando || Boolean(errorRango)}>
+        <Boton type="submit" cargando={creando} listo={listo} textoListo="Cuestionario listo" disabled={creando || Boolean(errorRango)}>
           Crear cuestionario
         </Boton>
-        {creando && (
+        {creando && !listo && (
           <p role="status" className="text-sm text-texto-suave">
             Creando el cuestionario. Puede tardar hasta un par de minutos.
           </p>

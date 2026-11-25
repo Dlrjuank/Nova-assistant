@@ -1,5 +1,6 @@
 import { Minus, TrendingDown, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
+import { MiniGrafico } from '@/components/ui/Anillo';
 import { claseBoton } from '@/components/ui/Boton';
 import { Tarjeta } from '@/components/ui/Tarjeta';
 import type { CuestionarioHistorial, DocumentoHistorial, IntentoHistorial } from '@/lib/dataService';
@@ -9,13 +10,18 @@ import { TEXTO_COMPARACION } from '@/lib/reglas/historialCuestionarios';
 import { NOMBRE_TIPO } from '@/lib/reglas/tiposPregunta';
 
 const ICONO_COMPARACION = { mejor: TrendingUp, igual: Minus, peor: TrendingDown } as const;
-const COLOR_COMPARACION = { mejor: 'text-exito', igual: 'text-texto-suave', peor: 'text-peligro' } as const;
+// E20b (commit 8): la tendencia como píldora de color ("Mejoraste" en verde, "Bajaste" en rojo), con ícono y texto.
+const COLOR_COMPARACION = {
+  mejor: 'text-exito border-exito/40 bg-exito/10',
+  igual: 'text-texto-suave border-borde bg-superficie-2',
+  peor: 'text-peligro border-peligro/40 bg-peligro/10',
+} as const;
 
 /** Ícono y texto, no solo color. */
 function Comparacion({ valor }: { valor: NonNullable<IntentoHistorial['comparacion']> }) {
   const Icono = ICONO_COMPARACION[valor];
   return (
-    <span className={`inline-flex items-center gap-1 text-sm font-medium ${COLOR_COMPARACION[valor]}`}>
+    <span data-comparacion={valor} className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold ${COLOR_COMPARACION[valor]}`}>
       <Icono aria-hidden="true" className="size-4" />
       {TEXTO_COMPARACION[valor]}
     </span>
@@ -43,8 +49,15 @@ function FilaIntento({ i }: { i: IntentoHistorial }) {
   );
 }
 
+/** Los puntajes de los intentos terminados que no son repaso, del más antiguo al más reciente (los intentos llegan al revés). */
+export function evolucion(intentos: readonly IntentoHistorial[]): number[] {
+  return intentos.filter((i) => i.terminado && !i.repaso && i.puntaje !== null).map((i) => i.puntaje as number).reverse();
+}
+
 function TarjetaCuestionario({ c }: { c: CuestionarioHistorial }) {
   const ultimo = c.intentos[0];
+  const puntajes = evolucion(c.intentos);
+  const tendencia = c.intentos.find((i) => i.comparacion)?.comparacion;
   return (
     <Tarjeta>
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -54,9 +67,13 @@ function TarjetaCuestionario({ c }: { c: CuestionarioHistorial }) {
             {NOMBRE_TIPO[c.tipo]} · Dificultad {NOMBRE_DIFICULTAD[c.dificultad].toLowerCase()} · {c.preguntas} {c.preguntas === 1 ? 'pregunta' : 'preguntas'} · Creado el {formatearFecha(c.creadoEn)}
           </p>
         </div>
-        <Link href={`/nova/cuestionarios/${c.id}`} prefetch={false} className={`${claseBoton('secundario')} min-h-10 shrink-0`} aria-label={`Abrir el cuestionario ${c.alcance}`}>
-          {ultimo && !ultimo.terminado ? 'Continuar' : 'Abrir'}
-        </Link>
+        <div className="flex shrink-0 items-center gap-3">
+          {/* E20b (commit 8): la evolución de los puntajes, en el color de la última tendencia. */}
+          <MiniGrafico valores={puntajes} max={500} tono={tendencia === 'peor' ? 'peligro' : tendencia === 'mejor' ? 'exito' : 'acento'} etiqueta={c.id} />
+          <Link href={`/nova/cuestionarios/${c.id}`} prefetch={false} className={`${claseBoton('secundario')} min-h-10 shrink-0`} aria-label={`Abrir el cuestionario ${c.alcance}`}>
+            {ultimo && !ultimo.terminado ? 'Continuar' : 'Abrir'}
+          </Link>
+        </div>
       </div>
       {c.intentos.length > 0 && (
         <ol aria-label="Intentos, del más reciente al más antiguo" className="mt-2 flex flex-col divide-y divide-borde">

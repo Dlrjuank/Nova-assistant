@@ -355,6 +355,17 @@ html:has([data-nova-fondo]) body {
   animation: nova-anillo 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both; /* E20b (tiempo de carga): antes 0,9 s tras 0,15 s */
 }
 
+/* E20b (commit 8): la línea de un minigráfico se dibuja de izquierda a derecha al aparecer. */
+@keyframes nova-trazo-linea {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+.nova-trazo-linea {
+  stroke-dasharray: 1;
+  animation: nova-trazo-linea 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+}
+
 /*
  * E20b (commit 3): la celebración al completar una tarea. El aviso sube con un pequeño rebote, el check se dibuja
  * y seis destellos salen del círculo y se apagan. Con "reducir movimiento" la regla global los deja en su final:

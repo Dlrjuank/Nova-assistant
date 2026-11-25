@@ -1,9 +1,12 @@
 'use client';
 
+import { Sparkles } from 'lucide-react';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { Anillo, type TonoAnillo } from '@/components/ui/Anillo';
 import { Aviso } from '@/components/ui/Aviso';
 import { Boton } from '@/components/ui/Boton';
 import { Campo } from '@/components/ui/Campo';
+import { Contador } from '@/components/ui/Contador';
 import { Insignia, type TonoInsignia } from '@/components/ui/Insignia';
 import { Tarjeta } from '@/components/ui/Tarjeta';
 import type { ResultadoProductividad } from '@/lib/dataService';
@@ -15,6 +18,16 @@ import type { NivelProductividad } from '@/lib/reglas/productividad';
 
 // El nivel se dice con texto; el color solo lo refuerza.
 const TONO: Record<NivelProductividad, TonoInsignia> = { Bajo: 'peligro', Aceptable: 'aviso', Excelente: 'exito' };
+const TONO_ANILLO: Record<NivelProductividad, TonoAnillo> = { Bajo: 'peligro', Aceptable: 'aviso', Excelente: 'exito' };
+
+/** E20b (commit 8): barra que se llena al aparecer; decorativa (el dato va en texto al lado). */
+function Barra({ fraccion, clase = 'bg-acento' }: { fraccion: number; clase?: string }) {
+  return (
+    <div aria-hidden="true" className="h-2 overflow-hidden rounded-full bg-superficie-2">
+      <div className={`nova-avance h-full rounded-full ${clase}`} style={{ width: `${Math.round(Math.min(1, Math.max(0, fraccion)) * 100)}%` }} />
+    </div>
+  );
+}
 const SIN_TAREAS = 'Sin tareas programadas para esta fecha'; // sección 5.1, RN-18
 
 const unDecimal = new Intl.NumberFormat('es-CO', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
@@ -122,33 +135,56 @@ function Resultado({ datos }: { datos: ResultadoProductividad }) {
   return (
     <Tarjeta className="flex flex-col gap-4">
       <p className="text-sm text-texto-suave">{formatearFecha(datos.fecha)}</p>
-      <div className="flex flex-wrap items-baseline gap-3">
-        <p className="text-4xl font-bold text-texto">
-          {unDecimal.format(datos.puntos)}
-          <span className="ml-1 text-base font-medium text-texto-suave">de 100</span>
-        </p>
-        <Insignia tono={TONO[datos.nivel]}>Nivel: {datos.nivel}</Insignia>
+      {/* E20b (commit 8): los puntos en un anillo del color del nivel, que se llena y cuenta al aparecer. */}
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
+        <Anillo fraccion={datos.puntos / 100} tono={TONO_ANILLO[datos.nivel]}>
+          <p className="flex flex-col items-center leading-none">
+            <span className="font-display text-2xl font-extrabold text-texto">
+              <Contador valor={Math.round(datos.puntos * 10)} formato="decimas" />
+            </span>
+            <span className="mt-1 text-xs text-texto-suave">de 100</span>
+            <span className="sr-only"> puntos ({unDecimal.format(datos.puntos)})</span>
+          </p>
+        </Anillo>
+        <div className="flex min-w-48 flex-1 flex-col gap-3">
+          <div>
+            <Insignia tono={TONO[datos.nivel]}>Nivel: {datos.nivel}</Insignia>
+          </div>
+          <dl className="flex flex-col gap-3 text-sm">
+            <div className="flex flex-col gap-1">
+              <div className="flex justify-between gap-3">
+                <dt className="text-texto-suave">Tareas completadas</dt>
+                <dd className="font-semibold text-texto tabular-nums">
+                  {datos.completadas} de {datos.totales}
+                </dd>
+              </div>
+              <Barra fraccion={datos.totales ? datos.completadas / datos.totales : 0} clase={datos.completadas === datos.totales ? 'bg-exito' : 'bg-acento'} />
+            </div>
+            <div className="flex flex-col gap-1">
+              <div className="flex justify-between gap-3">
+                <dt className="text-texto-suave">Minutos dedicados</dt>
+                <dd className="font-semibold text-texto tabular-nums">
+                  {formatearMinutos(datos.minutos)}
+                  {datos.minutos > MINUTOS_TOPE_INDICE && ` (cuentan ${MINUTOS_TOPE_INDICE})`}
+                </dd>
+              </div>
+              <Barra fraccion={datos.minutos / MINUTOS_TOPE_INDICE} />
+            </div>
+          </dl>
+        </div>
       </div>
-      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
-        <dt className="text-texto-suave">Tareas completadas</dt>
-        <dd>
-          {datos.completadas} de {datos.totales}
-        </dd>
-        <dt className="text-texto-suave">Minutos dedicados</dt>
-        <dd>
-          {formatearMinutos(datos.minutos)}
-          {datos.minutos > MINUTOS_TOPE_INDICE && ` (cuentan ${MINUTOS_TOPE_INDICE})`}
-        </dd>
-      </dl>
       <p className="text-xs text-texto-suave">
         Puntos = completadas ÷ tareas del día × 70 + minutos (hasta {MINUTOS_TOPE_INDICE}) × 0,25, redondeado hacia abajo a un
         decimal. Bajo: menos de 50; Aceptable: de 50 a 79,9; Excelente: desde 80.
       </p>
-      <div>
-        <h2 className="text-sm font-semibold text-texto">Recomendación</h2>
-        <p className={`mt-1 text-sm ${datos.recomendacionDisponible ? 'text-texto' : 'text-texto-suave'}`}>
-          {datos.recomendacion}
-        </p>
+      <div className="flex gap-3 rounded-xl border border-borde bg-superficie-2 p-3">
+        <Sparkles aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-acento" />
+        <div>
+          <h2 className="text-sm font-semibold text-texto">Recomendación</h2>
+          <p className={`mt-1 text-sm ${datos.recomendacionDisponible ? 'text-texto' : 'text-texto-suave'}`}>
+            {datos.recomendacion}
+          </p>
+        </div>
       </div>
     </Tarjeta>
   );
