@@ -51,6 +51,20 @@ export function fechaLarga(fecha: string): string {
 }
 
 /**
+ * E20b: "viernes 28 de noviembre" a partir de 'YYYY-MM-DD'; con el año si no es el de `hoy`
+ * ("lunes 4 de enero de 2027"). Una fecha inválida se devuelve igual.
+ */
+export function fechaEnPalabras(fecha: string, hoy: string = hoyBogota()): string {
+  if (!esFechaISOValida(fecha)) return fecha;
+  const [anio, mes, dia] = fecha.split('-').map(Number) as [number, number, number];
+  const conAnio = fecha.slice(0, 4) !== hoy.slice(0, 4);
+  const texto = new Intl.DateTimeFormat('es-CO', { weekday: 'long', day: 'numeric', month: 'long', ...(conAnio ? { year: 'numeric' } : {}), timeZone: 'UTC' }).format(
+    new Date(Date.UTC(anio, mes - 1, dia)),
+  );
+  return texto.replace(',', '');
+}
+
+/**
  * RB-31: primera línea del contexto del Asistente. Hoy, mañana y la semana se calculan en America/Bogota,
  * nunca con la hora del servidor (Vercel corre en UTC: a las 19:00 de Bogotá, UTC ya es el día siguiente).
  */

@@ -1,3 +1,5 @@
+import { esFechaISOValida, fechaEnPalabras } from './fechas';
+
 /**
  * E20b (commit 5): reglas del Asistente nuevo: el extracto de una cita que se despliega y las preguntas sugeridas.
  * Funciones puras (sin 'use client'): las usan el servidor y la pantalla.
@@ -64,6 +66,32 @@ export function sinMarcasInternas(texto: string, opciones: { cortas?: boolean } 
       return sangria + resto.replace(/(\S)[ \t]{2,}/g, '$1 ').replace(/[ \t]+([.,;:!?])/g, '$1').trimEnd();
     })
     .join('\n');
+}
+
+const ISO = '(\\d{4}-\\d{2}-\\d{2})';
+const DIA_SEMANA = '(?:lunes|martes|miércoles|jueves|viernes|sábado|domingo)';
+
+/**
+ * E20b: las fechas de una respuesta sobre tareas, en palabras y una sola vez. Respaldo del servidor por si el modelo
+ * copia el contexto: el paréntesis viejo "(categoría: General; prioridad: Media; fecha límite: 28/11/2026,
+ * 2026-11-28)" pasa a ": vence el sábado 28 de noviembre (prioridad media)"; "28/11/2026, 2026-11-28" y las
+ * fechas AAAA-MM-DD o DD/MM/AAAA sueltas pasan a palabras; "sábado 28 de noviembre (2026-11-28)" pierde el paréntesis.
+ */
+export function fechasNaturales(texto: string, hoy: string): string {
+  const palabras = (iso: string) => fechaEnPalabras(iso, hoy);
+  const desdeDma = (d: string, m: string, a: string) => {
+    const iso = `${a}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+    return esFechaISOValida(iso) ? palabras(iso) : `${d}/${m}/${a}`;
+  };
+  return texto
+    .replace(
+      new RegExp(`[ \\t]*\\(\\s*categor[ií]a:\\s*[^;()\\n]+;\\s*prioridad:\\s*([^;()\\n]+?)\\s*;\\s*fecha l[ií]mite:\\s*[^()\\n]*?${ISO}(?:\\s*;\\s*horario:\\s*([^()\\n]+?))?\\s*\\)`, 'gi'),
+      (_, prioridad: string, iso: string, horario?: string) => `: vence el ${palabras(iso)} (prioridad ${prioridad.trim().toLowerCase()}${horario ? `, ${horario.trim()}` : ''})`,
+    )
+    .replace(new RegExp(`(${DIA_SEMANA},? \\d{1,2} de [a-záéíóú]+(?: de \\d{4})?)\\s*\\(${ISO}\\)`, 'gi'), '$1')
+    .replace(new RegExp(`\\b\\d{1,2}/\\d{1,2}/\\d{4}\\s*(?:,\\s*${ISO}|\\(\\s*${ISO}\\s*\\))`, 'g'), (_, a?: string, b?: string) => palabras((a ?? b) as string))
+    .replace(new RegExp(`\\b${ISO}\\b`, 'g'), (iso: string) => palabras(iso))
+    .replace(/\b(\d{1,2})\/(\d{1,2})\/(\d{4})\b/g, (_, d: string, m: string, a: string) => desdeDma(d, m, a));
 }
 
 /** Cuántas preguntas sugeridas se muestran. */

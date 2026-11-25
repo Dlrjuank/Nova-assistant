@@ -13,10 +13,10 @@ import {
   type TareaContexto,
   type TurnoConversacion,
 } from '@/lib/llm/prompts';
-import { conExtractos, sinMarcasInternas } from '@/lib/reglas/asistente';
+import { conExtractos, fechasNaturales, sinMarcasInternas } from '@/lib/reglas/asistente';
 import { citaCorta, compactarCitas } from '@/lib/reglas/citas';
 import { mencionaTareas, normalizarConsulta, textoDeBusqueda, validarConsulta } from '@/lib/reglas/consulta';
-import { lineaHoy } from '@/lib/reglas/fechas';
+import { hoyBogota, lineaHoy } from '@/lib/reglas/fechas';
 import { existenDocumentos } from './documentos';
 import { resolverPreguntaDeLibro } from './consultaLibro';
 import { recuperarFragmentos, recuperarFragmentosDeDocumento } from './fragmentos';
@@ -129,5 +129,8 @@ export async function consultar(
   const fuentes = conExtractos(armarFuentes(respuesta, fragmentos, tareas), fragmentos, etiquetaFragmento);
   // RB-41: solo las respuestas que citan documentos se pueden explicar de otra manera.
   // E20b: la etiqueta interna de una tarea ("[Tarea 1a2b3c4d]") no se ve; la respuesta ya dice su título y su fecha.
-  return { respuesta: compactarCitas(sinMarcasInternas(respuesta)), fuentes, ...(fuentes.some((f) => f.tipo === 'pdf') ? { contexto: { fragmentos: fragmentos.map((f) => f.id) } } : {}) };
+  // Con tareas en el contexto, las fechas van en palabras y una sola vez (por si el modelo copió el contexto).
+  const limpia = sinMarcasInternas(respuesta);
+  const natural = tareas.length > 0 ? fechasNaturales(limpia, hoyBogota()) : limpia;
+  return { respuesta: compactarCitas(natural), fuentes, ...(fuentes.some((f) => f.tipo === 'pdf') ? { contexto: { fragmentos: fragmentos.map((f) => f.id) } } : {}) };
 }

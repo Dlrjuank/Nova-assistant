@@ -9,8 +9,8 @@ import {
   type EstadoRecordatorio,
   type Recordatorio,
 } from '@/lib/reglas/recordatorios';
-import { hoyBogota } from '@/lib/reglas/fechas';
-import { formatearFecha, formatearPrioridad } from '@/lib/formato';
+import { fechaEnPalabras, hoyBogota } from '@/lib/reglas/fechas';
+import { formatearPrioridad } from '@/lib/formato';
 import { formatearHorario, validarHorario } from '@/lib/reglas/horario';
 import type { TareaContexto } from '@/lib/llm/prompts';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
@@ -240,12 +240,21 @@ export async function listarTareas(
  */
 export async function tareasPendientesComoTexto(usuarioId: string): Promise<TareaContexto[]> {
   const tareas = await listarTareas(usuarioId, { estado: 'Pendiente', limite: TAREAS_CONTEXTO_MAX });
+  const hoy = hoyBogota();
   return tareas.map((t) => ({
     id: t.id,
     titulo: t.titulo,
     // RB-31: la fecha también como AAAA-MM-DD, para que el modelo la compare con la línea HOY sin ambigüedad.
     // RB-34: con su horario, para preguntas como "¿qué tengo a las 3?".
-    texto: `${t.titulo} (categoría: ${t.categoria}; prioridad: ${formatearPrioridad(t.prioridad)}; fecha límite: ${formatearFecha(t.fechaLimite)}, ${String(t.fechaLimite).slice(0, 10)}${t.horaInicio ? `; horario: ${formatearHorario(t)}` : ''})`,
+    // E20b: un dato por línea y la fecha en palabras una vez; antes iba todo en un paréntesis con la fecha dos veces
+    // ("28/11/2026, 2026-11-28") y el modelo lo copiaba tal cual en la respuesta.
+    texto: [
+      `Título: ${t.titulo}`,
+      `Vence: ${fechaEnPalabras(String(t.fechaLimite).slice(0, 10), hoy)} (${String(t.fechaLimite).slice(0, 10)})`,
+      `Prioridad: ${formatearPrioridad(t.prioridad).toLowerCase()}`,
+      `Categoría: ${t.categoria}`,
+      ...(t.horaInicio ? [`Horario: ${formatearHorario(t)}`] : []),
+    ].join('\n'),
   }));
 }
 

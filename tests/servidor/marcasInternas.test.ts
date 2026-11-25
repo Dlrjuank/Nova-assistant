@@ -1,7 +1,7 @@
 // @vitest-environment node
 // E20b: las etiquetas internas que el modelo copia del contexto ("[Tarea 397a5717]", "T2", "F3") nunca llegan a la
 // persona. Respuestas simuladas: sin llamadas reales a Gemini.
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const m = vi.hoisted(() => ({
   existenDocumentos: vi.fn(),
@@ -28,9 +28,13 @@ const SIN_MARCA = /tarea\s+[0-9a-f]{6,}|397a5717/i;
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date('2026-11-24T15:00:00Z')); // las fechas de las respuestas se escriben según el año de hoy
   m.generarEmbedding.mockResolvedValue([0.1]);
   m.tareasPendientesComoTexto.mockResolvedValue([TAREA]);
 });
+
+afterEach(() => vi.useRealTimers());
 
 describe('el Asistente no muestra la etiqueta interna de una tarea', () => {
   it.each([
@@ -41,7 +45,7 @@ describe('el Asistente no muestra la etiqueta interna de una tarea', () => {
     m.existenDocumentos.mockResolvedValue(false);
     m.responder.mockResolvedValue(simulada);
     const r = await consultar(U, '¿Qué tengo esta semana?');
-    expect(r.respuesta).toBe('Tienes el Taller de cálculo para el 2026-11-25.');
+    expect(r.respuesta).toBe('Tienes el Taller de cálculo para el miércoles 25 de noviembre.');
     expect(r.respuesta).not.toMatch(SIN_MARCA);
     expect(r.fuentes).toEqual([{ tipo: 'tarea', etiqueta: 'Taller de cálculo' }]);
   });
@@ -52,7 +56,7 @@ describe('el Asistente no muestra la etiqueta interna de una tarea', () => {
     m.responder.mockResolvedValue('- [Tarea 397a5717] Taller de cálculo, 2026-11-25\n- La mitosis tiene cuatro fases [Biologia.pdf · p. 4; tarea 397a5717].');
     const r = await consultar(U, '¿Qué tareas tengo y qué es la mitosis?');
     expect(r.respuesta).not.toMatch(SIN_MARCA);
-    expect(r.respuesta).toContain('- Taller de cálculo, 2026-11-25');
+    expect(r.respuesta).toContain('- Taller de cálculo, miércoles 25 de noviembre');
     expect(r.respuesta).toMatch(/cuatro fases \[(Biologia\.pdf · )?p\. 4\]\./);
     expect(r.fuentes.map((f) => [f.tipo, f.etiqueta])).toEqual([
       ['pdf', 'Biologia.pdf · p. 4'],

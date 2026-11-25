@@ -1352,6 +1352,16 @@ Total de fallas: 0
 - **Botón con estados:** "Indexar PDF" pasa por "Indexando…" y termina en "Indexado" con el check unos 2,5 s antes de volver.
 - **Documentos:** cada uno lleva su sello "PDF" en la tabla y en las tarjetas del teléfono; la columna del nombre tiene un ancho mínimo para no cortar palabras.
 - **Pruebas:** `tests/servidor/etapasIndexacion.test.ts` (reglas, la ruta con y sin etapas, el error en la última línea, sin sesión 401 antes de empezar), el orden de las etapas en `documentos.test.ts` y `tests/interfaz/fuentesE20b.test.tsx` (las etapas que se encienden con lo que llega, el fallo en "Leer el texto", el libro largo, la zona y el sello). Edge (`ui_e20b6.mjs`) 36 de 36 a 390 y 1280 px en claro y oscuro: el servidor real responde las etapas y el error de un PDF que no existe (sin Gemini); en la pantalla, la subida a Blob se respondió en el navegador (no se subió nada) y la indexación llegó simulada por partes. `npm test` 1414/1414, `eslint` sin errores y build correcto.
+- **Prueba del usuario (2026-11-24):** en el iPhone (app instalada) y el PC, todo bien: ya no sale "[tarea …]"; en Fuentes, el recuadro, las cinco etapas en orden, "Indexado", el sello "PDF", modo oscuro, reducir movimiento, sin conexión y arrastrar el PDF en el PC. Reportó que "¿Qué tengo esta semana?" respondió "- Tarea (categoría: General; prioridad: Media; fecha límite: 28/11/2026, 2026-11-28)": la línea interna copiada, con la fecha dos veces. Pidió además dos propuestas, sin programar: leer PDF escaneados con OCR y subir otros tipos de documento.
+
+#### Corrección: respuestas naturales sobre tareas (2026-11-24)
+
+- **Causa:** cada tarea iba al modelo en una sola línea con todo entre paréntesis y la fecha dos veces ("fecha límite: 28/11/2026, 2026-11-28"), y el prompt no decía cómo nombrarla; el modelo copiaba la línea tal cual.
+- **Corrección:**
+  - el contexto lleva un dato por línea ("Título:", "Vence: sábado 28 de noviembre (2026-11-28)", "Prioridad: media", "Categoría:", "Horario:"), con la fecha en palabras una vez (`fechaEnPalabras` en `src/lib/reglas/fechas.ts`, con el año solo si no es el de hoy) y la forma AAAA-MM-DD solo para comparar (RB-31 sigue);
+  - el prompt pide una frase natural ("Taller de cálculo: vence el viernes 28 de noviembre (prioridad media)"), sin copiar las líneas del contexto ni escribir fechas en números;
+  - respaldo del servidor (`fechasNaturales` en `src/lib/reglas/asistente.ts`), solo cuando hubo tareas en el contexto: el paréntesis copiado pasa a ": vence el … (prioridad …)", la fecha repetida queda una vez y las fechas AAAA-MM-DD o DD/MM/AAAA sueltas pasan a palabras. Una respuesta solo de documentos conserva sus fechas.
+- **Pruebas:** `tests/servidor/respuestaTareas.test.ts` con respuestas simuladas (sin Gemini): el caso reportado, con horario, la forma nueva copiada, fechas sueltas y de otro año, una respuesta de documentos sin cambios, el prompt y el contexto. `aislamiento.test.ts` con el formato nuevo; `marcasInternas.test.ts` con la fecha en palabras. `npm test` 1419/1419, `eslint` sin errores.
 - **Pendiente:** la prueba del usuario.
 
 #### Cambio para el commit 10 (2026-11-24)

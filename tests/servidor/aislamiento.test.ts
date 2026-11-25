@@ -105,15 +105,16 @@ describe('aislamiento por usuario (RB-01)', () => {
     expect(sql).toMatch(/ORDER BY fecha_limite/);
     expect(valores).toEqual([A, 'Pendiente', 50]);
     expect(tareas).toHaveLength(50);
-    expect(tareas[0]?.texto).toContain('fecha límite: ');
-    expect(tareas[0]?.texto).toContain(', 2099-01-01)'); // RB-31: también AAAA-MM-DD
-    expect(tareas[0]?.texto).not.toContain('horario'); // sin horario no se menciona
+    // E20b: un dato por línea y la fecha en palabras una vez, con AAAA-MM-DD solo para comparar (RB-31).
+    expect(tareas[0]?.texto).toMatch(/^Título: .+\nVence: [a-zé]+ \d{1,2} de [a-z]+ de 2099 \(2099-01-01\)\nPrioridad: [a-z]+\nCategoría: /);
+    expect(tareas[0]?.texto).not.toContain('/2099'); // sin la fecha repetida en DD/MM/AAAA
+    expect(tareas[0]?.texto).not.toContain('Horario'); // sin horario no se menciona
   });
 
   it('RB-34: al modelo, cada tarea con horario lo lleva ("¿qué tengo a las 3?")', async () => {
     m.consultarBd.mockResolvedValue([{ id: '1', titulo: 'Clase', categoria: 'General', prioridad: 2, fechaLimite: '2099-01-01', horaInicio: '15:00', horaFin: '16:30' }]);
     const [tarea] = await tareasPendientesComoTexto(A);
-    expect(tarea?.texto).toContain('; horario: 15:00 – 16:30)');
+    expect(tarea?.texto).toContain('\nHorario: 15:00 – 16:30');
   });
 
   it('hayTareasPendientes solo mira las pendientes del usuario', async () => {
