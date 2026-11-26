@@ -4,7 +4,7 @@ Asistente personal que responde preguntas sobre tus propios documentos PDF y tus
 
 Proyecto de Lógica y Programación. Plan técnico completo: [`doc/PLAN_NOVA.md`](doc/PLAN_NOVA.md).
 
-Producción: https://nova-assistantsm-kappa.vercel.app
+Producción: https://novaassistantjc.vercel.app (desde el 2026-11-25; https://nova-assistantsm-kappa.vercel.app redirige a ella)
 
 ## Funcionalidades
 

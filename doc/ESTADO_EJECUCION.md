@@ -1567,4 +1567,12 @@ Total de fallas: 0
   - Sin conexión: `ui_e20sin` 16 de 16, `ui_e19b` 12 de 12 y `ui_e11e` 34 de 34.
   - `master` desde una copia temporal: `db:verificar` y `probar:rag` con 0 fallas.
 - **Sin probar en Edge (lo prueba el usuario como dueño):** eliminar una cuenta, guardar los topes, nombrar y quitar administradores y el permiso de la clave del proyecto (cubiertos por las pruebas automáticas con la base simulada).
-- **Pendiente:** la prueba del usuario; luego E20c-3.
+- **Probado por el usuario sin fallas** (2026-11-25, PC e iPhone). Eliminó desde "Administración" sus 4 cuentas de prueba; comprobado: en Supabase Auth queda solo su cuenta, ninguna de las 28 tablas con `usuario_id` (ni `users`, `profiles` ni los fragmentos) conserva filas de ellas, sin sesiones ni identidades sueltas, Blob vacío (los PDF se borran al leerlos) y las 4 eliminaciones en `acciones_admin` a nombre del dueño.
+
+#### Cambio de dirección de producción (2026-11-25, pedido del usuario antes de E20c-3)
+
+- **Nueva:** `https://novaassistantjc.vercel.app`. El usuario la agregó en Vercel (Production) y puso `https://nova-assistantsm-kappa.vercel.app` con "Redirect to" 308. En Supabase: Site URL nueva y Redirect URLs con la nueva, la vista previa y `http://localhost:3000`.
+- **Hecho por Claude:** `APP_URL` en Production (los enlaces de recuperación de `master` usan `obtenerUrlBase`) y `vercel redeploy` del mismo despliegue de producción (`master` sin cambios, `d175142`); el contacto de las notificaciones push (`SUJETO_POR_DEFECTO`) con la dirección nueva en `ampliacion`.
+- **Comprobado:** la vieja responde 308 a la nueva conservando la ruta y los parámetros (`/login`, `/nova/tareas?vista=hoy`); en la nueva, sin sesión, `/` y `/nova` llevan a `/login`, `/api/nova/tareas` responde 401, `/login`, `/register`, `/recuperar-contrasena` y `/api/health` responden 200 y el inicio de sesión contesta "Correo o contraseña incorrectos." a una contraseña equivocada.
+- **Aviso de cada minuto:** sigue llamando a la vista previa (producción no tiene la ruta); pasa a la dirección nueva en E21, TAREA 6 (decidido con el usuario).
+- **Lo que le toca al usuario:** iniciar sesión en la dirección nueva. No hay que reinstalar la app ni volver a activar notificaciones: hoy están en la vista previa.

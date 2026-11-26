@@ -25,7 +25,7 @@ export interface SuscripcionEntrada {
   dispositivo?: string | undefined;
 }
 
-const SUJETO_POR_DEFECTO = 'https://nova-assistantsm-kappa.vercel.app';
+const SUJETO_POR_DEFECTO = 'https://novaassistantjc.vercel.app'; // producción desde el 2026-11-25
 /** Si el teléfono está apagado, el aviso espera como máximo esto; después ya no sirve (la ventana de 7.10). */
 const VIGENCIA_SEGUNDOS = 30 * 60;
 
