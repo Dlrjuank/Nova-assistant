@@ -21,7 +21,7 @@ import {
   type PreguntaValida,
 } from '@/lib/reglas/cuestionarios';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
-import { citaDePaginas } from '@/lib/reglas/libros';
+import { citaDeUnidades, contarUnidades, nombreUnidad, type Unidad } from '@/lib/reglas/tiposDocumento';
 import {
   completarCorrecta,
   faltanPorTipo,
@@ -101,15 +101,15 @@ function columnasDeTipo(p: PreguntaValida) {
  */
 export async function crearCuestionario(usuarioId: string, d: DatosCuestionario): Promise<CuestionarioCreado> {
   const tipo = d.tipo ?? TIPO_POR_DEFECTO;
-  const [documento] = await consultar<{ paginas: number | null; progreso: number | null; inicio_paginas: number[] | null }>(
-    'SELECT paginas, progreso, inicio_paginas FROM documentos WHERE id = $1 AND usuario_id = $2',
+  const [documento] = await consultar<{ paginas: number | null; progreso: number | null; inicio_paginas: number[] | null; unidad: Unidad | null }>(
+    'SELECT paginas, progreso, inicio_paginas, unidad FROM documentos WHERE id = $1 AND usuario_id = $2',
     [d.documentoId, usuarioId],
   );
   if (!documento) throw new ErrorDeNegocio('DOCUMENTO_NO_ENCONTRADO'); // RB-01
   if (documento.progreso !== null) throw new ErrorDeNegocio('DOCUMENTO_INDEXANDO');
   if (documento.paginas === null) throw new ErrorDeNegocio('DOCUMENTO_SIN_PAGINAS'); // RB-48
   if (d.alcance === 'paginas' && !rangoValido(d.desde, d.hasta, documento.paginas)) {
-    throw new ErrorDeNegocio('RANGO_PAGINAS_INVALIDO', `El rango de páginas no es válido: este documento tiene ${documento.paginas} páginas.`);
+    throw new ErrorDeNegocio('RANGO_PAGINAS_INVALIDO', `El rango de ${nombreUnidad(documento.unidad ?? 'pagina', true)} no es válido: este documento tiene ${contarUnidades(documento.paginas, documento.unidad ?? 'pagina')}.`);
   }
 
   const capitulos = await consultar<FilaCapitulo>(
@@ -252,10 +252,29 @@ interface FilaRespuesta {
   acierto: boolean | null;
 }
 
-const fuenteDe = (nombre: string, etiqueta: string | null) => (etiqueta ? `${nombre} · ${citaDePaginas(etiqueta)}` : nombre);
+/** E20d: el documento de un cuestionario, para citar con su unidad (y los títulos de sus secciones). */
+interface DocCita {
+  nombre: string;
+  unidad?: Unidad | null;
+  titulos?: Record<string, string> | null;
+}
+
+/**
+ * E20d: con las columnas de la consulta (`d` es documentos): su unidad y, si es por secciones, el título de la sección
+ * que empieza en cada unidad.
+ */
+const COLUMNAS_CITA = `d.unidad,
+  CASE WHEN d.unidad = 'seccion' THEN (
+    SELECT json_object_agg(t.pagina_inicio, t.titulo) FROM (
+      SELECT DISTINCT ON (pagina_inicio) pagina_inicio, titulo FROM capitulos WHERE documento_id = d.id ORDER BY pagina_inicio, nivel DESC
+    ) t
+  ) END AS titulos`;
+
+const fuenteDe = (doc: DocCita, etiqueta: string | null) =>
+  etiqueta ? `${doc.nombre} · ${citaDeUnidades(etiqueta, doc.unidad ?? 'pagina', doc.titulos?.[etiqueta.split('–')[0] as string])}` : doc.nombre;
 
 /** Lo respondido y la solución, según el tipo; solo de una pregunta ya respondida (RB-50). */
-function vistaRespuesta(p: FilaPregunta, nombre: string, r: FilaRespuesta): RespuestaVista {
+function vistaRespuesta(p: FilaPregunta, nombre: DocCita, r: FilaRespuesta): RespuestaVista {
   const base: RespuestaVista = { puntos: r.puntos, acierto: r.acierto, explicacion: p.explicacion, cita: p.cita_textual, fuente: fuenteDe(nombre, p.etiqueta_paginas) };
   switch (p.tipo) {
     case 'unica':
@@ -272,7 +291,7 @@ function vistaRespuesta(p: FilaPregunta, nombre: string, r: FilaRespuesta): Resp
 }
 
 /** RB-50: antes de responder solo el enunciado, las opciones y, en la múltiple, cuántas son correctas. */
-function vistaPregunta(p: FilaPregunta, nombre: string, respuesta?: FilaRespuesta): PreguntaVista {
+function vistaPregunta(p: FilaPregunta, nombre: DocCita, respuesta?: FilaRespuesta): PreguntaVista {
   const base: PreguntaVista = { id: p.id, tipo: p.tipo, enunciado: p.enunciado };
   if (p.opciones) base.opciones = p.opciones;
   if (p.tipo === 'multiple') base.cuantasCorrectas = p.correctas?.length ?? 0;
@@ -285,6 +304,8 @@ export async function obtenerCuestionario(usuarioId: string, id: string): Promis
   const [c] = await consultar<{
     documento_id: string;
     nombre: string;
+    unidad: Unidad;
+    titulos: Record<string, string> | null;
     categoria: string;
     alcance: 'documento' | 'capitulo' | 'paginas';
     capitulo: string | null;
@@ -294,7 +315,7 @@ export async function obtenerCuestionario(usuarioId: string, id: string): Promis
     pedidas: number;
     tipo: TipoCuestionario;
   }>(
-    `SELECT c.documento_id, d.nombre_archivo AS nombre, d.categoria, c.alcance, cap.titulo AS capitulo, c.pagina_desde, c.pagina_hasta, c.dificultad, c.pedidas, c.tipo
+    `SELECT c.documento_id, d.nombre_archivo AS nombre, ${COLUMNAS_CITA}, d.categoria, c.alcance, cap.titulo AS capitulo, c.pagina_desde, c.pagina_hasta, c.dificultad, c.pedidas, c.tipo
      FROM cuestionarios c
      JOIN documentos d ON d.id = c.documento_id
      LEFT JOIN capitulos cap ON cap.id = c.capitulo_id
@@ -320,7 +341,7 @@ export async function obtenerCuestionario(usuarioId: string, id: string): Promis
     id,
     tipo: c.tipo ?? 'unica',
     documento: { id: c.documento_id, nombre: c.nombre, categoria: c.categoria },
-    alcance: textoAlcance(c.alcance, c.capitulo, c.pagina_desde, c.pagina_hasta),
+    alcance: textoAlcance(c.alcance, c.capitulo, c.pagina_desde, c.pagina_hasta, c.unidad ?? 'pagina'),
     dificultad: c.dificultad,
     pedidas: c.pedidas,
     intento: {
@@ -332,7 +353,7 @@ export async function obtenerCuestionario(usuarioId: string, id: string): Promis
       puntaje: intento.puntaje,
       preguntas: intento.preguntas.flatMap((pid) => {
         const p = porId.get(pid);
-        return p ? [vistaPregunta(p, c.nombre, respuestaDe.get(pid))] : [];
+        return p ? [vistaPregunta(p, c, respuestaDe.get(pid))] : [];
       }),
       sugerencias,
     },
@@ -413,12 +434,14 @@ interface IntentoBloqueado {
   preguntas: string[];
   total: number;
   nombre: string;
+  unidad: Unidad;
+  titulos: Record<string, string> | null;
 }
 
 /** El intento bloqueado y la pregunta; una pregunta ajena al intento o de otro usuario responde como inexistente. */
 async function cargarPregunta(tx: PoolClient, usuarioId: string, intentoId: string, preguntaId: string): Promise<{ intento: IntentoBloqueado; pregunta: FilaPregunta }> {
   const { rows: intentos } = await tx.query<IntentoBloqueado>(
-    `SELECT i.preguntas, i.total, d.nombre_archivo AS nombre
+    `SELECT i.preguntas, i.total, d.nombre_archivo AS nombre, ${COLUMNAS_CITA}
      FROM intentos_cuestionario i
      JOIN cuestionarios c ON c.id = i.cuestionario_id
      JOIN documentos d ON d.id = c.documento_id
@@ -452,7 +475,7 @@ async function cerrarSiTermino(tx: PoolClient, usuarioId: string, intentoId: str
     const consulta: Consulta = async <T>(sql: string, valores: unknown[]) => (await tx.query(sql, valores)).rows as T[];
     resultado = { aciertos, total: intento.total, puntaje, sugerencias: await sugerenciasDeRepaso(consulta, usuarioId, intentoId) };
   }
-  return { ...vistaRespuesta(pregunta, intento.nombre, guardada), ...(resultado ? { resultado } : {}) };
+  return { ...vistaRespuesta(pregunta, intento, guardada), ...(resultado ? { resultado } : {}) };
 }
 
 /**

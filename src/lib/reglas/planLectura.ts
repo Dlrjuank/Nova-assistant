@@ -1,6 +1,7 @@
 import { ErrorDeNegocio } from './errores';
 import { esFechaISOValida, sumarDias } from './fechas';
 import { citaDePaginas } from './libros';
+import { nombreGrupo, type TipoGrupo } from './tiposDocumento';
 
 /** E10d (PLAN_AMPLIACION 5.9, RB-42): plan de lectura por capítulos. Funciones puras. */
 
@@ -65,7 +66,13 @@ export function numeroEnTitulo(titulo: string): number | null {
  * "Leer cap. 3: Los ecosistemas (pp. 45–67)", sin repetir "Capítulo 3" y en 200 caracteres como máximo.
  * E10f (RB-53) usa el mismo formato con "Repasar".
  */
-export function tituloTareaCapitulo(numero: number, titulo: string, etiquetaPaginas: string, verbo: 'Leer' | 'Repasar' = 'Leer'): string {
+export function tituloTareaCapitulo(numero: number, titulo: string, etiquetaPaginas: string, verbo: 'Leer' | 'Repasar' = 'Leer', tipo: TipoGrupo = 'capitulo'): string {
+  // E20d: una sección, diapositiva o parte va por su título: "Leer: Derivadas", "Repasar: Parte 3".
+  if (tipo !== 'capitulo') {
+    const base = titulo.trim() || `${nombreGrupo(tipo, false, true)} ${etiquetaPaginas}`;
+    const texto = `${verbo}: ${base}`;
+    return texto.length > MAX_TITULO ? `${texto.slice(0, MAX_TITULO - 1).trimEnd()}…` : texto;
+  }
   const limpio = titulo.trim().replace(PREFIJO_CAPITULO, '').trim() || titulo.trim();
   const inicio = `${verbo} cap. ${numero}: `;
   const paginas = ` (${citaDePaginas(etiquetaPaginas)})`;

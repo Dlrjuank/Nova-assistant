@@ -6,6 +6,7 @@ import { ErrorDeNegocio } from '@/lib/reglas/errores';
 import { esFechaISOValida, hoyBogota } from '@/lib/reglas/fechas';
 import { capitulosParaRepasar, compararIntentos } from '@/lib/reglas/historialCuestionarios';
 import { numerarCapitulos, PRIORIDAD_PLAN_LECTURA, tituloTareaCapitulo } from '@/lib/reglas/planLectura';
+import type { TipoGrupo, Unidad } from '@/lib/reglas/tiposDocumento';
 import { resolverCategoria } from './categorias';
 import type { CuestionarioHistorial, DocumentoHistorial, SugerenciaRepaso, TareaRepasoCreada } from './tipos';
 
@@ -28,8 +29,8 @@ export async function sugerenciasDeRepaso(consulta: Consulta, usuarioId: string,
   const repasar = capitulosParaRepasar(falladas.map((f) => ({ capituloId: f.capitulo_id })));
   if (repasar.length === 0) return [];
 
-  const capitulos = await consulta<{ id: string; orden: number; nivel: number; titulo: string; etiqueta_paginas: string }>(
-    `SELECT c.id, c.orden, c.nivel, c.titulo, c.etiqueta_paginas
+  const capitulos = await consulta<{ id: string; orden: number; nivel: number; titulo: string; etiqueta_paginas: string; tipo: TipoGrupo }>(
+    `SELECT c.id, c.orden, c.nivel, c.titulo, c.etiqueta_paginas, c.tipo
      FROM capitulos c
      JOIN cuestionarios q ON q.documento_id = c.documento_id AND q.usuario_id = c.usuario_id
      JOIN intentos_cuestionario i ON i.cuestionario_id = q.id AND i.usuario_id = q.usuario_id
@@ -42,7 +43,7 @@ export async function sugerenciasDeRepaso(consulta: Consulta, usuarioId: string,
   const sugerencias = repasar.flatMap(({ capituloId, falladas: n }) => {
     const c = porId.get(capituloId);
     const numero = c ? numeros.get(c.orden) : undefined;
-    return c && numero !== undefined ? [{ capituloId, titulo: tituloTareaCapitulo(numero, c.titulo, c.etiqueta_paginas, 'Repasar'), falladas: n }] : [];
+    return c && numero !== undefined ? [{ capituloId, titulo: tituloTareaCapitulo(numero, c.titulo, c.etiqueta_paginas, 'Repasar', c.tipo), falladas: n }] : [];
   });
   if (sugerencias.length === 0) return [];
   const existentes = new Set(
@@ -64,6 +65,7 @@ interface FilaHistorial {
   capitulo: string | null;
   capitulo_orden: number | null;
   pagina_desde: number | null;
+  unidad?: Unidad | null;
   pagina_hasta: number | null;
   dificultad: Dificultad;
   tipo: TipoCuestionario;
@@ -88,7 +90,7 @@ const ORDEN_ALCANCE = { documento: 0, capitulo: 1, paginas: 2 } as const;
 export async function listarCuestionarios(usuarioId: string, documentoId?: string | undefined): Promise<DocumentoHistorial[]> {
   const filas = await consultar<FilaHistorial>(
     `SELECT d.id AS documento_id, d.nombre_archivo AS nombre, q.id AS cuestionario_id, q.alcance, cap.titulo AS capitulo,
-            cap.orden AS capitulo_orden, q.pagina_desde, q.pagina_hasta, q.dificultad, q.tipo, q.creado_en,
+            cap.orden AS capitulo_orden, d.unidad, q.pagina_desde, q.pagina_hasta, q.dificultad, q.tipo, q.creado_en,
             to_char(q.creado_en AT TIME ZONE 'America/Bogota', 'YYYY-MM-DD') AS creado_dia,
             (SELECT count(*)::int FROM preguntas_cuestionario p WHERE p.cuestionario_id = q.id AND p.usuario_id = q.usuario_id) AS preguntas,
             i.id AS intento_id, to_char(i.iniciado_en AT TIME ZONE 'America/Bogota', 'YYYY-MM-DD') AS fecha,
@@ -111,7 +113,7 @@ export async function listarCuestionarios(usuarioId: string, documentoId?: strin
     if (!cuestionarios.has(f.cuestionario_id)) {
       const c = {
         id: f.cuestionario_id,
-        alcance: textoAlcance(f.alcance, f.capitulo, f.pagina_desde, f.pagina_hasta),
+        alcance: textoAlcance(f.alcance, f.capitulo, f.pagina_desde, f.pagina_hasta, f.unidad ?? 'pagina'),
         dificultad: f.dificultad,
         tipo: f.tipo ?? 'unica',
         preguntas: f.preguntas,

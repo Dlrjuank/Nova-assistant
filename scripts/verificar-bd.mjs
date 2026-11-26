@@ -767,6 +767,28 @@ try {
       marcar(false, `eq-fi) cuentas: ${e.message}`);
     }
   }
+
+  console.log('== 6u. Tipos de documento (M26, E20d)');
+  const columnasM26 = await c.query(
+    "SELECT table_name, column_name FROM information_schema.columns WHERE table_schema = 'public' AND (table_name, column_name) IN (('documentos', 'tipo'), ('documentos', 'unidad'), ('fragmentos_pdf', 'ocr'), ('capitulos', 'tipo'))",
+  );
+  marcar(columnasM26.rowCount === 4, 'columnas documentos.tipo y unidad, fragmentos_pdf.ocr y capitulos.tipo');
+  if (columnasM26.rowCount === 4 && dueno) {
+    try {
+      const viejos = (await c.query("SELECT count(*)::int AS n FROM documentos WHERE tipo <> 'pdf' AND unidad = 'pagina' AND tipo <> 'pdf_escaneado'")).rows[0].n;
+      marcar(viejos === 0, `fj) solo los PDF van por páginas (${viejos} de otro tipo por páginas)`);
+      await c.query('SAVEPOINT m26');
+      // Como lo crea el código de master: sin tipo ni unidad, queda como un PDF por páginas.
+      const doc = (await c.query("INSERT INTO documentos (nombre_archivo, categoria, num_fragmentos, fecha_guardado, usuario_id) VALUES ('verificar-m26.pdf', 'General', 0, '2026-11-26', $1) RETURNING id, tipo, unidad", [dueno])).rows[0];
+      marcar(doc.tipo === 'pdf' && doc.unidad === 'pagina', 'fk) un documento creado como en master queda PDF por páginas');
+      await esperaFalla('fl) tipo fuera de la lista', '23514', "UPDATE documentos SET tipo = 'doc' WHERE id = $1", [doc.id]);
+      await esperaFalla('fm) unidad fuera de la lista', '23514', "UPDATE documentos SET unidad = 'hoja' WHERE id = $1", [doc.id]);
+      await esperaFalla('fn) grupo fuera de la lista', '23514', "INSERT INTO capitulos (documento_id, usuario_id, orden, titulo, pagina_inicio, pagina_fin, etiqueta_paginas, tipo) VALUES ($1, $2, 1, 'X', 1, 1, '1', 'tomo')", [doc.id, dueno]);
+      await c.query('ROLLBACK TO SAVEPOINT m26');
+    } catch (e) {
+      marcar(false, `fj-fn) tipos de documento: ${e.message}`);
+    }
+  }
   await c.query('ROLLBACK');
 
   console.log(`== 7. Total de fallas: ${fallas}`);

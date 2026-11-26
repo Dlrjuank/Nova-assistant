@@ -12,7 +12,7 @@ import type { Capitulo, PlanLectura as VistaPlan, ResultadoPlanLectura } from '@
 import { MENSAJES } from '@/lib/reglas/errores';
 import { aplicarMascaraFecha, esFechaISOValida, hoyBogota, sumarDias } from '@/lib/reglas/fechas';
 import { formatearFecha } from '@/lib/formato';
-import { citaDePaginas } from '@/lib/reglas/libros';
+import { citaDeUnidades, gruposConArticulo, nombreGrupo, unidadDeGrupo } from '@/lib/reglas/tiposDocumento';
 import { MAX_POR_SEMANA } from '@/lib/reglas/planLectura';
 
 type Modo = 'fechas' | 'semana';
@@ -46,6 +46,8 @@ export function PlanLectura({
   const [cargando, setCargando] = useState(false);
 
   const disponibles = capitulos.filter((c) => c.nivel === 1 && !c.enTareas);
+  // E20d: capítulos, secciones, diapositivas o partes, según el documento.
+  const grupo = capitulos[0]?.tipo ?? 'capitulo';
   const todos = disponibles.length > 0 && disponibles.every((c) => elegidos.has(c.orden));
 
   // Cualquier cambio invalida la vista previa: lo que se confirma es siempre lo que se ve.
@@ -117,7 +119,7 @@ export function PlanLectura({
     <div className="flex max-w-3xl flex-col gap-4">
       <Tarjeta>
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-base font-semibold text-texto">Elige los capítulos para tu plan de lectura</h2>
+          <h2 className="text-base font-semibold text-texto">Elige {gruposConArticulo(grupo)} para tu plan de lectura</h2>
           {disponibles.length > 0 && (
             <Boton variante="secundario" onClick={() => elegirTodos(undefined)} className="min-h-10 px-3 py-1 text-xs">
               {todos ? 'Quitar todos' : 'Elegir todos'}
@@ -126,7 +128,7 @@ export function PlanLectura({
         </div>
         <ol className="flex flex-col divide-y divide-borde">
           {capitulos.map((c) => {
-            const paginas = <span className="shrink-0 text-sm whitespace-nowrap text-texto-suave tabular-nums">{citaDePaginas(c.etiquetaPaginas)}</span>;
+            const paginas = <span className="shrink-0 text-sm whitespace-nowrap text-texto-suave tabular-nums">{citaDeUnidades(c.etiquetaPaginas, unidadDeGrupo(c.tipo ?? 'capitulo'))}</span>;
             if (c.nivel !== 1) {
               return (
                 <li key={c.orden} className="flex items-baseline justify-between gap-4 py-2.5 pl-11">
@@ -173,7 +175,7 @@ export function PlanLectura({
               {(
                 [
                   ['fechas', 'Entre dos fechas'],
-                  ['semana', 'Capítulos por semana'],
+                  ['semana', `${nombreGrupo(grupo, true, true)} por semana`],
                 ] as const
               ).map(([valor, texto]) => (
                 <label key={valor} className="flex min-h-10 items-center gap-2 text-sm text-texto">
@@ -222,10 +224,10 @@ export function PlanLectura({
             )}
           </div>
           <SelectorCategoria id="plan-categoria" etiqueta="Categoría" valor={categoria} onCambio={cambiar(setCategoria)} categorias={categorias} />
-          <p className="text-xs text-texto-suave">Formato AAAA-MM-DD. Cada capítulo será una tarea de prioridad media con su fecha límite.</p>
+          <p className="text-xs text-texto-suave">Formato AAAA-MM-DD. Cada {nombreGrupo(grupo)} será una tarea de prioridad media con su fecha límite.</p>
           <div>
             <Boton type="submit" cargando={cargando && !vista} disabled={!valido || cargando}>
-              {elegidos.size === 0 ? 'Elige al menos un capítulo' : 'Ver plan'}
+              {elegidos.size === 0 ? `Elige al menos ${grupo === 'capitulo' ? 'un' : 'una'} ${nombreGrupo(grupo)}` : 'Ver plan'}
             </Boton>
           </div>
         </form>

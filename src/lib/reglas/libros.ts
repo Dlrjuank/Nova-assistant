@@ -114,7 +114,7 @@ export function fragmentarPaginas(paginas: readonly string[], etiquetas?: Etique
   return fragmentos;
 }
 
-function conPaginaFinal(
+export function conPaginaFinal(
   entradas: ReadonlyArray<{ titulo: string; pagina: number; nivel: number }>,
   totalPaginas: number,
   etiquetas: Etiquetas,

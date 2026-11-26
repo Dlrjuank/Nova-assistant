@@ -24,6 +24,7 @@ import {
 import { corteConFechaFutura } from '@/lib/reglas/temas';
 import { obtenerPreferencias } from './configuracion';
 import { crearTareaEn } from './tareas';
+import { COLUMNAS_UNIDAD } from './fragmentos';
 import { listarMaterias, listarMetasNota, type Materia } from './semestre';
 import type { Fragmento } from './tipos';
 
@@ -169,7 +170,7 @@ export async function planesDeMateria(usuarioId: string, materiaId: string): Pro
 /** Los fragmentos más parecidos de los PDF de una materia (9.2), sin el índice HNSW (filtro estrecho, como en E10c). */
 async function fragmentosDeMateria(usuarioId: string, vector: number[], limite: number, materiaId: string): Promise<Fragmento[]> {
   return consultar<Fragmento>(
-    `SELECT f.id, f.documento_id, f.numero, f.contenido, d.nombre_archivo, (f.vector <=> $1::vector)::float AS distancia, f.etiqueta_paginas
+    `SELECT f.id, f.documento_id, f.numero, f.contenido, d.nombre_archivo, (f.vector <=> $1::vector)::float AS distancia, f.etiqueta_paginas, ${COLUMNAS_UNIDAD}
      FROM fragmentos_pdf f JOIN documentos d ON d.id = f.documento_id
      WHERE d.materia_id = $3 AND d.usuario_id = $4 AND d.progreso IS NULL
      ORDER BY (f.vector <=> $1::vector) + 0

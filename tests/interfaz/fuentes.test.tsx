@@ -41,7 +41,7 @@ describe('Fuentes', () => {
     expect(pdf?.getAttribute('href')).toBe('/nova/fuentes?pestana=pdf');
     expect(web?.getAttribute('aria-current')).toBeNull();
     expect(web?.getAttribute('href')).toBe('/nova/fuentes?pestana=web');
-    expect(screen.getByLabelText('Archivo PDF')).toBeTruthy();
+    expect(screen.getByLabelText('Archivo')).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Tus documentos' })).toBeTruthy();
     expect(screen.getByText('Aún no hay documentos')).toBeTruthy();
     expect(screen.getByText(/de hasta 15 MB/)).toBeTruthy();
@@ -63,7 +63,7 @@ describe('Fuentes', () => {
     expect(web?.getAttribute('aria-current')).toBe('page');
     expect(pdf?.getAttribute('aria-current')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Buscar en Wikipedia' })).toBeNull();
-    expect(screen.queryByLabelText('Archivo PDF')).toBeNull();
+    expect(screen.queryByLabelText('Archivo')).toBeNull();
     expect(m.listarDocumentos).not.toHaveBeenCalled();
   });
 
@@ -76,11 +76,11 @@ describe('Fuentes', () => {
       { ...base, id: 'c', nombreArchivo: 'largo.pdf', numFragmentos: 0, paginas: 500, progreso: 40 },
     ]);
     await abrir('pdf');
-    const ver = screen.getAllByRole('link', { name: 'Ver capítulos de libro.pdf' });
+    const ver = screen.getAllByRole('link', { name: 'Ver contenido de libro.pdf' });
     expect(ver[0]?.getAttribute('href')).toBe('/nova/fuentes/a/capitulos');
-    expect(screen.getAllByText('312').length).toBeGreaterThan(0);
-    expect(screen.queryByRole('link', { name: 'Ver capítulos de largo.pdf' })).toBeNull();
-    expect(screen.queryByRole('link', { name: 'Ver capítulos de viejo.pdf' })).toBeNull();
+    expect(screen.getAllByText('312 páginas').length).toBeGreaterThan(0);
+    expect(screen.queryByRole('link', { name: 'Ver contenido de largo.pdf' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Ver contenido de viejo.pdf' })).toBeNull();
     expect(screen.getAllByText('Vuelve a indexar este documento para ver páginas y capítulos.').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Indexando… 40 %').length).toBeGreaterThan(0);
     expect(screen.getByLabelText('Indexando «largo.pdf»… 40 %')).toBeTruthy();

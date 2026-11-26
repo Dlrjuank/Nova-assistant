@@ -12,7 +12,7 @@ import { TablaDocumentos } from '@/components/nova/TablaDocumentos';
 import { TIPO_ETAPAS } from '@/lib/reglas/etapasIndexacion';
 
 const elegir = (nombre = 'guia.pdf') =>
-  fireEvent.change(screen.getByLabelText('Archivo PDF'), { target: { files: [new File(['x'], nombre, { type: 'application/pdf' })] } });
+  fireEvent.change(screen.getByLabelText('Archivo'), { target: { files: [new File(['x'], nombre, { type: 'application/pdf' })] } });
 const estados = () => Object.fromEntries([...document.querySelectorAll('[data-etapa]')].map((li) => [li.getAttribute('data-etapa'), li.getAttribute('data-estado')]));
 
 /** Una respuesta con etapas que se suelta línea por línea desde la prueba. */
@@ -44,7 +44,7 @@ describe('etapas de indexación', () => {
     vi.stubGlobal('fetch', f);
     render(<SubidorPdf />);
     elegir();
-    fireEvent.click(screen.getByRole('button', { name: 'Indexar PDF' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Indexar' }));
     await waitFor(() => expect(f).toHaveBeenCalled());
     expect((f.mock.calls[0]?.[1] as RequestInit).headers).toMatchObject({ Accept: expect.stringContaining(TIPO_ETAPAS) });
     await waitFor(() => expect(estados()).toMatchObject({ subir: 'hecha', leer: 'ahora', dividir: 'pendiente' }));
@@ -73,7 +73,7 @@ describe('etapas de indexación', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(r.respuesta));
     render(<SubidorPdf />);
     elegir('escaneado.pdf');
-    fireEvent.click(screen.getByRole('button', { name: 'Indexar PDF' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Indexar' }));
     await act(async () => {
       r.enviar({ etapa: 'leer' });
       r.enviar({ ok: false, error: { codigo: 'PDF_SIN_TEXTO', mensaje: 'El documento no contiene texto seleccionable (no se admite OCR)' } });
@@ -81,7 +81,7 @@ describe('etapas de indexación', () => {
     });
     expect(await screen.findByText('El documento no contiene texto seleccionable (no se admite OCR)')).toBeTruthy();
     expect(estados()).toMatchObject({ subir: 'hecha', leer: 'fallo', dividir: 'pendiente' });
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Indexar PDF' }).hasAttribute('disabled')).toBe(false));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Indexar' }).hasAttribute('disabled')).toBe(false));
   });
 
   it('un libro largo deja las etapas a IndexacionPendiente: "Crear los vectores" con su porcentaje', () => {
@@ -100,14 +100,20 @@ describe('zona para el PDF y documentos', () => {
     expect(screen.getByText(/1 KB · Toca o arrastra otro/)).toBeTruthy();
   });
 
-  it('cada documento lleva su sello "PDF" (oculto para lectores de pantalla)', () => {
+  it('E20d: cada documento lleva el sello de su tipo (ícono oculto, nombre para lectores de pantalla)', () => {
     render(
       <TablaDocumentos
-        documentos={[{ id: 'd', nombreArchivo: 'a.pdf', categoria: 'General', numFragmentos: 3, fechaGuardado: '2026-11-24', paginas: 2, progreso: null } as never]}
+        documentos={[
+          { id: 'd', nombreArchivo: 'a.pdf', categoria: 'General', numFragmentos: 3, fechaGuardado: '2026-11-24', paginas: 2, progreso: null, tipo: 'pdf', unidad: 'pagina' } as never,
+          { id: 'e', nombreArchivo: 'b.md', categoria: 'General', numFragmentos: 1, fechaGuardado: '2026-11-24', paginas: 3, progreso: null, tipo: 'md', unidad: 'seccion' } as never,
+        ]}
       />,
     );
-    const sellos = document.querySelectorAll('[data-sello-pdf]');
-    expect(sellos.length).toBe(2); // tabla y tarjeta del teléfono
-    expect(sellos[0]?.getAttribute('aria-hidden')).toBe('true');
+    expect(document.querySelectorAll('[data-sello-documento="pdf"]').length).toBe(2); // tabla y tarjeta del teléfono
+    const md = document.querySelector('[data-sello-documento="md"]');
+    expect(md?.querySelector('svg')?.getAttribute('aria-hidden')).toBe('true');
+    expect(md?.textContent).toBe('Markdown');
+    expect(screen.getAllByText('3 secciones').length).toBe(2);
+    expect(screen.getAllByRole('link', { name: 'Ver contenido de b.md' }).length).toBe(2);
   });
 });

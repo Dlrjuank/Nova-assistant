@@ -248,3 +248,44 @@ describe('continuarIndexacion (RB-38)', () => {
     await expect(capitulosDeDocumento(U, 'x')).rejects.toMatchObject({ codigo: 'DOCUMENTO_NO_ENCONTRADO' });
   });
 });
+
+describe('E20d-1: Markdown y texto', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    m.generarEmbeddings.mockImplementation(async (textos: string[]) => textos.map(() => [0.1]));
+    m.tx.query.mockImplementation(async () => ({ rows: [{ id: 'doc-1' }] }));
+    m.conTransaccion.mockImplementation((trabajo: (tx: typeof m.tx) => unknown) => trabajo(m.tx));
+    m.consultar.mockResolvedValue([]);
+  });
+  const insercion = (tabla: string) => m.tx.query.mock.calls.find((c) => String(c[0]).includes(`INSERT INTO ${tabla}`)) ?? [];
+  const bytes = (texto: string) => new TextEncoder().encode(texto);
+
+  it('un Markdown se guarda por secciones, con su tipo y sus grupos, sin pasar por el lector de PDF', async () => {
+    await indexarContenido('u1', bytes('# Uno\nTexto uno\n# Dos\nTexto dos'), { nombreArchivo: 'Apuntes.md' });
+    expect(m.extraerPdf).not.toHaveBeenCalled();
+    const documento = insercion('documentos');
+    expect(String(documento[0])).toContain('tipo, unidad');
+    expect((documento[1] as unknown[]).slice(-2)).toEqual(['md', 'seccion']);
+    expect((documento[1] as unknown[])[4]).toBe(2); // dos secciones
+    const capitulos = insercion('capitulos');
+    expect(capitulos[1]?.[4]).toEqual(['Uno', 'Dos']);
+    expect(capitulos[1]?.[8]).toEqual(['seccion', 'seccion']);
+    expect(m.generarEmbeddings.mock.calls[0]?.[0]).toEqual(['Uno Texto uno Dos Texto dos']);
+  });
+
+  it('un texto se guarda por partes; un PDF, por páginas con capítulos', async () => {
+    await indexarContenido('u1', bytes('Hola.\n\nAdiós.'), { nombreArchivo: 'Notas.txt' });
+    expect((insercion('documentos')[1] as unknown[]).slice(-2)).toEqual(['txt', 'parte']);
+    expect(insercion('capitulos')[1]?.[4]).toEqual(['Parte 1']);
+    m.tx.query.mockClear();
+    m.extraerPdf.mockResolvedValue(extraido(['Capítulo 1\nUno', 'Capítulo 2\nDos']));
+    await indexarContenido('u1', new Uint8Array(1), { nombreArchivo: 'a.pdf' });
+    expect((insercion('documentos')[1] as unknown[]).slice(-2)).toEqual(['pdf', 'pagina']);
+    expect(insercion('capitulos')[1]?.[8]).toEqual(['capitulo', 'capitulo']);
+  });
+
+  it('otra extensión no se indexa', async () => {
+    await expect(indexarContenido('u1', bytes('x'), { nombreArchivo: 'viejo.doc' })).rejects.toMatchObject({ codigo: 'TIPO_NO_ADMITIDO' });
+    expect(m.conTransaccion).not.toHaveBeenCalled();
+  });
+});

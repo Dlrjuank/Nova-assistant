@@ -299,3 +299,43 @@ describe('Explicar de otra manera (RB-41)', () => {
     expect(m.responder).not.toHaveBeenCalled();
   });
 });
+
+describe('E20d: preguntas por sección, parte o diapositiva', () => {
+  const APUNTES = { id: D, nombre: 'Apuntes.md', paginas: 3, unidad: 'seccion' };
+  const SECCIONES = [
+    { orden: 1, nivel: 1, titulo: 'Unidad 1: Límites', paginaInicio: 1, paginaFin: 2, etiquetaPaginas: '1–2', tipo: 'seccion' },
+    { orden: 2, nivel: 2, titulo: 'Límites laterales', paginaInicio: 2, paginaFin: 2, etiquetaPaginas: '2', tipo: 'seccion' },
+    { orden: 3, nivel: 1, titulo: 'Unidad 2: Derivadas', paginaInicio: 3, paginaFin: 3, etiquetaPaginas: '3', tipo: 'seccion' },
+  ];
+  const deMd = (numero: number, etiqueta: string, ini = numero, fin = numero) => ({ ...fila(numero, etiqueta, ini, fin), nombre_archivo: 'Apuntes.md', unidad: 'seccion' });
+
+  it('"sección 2" usa solo esa sección y la cita por su título', async () => {
+    base([APUNTES], [deMd(1, '1'), deMd(2, '2'), deMd(3, '3')]);
+    m.capitulos.mockResolvedValue({ documento: { id: D, nombreArchivo: 'Apuntes.md', paginas: 3, unidad: 'seccion' }, capitulos: SECCIONES });
+    m.responder.mockResolvedValue('Por la izquierda [Apuntes.md · Límites laterales].');
+    const r = await consultar(U, '¿Qué dice la sección 2?', [], { documentoId: D });
+    expect(contextoDe()).toContain('[Apuntes.md · Límites laterales]\ntexto 2');
+    expect(contextoDe()).not.toContain('texto 1');
+    expect(m.responder.mock.calls[0]?.[0].pregunta).toBe('Los fragmentos del contexto son de la sección 2 («Límites laterales») del documento. ¿Qué dice la sección 2?');
+    expect(r.fuentes[0]?.etiqueta).toBe('Apuntes.md · Límites laterales');
+  });
+
+  it('"la sección sobre derivadas" busca por título; "unidad 1" va a la sección de nivel 1', async () => {
+    base([APUNTES], [deMd(1, '1'), deMd(2, '2'), deMd(3, '3')]);
+    m.capitulos.mockResolvedValue({ documento: { id: D, nombreArchivo: 'Apuntes.md', paginas: 3, unidad: 'seccion' }, capitulos: SECCIONES });
+    const r = await consultar(U, 'Explícame la sección sobre derivadas', [], { documentoId: D });
+    expect(contextoDe()).toContain('[Apuntes.md · Unidad 2: Derivadas]\ntexto 3');
+    expect(r.fuentes).toEqual([{ tipo: 'pdf', etiqueta: 'Apuntes.md · Unidad 2: Derivadas' }]);
+    m.responder.mockClear();
+    await consultar(U, 'Resume la unidad 1', [], { documentoId: D });
+    expect(m.responder.mock.calls[0]?.[0].pregunta).toBe('Los fragmentos del contexto son de la sección «Unidad 1: Límites». Resume la unidad 1');
+  });
+
+  it('"parte 9" de un texto dice cuántas partes tiene; "diapositiva 2" en un PDF sigue la consulta normal', async () => {
+    base([{ id: D, nombre: 'Notas.txt', paginas: 3, unidad: 'parte' }], [fila(1, '1')]);
+    await expect(consultar(U, 'resume la parte 9', [], { documentoId: D })).resolves.toEqual({ respuesta: 'Ese documento tiene 3 partes.', fuentes: [] });
+    base([LIBRO], [fila(1, '1')]);
+    await consultar(U, '¿Qué dice la diapositiva 2?', [], { documentoId: D });
+    expect(m.embedding).toHaveBeenCalled(); // búsqueda normal por parecido
+  });
+});

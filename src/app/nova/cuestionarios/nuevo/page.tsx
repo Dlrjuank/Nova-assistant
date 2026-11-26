@@ -8,13 +8,14 @@ import { Tarjeta } from '@/components/ui/Tarjeta';
 import { capitulosDeDocumento, exigirSesion, type CapitulosDocumento } from '@/lib/dataService';
 import { ErrorDeNegocio, MENSAJES } from '@/lib/reglas/errores';
 import { MENSAJE_REINDEXAR } from '@/lib/reglas/libros';
+import { contarUnidades } from '@/lib/reglas/tiposDocumento';
 import { esquemaIdDocumento } from '@/lib/validacion/esquemas';
 
 export const dynamic = 'force-dynamic';
 
 const uno = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
-/** E10e (5.11): "Crear cuestionario" desde Fuentes o desde "Ver capítulos". */
+/** E10e (5.11): "Crear cuestionario" desde Fuentes o desde "Ver contenido". */
 export default async function NuevoCuestionarioPage({ searchParams }: { searchParams: Promise<{ documento?: string | string[]; capitulo?: string | string[] }> }) {
   const parametros = await searchParams;
   const sesion = await exigirSesion();
@@ -33,14 +34,14 @@ export default async function NuevoCuestionarioPage({ searchParams }: { searchPa
     <>
       <EncabezadoPantalla
         titulo="Crear cuestionario"
-        subtitulo={datos ? <span className="break-all">{datos.documento.nombreArchivo}{datos.documento.paginas ? ` · ${datos.documento.paginas} páginas` : ''}</span> : undefined}
+        subtitulo={datos ? <span className="break-all">{datos.documento.nombreArchivo}{datos.documento.paginas ? ` · ${contarUnidades(datos.documento.paginas, datos.documento.unidad)}` : ''}</span> : undefined}
       />
       <Link
         href={datos ? `/nova/fuentes/${datos.documento.id}/capitulos` : '/nova/fuentes?pestana=pdf'}
         className={`inline-flex items-center gap-1 self-start rounded text-sm font-medium text-acento ${CLASE_FOCO}`}
       >
         <ChevronLeft aria-hidden="true" className="size-4" />
-        {datos ? 'Capítulos' : 'Fuentes'}
+        {datos ? 'Contenido' : 'Fuentes'}
       </Link>
       {!datos ? (
         <EstadoVacio titulo={MENSAJES.DOCUMENTO_NO_ENCONTRADO} descripcion="Puede que ya lo hayas eliminado." />
@@ -49,7 +50,7 @@ export default async function NuevoCuestionarioPage({ searchParams }: { searchPa
       ) : (
         <Tarjeta className="max-w-2xl">
           <FormularioCuestionario
-            documento={{ id: datos.documento.id, paginas: datos.documento.paginas }}
+            documento={{ id: datos.documento.id, paginas: datos.documento.paginas, unidad: datos.documento.unidad }}
             capitulos={datos.capitulos}
             {...(Number.isInteger(capituloPedido) ? { capituloInicial: capituloPedido } : {})}
           />

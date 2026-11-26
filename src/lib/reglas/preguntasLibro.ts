@@ -1,4 +1,5 @@
 import { numeroDe, type CapituloLibro } from './libros';
+import type { Unidad } from './tiposDocumento';
 
 /** E10c (PLAN_AMPLIACION 5.9, RB-39 a RB-41): reconocer preguntas por página o capítulo. Funciones puras. */
 
@@ -23,7 +24,31 @@ export function detectarPagina(texto: string): number | null {
   return m ? Number(m[1]) : null;
 }
 
-export type PedidoCapitulo = { tipo: 'numero'; numero: number } | { tipo: 'titulo'; titulo: string };
+/** E20d: una unidad pedida por número: "página 45", "diapositiva 7", "parte 3", "sección 2". */
+export interface PedidoUnidad {
+  unidad: Unidad;
+  numero: number;
+}
+
+const UNIDAD_PEDIDA = /(?:^|[\s¿(])(diapositiva|l[aá]mina|slide|secci[oó]n|parte)\s+(?:n[uú]mero\s+)?(\d{1,4})(?!\d)/i;
+
+export function detectarUnidad(texto: string): PedidoUnidad | null {
+  const pagina = detectarPagina(texto);
+  if (pagina !== null) return { unidad: 'pagina', numero: pagina };
+  const m = UNIDAD_PEDIDA.exec(texto);
+  if (!m) return null;
+  const palabra = sinAcentos(m[1] as string);
+  const unidad: Unidad = palabra === 'seccion' ? 'seccion' : palabra === 'parte' ? 'parte' : 'diapositiva';
+  return { unidad, numero: Number(m[2]) };
+}
+
+/** E20d: "la sección sobre derivadas", "la sección de límites" (solo en documentos por secciones). */
+export function detectarSeccionPorTitulo(texto: string): string | null {
+  const m = /\bsecci[oó]n\s+(?:de|sobre|acerca\s+de|llamada|titulada)\s+(?:(?:la|el|los|las)\s+)?(.{3,80}?)[\s?.!]*$/iu.exec(texto);
+  return m ? (m[1] as string).trim() : null;
+}
+
+export type PedidoCapitulo ={ tipo: 'numero'; numero: number } | { tipo: 'titulo'; titulo: string };
 
 /** RB-40: "capítulo 3", "capítulo IV", "unidad 2" o "capítulo de la fotosíntesis". "El capítulo anterior" no cuenta. */
 export function detectarCapitulo(texto: string): PedidoCapitulo | null {

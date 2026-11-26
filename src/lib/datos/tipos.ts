@@ -1,3 +1,4 @@
+import type { TipoDocumento, TipoGrupo, Unidad } from '@/lib/reglas/tiposDocumento';
 import type { Autoevaluacion, TipoCuestionario, TipoPregunta } from '@/lib/reglas/tiposPregunta';
 import type { OrigenMensaje } from '@/lib/reglas/fuentesWeb';
 import type { NivelProductividad } from '@/lib/reglas/productividad';
@@ -50,6 +51,9 @@ export interface Documento {
   numCapitulos: number;
   /** E13 (B-21): el nombre de su materia de Semestre, si tiene. */
   materia: string | null;
+  /** E20d (M26): el tipo de archivo y su unidad (página, sección, diapositiva o parte). */
+  tipo: TipoDocumento;
+  unidad: Unidad;
 }
 
 export interface Capitulo {
@@ -61,10 +65,12 @@ export interface Capitulo {
   etiquetaPaginas: string;
   /** E10d (RB-42): ya tiene su tarea de lectura. */
   enTareas: boolean;
+  /** E20d: capítulo, sección, diapositiva o parte. */
+  tipo: TipoGrupo;
 }
 
 export interface CapitulosDocumento {
-  documento: Pick<Documento, 'id' | 'nombreArchivo' | 'paginas' | 'categoria'>;
+  documento: Pick<Documento, 'id' | 'nombreArchivo' | 'paginas' | 'categoria' | 'tipo' | 'unidad'>;
   capitulos: Capitulo[];
 }
 
@@ -216,6 +222,9 @@ export interface Fragmento {
   distancia: number;
   /** RB-36: "45" o "45–46"; null en documentos indexados antes de E10b. */
   etiqueta_paginas?: string | null;
+  /** E20d: la unidad del documento y, en una sección, su título (para citar "Apuntes.md · Unidad 2"). */
+  unidad?: Unidad | null;
+  titulo_unidad?: string | null;
 }
 
 export interface Fuente {

@@ -9,7 +9,7 @@ import { Selector } from '@/components/ui/Selector';
 import type { CuestionarioCreado } from '@/lib/dataService';
 import { CANTIDADES, DIFICULTADES, NOMBRE_DIFICULTAD, rangoValido, type Cantidad, type Dificultad } from '@/lib/reglas/cuestionarios';
 import { MENSAJES } from '@/lib/reglas/errores';
-import { citaDePaginas } from '@/lib/reglas/libros';
+import { citaDeUnidades, contarUnidades, grupoDeUnidad, nombreGrupo, nombreUnidad, unidadDeGrupo, type TipoGrupo, type Unidad } from '@/lib/reglas/tiposDocumento';
 import { NOMBRE_TIPO, ORDEN_FORMULARIO, TIPO_POR_DEFECTO, type TipoCuestionario } from '@/lib/reglas/tiposPregunta';
 import { RequiereIa } from '@/components/nova/ia/RequiereIa';
 
@@ -43,14 +43,20 @@ function Opciones<T extends string | number>({
   );
 }
 
+/** E20d: el mismo texto que da el servidor. */
+function textoRangoInvalido(total: number, unidad: Unidad = 'pagina'): string {
+  return `El rango de ${nombreUnidad(unidad, true)} no es válido: este documento tiene ${contarUnidades(total, unidad)}.`;
+}
+
 /** E10e y E10g (5.11, 5.12, RB-48, RB-64): alcance, tipo, cuántas preguntas y dificultad. La generación puede tardar hasta un par de minutos. */
 export function FormularioCuestionario({
   documento,
   capitulos,
   capituloInicial,
 }: {
-  documento: { id: string; paginas: number };
-  capitulos: ReadonlyArray<{ orden: number; nivel: number; titulo: string; etiquetaPaginas: string }>;
+  /** E20d: `unidad` (página por defecto) cambia las etiquetas: "Una sección", "Desde la diapositiva". */
+  documento: { id: string; paginas: number; unidad?: Unidad };
+  capitulos: ReadonlyArray<{ orden: number; nivel: number; titulo: string; etiquetaPaginas: string; tipo?: TipoGrupo }>;
   capituloInicial?: number | undefined;
 }) {
   const router = useRouter();
@@ -67,7 +73,10 @@ export function FormularioCuestionario({
   const [listo, setListo] = useState(false);
   const [error, setError] = useState('');
 
-  const mensajeRango = `El rango de páginas no es válido: este documento tiene ${documento.paginas} páginas.`;
+  const unidad = documento.unidad ?? 'pagina';
+  const grupo = capitulos[0]?.tipo ?? grupoDeUnidad(unidad);
+  const mensajeRango = textoRangoInvalido(documento.paginas, unidad);
+  const palabraUnidad = nombreUnidad(unidad);
   const errorRango = alcance === 'paginas' && !rangoValido(Number(desde), Number(hasta), documento.paginas) ? mensajeRango : '';
 
   async function crear(evento: FormEvent) {
@@ -104,8 +113,8 @@ export function FormularioCuestionario({
 
   const alcances: Array<{ valor: Alcance; texto: string }> = [
     { valor: 'documento', texto: 'Todo el documento' },
-    ...(capitulos.length > 0 ? [{ valor: 'capitulo' as const, texto: 'Un capítulo' }] : []),
-    { valor: 'paginas', texto: 'Un rango de páginas' },
+    ...(capitulos.length > 0 ? [{ valor: 'capitulo' as const, texto: `${grupo === 'capitulo' ? 'Un' : 'Una'} ${nombreGrupo(grupo)}` }] : []),
+    { valor: 'paginas', texto: `Un rango de ${nombreUnidad(unidad, true)}` },
   ];
 
   // E20c-1 (RB-79): crear un cuestionario usa la IA.
@@ -116,16 +125,16 @@ export function FormularioCuestionario({
       {alcance === 'capitulo' && (
         <Selector
           id="cuestionario-capitulo"
-          etiqueta="Capítulo"
+          etiqueta={nombreGrupo(grupo, false, true)}
           value={capitulo}
           onChange={(e) => setCapitulo(e.target.value)}
-          opciones={capitulos.map((c) => ({ valor: String(c.orden), texto: `${c.nivel === 2 ? '— ' : ''}${c.titulo} (${citaDePaginas(c.etiquetaPaginas)})` }))}
+          opciones={capitulos.map((c) => ({ valor: String(c.orden), texto: `${c.nivel === 2 ? '— ' : ''}${c.titulo} (${citaDeUnidades(c.etiquetaPaginas, unidadDeGrupo(c.tipo ?? grupo))})` }))}
         />
       )}
       {alcance === 'paginas' && (
         <div className="grid grid-cols-2 gap-3">
-          <Campo id="cuestionario-desde" etiqueta="Desde la página" type="number" inputMode="numeric" min={1} max={documento.paginas} value={desde} onChange={(e) => setDesde(e.target.value)} error={errorRango} />
-          <Campo id="cuestionario-hasta" etiqueta="Hasta la página" type="number" inputMode="numeric" min={1} max={documento.paginas} value={hasta} onChange={(e) => setHasta(e.target.value)} />
+          <Campo id="cuestionario-desde" etiqueta={`Desde la ${palabraUnidad}`} type="number" inputMode="numeric" min={1} max={documento.paginas} value={desde} onChange={(e) => setDesde(e.target.value)} error={errorRango} />
+          <Campo id="cuestionario-hasta" etiqueta={`Hasta la ${palabraUnidad}`} type="number" inputMode="numeric" min={1} max={documento.paginas} value={hasta} onChange={(e) => setHasta(e.target.value)} />
         </div>
       )}
       <Opciones leyenda="Tipo de preguntas" nombre="tipo" valor={tipo} opciones={ORDEN_FORMULARIO.map((t) => ({ valor: t, texto: NOMBRE_TIPO[t] }))} alCambiar={setTipo} />

@@ -8,10 +8,10 @@ vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: refrescar }) })
 
 const DOC = '22222222-2222-4222-8222-222222222222';
 const CAPS = [
-  { orden: 0, nivel: 1, titulo: 'Capítulo 1. Energía', paginaInicio: 1, paginaFin: 10, etiquetaPaginas: '1–10', enTareas: false },
-  { orden: 1, nivel: 2, titulo: '1.1 Calor', paginaInicio: 3, paginaFin: 5, etiquetaPaginas: '3–5', enTareas: false },
-  { orden: 2, nivel: 1, titulo: 'Capítulo 2. Ecosistemas', paginaInicio: 11, paginaFin: 20, etiquetaPaginas: '11–20', enTareas: true },
-  { orden: 3, nivel: 1, titulo: 'Capítulo 3. Células', paginaInicio: 21, paginaFin: 30, etiquetaPaginas: '21–30', enTareas: false },
+  { orden: 0, nivel: 1, titulo: 'Capítulo 1. Energía', paginaInicio: 1, paginaFin: 10, etiquetaPaginas: '1–10', enTareas: false, tipo: 'capitulo' as const },
+  { orden: 1, nivel: 2, titulo: '1.1 Calor', paginaInicio: 3, paginaFin: 5, etiquetaPaginas: '3–5', enTareas: false, tipo: 'capitulo' as const },
+  { orden: 2, nivel: 1, titulo: 'Capítulo 2. Ecosistemas', paginaInicio: 11, paginaFin: 20, etiquetaPaginas: '11–20', enTareas: true, tipo: 'capitulo' as const },
+  { orden: 3, nivel: 1, titulo: 'Capítulo 3. Células', paginaInicio: 21, paginaFin: 30, etiquetaPaginas: '21–30', enTareas: false, tipo: 'capitulo' as const },
 ];
 const ok = (datos: unknown, status = 200) => new Response(JSON.stringify({ ok: true, datos }), { status });
 const VISTA = {

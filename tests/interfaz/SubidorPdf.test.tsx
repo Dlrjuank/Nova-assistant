@@ -16,8 +16,8 @@ function archivoDe(nombre: string, bytes = 10, tipo = 'application/pdf'): File {
   return archivo;
 }
 const elegir = (archivo: File) =>
-  fireEvent.change(screen.getByLabelText('Archivo PDF'), { target: { files: [archivo] } });
-const botonIndexar = () => screen.getByRole('button', { name: 'Indexar PDF' });
+  fireEvent.change(screen.getByLabelText('Archivo'), { target: { files: [archivo] } });
+const botonIndexar = () => screen.getByRole('button', { name: 'Indexar' });
 
 describe('SubidorPdf', () => {
   beforeEach(() => {
@@ -49,10 +49,14 @@ describe('SubidorPdf', () => {
     expect(botonIndexar().hasAttribute('disabled')).toBe(false);
   });
 
-  it('un archivo que no es PDF se rechaza', () => {
+  it('E20d: un archivo que no es PDF, Markdown ni texto se rechaza; un .txt y un .md se aceptan', () => {
     render(<SubidorPdf />);
     elegir(archivoDe('notas.txt', 10, 'text/plain'));
-    expect(screen.getByText('El archivo no es un PDF válido.')).toBeTruthy();
+    expect(botonIndexar().hasAttribute('disabled')).toBe(false);
+    elegir(archivoDe('apuntes.md', 10, ''));
+    expect(botonIndexar().hasAttribute('disabled')).toBe(false);
+    elegir(archivoDe('foto.heic', 10, 'image/heic'));
+    expect(screen.getByText('Ese tipo de archivo no se admite. Sube un PDF, un Markdown (.md) o un texto (.txt).')).toBeTruthy();
     expect(botonIndexar().hasAttribute('disabled')).toBe(true);
   });
 

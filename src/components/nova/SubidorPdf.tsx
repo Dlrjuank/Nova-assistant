@@ -14,6 +14,7 @@ import { validarTamanoPdf } from '@/lib/reglas/documento';
 import { ErrorDeNegocio, MENSAJES } from '@/lib/reglas/errores';
 import { esEtapaServidor, leerLineas, TIPO_ETAPAS, type EtapaIndexacion } from '@/lib/reglas/etapasIndexacion';
 import { RequiereIa } from '@/components/nova/ia/RequiereIa';
+import { ACEPTA_ARCHIVOS, extensionDe, mimeDeArchivo, tipoDeArchivo } from '@/lib/reglas/tiposDocumento';
 
 /** Cuánto se ve "Indexado" en el botón antes de volver (E20b, botones con estados). */
 const LISTO_MS = 2500;
@@ -55,13 +56,9 @@ function tamano(bytes: number): string {
   return bytes >= 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1).replace('.', ',')} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
 }
 
-function esPdf(archivo: File): boolean {
-  return archivo.type === 'application/pdf' || archivo.name.toLowerCase().endsWith('.pdf');
-}
-
-/** Valida en el navegador; el servidor repite el límite de tamaño sobre el archivo real (RN-01). */
+/** Valida en el navegador; el servidor repite el límite de tamaño sobre el archivo real (RN-01). E20d: por extensión. */
 function validarArchivo(archivo: File): string | null {
-  if (!esPdf(archivo)) return MENSAJES.PDF_INVALIDO;
+  if (!tipoDeArchivo(archivo.name)) return MENSAJES.TIPO_NO_ADMITIDO;
   try {
     validarTamanoPdf(archivo.size);
     return null;
@@ -70,11 +67,12 @@ function validarArchivo(archivo: File): string | null {
   }
 }
 
-/** Blob rechaza algunos caracteres en la ruta. El nombre original se conserva aparte para mostrarlo. */
+/** Blob rechaza algunos caracteres en la ruta. El nombre original se conserva aparte para mostrarlo. E20d: con su extensión. */
 function rutaEnBlob(nombre: string): string {
-  const sinTildes = nombre.replace(/\.pdf$/i, '').normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const extension = extensionDe(nombre) || 'pdf';
+  const sinTildes = nombre.replace(/\.[a-z0-9]{1,5}$/i, '').normalize('NFD').replace(/[̀-ͯ]/g, '');
   const base = sinTildes.replace(/[^a-zA-Z0-9_-]+/g, '-');
-  return `${base.replace(/^-+|-+$/g, '').slice(0, 100) || 'documento'}.pdf`;
+  return `${base.replace(/^-+|-+$/g, '').slice(0, 100) || 'documento'}.${extension}`;
 }
 
 /** E13 (B-21): con una materia elegida, su nombre es la categoría del documento. */
@@ -130,12 +128,12 @@ export function SubidorPdf({ materias = [] }: { materias?: ReadonlyArray<{ id: s
       const blob = await upload(rutaEnBlob(archivo.name), archivo, {
         access: 'public',
         handleUploadUrl: '/api/nova/documentos/subida',
-        contentType: 'application/pdf',
+        contentType: mimeDeArchivo(archivo.name) ?? 'application/pdf',
         onUploadProgress: ({ percentage }) => setProgreso(Math.round(percentage)),
       });
       urlBlob = blob.url;
     } catch (causa) {
-      console.error('No se pudo subir el PDF:', causa);
+      console.error('No se pudo subir el documento:', causa);
       setError('No se pudo subir el archivo. Intenta de nuevo.');
       setFallo(true);
       setTrabajando(false);
@@ -189,7 +187,7 @@ export function SubidorPdf({ materias = [] }: { materias?: ReadonlyArray<{ id: s
     <form onSubmit={enviar} className="flex flex-col gap-5">
       <div className="flex flex-col gap-1.5">
         <label htmlFor="archivo" className="text-sm font-medium text-texto">
-          Archivo PDF
+          Archivo
         </label>
         {/* E20b (commit 6): una zona para tocar o arrastrar el PDF; el campo de archivo la cubre entera, así el clic,
             el teclado y soltar un archivo son los del navegador. */}
@@ -207,8 +205,8 @@ export function SubidorPdf({ materias = [] }: { materias?: ReadonlyArray<{ id: s
           <p aria-hidden="true" className="text-sm font-semibold text-texto">
             {archivo ? archivo.name : (
               <>
-                <span className="pointer-fine:hidden">Toca para elegir un PDF</span>
-                <span className="hidden pointer-fine:inline">Elige un PDF o arrástralo aquí</span>
+                <span className="pointer-fine:hidden">Toca para elegir un archivo</span>
+                <span className="hidden pointer-fine:inline">Elige un archivo o arrástralo aquí</span>
               </>
             )}
           </p>
@@ -219,7 +217,7 @@ export function SubidorPdf({ materias = [] }: { materias?: ReadonlyArray<{ id: s
             id="archivo"
             ref={entrada}
             type="file"
-            accept="application/pdf,.pdf"
+            accept={ACEPTA_ARCHIVOS}
             disabled={ocupado}
             aria-describedby="archivo-detalle"
             onChange={(e) => elegir(e.target.files?.[0] ?? null)}
@@ -254,7 +252,7 @@ export function SubidorPdf({ materias = [] }: { materias?: ReadonlyArray<{ id: s
         <div className="nova-aparecer flex flex-col gap-2">
           <EtapasIndexacion actual={etapa} terminado={terminado} fallo={fallo} avance={etapa === 'subir' ? progreso : undefined} />
           {trabajando && etapa !== 'subir' && (
-            <p className="text-xs text-texto-suave">Si tiene muchas páginas, se hará por partes y verás el avance en esta pantalla.</p>
+            <p className="text-xs text-texto-suave">Si es largo, se hará por partes y verás el avance en esta pantalla.</p>
           )}
         </div>
       )}
@@ -268,7 +266,7 @@ export function SubidorPdf({ materias = [] }: { materias?: ReadonlyArray<{ id: s
 
       <div className="flex flex-wrap gap-3">
         <Boton type="submit" cargando={ocupado} listo={listo} textoListo="Indexado" disabled={!archivo}>
-          {ocupado ? 'Indexando…' : 'Indexar PDF'}
+          {ocupado ? 'Indexando…' : 'Indexar'}
         </Boton>
       </div>
     </form>

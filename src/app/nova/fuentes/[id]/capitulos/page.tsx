@@ -7,11 +7,16 @@ import { EstadoVacio } from '@/components/ui/EstadoVacio';
 import { capitulosDeDocumento, exigirSesion, listarCategorias, type CapitulosDocumento } from '@/lib/dataService';
 import { ErrorDeNegocio, MENSAJES } from '@/lib/reglas/errores';
 import { MENSAJE_REINDEXAR, MENSAJE_SIN_CAPITULOS } from '@/lib/reglas/libros';
+import { contarUnidades } from '@/lib/reglas/tiposDocumento';
+import { SelloDocumento } from '@/components/nova/SelloDocumento';
 import { esquemaIdDocumento } from '@/lib/validacion/esquemas';
 
 export const dynamic = 'force-dynamic';
 
-/** E10b (PLAN_AMPLIACION 5.9, RB-37): los capítulos de un documento, con sus páginas. E10d: plan de lectura (RB-42). */
+/**
+ * E10b (PLAN_AMPLIACION 5.9, RB-37): los capítulos de un documento, con sus páginas. E10d: plan de lectura (RB-42).
+ * E20d: "Ver contenido": la estructura de cada tipo (capítulos y páginas, secciones, diapositivas o partes).
+ */
 export default async function CapitulosPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const sesion = await exigirSesion();
@@ -35,7 +40,7 @@ export default async function CapitulosPage({ params }: { params: Promise<{ id: 
   if (!datos) {
     return (
       <>
-        <EncabezadoPantalla titulo="Capítulos" />
+        <EncabezadoPantalla titulo="Contenido" />
         {volver}
         <EstadoVacio titulo={MENSAJES.DOCUMENTO_NO_ENCONTRADO} descripcion="Puede que ya lo hayas eliminado." />
       </>
@@ -47,7 +52,16 @@ export default async function CapitulosPage({ params }: { params: Promise<{ id: 
   const categorias = capitulos.length > 0 ? await listarCategorias(sesion.id) : [];
   return (
     <>
-      <EncabezadoPantalla titulo="Capítulos" subtitulo={<span className="break-all">{documento.nombreArchivo}{documento.paginas ? ` · ${documento.paginas} páginas` : ''}</span>} />
+      <EncabezadoPantalla
+        titulo="Contenido"
+        subtitulo={
+          <span className="inline-flex items-center gap-2 break-all">
+            <SelloDocumento tipo={documento.tipo ?? 'pdf'} />
+            {documento.nombreArchivo}
+            {documento.paginas ? ` · ${contarUnidades(documento.paginas, documento.unidad ?? 'pagina')}` : ''}
+          </span>
+        }
+      />
       <div className="flex flex-wrap items-center justify-between gap-3">
         {volver}
         {!sinPaginas && (

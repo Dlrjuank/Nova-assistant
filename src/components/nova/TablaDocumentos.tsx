@@ -5,21 +5,19 @@ import { claseBoton } from '@/components/ui/Boton';
 import type { Documento } from '@/lib/dataService';
 import { formatearFecha } from '@/lib/formato';
 import { MENSAJE_REINDEXAR } from '@/lib/reglas/libros';
+import { contarUnidades } from '@/lib/reglas/tiposDocumento';
+import { SelloDocumento } from './SelloDocumento';
 
-const COLUMNAS = ['Nombre', 'Categoría', 'Páginas', 'Fragmentos', 'Indexado', 'Acciones'];
+const COLUMNAS = ['Nombre', 'Categoría', 'Contenido', 'Fragmentos', 'Indexado', 'Acciones'];
 
 /** E10b: mientras se indexa por partes se ve el avance (RB-38); un documento anterior avisa que le faltan páginas (RB-36). */
 function Estado({ d }: { d: Documento }) {
   return <>{d.progreso === null || d.progreso === undefined ? d.numFragmentos : `Indexando… ${d.progreso} %`}</>;
 }
 
-/** E20b (commit 6): el sello "PDF" de cada documento, como en el prototipo. */
-function SelloPdf() {
-  return (
-    <span aria-hidden="true" data-sello-pdf className="grid size-9 shrink-0 place-items-center rounded-lg bg-acento-suave font-mono text-[0.62rem] font-bold tracking-wider text-acento">
-      PDF
-    </span>
-  );
+/** E20d: "12 páginas", "5 secciones", "8 diapositivas"; los documentos anteriores a E10b no saben sus páginas. */
+function Contenido({ d }: { d: Documento }) {
+  return <>{d.paginas == null ? '—' : contarUnidades(d.paginas, d.unidad ?? 'pagina')}</>;
 }
 
 function Nota({ d }: { d: Documento }) {
@@ -31,8 +29,8 @@ function Acciones({ d }: { d: Documento }) {
   return (
     <div className="flex flex-wrap items-center gap-2 sm:min-w-56">
       {d.paginas != null && d.progreso == null && (
-        <Link href={`/nova/fuentes/${d.id}/capitulos`} prefetch={false} aria-label={`Ver capítulos de ${d.nombreArchivo}`} className={`${claseBoton('secundario')} min-h-9 py-1.5`}>
-          Ver capítulos
+        <Link href={`/nova/fuentes/${d.id}/capitulos`} prefetch={false} aria-label={`Ver contenido de ${d.nombreArchivo}`} className={`${claseBoton('secundario')} min-h-9 py-1.5`}>
+          Ver contenido
         </Link>
       )}
       {d.paginas != null && d.progreso == null && (
@@ -77,7 +75,7 @@ export function TablaDocumentos({ documentos }: { documentos: Documento[] }) {
               <tr key={d.id}>
                 <th scope="row" className="min-w-56 px-4 py-3 font-medium text-texto">
                   <div className="flex items-start gap-3">
-                    <SelloPdf />
+                    <SelloDocumento tipo={d.tipo ?? 'pdf'} />
                     <div className="min-w-0 break-all">
                       {d.nombreArchivo}
                       <Nota d={d} />
@@ -87,7 +85,9 @@ export function TablaDocumentos({ documentos }: { documentos: Documento[] }) {
                 <td className="px-4 py-3 text-texto-suave">
                   <Categoria d={d} />
                 </td>
-                <td className="px-4 py-3 text-texto-suave">{d.paginas ?? '—'}</td>
+                <td className="whitespace-nowrap px-4 py-3 text-texto-suave">
+                  <Contenido d={d} />
+                </td>
                 <td className="whitespace-nowrap px-4 py-3 text-texto-suave">
                   <Estado d={d} />
                 </td>
@@ -105,7 +105,7 @@ export function TablaDocumentos({ documentos }: { documentos: Documento[] }) {
         {documentos.map((d) => (
           <li key={d.id} className="rounded-xl border border-borde bg-superficie p-4">
             <div className="flex items-start gap-3">
-              <SelloPdf />
+              <SelloDocumento tipo={d.tipo ?? 'pdf'} />
               <div className="min-w-0">
                 <p className="break-all font-semibold text-texto">{d.nombreArchivo}</p>
                 <Nota d={d} />
@@ -116,8 +116,10 @@ export function TablaDocumentos({ documentos }: { documentos: Documento[] }) {
               <dd>
                 <Categoria d={d} />
               </dd>
-              <dt className="text-texto-suave">Páginas</dt>
-              <dd>{d.paginas ?? '—'}</dd>
+              <dt className="text-texto-suave">Contenido</dt>
+              <dd>
+                <Contenido d={d} />
+              </dd>
               <dt className="text-texto-suave">Fragmentos</dt>
               <dd>
                 <Estado d={d} />

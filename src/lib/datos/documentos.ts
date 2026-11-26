@@ -4,6 +4,8 @@ import { CATEGORIA_POR_DEFECTO, INDEXACION_LOTE, INDEXACION_PRESUPUESTO_MS, LIMI
 import { aLiteralVector, conTransaccion, consultar } from '@/lib/db/conexion';
 import { llm } from '@/lib/llm/gemini';
 import { extraerPdf } from '@/lib/pdf/extraer';
+import { seccionesMarkdown, partesDeTexto, decodificarTexto } from '@/lib/lectores/texto';
+import { EXTENSIONES_ADMITIDAS, extensionDe, tipoDeArchivo, TIPOS_MIME_ADMITIDOS, type EstructuraDocumento, type TipoDocumento } from '@/lib/reglas/tiposDocumento';
 import { validarTamanoPdf, validarTextoExtraido } from '@/lib/reglas/documento';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
 import type { EtapaServidor } from '@/lib/reglas/etapasIndexacion';
@@ -21,9 +23,10 @@ export async function emitirTokenSubida(cuerpo: HandleUploadBody, peticion: Requ
     body: cuerpo,
     request: peticion,
     onBeforeGenerateToken: async (ruta) => {
-      if (!ruta.toLowerCase().endsWith('.pdf')) throw new ErrorDeNegocio('PDF_INVALIDO');
+      // E20d: PDF, Markdown y texto (E20d-2 suma Word y PowerPoint).
+      if (!EXTENSIONES_ADMITIDAS.includes(extensionDe(ruta))) throw new ErrorDeNegocio('TIPO_NO_ADMITIDO');
       return {
-        allowedContentTypes: ['application/pdf'],
+        allowedContentTypes: TIPOS_MIME_ADMITIDOS,
         maximumSizeInBytes: PDF_MAX_BYTES,
         addRandomSuffix: true,
       };
@@ -32,7 +35,7 @@ export async function emitirTokenSubida(cuerpo: HandleUploadBody, peticion: Requ
 }
 
 /** Descarga el Blob cortando en cuanto supera el límite, para no cargar en memoria un archivo enorme (RN-01). */
-async function descargarPdf(urlBlob: string): Promise<Uint8Array> {
+async function descargarArchivo(urlBlob: string): Promise<Uint8Array> {
   const respuesta = await fetch(urlBlob, { redirect: 'error' });
   if (!respuesta.ok || !respuesta.body) throw new ErrorDeNegocio('PDF_INVALIDO');
 
@@ -139,6 +142,19 @@ async function avanzarIndexacion(
   }
 }
 
+/** E20d: el texto de cada unidad y sus grupos, según el tipo. */
+async function leerEstructura(tipo: TipoDocumento, contenido: Uint8Array): Promise<EstructuraDocumento> {
+  if (tipo === 'md') return seccionesMarkdown(decodificarTexto(contenido));
+  if (tipo === 'txt') return partesDeTexto(decodificarTexto(contenido));
+  const extraido = await extraerPdf(contenido);
+  // Postgres no admite el carácter NUL en columnas de texto y algunos PDF lo incluyen.
+  const paginas = extraido.paginas.map((p) => p.replaceAll('\u0000', ' '));
+  validarPaginas(paginas.length); // RB-38
+  validarTextoExtraido(paginas.join(' '));
+  const capitulos = detectarCapitulos(paginas, extraido.indice, extraido.etiquetas); // RB-37
+  return { unidad: 'pagina', unidades: paginas, etiquetas: extraido.etiquetas, grupos: capitulos.map((c) => ({ ...c, tipo: 'capitulo' as const })) };
+}
+
 /**
  * Valida, fragmenta por páginas y empieza a indexar un PDF ya descargado. Los libros largos siguen por partes
  * con continuarIndexacion (RB-38). Se exporta para los scripts, que indexan sin pasar por Blob; dataService no lo expone.
@@ -158,30 +174,28 @@ export async function indexarContenido(
     categoria = materia.nombre;
   }
   validarTamanoPdf(contenido.length);
-  const extraido = await extraerPdf(contenido);
-  // Postgres no admite el carácter NUL en columnas de texto y algunos PDF lo incluyen.
-  const paginas = extraido.paginas.map((p) => p.replaceAll('\u0000', ' '));
-  validarPaginas(paginas.length); // RB-38
-  validarTextoExtraido(paginas.join(' '));
+  // E20d: el tipo sale de la extensión del nombre (la subida ya solo admite esas).
+  const tipo = tipoDeArchivo(d.nombreArchivo);
+  if (!tipo) throw new ErrorDeNegocio('TIPO_NO_ADMITIDO');
+  const { unidad, unidades: paginas, etiquetas, grupos: capitulos } = await leerEstructura(tipo, contenido);
 
   alEtapa('dividir');
-  const fragmentos = fragmentarPaginas(paginas, extraido.etiquetas);
-  const capitulos = detectarCapitulos(paginas, extraido.indice, extraido.etiquetas); // RB-37
+  const fragmentos = fragmentarPaginas(paginas, etiquetas);
 
   const documentoId = await conTransaccion(async (tx) => {
     const { rows } = await tx.query<{ id: string }>(
       `INSERT INTO documentos
-         (nombre_archivo, categoria, num_fragmentos, fecha_guardado, usuario_id, paginas, progreso, por_indexar, indexando_hasta, inicio_paginas, materia_id)
-       VALUES ($1, $2, 0, $3, $4, $5, 0, $6::jsonb, NOW() + make_interval(mins => $7), $8::int[], $9) RETURNING id`,
-      [d.nombreArchivo, categoria, hoyBogota(), usuarioId, paginas.length, JSON.stringify(fragmentos), LEASE_MINUTOS, inicioDePaginas(paginas), d.materiaId ?? null],
+         (nombre_archivo, categoria, num_fragmentos, fecha_guardado, usuario_id, paginas, progreso, por_indexar, indexando_hasta, inicio_paginas, materia_id, tipo, unidad)
+       VALUES ($1, $2, 0, $3, $4, $5, 0, $6::jsonb, NOW() + make_interval(mins => $7), $8::int[], $9, $10, $11) RETURNING id`,
+      [d.nombreArchivo, categoria, hoyBogota(), usuarioId, paginas.length, JSON.stringify(fragmentos), LEASE_MINUTOS, inicioDePaginas(paginas), d.materiaId ?? null, tipo, unidad],
     );
     const id = (rows[0] as { id: string }).id;
     if (capitulos.length > 0) {
       await tx.query(
-        `INSERT INTO capitulos (documento_id, usuario_id, orden, nivel, titulo, pagina_inicio, pagina_fin, etiqueta_paginas)
-         SELECT $1, $2, t.orden, t.nivel, t.titulo, t.inicio, t.fin, t.etiqueta
-         FROM unnest($3::smallint[], $4::smallint[], $5::text[], $6::smallint[], $7::smallint[], $8::text[])
-           AS t(orden, nivel, titulo, inicio, fin, etiqueta)`,
+        `INSERT INTO capitulos (documento_id, usuario_id, orden, nivel, titulo, pagina_inicio, pagina_fin, etiqueta_paginas, tipo)
+         SELECT $1, $2, t.orden, t.nivel, t.titulo, t.inicio, t.fin, t.etiqueta, t.tipo
+         FROM unnest($3::smallint[], $4::smallint[], $5::text[], $6::smallint[], $7::smallint[], $8::text[], $9::text[])
+           AS t(orden, nivel, titulo, inicio, fin, etiqueta, tipo)`,
         [
           id,
           usuarioId,
@@ -191,6 +205,7 @@ export async function indexarContenido(
           capitulos.map((c) => c.paginaInicio),
           capitulos.map((c) => c.paginaFin),
           capitulos.map((c) => c.etiquetaPaginas),
+          capitulos.map((c) => c.tipo),
         ],
       );
     }
@@ -279,13 +294,13 @@ export async function avanzarLibroEnSegundoPlano(): Promise<
 /** RB-37: los capítulos de un documento del usuario, en orden. */
 export async function capitulosDeDocumento(usuarioId: string, id: string): Promise<CapitulosDocumento> {
   const [documento] = await consultar<CapitulosDocumento['documento']>(
-    'SELECT id, nombre_archivo AS "nombreArchivo", paginas, categoria FROM documentos WHERE id = $1 AND usuario_id = $2',
+    'SELECT id, nombre_archivo AS "nombreArchivo", paginas, categoria, tipo, unidad FROM documentos WHERE id = $1 AND usuario_id = $2',
     [id, usuarioId],
   );
   if (!documento) throw new ErrorDeNegocio('DOCUMENTO_NO_ENCONTRADO');
   const capitulos = await consultar<Capitulo>(
     `SELECT orden, nivel, titulo, pagina_inicio AS "paginaInicio", pagina_fin AS "paginaFin", etiqueta_paginas AS "etiquetaPaginas",
-            tarea_id IS NOT NULL AS "enTareas"
+            tarea_id IS NOT NULL AS "enTareas", tipo
      FROM capitulos WHERE documento_id = $1 AND usuario_id = $2 ORDER BY orden`,
     [id, usuarioId],
   );
@@ -305,7 +320,7 @@ export async function indexarDocumento(usuarioId: string, d: {
 }, opciones: { alEtapa?: ((etapa: EtapaServidor) => void) | undefined } = {}): Promise<ResultadoIndexacion> {
   try {
     opciones.alEtapa?.('leer'); // E20b: etapas visibles (descargar y extraer el texto)
-    const contenido = await descargarPdf(d.urlBlob);
+    const contenido = await descargarArchivo(d.urlBlob);
     return await indexarContenido(usuarioId, contenido, d, { alEtapa: opciones.alEtapa });
   } finally {
     // Un fallo al borrar no invalida la indexación; queda en el registro para limpiarlo a mano.
@@ -324,6 +339,8 @@ export async function listarDocumentos(usuarioId: string): Promise<Documento[]> 
        fecha_guardado AS "fechaGuardado",
        paginas,
        progreso,
+       tipo,
+       unidad,
        (SELECT count(*)::int FROM capitulos c WHERE c.documento_id = documentos.id) AS "numCapitulos",
        (SELECT m.nombre FROM materias m WHERE m.id = documentos.materia_id AND m.usuario_id = documentos.usuario_id) AS materia
      FROM documentos

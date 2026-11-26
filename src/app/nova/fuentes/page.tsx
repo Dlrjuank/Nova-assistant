@@ -9,15 +9,16 @@ import { EstadoVacio } from '@/components/ui/EstadoVacio';
 import { Pestanas } from '@/components/ui/Pestanas';
 import { Tarjeta } from '@/components/ui/Tarjeta';
 import { exigirSesion, listarDocumentos, listarFuentesWeb, nombresMaterias } from '@/lib/dataService';
+import { esTipoDocumento, NOMBRE_TIPO, TIPOS_DOCUMENTO, type TipoDocumento } from '@/lib/reglas/tiposDocumento';
 
 export const dynamic = 'force-dynamic';
 
-const SUBTITULO_PDF = 'Los PDF que el asistente usa para responder.';
+const SUBTITULO_PDF = 'Los documentos que el asistente usa para responder.';
 const SUBTITULO_WEB = 'Las fuentes de Wikipedia que guardaste desde el Asistente. Las puedes consultar eligiendo «Fuentes web» en «Buscar en».';
 
 /** E10 y E10c2 (PLAN_AMPLIACION 5.5): Subir PDF y Fuentes guardadas. `?pestana=web`; cualquier otro valor, PDF. */
-export default async function FuentesPage({ searchParams }: { searchParams: Promise<{ pestana?: string | string[] }> }) {
-  const { pestana } = await searchParams;
+export default async function FuentesPage({ searchParams }: { searchParams: Promise<{ pestana?: string | string[]; tipo?: string | string[] }> }) {
+  const { pestana, tipo } = await searchParams;
   const esWeb = pestana === 'web';
 
   return (
@@ -26,11 +27,11 @@ export default async function FuentesPage({ searchParams }: { searchParams: Prom
       <Pestanas
         etiqueta="Tipo de fuente"
         pestanas={[
-          { href: '/nova/fuentes?pestana=pdf', texto: 'Subir PDF', activa: !esWeb },
+          { href: '/nova/fuentes?pestana=pdf', texto: 'Documentos', activa: !esWeb },
           { href: '/nova/fuentes?pestana=web', texto: 'Fuentes guardadas', activa: esWeb },
         ]}
       />
-      {esWeb ? <PestanaWeb /> : <PestanaPdf />}
+      {esWeb ? <PestanaWeb /> : <PestanaPdf tipo={esTipoDocumento(tipo) ? tipo : null} />}
     </>
   );
 }
@@ -41,18 +42,22 @@ async function PestanaWeb() {
   return <FuentesGuardadas fuentes={fuentes} />;
 }
 
-async function PestanaPdf() {
+/** E20d: `tipo` filtra la lista con la fila de píldoras (solo los tipos que hay). */
+async function PestanaPdf({ tipo }: { tipo: TipoDocumento | null }) {
   // El layout ya exige sesión con acceso; aquí hace falta el id para ver solo sus documentos (RB-01).
   const { id } = await exigirSesion();
   const [documentos, materias] = await Promise.all([listarDocumentos(id), nombresMaterias(id)]);
+  const tipos = TIPOS_DOCUMENTO.filter((t) => documentos.some((d) => d.tipo === t));
+  const elegido = tipo && tipos.includes(tipo) ? tipo : null;
+  const visibles = elegido ? documentos.filter((d) => d.tipo === elegido) : documentos;
   const pendientes = documentos.flatMap((d) => (d.progreso == null ? [] : [{ id: d.id, nombreArchivo: d.nombreArchivo, progreso: d.progreso }]));
 
   return (
     <>
       <Tarjeta className="flex max-w-xl flex-col gap-4">
         <div className="flex flex-col gap-1">
-          <h2 className="text-base font-semibold text-texto">Indexar PDF</h2>
-          <p className="text-sm text-texto-suave">Solo se admiten PDF con texto seleccionable (no escaneados), de hasta 15 MB y 800 páginas.</p>
+          <h2 className="text-base font-semibold text-texto">Indexar un documento</h2>
+          <p className="text-sm text-texto-suave">PDF con texto seleccionable (no escaneados), Markdown (.md) o texto (.txt), de hasta 15 MB.</p>
         </div>
         <SubidorPdf materias={materias} />
       </Tarjeta>
@@ -71,10 +76,19 @@ async function PestanaPdf() {
             </Link>
           )}
         </div>
+        {tipos.length > 1 && (
+          <Pestanas
+            etiqueta="Filtrar por tipo"
+            pestanas={[
+              { href: '/nova/fuentes?pestana=pdf', texto: 'Todos', activa: elegido === null },
+              ...tipos.map((t) => ({ href: `/nova/fuentes?pestana=pdf&tipo=${t}`, texto: NOMBRE_TIPO[t], activa: elegido === t })),
+            ]}
+          />
+        )}
         {documentos.length === 0 ? (
-          <EstadoVacio titulo="Aún no hay documentos" descripcion="Indexa un PDF para poder preguntarle al asistente." />
+          <EstadoVacio titulo="Aún no hay documentos" descripcion="Indexa un documento para poder preguntarle al asistente." />
         ) : (
-          <TablaDocumentos documentos={documentos} />
+          <TablaDocumentos documentos={visibles} />
         )}
       </section>
     </>

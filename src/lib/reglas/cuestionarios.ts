@@ -1,3 +1,4 @@
+import { grupoDeUnidad, nombreGrupo, nombreUnidad, type Unidad } from './tiposDocumento';
 import { FRAGMENTO_PALABRAS, FRAGMENTO_SOLAPAMIENTO } from '@/lib/config/nova';
 import { armarFraseCompletar, esTipoPregunta, TIPOS_PREGUNTA, type TipoPregunta } from './tiposPregunta';
 
@@ -288,8 +289,9 @@ export function formatearPuntaje(centesimas: number): string {
 }
 
 /** "Todo el documento", el título del capítulo o "Páginas 2–4". */
-export function textoAlcance(alcance: 'documento' | 'capitulo' | 'paginas', capitulo: string | null, desde: number | null, hasta: number | null): string {
-  if (alcance === 'capitulo') return capitulo ?? 'Un capítulo';
-  if (alcance === 'paginas') return desde === hasta ? `Página ${desde}` : `Páginas ${desde}–${hasta}`;
+export function textoAlcance(alcance: 'documento' | 'capitulo' | 'paginas', capitulo: string | null, desde: number | null, hasta: number | null, unidad: Unidad = 'pagina'): string {
+  if (alcance === 'capitulo') return capitulo ?? `${unidad === 'pagina' ? 'Un' : 'Una'} ${nombreGrupo(grupoDeUnidad(unidad))}`;
+  // E20d: "Diapositivas 3–5", "Parte 2".
+  if (alcance === 'paginas') return desde === hasta ? `${nombreUnidad(unidad, false, true)} ${desde}` : `${nombreUnidad(unidad, true, true)} ${desde}–${hasta}`;
   return 'Todo el documento';
 }

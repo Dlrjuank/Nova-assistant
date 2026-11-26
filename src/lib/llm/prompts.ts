@@ -1,4 +1,4 @@
-import { citaDePaginas } from '@/lib/reglas/libros';
+import { citaDeUnidades, type Unidad } from '@/lib/reglas/tiposDocumento';
 
 export const SIN_RESPUESTA = 'No encontré esto en tus documentos';
 
@@ -77,6 +77,9 @@ export interface FragmentoContexto {
   contenido: string;
   /** RB-36: "45" o "45–46"; sin páginas en documentos anteriores a E10b. */
   etiqueta_paginas?: string | null;
+  /** E20d: la unidad (página por defecto) y el título de la sección. */
+  unidad?: Unidad | null;
+  titulo_unidad?: string | null;
 }
 
 /** Un mensaje previo de la conversación que recibe el modelo (RN-21). */
@@ -92,9 +95,12 @@ export interface TareaContexto {
   texto: string;
 }
 
-export function etiquetaFragmento(f: Pick<FragmentoContexto, 'nombre_archivo' | 'numero' | 'etiqueta_paginas'>): string {
+export function etiquetaFragmento(f: Pick<FragmentoContexto, 'nombre_archivo' | 'numero' | 'etiqueta_paginas' | 'unidad' | 'titulo_unidad'>): string {
   // RB-36: con páginas se cita la página; los documentos anteriores a E10b siguen con el número de fragmento.
-  return f.etiqueta_paginas ? `${f.nombre_archivo} · ${citaDePaginas(f.etiqueta_paginas)}` : `${f.nombre_archivo} · fragmento ${f.numero}`;
+  // E20d: los demás tipos, con su unidad ("diapositiva 7", "parte 3") o el título de la sección.
+  return f.etiqueta_paginas
+    ? `${f.nombre_archivo} · ${citaDeUnidades(f.etiqueta_paginas, f.unidad ?? 'pagina', f.titulo_unidad)}`
+    : `${f.nombre_archivo} · fragmento ${f.numero}`;
 }
 
 /** Etiqueta interna de la tarea en el contexto: el servidor la quita de la respuesta y la fuente lleva el título. */

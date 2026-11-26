@@ -28,6 +28,7 @@ export type CodigoError =
   | 'PDF_INVALIDO'
   | 'PDF_SIN_TEXTO'
   | 'PDF_MUY_LARGO'
+  | 'TIPO_NO_ADMITIDO'
   | 'CONSULTA_MUY_CORTA'
   | 'SIN_DOCUMENTOS'
   | 'ERROR_LLM'
@@ -139,6 +140,7 @@ export const MENSAJES: Record<CodigoError, string> = {
   CONSULTA_MUY_CORTA: 'La instrucción es demasiado corta',
   SIN_DOCUMENTOS: 'Aún no hay documentos indexados. Indexa un PDF antes de preguntar.',
   PDF_MUY_LARGO: 'El PDF tiene demasiadas páginas; el máximo es 800.',
+  TIPO_NO_ADMITIDO: 'Ese tipo de archivo no se admite. Sube un PDF, un Markdown (.md) o un texto (.txt).', // E20d
   ERROR_LLM: 'No se pudo obtener respuesta del asistente. Intenta de nuevo.',
   TAREA_NO_ENCONTRADA: 'La tarea no existe.',
   TAREA_YA_COMPLETADA: 'La tarea ya está completada.',
@@ -260,6 +262,7 @@ export const ESTADO_HTTP: Record<CodigoError, number> = {
   CONSULTA_MUY_CORTA: 422,
   SIN_DOCUMENTOS: 409,
   PDF_MUY_LARGO: 422,
+  TIPO_NO_ADMITIDO: 422,
   ERROR_LLM: 502,
   TAREA_NO_ENCONTRADA: 404,
   TAREA_YA_COMPLETADA: 409,

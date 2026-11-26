@@ -5,6 +5,7 @@ import { hoyBogota } from '@/lib/reglas/fechas';
 import { numerarCapitulos, PRIORIDAD_PLAN_LECTURA, repartirFechas, tituloTareaCapitulo, type ModoPlan } from '@/lib/reglas/planLectura';
 import { resolverCategoria } from './categorias';
 import type { PlanLectura, ResultadoPlanLectura } from './tipos';
+import type { TipoGrupo } from '@/lib/reglas/tiposDocumento';
 
 export type DatosPlanLectura = ModoPlan & { capitulos: number[]; categoria?: string | undefined };
 
@@ -17,6 +18,7 @@ interface FilaCapitulo {
   titulo: string;
   etiqueta_paginas: string;
   en_tareas: boolean;
+  tipo: TipoGrupo;
 }
 
 /** RB-42: el mismo cálculo para la vista previa y para confirmar; al confirmar, con las filas bloqueadas. */
@@ -24,7 +26,7 @@ async function armarPlan(consulta: Consulta, usuarioId: string, documentoId: str
   const [documento] = await consulta<{ categoria: string }>('SELECT categoria FROM documentos WHERE id = $1 AND usuario_id = $2', [documentoId, usuarioId]);
   if (!documento) throw new ErrorDeNegocio('DOCUMENTO_NO_ENCONTRADO'); // RB-01: el ajeno es inexistente
   const filas = await consulta<FilaCapitulo>(
-    `SELECT id, orden, nivel, titulo, etiqueta_paginas, tarea_id IS NOT NULL AS en_tareas
+    `SELECT id, orden, nivel, titulo, etiqueta_paginas, tarea_id IS NOT NULL AS en_tareas, tipo
      FROM capitulos WHERE documento_id = $1 AND usuario_id = $2 ORDER BY orden${bloquear ? ' FOR UPDATE' : ''}`,
     [documentoId, usuarioId],
   );
@@ -35,7 +37,7 @@ async function armarPlan(consulta: Consulta, usuarioId: string, documentoId: str
 
   const pendientes = elegidos.filter((c) => !c.en_tareas);
   const fechas = repartirFechas(pendientes.length, datos);
-  const titulo = (c: FilaCapitulo) => tituloTareaCapitulo(numeros.get(c.orden) as number, c.titulo, c.etiqueta_paginas);
+  const titulo = (c: FilaCapitulo) => tituloTareaCapitulo(numeros.get(c.orden) as number, c.titulo, c.etiqueta_paginas, 'Leer', c.tipo);
   return {
     categoria: datos.categoria?.trim() || documento.categoria || CATEGORIA_POR_DEFECTO,
     tareas: pendientes.map((c, i) => ({ capituloId: c.id, orden: c.orden, titulo: titulo(c), fechaLimite: fechas[i] as string })),

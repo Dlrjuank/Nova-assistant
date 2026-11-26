@@ -1039,6 +1039,15 @@ Guía de la clave (TAREA 1, revisada el 2026-11-25 en aistudio.google.com/docs/a
 - **"Buscar en", cuestionarios y plan de lectura:** elegir una sección o una diapositiva igual que hoy un capítulo o una página.
 - **Citas:** "Apuntes.docx · Unidad 2", "Clase3.pptx · diapositiva 7", "Notas.txt · parte 3", "Libro.pdf · p. 45 (escaneada)".
 
+**Cómo quedó E20d-1 (2026-11-26), decisiones de detalle:**
+- **Unidades sobre el modelo de páginas (M26):** `documentos.tipo` y `documentos.unidad` (`pagina`, `seccion`, `parte`, `diapositiva`), `capitulos.tipo` (`capitulo`, `seccion`, `parte`, `diapositiva`) y `fragmentos_pdf.ocr` (para E20d-3). `paginas`, `pagina_inicio`, `pagina_fin` y `etiqueta_paginas` cuentan la unidad; la etiqueta sigue siendo numérica ("3" o "3–4"), así "Buscar en", los cuestionarios por rango, el plan de lectura y las citas compactas sirven sin rehacerlos. Reglas en `src/lib/reglas/tiposDocumento.ts`; lectores en `src/lib/lectores/texto.ts`.
+- **Markdown:** secciones por encabezado de `#` a `###` (sin contar los bloques de código); se corta en los dos niveles más altos que use el archivo (nivel 1 y 2 de `capitulos`), los más bajos quedan dentro. Lo de antes del primer título es la sección "Inicio". Sin encabezados, se lee como texto (por partes). Los títulos pierden el formato en línea (énfasis, código, enlaces).
+- **Texto:** partes de hasta 1.500 palabras, cortadas antes del párrafo que las pasaría; un párrafo enorme se corta solo. UTF-8 y, si no lo es, Windows-1252 (Latin-1). Cada parte es un grupo "Parte N".
+- **Citas:** la sección por su título ("Apuntes.md · Unidad 2"; lo da `COLUMNAS_UNIDAD` en las consultas de fragmentos: la sección que empieza en la primera unidad del fragmento), "parte 3", "diapositiva 7"; los PDF siguen con "p. 45".
+- **Preguntas:** "sección 2", "parte 3" y "diapositiva 7" (en los documentos de esa unidad; con un PDF elegido siguen la consulta normal), "la sección sobre derivadas" por título; "página N" en un documento que no es PDF es su unidad N.
+- **Fuentes:** la pestaña "Subir PDF" pasa a "Documentos", la columna "Páginas" a "Contenido" ("3 secciones"), "Ver capítulos" a "Ver contenido" (misma ruta `/nova/fuentes/[id]/capitulos`), y cada documento lleva el sello de su tipo (`SelloDocumento`, colores de las categorías). El filtro por tipo (`?tipo=`) aparece con dos tipos o más. Otro archivo responde `TIPO_NO_ADMITIDO`.
+- **Cuestionarios y plan de lectura:** "Una sección", "Un rango de partes", "Desde la parte", "Secciones por semana"; la tarea de una sección, parte o diapositiva se titula "Leer: Derivadas".
+
 ### 3. Orden propuesto (un commit por paso, con la prueba del usuario entre uno y otro)
 
 1. **E20d-1:** M26 (con `db:respaldar` antes); Markdown y texto; sellos, filtro y "Ver contenido".
