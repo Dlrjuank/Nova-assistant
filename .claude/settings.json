@@ -1,0 +1,38 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc --noEmit)",
+      "Bash(npx tsc --noEmit *)",
+      "Bash(npx vitest run)",
+      "Bash(npx vitest run tests/*)",
+      "Bash(npx eslint .)",
+      "Bash(npx eslint src)",
+      "Bash(npx eslint src tests)",
+      "Bash(npm run lint)",
+      "Bash(npm run type-check)",
+      "Bash(npm run db:verificar)",
+      "Bash(npx vercel ls *)",
+      "Bash(npx vercel env ls *)",
+      "Bash(npx vercel logs *)",
+      "mcp__2c16e03e-4458-46de-89d1-3f1545129585__resolve-library-id",
+      "mcp__2c16e03e-4458-46de-89d1-3f1545129585__query-docs",
+      "mcp__a52a13b8-1081-402d-9e00-1ab45c1f8231__list_projects",
+      "mcp__a52a13b8-1081-402d-9e00-1ab45c1f8231__get_project",
+      "mcp__a52a13b8-1081-402d-9e00-1ab45c1f8231__list_tables",
+      "mcp__a52a13b8-1081-402d-9e00-1ab45c1f8231__list_migrations",
+      "mcp__a52a13b8-1081-402d-9e00-1ab45c1f8231__get_advisors",
+      "mcp__a52a13b8-1081-402d-9e00-1ab45c1f8231__query_logs",
+      "mcp__a52a13b8-1081-402d-9e00-1ab45c1f8231__search_docs",
+      "mcp__d2b4158b-1063-4e36-92a8-df8df39f5fe7__list_projects",
+      "mcp__d2b4158b-1063-4e36-92a8-df8df39f5fe7__list_deployments",
+      "mcp__d2b4158b-1063-4e36-92a8-df8df39f5fe7__get_deployment",
+      "mcp__d2b4158b-1063-4e36-92a8-df8df39f5fe7__get_runtime_logs",
+      "mcp__d2b4158b-1063-4e36-92a8-df8df39f5fe7__get_runtime_errors",
+      "mcp__d2b4158b-1063-4e36-92a8-df8df39f5fe7__search_vercel_documentation",
+      "mcp__f4914376-00ef-475a-9f4e-f2fb43c3672e__search_issues",
+      "mcp__f4914376-00ef-475a-9f4e-f2fb43c3672e__search_errors",
+      "mcp__f4914376-00ef-475a-9f4e-f2fb43c3672e__get_issue_details",
+      "mcp__f4914376-00ef-475a-9f4e-f2fb43c3672e__get_event_stacktrace"
+    ]
+  }
+}
