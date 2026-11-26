@@ -1592,4 +1592,24 @@ Total de fallas: 0
   - `npm test` 1570 de 1570 (nuevas: `servidor/contrasenaTemporal`, `interfaz/accesoGoogle` y casos en `reglas/cuentas`, `servidor/administracion` y `rutasRecordatorios`; el registro con correo de `auth.test` pasa a 403). Dos pruebas que importan mucho código (`arranque` y la primera del panel) pasaban de 5 s con toda la suite corriendo: tienen 20 y 15 s. `eslint` sin errores y build correcto.
   - Edge (`ui_e20c3.mjs`), 31 de 31, con dos cuentas temporales: la entrada con Google arriba y el aviso del tope; `/auth/google` lleva a Supabase con PKCE y la vuelta correcta; el registro sin formulario y su API sin crear cuentas; las dos salidas de la recuperación; la contraseña temporal dada desde Administración (texto exacto, no queda en ninguna tabla, desaparece al cerrar); la anterior deja de servir; con la temporal entra solo a `/cambiar-contrasena` y la API responde `DEBE_CAMBIAR_CONTRASENA`; un segundo ingreso se rechaza; al poner la propia entra a Nova y la temporal ya no sirve; Configuración pide la anterior; una vencida se rechaza; cada una queda en el registro; 393 y 1280 px sin desborde. Repetidas: `ui_e20c2` 33 de 33 y `ui_e20sin` 16 de 16.
 - **Sin probar aquí:** entrar de verdad con una cuenta de Google (lo prueba el usuario con su segunda cuenta en el iPhone).
-- **Pendiente:** la prueba del usuario (con el cambio de dirección, en una sola ronda) y su visto bueno para el control de registro en producción.
+- **Prueba del usuario (2026-11-26):** sin fallas, junto con el cambio de dirección. Hizo los pasos de Google Cloud y Supabase (proveedor Google con un secreto nuevo, porque el primero quedó en una captura; gancho "Before User Created"). La app de Google queda en modo "Prueba" con sus dos cuentas hasta que `/privacidad` esté en producción (E21). Topes puestos en 15 cuentas y 30 MB (estaban en 10), con su fila en el registro.
+
+#### Versión original de Nova: `v1-original` (2026-11-26, pedido del usuario)
+
+- **Etiqueta:** `v1-original` (anotada) en el commit `d175142` de `master` ("docs: P00 a P11 completados"), subida a GitHub antes de tocar `master`.
+- **Despliegue de producción con esa versión:** `https://nova-assistant-k6l8gi58e-dlrjuank.vercel.app` (id `dpl_8LhtFaRzp5fZXEYkZwmzCpxZTiHv`, creado el 2026-11-25 al poner `APP_URL`). La dirección propia de un despliegue pide iniciar sesión en Vercel (protección del proyecto): no es pública.
+- **Para volver a mostrar v1-original:**
+  1. **Si el despliegue sigue en Vercel** (Deployments, filtro Production, el de `d175142`): "⋯" → "Promote" (o "Instant Rollback") lo pone en `novaassistantjc.vercel.app`. Para volver a la versión de hoy, "Promote" del despliegue más reciente. Ojo: mientras tanto, producción es la original.
+  2. **Si Vercel ya lo borró** (guarda los despliegues un tiempo limitado): `git worktree add ../nova-v1 v1-original`, y en esa carpeta `npx vercel deploy` (sin `--prod`, queda como vista previa con su propia dirección) o `npx vercel deploy --prod` para reemplazar producción.
+- **Dirección pública fija para v1 (sin hacer, a la espera del usuario):** ver la respuesta del 2026-11-26 (alias de Vercel al despliegue; riesgos con la base compartida después de E21).
+
+#### Control de registro en producción (2026-11-26, con el visto bueno del usuario)
+
+- **Commit en `master`:** `6ce9a4d` (desde una copia aparte con `git worktree`): `/register` muestra `Por ahora las cuentas nuevas se crean con "Entrar con Google".` y `POST /api/auth/register` responde 403 sin crear cuentas (texto en `src/lib/auth/registro.ts`). 239 de 239 pruebas de `master` y build correcto.
+- **Despliegue:** `https://nova-assistant-iyv8fch8v-dlrjuank.vercel.app`. Comprobado en `novaassistantjc.vercel.app`: `/register` con el aviso, la API de registro 403, `/login` carga, `/nova` sin sesión lleva a `/login` y una contraseña equivocada recibe "Correo o contraseña incorrectos.". Que la cuenta del usuario sigue entrando lo confirma él.
+- **Para desactivarlo:** Vercel → Deployments → el despliegue `nova-assistant-k6l8gi58e` → "Instant Rollback".
+
+#### Página pública de privacidad (adelantada de E21, 2026-11-26)
+
+- `/privacidad` en `ampliacion`: qué guarda Nova, qué se envía a Gemini, a Google y a Wikipedia, cómo eliminar la cuenta y el contacto `nova.asistente.app@gmail.com` (decisión del usuario). Sin sesión (el middleware la deja pasar), con `LogoNova` y los tokens; enlace "Privacidad" bajo "Crear una cuenta" en el inicio de sesión. Prueba en `tests/interfaz/privacidad.test.tsx`.
+- Va a `master` con E21 (decisión del usuario): hasta entonces la app de Google sigue en modo "Prueba".

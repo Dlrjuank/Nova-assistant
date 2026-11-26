@@ -8,6 +8,7 @@ export async function middleware(request: NextRequest) {
     ruta === '/prueba-correo' ||
     ruta === '/api/correo/prueba' ||
     ruta === '/recuperar-contrasena' ||
+    ruta === '/privacidad' ||
     ruta === '/restablecer-contrasena' ||
     ruta === '/api/auth/recuperar' ||
     ruta === '/api/auth/restablecer' ||

@@ -86,9 +86,14 @@ export function LoginForm({ successMessage, errorInicial }: LoginFormProps) {
       titulo="Bienvenido de nuevo"
       subtitulo="Inicia sesión para continuar."
       pie={
-        <a className={CLASE_ENLACE_ACCESO} href="/register">
-          Crear una cuenta
-        </a>
+        <span className="flex flex-col items-center gap-3">
+          <a className={CLASE_ENLACE_ACCESO} href="/register">
+            Crear una cuenta
+          </a>
+          <a className={CLASE_ENLACE_ACCESO} href="/privacidad">
+            Privacidad
+          </a>
+        </span>
       }
     >
       {/* E20c-3 (RB-81): "Entrar con Google" arriba; el correo y la contraseña, debajo. */}

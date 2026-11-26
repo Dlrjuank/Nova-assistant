@@ -56,6 +56,7 @@ describe('sin colores sueltos en Nova', () => {
     'src/app/login/page.tsx',
     'src/app/register/page.tsx',
     'src/app/recuperar-contrasena/page.tsx',
+    'src/app/privacidad/page.tsx',
     'src/app/restablecer-contrasena/page.tsx',
   ];
   const PALETA_TAILWIND =
