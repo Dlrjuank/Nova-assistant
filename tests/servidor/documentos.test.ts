@@ -23,7 +23,7 @@ vi.mock('@/lib/db/conexion', () => ({
 import { capitulosDeDocumento, continuarIndexacion, indexarContenido, indexarDocumento } from '@/lib/datos/documentos';
 
 const DATOS = { urlBlob: 'https://x.public.blob.vercel-storage.com/a.pdf', nombreArchivo: 'a.pdf' };
-const extraido = (paginas: string[], extra = {}) => ({ paginas, etiquetas: null, indice: [], ...extra });
+const extraido = (paginas: string[], extra = {}) => ({ paginas, etiquetas: null, indice: [], escaneadas: [] as number[], ...extra });
 /** Un PDF de `n` fragmentos: cada uno ocupa 450 palabras nuevas (RN-10). */
 const paginasPara = (n: number) => [Array.from({ length: 450 * n + 50 }, (_, i) => `p${i}`).join(' ')];
 const sentencias = () => m.tx.query.mock.calls.map((c) => String(c[0]));

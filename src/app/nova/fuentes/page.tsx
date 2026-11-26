@@ -50,14 +50,14 @@ async function PestanaPdf({ tipo }: { tipo: TipoDocumento | null }) {
   const tipos = TIPOS_DOCUMENTO.filter((t) => documentos.some((d) => d.tipo === t));
   const elegido = tipo && tipos.includes(tipo) ? tipo : null;
   const visibles = elegido ? documentos.filter((d) => d.tipo === elegido) : documentos;
-  const pendientes = documentos.flatMap((d) => (d.progreso == null ? [] : [{ id: d.id, nombreArchivo: d.nombreArchivo, progreso: d.progreso }]));
+  const pendientes = documentos.flatMap((d) => (d.progreso == null ? [] : [{ id: d.id, nombreArchivo: d.nombreArchivo, progreso: d.progreso, ocr: d.ocr ?? null }]));
 
   return (
     <>
       <Tarjeta className="flex max-w-xl flex-col gap-4">
         <div className="flex flex-col gap-1">
           <h2 className="text-base font-semibold text-texto">Indexar un documento</h2>
-          <p className="text-sm text-texto-suave">PDF con texto seleccionable (no escaneados), Word (.docx), PowerPoint (.pptx), Markdown (.md) o texto (.txt), de hasta 15 MB.</p>
+          <p className="text-sm text-texto-suave">PDF (también escaneados), Word (.docx), PowerPoint (.pptx), Markdown (.md), texto (.txt) o fotos (.jpg, .png), de hasta 15 MB. Las páginas escaneadas y las fotos se leen con OCR: antes de gastar consultas, Nova te pregunta.</p>
         </div>
         <SubidorPdf materias={materias} />
       </Tarjeta>

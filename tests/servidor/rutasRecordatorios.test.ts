@@ -8,6 +8,7 @@ const m = vi.hoisted(() => ({
   procesarResumenes: vi.fn(),
   avanzarLibroEnSegundoPlano: vi.fn(),
   vencerContrasenasTemporales: vi.fn(),
+  vencerPreguntasOcr: vi.fn(),
   guardarSuscripcion: vi.fn(),
   borrarSuscripcion: vi.fn(),
   contarSuscripciones: vi.fn(),
@@ -35,6 +36,7 @@ beforeEach(() => {
   m.procesarResumenes.mockResolvedValue({ enviados: 0, sinTareas: 1, omitidos: 0, sinDispositivo: 0 });
   m.avanzarLibroEnSegundoPlano.mockResolvedValue(null);
   m.vencerContrasenasTemporales.mockResolvedValue(0);
+  m.vencerPreguntasOcr.mockResolvedValue(0);
 });
 
 describe('POST /api/nova/recordatorios/tick', () => {

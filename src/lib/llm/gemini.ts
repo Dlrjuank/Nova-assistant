@@ -28,6 +28,17 @@ export interface LLMClient {
    * CUOTA_AGOTADA (RB-52). El llamador valida el contenido: aquí solo se comprueba que sea JSON.
    */
   generarJson(d: { sistema: string; contenido: string; esquema: Schema; tiempoMaximoMs?: number | undefined }): Promise<unknown>;
+  /**
+   * E20d-3 (OCR): una respuesta en JSON a partir de archivos (un PDF o fotos) que van en el mismo pedido. Mismo
+   * respaldo entre modelos; sin cupo, el error de la clave o CUOTA_AGOTADA.
+   */
+  leerArchivos(d: {
+    sistema: string;
+    pedido: string;
+    archivos: ReadonlyArray<{ mimeType: string; datos: Uint8Array }>;
+    esquema: Schema;
+    tiempoMaximoMs?: number | undefined;
+  }): Promise<unknown>;
 }
 
 // El plan gratuito admite 30.000 tokens de embeddings por minuto y 500 palabras pueden pasar de 800 tokens:
@@ -259,9 +270,25 @@ export const llm: LLMClient = {
 
   async generarJson({ sistema, contenido, esquema, tiempoMaximoMs }) {
     const config = { systemInstruction: sistema, temperature: 0.4, responseMimeType: 'application/json', responseSchema: esquema };
+    return jsonDe([{ role: 'user', parts: [{ text: contenido }] }], config, contenido.length, tiempoMaximoMs);
+  },
+
+  async leerArchivos({ sistema, pedido, archivos, esquema, tiempoMaximoMs }) {
+    const config = { systemInstruction: sistema, temperature: 0, responseMimeType: 'application/json', responseSchema: esquema, maxOutputTokens: 32_768 };
+    const partes: Parte[] = [
+      ...archivos.map((a) => ({ inlineData: { mimeType: a.mimeType, data: Buffer.from(a.datos).toString('base64') } })),
+      { text: pedido },
+    ];
+    // Leer páginas tarda más que una respuesta corta: se trata como un texto largo (más tiempo al principal).
+    return jsonDe([{ role: 'user', parts: partes }], config, CONTEXTO_LARGO_CARACTERES, tiempoMaximoMs);
+  },
+};
+
+/** E10e y E20d-3: una respuesta en JSON con respaldo; solo comprueba que sea JSON (el llamador valida el contenido). */
+async function jsonDe(contents: Turno[], config: Record<string, unknown>, caracteres: number, tiempoMaximoMs?: number): Promise<unknown> {
     let texto: string;
     try {
-      texto = await conRespaldo([{ role: 'user', parts: [{ text: contenido }] }], config, contenido.length, tiempoMaximoMs);
+      texto = await conRespaldo(contents, config, caracteres, tiempoMaximoMs);
     } catch (error) {
       if (estadoDe(error) === 429) {
         const deClave = await errorDeClavePropia(error);
@@ -278,10 +305,10 @@ export const llm: LLMClient = {
       console.error('Gemini no devolvió JSON válido.');
       throw new ErrorDeNegocio('ERROR_LLM');
     }
-  },
-};
+}
 
-type Turno = { role: string; parts: Array<{ text: string }> };
+type Parte = { text: string } | { inlineData: { mimeType: string; data: string } };
+type Turno = { role: string; parts: Parte[] };
 
 /**
  * El modelo principal con un intento y un tope; si está saturado, no contesta o no tiene cupo, el respaldo con el

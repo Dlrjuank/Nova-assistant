@@ -54,6 +54,17 @@ export interface Documento {
   /** E20d (M26): el tipo de archivo y su unidad (página, sección, diapositiva o parte). */
   tipo: TipoDocumento;
   unidad: Unidad;
+  /** E20d-3: lo que falta de la lectura con OCR (si espera la respuesta o se está leyendo); null si no hay. */
+  ocr?: EstadoOcr | null;
+}
+
+/** E20d-3: el estado de la lectura con OCR de un documento. */
+export interface EstadoOcr {
+  estado: 'pregunta' | 'leyendo';
+  fuente: 'pdf' | 'fotos';
+  /** Páginas por leer al empezar. */
+  total: number;
+  leidas: number;
 }
 
 export interface Capitulo {
@@ -211,6 +222,8 @@ export interface ResultadoIndexacion {
   numFragmentos: number;
   /** RB-38: null = terminado; un número = falta por indexar y se sigue por partes. */
   progreso: number | null;
+  /** E20d-3: tiene páginas escaneadas y espera la respuesta ("¿Leerlas?"). */
+  ocr?: EstadoOcr;
 }
 
 export interface Fragmento {
@@ -225,6 +238,8 @@ export interface Fragmento {
   /** E20d: la unidad del documento y, en una sección, su título (para citar "Apuntes.md · Unidad 2"). */
   unidad?: Unidad | null;
   titulo_unidad?: string | null;
+  /** E20d-3: el fragmento toca una página leída con OCR. */
+  ocr?: boolean | null;
 }
 
 export interface Fuente {

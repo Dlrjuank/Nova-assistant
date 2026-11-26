@@ -18,11 +18,15 @@ export const GET = conManejoDeErrores(async () => {
 export const POST = conManejoDeErrores(async (peticion: Request) => {
   const { id, nivel } = await exigirSesion();
   const datos = await leerCuerpo(peticion, esquemaIndexar);
-  // E20c-2 (RB-85): pasado el tope de espacio no se indexa; el PDF que alcanzó a subir se borra de Blob.
+  if (datos.descartar) {
+    await Promise.all([datos.urlBlob, ...(datos.masUrls ?? [])].map((u) => del(u).catch(() => {})));
+    return responderOk({ descartado: true });
+  }
+  // E20c-2 (RB-85): pasado el tope de espacio no se indexa; lo que alcanzó a subir se borra de Blob.
   try {
     await exigirEspacio(id, nivel);
   } catch (error) {
-    await del(datos.urlBlob).catch(() => {});
+    await Promise.all([datos.urlBlob, ...(datos.masUrls ?? [])].map((u) => del(u).catch(() => {})));
     throw error;
   }
   // E20b (commit 6): la pantalla pide las etapas; los scripts y las pruebas reciben el JSON de siempre.

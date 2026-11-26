@@ -12,6 +12,9 @@ const COLUMNAS = ['Nombre', 'Categoría', 'Contenido', 'Fragmentos', 'Indexado',
 
 /** E10b: mientras se indexa por partes se ve el avance (RB-38); un documento anterior avisa que le faltan páginas (RB-36). */
 function Estado({ d }: { d: Documento }) {
+  // E20d-3: la lectura con OCR, antes de los fragmentos.
+  if (d.ocr?.estado === 'pregunta') return <>Espera tu respuesta</>;
+  if (d.ocr?.estado === 'leyendo') return <>{`Leyendo con OCR… ${d.ocr.leidas} de ${d.ocr.total}`}</>;
   return <>{d.progreso === null || d.progreso === undefined ? d.numFragmentos : `Indexando… ${d.progreso} %`}</>;
 }
 

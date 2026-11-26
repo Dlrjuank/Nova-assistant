@@ -101,18 +101,27 @@ export const esquemaConsulta = z
   .refine((d) => d.pregunta !== undefined || d.explicar !== undefined);
 export type DatosConsulta = z.infer<typeof esquemaConsulta>;
 
+const urlDeBlob = z
+  .url()
+  .refine((u) => u.startsWith('https://') && new URL(u).hostname.endsWith('.blob.vercel-storage.com'), {
+    message: 'La URL debe ser de Vercel Blob',
+  });
+
 export const esquemaIndexar = z.object({
-  urlBlob: z
-    .url()
-    .refine((u) => u.startsWith('https://') && new URL(u).hostname.endsWith('.blob.vercel-storage.com'), {
-      message: 'La URL debe ser de Vercel Blob',
-    }),
+  urlBlob: urlDeBlob,
+  // E20d-4: las demás fotos de un mismo documento (la primera va en urlBlob); hasta 30 en total.
+  masUrls: z.array(urlDeBlob).max(29).optional(),
+  // E20d-4: si falló la subida de una de varias fotos, las que alcanzaron a subir se borran sin indexar nada.
+  descartar: z.literal(true).optional(),
   nombreArchivo: z.string().trim().min(1).max(255),
   categoria: z.string().trim().max(80).optional(),
   // E13 (B-21): la materia del documento; su nombre pasa a ser la categoría.
   materiaId: z.uuid().optional(),
 });
 export type DatosIndexar = z.infer<typeof esquemaIndexar>;
+
+/** E20d-3: la respuesta a "¿Leerlas?" del OCR. */
+export const esquemaRespuestaOcr = z.object({ leer: z.boolean() });
 
 export const esquemaIdTarea = z.uuid();
 export const esquemaIdDocumento = z.uuid();

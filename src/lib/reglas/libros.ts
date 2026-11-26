@@ -19,6 +19,8 @@ export interface FragmentoLibro {
   paginaInicio: number;
   paginaFin: number;
   etiquetaPaginas: string;
+  /** E20d-3: toca una página leída con OCR (la cita dice "escaneada"). */
+  ocr?: boolean;
 }
 
 export interface CapituloLibro {
@@ -83,8 +85,11 @@ export function soloTextoDePagina<T extends { numero: number; contenido: string 
   return resultado;
 }
 
-/** RN-10 sobre las páginas: los mismos trozos que `fragmentar`, y cada uno sabe qué páginas toca su texto. */
-export function fragmentarPaginas(paginas: readonly string[], etiquetas?: Etiquetas): FragmentoLibro[] {
+/**
+ * RN-10 sobre las páginas: los mismos trozos que `fragmentar`, y cada uno sabe qué páginas toca su texto.
+ * E20d-3: con `leidasConOcr`, se marca el fragmento que toca alguna de esas páginas.
+ */
+export function fragmentarPaginas(paginas: readonly string[], etiquetas?: Etiquetas, leidasConOcr?: ReadonlySet<number>): FragmentoLibro[] {
   const palabras: string[] = [];
   const paginaDe: number[] = [];
   paginas.forEach((texto, indice) => {
@@ -108,6 +113,7 @@ export function fragmentarPaginas(paginas: readonly string[], etiquetas?: Etique
       paginaInicio,
       paginaFin,
       etiquetaPaginas: etiquetaDePaginas(paginaInicio, paginaFin, etiquetas),
+      ...(leidasConOcr?.size && paginaDe.slice(inicio, fin).some((p) => leidasConOcr.has(p)) ? { ocr: true } : {}),
     });
     if (fin >= palabras.length) break;
   }

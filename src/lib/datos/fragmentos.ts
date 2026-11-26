@@ -5,7 +5,7 @@ import type { Fragmento } from './tipos';
  * E20d: la unidad del documento de cada fragmento y, si es una sección, su título (la sección que empieza en la
  * primera unidad del fragmento). Va en las consultas que unen fragmentos_pdf f con documentos d.
  */
-export const COLUMNAS_UNIDAD = `d.unidad,
+export const COLUMNAS_UNIDAD = `d.unidad, f.ocr,
   CASE WHEN d.unidad = 'seccion' THEN (
     SELECT c.titulo FROM capitulos c WHERE c.documento_id = f.documento_id AND c.pagina_inicio = f.pagina_inicio ORDER BY c.nivel DESC, c.orden LIMIT 1
   ) END AS titulo_unidad`;

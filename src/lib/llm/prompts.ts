@@ -80,6 +80,8 @@ export interface FragmentoContexto {
   /** E20d: la unidad (página por defecto) y el título de la sección. */
   unidad?: Unidad | null;
   titulo_unidad?: string | null;
+  /** E20d-3: leído con OCR: la cita dice "(escaneada)". */
+  ocr?: boolean | null;
 }
 
 /** Un mensaje previo de la conversación que recibe el modelo (RN-21). */
@@ -95,11 +97,11 @@ export interface TareaContexto {
   texto: string;
 }
 
-export function etiquetaFragmento(f: Pick<FragmentoContexto, 'nombre_archivo' | 'numero' | 'etiqueta_paginas' | 'unidad' | 'titulo_unidad'>): string {
+export function etiquetaFragmento(f: Pick<FragmentoContexto, 'nombre_archivo' | 'numero' | 'etiqueta_paginas' | 'unidad' | 'titulo_unidad' | 'ocr'>): string {
   // RB-36: con páginas se cita la página; los documentos anteriores a E10b siguen con el número de fragmento.
   // E20d: los demás tipos, con su unidad ("diapositiva 7", "parte 3") o el título de la sección.
   return f.etiqueta_paginas
-    ? `${f.nombre_archivo} · ${citaDeUnidades(f.etiqueta_paginas, f.unidad ?? 'pagina', f.titulo_unidad)}`
+    ? `${f.nombre_archivo} · ${citaDeUnidades(f.etiqueta_paginas, f.unidad ?? 'pagina', f.titulo_unidad)}${f.ocr ? ' (escaneada)' : ''}`
     : `${f.nombre_archivo} · fragmento ${f.numero}`;
 }
 

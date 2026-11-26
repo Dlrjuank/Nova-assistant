@@ -11,12 +11,15 @@ export function EtapasIndexacion({
   terminado = false,
   fallo = false,
   avance,
+  textoLeer,
 }: {
   actual: EtapaIndexacion | null;
   terminado?: boolean;
   fallo?: boolean;
   /** Porcentaje de la etapa en curso (al subir, o al crear los vectores de un libro largo). */
   avance?: number | undefined;
+  /** E20d-3: en una lectura con OCR, "Leer con OCR (3 de 18 páginas)" en lugar de "Leer el texto". */
+  textoLeer?: string | undefined;
 }) {
   return (
     <div className="flex flex-col gap-2">
@@ -55,7 +58,7 @@ export function EtapasIndexacion({
                 {estado === 'fallo' && <AlertCircle className="size-3.5" />}
                 {estado === 'ahora' && <span className="size-2 rounded-full bg-acento" />}
               </span>
-              <span className="min-w-0 flex-1">{e.texto}</span>
+              <span className="min-w-0 flex-1">{e.id === 'leer' && textoLeer ? textoLeer : e.texto}</span>
               {estado === 'ahora' && <span className="font-mono text-[0.7rem] text-texto-suave">{avance !== undefined ? `${avance} %` : 'ahora'}</span>}
             </li>
           );
