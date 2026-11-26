@@ -1054,6 +1054,17 @@ Guía de la clave (TAREA 1, revisada el 2026-11-25 en aistudio.google.com/docs/a
 - **PowerPoint:** las diapositivas en el orden de `presentation.xml` (no el de los nombres de archivo), cada una con su título (marcador `title` o `ctrTitle`; si no tiene, "Diapositiva N"), su texto (también el de las tablas) y las notas del orador ("Notas: …"); el número, la fecha y el pie no cuentan. Cada diapositiva es un grupo de `capitulos`.
 - **Fuentes:** el campo acepta .docx y .pptx (también por su tipo, para que el iPhone los ofrezca), con sus sellos Word (azul) y PowerPoint (ámbar) y en el filtro. Los .doc y .ppt antiguos se rechazan con `TIPO_NO_ADMITIDO`.
 
+**Cómo quedó E20d-3 y E20d-4 (2026-11-26), decisiones de detalle:**
+- **Sin migración nueva:** usa M26 (`fragmentos_pdf.ocr`, `documentos.tipo` `pdf_escaneado` e `imagen`). Lo que espera la lectura va en `documentos.por_indexar` como un objeto (`LecturaOcr` en `src/lib/reglas/ocr.ts`: estado `pregunta` o `leyendo`, las direcciones en Blob, el texto de cada página, las que faltan, las leídas y hasta cuándo se espera la respuesta); lo normal ahí sigue siendo la lista de fragmentos. `master` no usa esa columna.
+- **Detección:** una página sin texto (menos de 20 caracteres) que pinta una imagen que cubre al menos el 30 % de la página (`inspectPages` de unpdf, en `src/lib/pdf/extraer.ts`). Una página en blanco o con un adorno no cuenta: un libro con páginas en blanco no pregunta.
+- **La pregunta:** "Este PDF tiene 180 páginas escaneadas. Leerlas usa unas 18 consultas de tu clave de Gemini (unos 6 minutos). ¿Leerlas?" (fotos: "Estas 5 fotos se leen con OCR…"), con "Leerlas" y "Ahora no", en Fuentes (`IndexacionPendiente`); la fila dice "Espera tu respuesta". Mientras espera, nada gasta consultas: ni la pantalla ni el aviso de cada minuto toman el documento.
+- **"Leerlas":** cada parte lee un grupo de hasta 10 páginas o fotos (y hasta 12 MB) con `llm.leerArchivos` (el PDF del grupo, separado con `pdf-lib` 1.17.1, o las fotos, en el mismo pedido; transcripción literal con `[ilegible]`). Lo leído se guarda en cada grupo; al terminar se arman los fragmentos (los que tocan una página leída llevan `ocr`), los capítulos (PDF) y sigue la indexación de siempre. Si la cuota se agota, queda en pausa y sigue después. La pantalla muestra "Leyendo con OCR… 10 de 20 páginas" y la etapa "Leer con OCR". El aviso de cada minuto también avanza (45 s por grupo).
+- **"Ahora no" (o 24 horas sin respuesta, con el aviso de cada minuto):** se indexa solo lo que tenía texto; sin texto (todo escaneado, o fotos), el documento no se guarda y se avisa. En todos los casos el PDF o las fotos se borran de Blob; también al eliminar un documento que esperaba.
+- **Topes:** 300 páginas escaneadas por PDF, 30 fotos por documento, 15 MB por archivo.
+- **Fotos (E20d-4):** .jpg, .jpeg y .png (el iPhone convierte las HEIC a JPEG). Varias fotos elegidas juntas son un solo documento, con "Título del documento" (por defecto, el nombre de la primera) y una página por foto; un PDF con fotos juntos se rechaza. Tipo `imagen`, sello "Foto".
+- **Citas:** "Libro.pdf · p. 45 (escaneada)".
+- `PDF_SIN_TEXTO` pasa a decir "El documento no tiene texto ni páginas escaneadas que leer."
+
 ### 3. Orden propuesto (un commit por paso, con la prueba del usuario entre uno y otro)
 
 1. **E20d-1:** M26 (con `db:respaldar` antes); Markdown y texto; sellos, filtro y "Ver contenido".

@@ -14,7 +14,7 @@ describe('documento', () => {
   });
   it('T-17 texto vacío → PDF_SIN_TEXTO', () => {
     esperarCodigo(() => validarTextoExtraido(''), 'PDF_SIN_TEXTO');
-    expect(MENSAJES.PDF_SIN_TEXTO).toBe('El documento no contiene texto seleccionable (no se admite OCR)');
+    expect(MENSAJES.PDF_SIN_TEXTO).toBe('El documento no tiene texto ni páginas escaneadas que leer.');
   });
   it('T-18 solo espacios y saltos → PDF_SIN_TEXTO', () => {
     esperarCodigo(() => validarTextoExtraido('   \n  '), 'PDF_SIN_TEXTO');

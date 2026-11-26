@@ -94,7 +94,7 @@ describe('etapas de indexación', () => {
 describe('zona para el PDF y documentos', () => {
   it('muestra el archivo elegido con su tamaño; el campo sigue con su etiqueta', () => {
     render(<SubidorPdf />);
-    expect(screen.getByText('Ningún archivo elegido')).toBeTruthy();
+    expect(screen.getByText('Ningún archivo elegido. Varias fotos juntas forman un documento.')).toBeTruthy();
     elegir('apuntes.pdf');
     expect(screen.getByText('apuntes.pdf')).toBeTruthy();
     expect(screen.getByText(/1 KB · Toca o arrastra otro/)).toBeTruthy();

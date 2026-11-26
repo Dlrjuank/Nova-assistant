@@ -136,11 +136,11 @@ export const MENSAJES: Record<CodigoError, string> = {
   FECHA_INVALIDA: 'La fecha debe tener formato AAAA-MM-DD y ser una fecha real.',
   ARCHIVO_MUY_GRANDE: 'El documento supera el límite permitido de 15 MB',
   PDF_INVALIDO: 'El archivo no es un PDF válido.',
-  PDF_SIN_TEXTO: 'El documento no contiene texto seleccionable (no se admite OCR)',
+  PDF_SIN_TEXTO: 'El documento no tiene texto ni páginas escaneadas que leer.', // E20d-3: las escaneadas se leen con OCR
   CONSULTA_MUY_CORTA: 'La instrucción es demasiado corta',
   SIN_DOCUMENTOS: 'Aún no hay documentos indexados. Indexa un PDF antes de preguntar.',
   PDF_MUY_LARGO: 'El PDF tiene demasiadas páginas; el máximo es 800.',
-  TIPO_NO_ADMITIDO: 'Ese tipo de archivo no se admite. Sube un PDF, un Word (.docx), un PowerPoint (.pptx), un Markdown (.md) o un texto (.txt).', // E20d
+  TIPO_NO_ADMITIDO: 'Ese tipo de archivo no se admite. Sube un PDF, un Word (.docx), un PowerPoint (.pptx), un Markdown (.md), un texto (.txt) o fotos (.jpg, .png).', // E20d
   ERROR_LLM: 'No se pudo obtener respuesta del asistente. Intenta de nuevo.',
   TAREA_NO_ENCONTRADA: 'La tarea no existe.',
   TAREA_YA_COMPLETADA: 'La tarea ya está completada.',

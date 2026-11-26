@@ -32,6 +32,10 @@ const ARCHIVOS: Record<string, { tipo: TipoDocumento; mime: string }> = {
   pptx: { tipo: 'pptx', mime: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' },
   md: { tipo: 'md', mime: 'text/markdown' },
   txt: { tipo: 'txt', mime: 'text/plain' },
+  // E20d-4: fotos, leídas con OCR. En el iPhone, Safari convierte las HEIC a JPEG al elegirlas.
+  jpg: { tipo: 'imagen', mime: 'image/jpeg' },
+  jpeg: { tipo: 'imagen', mime: 'image/jpeg' },
+  png: { tipo: 'imagen', mime: 'image/png' },
 };
 
 export const EXTENSIONES_ADMITIDAS = Object.keys(ARCHIVOS);
@@ -48,6 +52,9 @@ export function extensionDe(nombre: string): string {
 export function tipoDeArchivo(nombre: string): TipoDocumento | null {
   return ARCHIVOS[extensionDe(nombre)]?.tipo ?? null;
 }
+
+/** E20d-4: una foto más grande no cabe en una llamada a Gemini. */
+export const MAX_BYTES_FOTO = 12 * 1024 * 1024;
 
 export function mimeDeArchivo(nombre: string): string | null {
   return ARCHIVOS[extensionDe(nombre)]?.mime ?? null;

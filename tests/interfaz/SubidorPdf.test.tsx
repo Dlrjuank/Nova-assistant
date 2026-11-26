@@ -60,7 +60,7 @@ describe('SubidorPdf', () => {
     elegir(archivoDe('viejo.doc', 10, 'application/msword'));
     expect(botonIndexar().hasAttribute('disabled')).toBe(true);
     elegir(archivoDe('foto.heic', 10, 'image/heic'));
-    expect(screen.getByText('Ese tipo de archivo no se admite. Sube un PDF, un Word (.docx), un PowerPoint (.pptx), un Markdown (.md) o un texto (.txt).')).toBeTruthy();
+    expect(screen.getByText('Ese tipo de archivo no se admite. Sube un PDF, un Word (.docx), un PowerPoint (.pptx), un Markdown (.md), un texto (.txt) o fotos (.jpg, .png).')).toBeTruthy();
     expect(botonIndexar().hasAttribute('disabled')).toBe(true);
   });
 
