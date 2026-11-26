@@ -2,6 +2,7 @@
 
 import { Ellipsis, Plus } from 'lucide-react';
 import Link from 'next/link';
+import { conservarScroll } from '@/lib/conservarScroll';
 import { useRouter } from 'next/navigation';
 import { useRef, useState, type FormEvent, type PointerEvent as EventoPuntero, type ReactNode } from 'react';
 import { Boton, CLASE_FOCO } from '@/components/ui/Boton';
@@ -110,7 +111,10 @@ export function FilaCategorias({
     if (!r.ok) return setError(r.mensaje);
     cerrar();
     setAnuncio(mensaje);
-    if (destino) router.replace(destino);
+    if (destino) {
+      conservarScroll(destino);
+      router.replace(destino, { scroll: false });
+    }
     router.refresh();
   }
 
@@ -263,7 +267,7 @@ export function FilaCategorias({
       <nav aria-label="Filtrar por categoría" className="-mx-4 lg:mx-0">
         <ul className="flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] lg:flex-wrap lg:overflow-visible lg:px-0 [&::-webkit-scrollbar]:hidden">
           <li className="shrink-0">
-            <Link href={href(null)} aria-current={activa === null ? 'page' : undefined} className={`${CLASE_CHIP} ${chipActivo(activa === null)}`}>
+            <Link href={href(null)} scroll={false} onClick={() => conservarScroll(href(null))} aria-current={activa === null ? 'page' : undefined} className={`${CLASE_CHIP} ${chipActivo(activa === null)}`}>
               Todas
             </Link>
           </li>
@@ -273,6 +277,7 @@ export function FilaCategorias({
               <li key={c.id} className={`flex shrink-0 items-center rounded-full ${elegida ? 'bg-acento-suave' : ''}`}>
                 <Link
                   href={href(c.nombre)}
+                  scroll={false}
                   aria-current={elegida ? 'page' : undefined}
                   className={`${CLASE_CHIP} ${chipActivo(elegida)} select-none [-webkit-touch-callout:none]`}
                   onPointerDown={(e) => alPresionar(e, c)}
@@ -284,7 +289,9 @@ export function FilaCategorias({
                     if (presion.current.larga) {
                       e.preventDefault();
                       presion.current.larga = false;
+                      return;
                     }
+                    conservarScroll(href(c.nombre));
                   }}
                   onContextMenu={(e) => {
                     e.preventDefault();

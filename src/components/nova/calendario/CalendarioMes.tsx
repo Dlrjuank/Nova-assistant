@@ -2,6 +2,7 @@
 
 import { ChevronLeft, ChevronRight, GraduationCap, Plus } from 'lucide-react';
 import Link from 'next/link';
+import { conservarScroll } from '@/lib/conservarScroll';
 import { useEffect, useRef, useState } from 'react';
 import { claseBoton, CLASE_FOCO } from '@/components/ui/Boton';
 import { PuntoCategoria } from '@/components/nova/InsigniaCategoria';
@@ -129,14 +130,14 @@ export function CalendarioMes({
                 Hoy
               </button>
             ) : (
-              <Link href="/nova/calendario" className={`${claseBoton('secundario')} min-h-10`}>
+              <Link href="/nova/calendario" scroll={false} onClick={() => conservarScroll('/nova/calendario')} className={`${claseBoton('secundario')} min-h-10`}>
                 Hoy
               </Link>
             )}
-            <Link href={anterior} aria-label="Mes anterior" className={flecha}>
+            <Link href={anterior} scroll={false} onClick={() => conservarScroll(anterior)} aria-label="Mes anterior" className={flecha}>
               <ChevronLeft aria-hidden="true" className="size-4" />
             </Link>
-            <Link href={siguiente} aria-label="Mes siguiente" className={flecha}>
+            <Link href={siguiente} scroll={false} onClick={() => conservarScroll(siguiente)} aria-label="Mes siguiente" className={flecha}>
               <ChevronRight aria-hidden="true" className="size-4" />
             </Link>
           </div>

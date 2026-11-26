@@ -2,6 +2,7 @@
 
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
+import { conservarScroll } from '@/lib/conservarScroll';
 import { useState } from 'react';
 import { CLASE_FOCO } from '@/components/ui/Boton';
 import { colorDeCategoria } from '@/lib/reglas/categorias';
@@ -129,14 +130,14 @@ export function MiSemana({
         </div>
         <div className="flex items-center gap-2">
           {actual && (
-            <Link href={actual} className={`rounded-full px-3 py-1.5 text-sm font-medium text-acento hover:bg-acento-suave ${CLASE_FOCO}`}>
+            <Link href={actual} scroll={false} onClick={() => conservarScroll(actual)} className={`rounded-full px-3 py-1.5 text-sm font-medium text-acento hover:bg-acento-suave ${CLASE_FOCO}`}>
               Esta semana
             </Link>
           )}
-          <Link href={anterior} aria-label="Semana anterior" className={flecha}>
+          <Link href={anterior} scroll={false} onClick={() => conservarScroll(anterior)} aria-label="Semana anterior" className={flecha}>
             <ChevronLeft aria-hidden="true" className="size-4" />
           </Link>
-          <Link href={siguiente} aria-label="Semana siguiente" className={flecha}>
+          <Link href={siguiente} scroll={false} onClick={() => conservarScroll(siguiente)} aria-label="Semana siguiente" className={flecha}>
             <ChevronRight aria-hidden="true" className="size-4" />
           </Link>
         </div>

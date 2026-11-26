@@ -108,7 +108,7 @@ describe('FilaCategorias', () => {
     const dialogo = screen.getByRole('dialog', { name: 'Renombrar «Casa»' });
     fireEvent.change(within(dialogo).getByLabelText('Categoría'), { target: { value: 'Hogar' } });
     fireEvent.click(within(dialogo).getByRole('button', { name: 'Guardar' }));
-    await waitFor(() => expect(nav.replace).toHaveBeenCalledWith('/nova/tareas?vista=hoy&categoria=Hogar'));
+    await waitFor(() => expect(nav.replace).toHaveBeenCalledWith('/nova/tareas?vista=hoy&categoria=Hogar', { scroll: false }));
     expect(f.mock.calls[0]?.[0]).toBe('/api/nova/categorias/c');
     expect(JSON.parse(f.mock.calls[0]?.[1].body)).toEqual({ nombre: 'Hogar' });
   });
@@ -135,7 +135,7 @@ describe('FilaCategorias', () => {
     const dialogo = screen.getByRole('dialog', { name: 'Eliminar «Casa»' });
     expect(within(dialogo).getByText('¿Eliminar la categoría «Casa»? Sus 2 tareas pasarán a General.')).toBeTruthy();
     fireEvent.click(within(dialogo).getByRole('button', { name: 'Sí, eliminar' }));
-    await waitFor(() => expect(nav.replace).toHaveBeenCalledWith('/nova/tareas'));
+    await waitFor(() => expect(nav.replace).toHaveBeenCalledWith('/nova/tareas', { scroll: false }));
     expect(f.mock.calls[0]?.[1].method).toBe('DELETE');
   });
 

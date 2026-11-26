@@ -1,6 +1,8 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { conservarScroll } from '@/lib/conservarScroll';
 import { useEffect, useRef } from 'react';
 import { CLASE_FOCO } from './Boton';
 import { ATRIBUTO_PILDORA, estiloPildora, usePildora } from './usePildora';
@@ -23,6 +25,9 @@ export function Pestanas({ etiqueta, pestanas, envolverEnComputador = false }: {
   const fila = useRef<HTMLElement>(null);
   const activa = pestanas.find((p) => p.activa)?.href;
   const pildora = usePildora(fila, `pestanas:${etiqueta}`, activa);
+  // Una pestaña que solo cambia la consulta (?vista=, ?tipo=, ?materia=) se queda en la misma pantalla: la página no
+  // sube. La que lleva a otra ruta (las secciones de Semestre) sí empieza arriba.
+  const ruta = usePathname();
 
   useEffect(() => {
     const nav = fila.current;
@@ -40,6 +45,10 @@ export function Pestanas({ etiqueta, pestanas, envolverEnComputador = false }: {
         <Link
           key={href}
           href={href}
+          scroll={href.split('?')[0] !== ruta}
+          onClick={() => {
+            if (href.split('?')[0] === ruta) conservarScroll(href);
+          }}
           aria-current={esActiva ? 'page' : undefined}
           {...(esActiva ? { [ATRIBUTO_PILDORA]: '' } : {})}
           className={`relative z-10 shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium transition-colors duration-150 sm:px-4 ${CLASE_FOCO} ${

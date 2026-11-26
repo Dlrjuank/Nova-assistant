@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import { Celebracion } from '@/components/nova/Celebracion';
 import { ConexionNova } from '@/components/nova/ConexionNova';
+import { ConservarScroll } from '@/components/nova/ConservarScroll';
 import { NavegacionNova } from '@/components/nova/NavegacionNova';
 import { PantallaCarga } from '@/components/nova/PantallaCarga';
 import { ProveedorPreferencias } from '@/components/nova/PreferenciasNova';
@@ -48,6 +50,10 @@ export default async function NovaLayout({ children }: Readonly<{ children: Reac
           </main>
           {/* E20b (commit 3): el aviso al completar una tarea, fuera de <main> para no entrar en su escalonado. */}
           <Celebracion />
+          {/* Filtros y pestañas de la misma pantalla: la página no sube (pedido del usuario del 2026-11-26). */}
+          <Suspense fallback={null}>
+            <ConservarScroll />
+          </Suspense>
         </div>
       </ProveedorPendientes>
     </ProveedorPreferencias>
