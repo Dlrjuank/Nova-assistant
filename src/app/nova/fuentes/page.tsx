@@ -57,7 +57,7 @@ async function PestanaPdf({ tipo }: { tipo: TipoDocumento | null }) {
       <Tarjeta className="flex max-w-xl flex-col gap-4">
         <div className="flex flex-col gap-1">
           <h2 className="text-base font-semibold text-texto">Indexar un documento</h2>
-          <p className="text-sm text-texto-suave">PDF con texto seleccionable (no escaneados), Markdown (.md) o texto (.txt), de hasta 15 MB.</p>
+          <p className="text-sm text-texto-suave">PDF con texto seleccionable (no escaneados), Word (.docx), PowerPoint (.pptx), Markdown (.md) o texto (.txt), de hasta 15 MB.</p>
         </div>
         <SubidorPdf materias={materias} />
       </Tarjeta>

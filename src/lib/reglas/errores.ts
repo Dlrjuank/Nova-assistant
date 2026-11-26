@@ -140,7 +140,7 @@ export const MENSAJES: Record<CodigoError, string> = {
   CONSULTA_MUY_CORTA: 'La instrucción es demasiado corta',
   SIN_DOCUMENTOS: 'Aún no hay documentos indexados. Indexa un PDF antes de preguntar.',
   PDF_MUY_LARGO: 'El PDF tiene demasiadas páginas; el máximo es 800.',
-  TIPO_NO_ADMITIDO: 'Ese tipo de archivo no se admite. Sube un PDF, un Markdown (.md) o un texto (.txt).', // E20d
+  TIPO_NO_ADMITIDO: 'Ese tipo de archivo no se admite. Sube un PDF, un Word (.docx), un PowerPoint (.pptx), un Markdown (.md) o un texto (.txt).', // E20d
   ERROR_LLM: 'No se pudo obtener respuesta del asistente. Intenta de nuevo.',
   TAREA_NO_ENCONTRADA: 'La tarea no existe.',
   TAREA_YA_COMPLETADA: 'La tarea ya está completada.',

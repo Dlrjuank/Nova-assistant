@@ -5,6 +5,7 @@ import { aLiteralVector, conTransaccion, consultar } from '@/lib/db/conexion';
 import { llm } from '@/lib/llm/gemini';
 import { extraerPdf } from '@/lib/pdf/extraer';
 import { seccionesMarkdown, partesDeTexto, decodificarTexto } from '@/lib/lectores/texto';
+import { leerDocx, leerPptx } from '@/lib/lectores/office';
 import { EXTENSIONES_ADMITIDAS, extensionDe, tipoDeArchivo, TIPOS_MIME_ADMITIDOS, type EstructuraDocumento, type TipoDocumento } from '@/lib/reglas/tiposDocumento';
 import { validarTamanoPdf, validarTextoExtraido } from '@/lib/reglas/documento';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
@@ -23,7 +24,7 @@ export async function emitirTokenSubida(cuerpo: HandleUploadBody, peticion: Requ
     body: cuerpo,
     request: peticion,
     onBeforeGenerateToken: async (ruta) => {
-      // E20d: PDF, Markdown y texto (E20d-2 suma Word y PowerPoint).
+      // E20d: PDF, Word, PowerPoint, Markdown y texto.
       if (!EXTENSIONES_ADMITIDAS.includes(extensionDe(ruta))) throw new ErrorDeNegocio('TIPO_NO_ADMITIDO');
       return {
         allowedContentTypes: TIPOS_MIME_ADMITIDOS,
@@ -146,6 +147,8 @@ async function avanzarIndexacion(
 async function leerEstructura(tipo: TipoDocumento, contenido: Uint8Array): Promise<EstructuraDocumento> {
   if (tipo === 'md') return seccionesMarkdown(decodificarTexto(contenido));
   if (tipo === 'txt') return partesDeTexto(decodificarTexto(contenido));
+  if (tipo === 'docx') return leerDocx(contenido); // E20d-2
+  if (tipo === 'pptx') return leerPptx(contenido);
   const extraido = await extraerPdf(contenido);
   // Postgres no admite el carácter NUL en columnas de texto y algunos PDF lo incluyen.
   const paginas = extraido.paginas.map((p) => p.replaceAll('\u0000', ' '));

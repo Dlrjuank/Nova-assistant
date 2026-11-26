@@ -289,3 +289,34 @@ describe('E20d-1: Markdown y texto', () => {
     expect(m.conTransaccion).not.toHaveBeenCalled();
   });
 });
+
+describe('E20d-2: Word y PowerPoint', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    m.generarEmbeddings.mockImplementation(async (textos: string[]) => textos.map(() => [0.1]));
+    m.tx.query.mockImplementation(async () => ({ rows: [{ id: 'doc-1' }] }));
+    m.conTransaccion.mockImplementation((trabajo: (tx: typeof m.tx) => unknown) => trabajo(m.tx));
+    m.consultar.mockResolvedValue([]);
+  });
+  const insercion = (tabla: string) => m.tx.query.mock.calls.find((c) => String(c[0]).includes(`INSERT INTO ${tabla}`)) ?? [];
+
+  it('un PowerPoint se guarda por diapositivas y un Word, por secciones', async () => {
+    const { strToU8, zipSync } = await import('fflate');
+    const pptx = zipSync({
+      'ppt/presentation.xml': strToU8('<p:presentation><p:sldIdLst><p:sldId id="256" r:id="rId2"/></p:sldIdLst></p:presentation>'),
+      'ppt/_rels/presentation.xml.rels': strToU8('<Relationships><Relationship Id="rId2" Type="x/slide" Target="slides/slide1.xml"/></Relationships>'),
+      'ppt/slides/slide1.xml': strToU8('<p:sld><p:sp><p:nvPr><p:ph type="title"/></p:nvPr><a:p><a:r><a:t>Clase 1</a:t></a:r></a:p></p:sp></p:sld>'),
+    });
+    await indexarContenido('u1', pptx, { nombreArchivo: 'Clase.pptx' });
+    expect((insercion('documentos')[1] as unknown[]).slice(-2)).toEqual(['pptx', 'diapositiva']);
+    expect(insercion('capitulos')[1]?.[4]).toEqual(['Clase 1']);
+    m.tx.query.mockClear();
+    const docx = zipSync({
+      'word/document.xml': strToU8('<w:document><w:body><w:p><w:pPr><w:outlineLvl w:val="0"/></w:pPr><w:r><w:t>Tema</w:t></w:r></w:p><w:p><w:r><w:t>Texto</w:t></w:r></w:p></w:body></w:document>'),
+    });
+    await indexarContenido('u1', docx, { nombreArchivo: 'Apuntes.docx' });
+    expect((insercion('documentos')[1] as unknown[]).slice(-2)).toEqual(['docx', 'seccion']);
+    expect(insercion('capitulos')[1]?.[4]).toEqual(['Tema']);
+    expect(m.extraerPdf).not.toHaveBeenCalled();
+  });
+});

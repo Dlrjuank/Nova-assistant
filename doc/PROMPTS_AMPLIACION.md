@@ -1048,6 +1048,12 @@ Guía de la clave (TAREA 1, revisada el 2026-11-25 en aistudio.google.com/docs/a
 - **Fuentes:** la pestaña "Subir PDF" pasa a "Documentos", la columna "Páginas" a "Contenido" ("3 secciones"), "Ver capítulos" a "Ver contenido" (misma ruta `/nova/fuentes/[id]/capitulos`), y cada documento lleva el sello de su tipo (`SelloDocumento`, colores de las categorías). El filtro por tipo (`?tipo=`) aparece con dos tipos o más. Otro archivo responde `TIPO_NO_ADMITIDO`.
 - **Cuestionarios y plan de lectura:** "Una sección", "Un rango de partes", "Desde la parte", "Secciones por semana"; la tarea de una sección, parte o diapositiva se titula "Leer: Derivadas".
 
+**Cómo quedó E20d-2 (2026-11-26), decisiones de detalle:**
+- **Lectura:** `src/lib/lectores/office.ts` con `fflate` 0.8.2 (solo se descomprimen los XML que hacen falta, con un tope de 60 MB inflados contra los ZIP trampa) y expresiones regulares sobre el XML; las imágenes de adentro no se leen.
+- **Word:** párrafos, listas (con "• ") y tablas (cada fila, un párrafo con las celdas separadas por " | ") de `word/document.xml`. El nivel de cada título sale del estilo: `w:outlineLvl` en `styles.xml` (también por `basedOn`) o el nombre estándar "heading N", así sirve "Título 1" en un Word en español; o el `w:outlineLvl` del párrafo. Las secciones se cortan con la misma regla del Markdown (`seccionesPorTitulos`); sin títulos, por partes.
+- **PowerPoint:** las diapositivas en el orden de `presentation.xml` (no el de los nombres de archivo), cada una con su título (marcador `title` o `ctrTitle`; si no tiene, "Diapositiva N"), su texto (también el de las tablas) y las notas del orador ("Notas: …"); el número, la fecha y el pie no cuentan. Cada diapositiva es un grupo de `capitulos`.
+- **Fuentes:** el campo acepta .docx y .pptx (también por su tipo, para que el iPhone los ofrezca), con sus sellos Word (azul) y PowerPoint (ámbar) y en el filtro. Los .doc y .ppt antiguos se rechazan con `TIPO_NO_ADMITIDO`.
+
 ### 3. Orden propuesto (un commit por paso, con la prueba del usuario entre uno y otro)
 
 1. **E20d-1:** M26 (con `db:respaldar` antes); Markdown y texto; sellos, filtro y "Ver contenido".

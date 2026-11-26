@@ -107,22 +107,35 @@ export function seccionesMarkdown(texto: string): EstructuraDocumento {
     const nivel = (m[1] as string).length;
     if (nivel <= 3 && titulo !== '') encabezados.push({ linea: i, nivel, titulo });
   });
+  return seccionesPorTitulos(limpias, encabezados, '\n');
+}
 
+/**
+ * E20d: las secciones de un documento a partir de sus líneas (o párrafos) y de sus títulos de nivel 1 a 3. Se corta
+ * en los dos niveles más altos; lo de antes del primer título es "Inicio". Sin títulos, por partes. `separador`
+ * une las líneas: en un Word cada línea es un párrafo.
+ */
+export function seccionesPorTitulos(
+  limpias: readonly string[],
+  todos: ReadonlyArray<{ linea: number; nivel: number; titulo: string }>,
+  separador: string,
+): EstructuraDocumento {
+  const encabezados = todos.filter((e) => e.nivel >= 1 && e.nivel <= 3 && e.titulo !== '');
   const niveles = [...new Set(encabezados.map((e) => e.nivel))].sort((a, b) => a - b);
-  if (niveles.length === 0) return partesDeTexto(limpias.join('\n'));
+  if (niveles.length === 0) return partesDeTexto(limpias.join(separador));
   const [alto, segundo] = niveles as [number, number | undefined];
   const cortes = encabezados.filter((e) => e.nivel === alto || e.nivel === segundo);
 
   const unidades: string[] = [];
   const entradas: Array<{ titulo: string; pagina: number; nivel: number }> = [];
-  const previo = limpias.slice(0, (cortes[0] as { linea: number }).linea).join('\n').trim();
+  const previo = limpias.slice(0, (cortes[0] as { linea: number }).linea).join(separador).trim();
   if (previo !== '') {
     unidades.push(previo);
     entradas.push({ titulo: TITULO_INICIO, pagina: 1, nivel: 1 });
   }
   cortes.forEach((corte, k) => {
     const hasta = cortes[k + 1]?.linea ?? limpias.length;
-    unidades.push(limpias.slice(corte.linea, hasta).join('\n').trim());
+    unidades.push(limpias.slice(corte.linea, hasta).join(separador).trim());
     entradas.push({ titulo: corte.titulo, pagina: unidades.length, nivel: corte.nivel === alto ? 1 : 2 });
   });
   validarUnidades(unidades, 'seccion');

@@ -28,6 +28,8 @@ export interface EstructuraDocumento {
 /** Lo que se puede subir, por extensión, con el tipo que se guarda y el que se declara a Blob. */
 const ARCHIVOS: Record<string, { tipo: TipoDocumento; mime: string }> = {
   pdf: { tipo: 'pdf', mime: 'application/pdf' },
+  docx: { tipo: 'docx', mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' },
+  pptx: { tipo: 'pptx', mime: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' },
   md: { tipo: 'md', mime: 'text/markdown' },
   txt: { tipo: 'txt', mime: 'text/plain' },
 };
