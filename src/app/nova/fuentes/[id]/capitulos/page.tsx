@@ -4,7 +4,7 @@ import { claseBoton, CLASE_FOCO } from '@/components/ui/Boton';
 import { EncabezadoPantalla } from '@/components/ui/EncabezadoPantalla';
 import { PlanLectura } from '@/components/nova/PlanLectura';
 import { EstadoVacio } from '@/components/ui/EstadoVacio';
-import { capitulosDeDocumento, exigirSesion, listarCategorias, type CapitulosDocumento } from '@/lib/dataService';
+import { capitulosDeDocumento, exigirSesion, listarCategorias, textoDePaginas, type CapitulosDocumento } from '@/lib/dataService';
 import { ErrorDeNegocio, MENSAJES } from '@/lib/reglas/errores';
 import { MENSAJE_FOTOS_SIN_CAPITULOS, MENSAJE_REINDEXAR, MENSAJE_SIN_CAPITULOS } from '@/lib/reglas/libros';
 import { contarUnidades } from '@/lib/reglas/tiposDocumento';
@@ -50,6 +50,10 @@ export default async function CapitulosPage({ params }: { params: Promise<{ id: 
   const { documento, capitulos } = datos;
   const sinPaginas = documento.paginas === null;
   const categorias = capitulos.length > 0 ? await listarCategorias(sesion.id) : [];
+  // Ajuste de E20d-4: las fotos no tienen capítulos; se muestra lo que se leyó en cada una.
+  const esFoto = documento.tipo === 'imagen';
+  // Si lo eliminaron entre una consulta y otra, se muestra como sin texto en vez de la página de error.
+  const textos = esFoto && !sinPaginas ? await textoDePaginas(sesion.id, documento.id).catch(() => []) : [];
   return (
     <>
       <EncabezadoPantalla
@@ -76,7 +80,22 @@ export default async function CapitulosPage({ params }: { params: Promise<{ id: 
           </div>
         )}
       </div>
-      {capitulos.length === 0 ? (
+      {esFoto && textos.length > 0 ? (
+        <section aria-label="Lo que Nova leyó en las fotos" className="flex flex-col gap-3">
+          <p className="text-sm text-texto-suave">Lo que Nova leyó en {textos.length > 1 ? 'cada foto' : 'la foto'}. Pregúntale al Asistente por esto.</p>
+          {textos.map(({ pagina, texto }) => (
+            <article key={pagina} className="flex flex-col gap-2 rounded-[16px] border border-borde bg-superficie p-4">
+              {textos.length > 1 && <h2 className="text-sm font-semibold text-texto">Foto {pagina}</h2>}
+              {texto ? (
+                // El texto se guarda en un solo renglón (RN-10): los saltos de línea de la foto no se conservan.
+                <p className="text-sm leading-6 text-texto">{texto}</p>
+              ) : (
+                <p className="text-sm text-texto-suave">No encontré texto en esta foto.</p>
+              )}
+            </article>
+          ))}
+        </section>
+      ) : capitulos.length === 0 ? (
         <EstadoVacio
           titulo={sinPaginas ? MENSAJE_REINDEXAR : documento.tipo === 'imagen' ? MENSAJE_FOTOS_SIN_CAPITULOS : MENSAJE_SIN_CAPITULOS}
         />

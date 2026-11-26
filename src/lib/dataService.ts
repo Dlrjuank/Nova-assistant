@@ -161,6 +161,7 @@ export {
   existenDocumentos,
   listarDocumentos,
   capitulosDeDocumento,
+  textoDePaginas,
 } from '@/lib/datos/documentos';
 export { completarTarea, crearTarea, crearTareaConResultado, editarTarea, eliminarTarea, hayTareasPendientes, listarTareas, obtenerTarea } from '@/lib/datos/tareas';
 export { semanaDeTareas, type Semana } from '@/lib/datos/semana';

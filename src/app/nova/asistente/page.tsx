@@ -21,7 +21,7 @@ export default async function AsistentePage({ searchParams }: { searchParams: Pr
     listarDocumentos(id),
   ]);
   const aviso = avisoAsistente(hayDocumentos, hayTareas); // RB-30
-  const listos = documentos.filter((d) => d.progreso === null && d.numFragmentos > 0).map((d) => ({ id: d.id, nombre: d.nombreArchivo }));
+  const listos = documentos.filter((d) => d.progreso === null && d.numFragmentos > 0).map((d) => ({ id: d.id, nombre: d.nombreArchivo, tipo: d.tipo }));
   const enlaceIndexar = (
     <Link href="/nova/fuentes?pestana=pdf" className="font-semibold text-acento underline">
       Indexar un PDF

@@ -550,3 +550,55 @@ describe('E10c3: IA general', () => {
     expect(screen.getByRole('button', { name: 'Preguntarle a la IA' })).toBeTruthy();
   });
 });
+
+describe('"Buscar en" con muchos documentos (pedido del usuario del 2026-11-26)', () => {
+  const muchos = [
+    { id: 'a', nombre: 'Cálculo diferencial.pdf', tipo: 'pdf' as const },
+    { id: 'b', nombre: 'Foto del 26 de noviembre', tipo: 'imagen' as const },
+    { id: 'c', nombre: 'Apuntes de física.docx', tipo: 'docx' as const },
+    { id: 'd', nombre: 'Historia.pdf', tipo: 'pdf' as const },
+    { id: 'e', nombre: 'Química.md', tipo: 'md' as const },
+    { id: 'f', nombre: 'Inglés.txt', tipo: 'txt' as const },
+  ];
+
+  it('con pocos documentos no aparece el buscador', () => {
+    render(<Chat documentos={muchos.slice(0, 3)} />);
+    expect(screen.queryByLabelText('Buscar documento')).toBeNull();
+  });
+
+  it('escribir parte del nombre filtra la lista, elige el primero y lo agrupa por tipo', () => {
+    render(<Chat documentos={muchos} />);
+    const selector = screen.getByLabelText('Buscar en') as HTMLSelectElement;
+    expect(selector.querySelectorAll('optgroup').length).toBeGreaterThanOrEqual(4);
+    fireEvent.change(screen.getByLabelText('Buscar documento'), { target: { value: 'fisica' } });
+    expect(selector.value).toBe('c');
+    const documentosVisibles = [...selector.querySelectorAll('option')].map((o) => o.value).filter((v) => muchos.some((d) => d.id === v));
+    expect(documentosVisibles).toEqual(['c']);
+    expect(screen.getByText(/1 de 6 documentos/)).toBeTruthy();
+    // Las demás fuentes siguen disponibles.
+    expect(selector.querySelector('option[value="wikipedia"]')).toBeTruthy();
+  });
+
+  it('sin coincidencias lo dice y no cambia lo elegido', () => {
+    render(<Chat documentos={muchos} />);
+    fireEvent.change(screen.getByLabelText('Buscar documento'), { target: { value: 'zzz' } });
+    expect(screen.getByText('Ningún documento tiene «zzz» en el título.')).toBeTruthy();
+    expect((screen.getByLabelText('Buscar en') as HTMLSelectElement).value).toBe('');
+  });
+  it('Enter en "Buscar documento" no envía la pregunta, y lo elegido que no coincide sigue en la lista', () => {
+    const f = vi.fn();
+    vi.stubGlobal('fetch', f);
+    render(<Chat documentos={muchos} />);
+    const selector = screen.getByLabelText('Buscar en') as HTMLSelectElement;
+    fireEvent.change(selector, { target: { value: 'd' } });
+    fireEvent.change(screen.getByLabelText('Tu pregunta'), { target: { value: '¿Qué es una derivada?' } });
+    const filtro = screen.getByLabelText('Buscar documento');
+    fireEvent.change(filtro, { target: { value: 'zzz' } });
+    fireEvent.keyDown(filtro, { key: 'Enter' });
+    expect(f).not.toHaveBeenCalled();
+    expect(selector.value).toBe('d');
+    expect(selector.querySelector('option[value="d"]')).toBeTruthy();
+    expect(screen.getByText('Ningún documento tiene «zzz» en el título; sigue elegido el que tenías.')).toBeTruthy();
+    vi.unstubAllGlobals();
+  });
+});

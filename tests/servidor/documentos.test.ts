@@ -20,7 +20,7 @@ vi.mock('@/lib/db/conexion', () => ({
   consultar: m.consultar,
 }));
 
-import { capitulosDeDocumento, continuarIndexacion, indexarContenido, indexarDocumento } from '@/lib/datos/documentos';
+import { capitulosDeDocumento, continuarIndexacion, indexarContenido, indexarDocumento, textoDePaginas } from '@/lib/datos/documentos';
 
 const DATOS = { urlBlob: 'https://x.public.blob.vercel-storage.com/a.pdf', nombreArchivo: 'a.pdf' };
 const extraido = (paginas: string[], extra = {}) => ({ paginas, etiquetas: null, indice: [], escaneadas: [] as number[], ...extra });
@@ -318,5 +318,32 @@ describe('E20d-2: Word y PowerPoint', () => {
     expect((insercion('documentos')[1] as unknown[]).slice(-2)).toEqual(['docx', 'seccion']);
     expect(insercion('capitulos')[1]?.[4]).toEqual(['Tema']);
     expect(m.extraerPdf).not.toHaveBeenCalled();
+  });
+});
+
+describe('textoDePaginas (ajuste E20d-4: "Ver contenido" de las fotos)', () => {
+  const U = 'u1';
+  it('arma el texto de cada foto sin repetir el solapamiento entre fragmentos', async () => {
+    m.consultar.mockReset();
+    m.consultar
+      .mockResolvedValueOnce([{ paginas: 2, inicioPaginas: [0, 3], progreso: null }])
+      .mockResolvedValueOnce([{ numero: 1, contenido: 'Apuntes de cálculo derivadas de funciones' }]);
+    await expect(textoDePaginas(U, 'd')).resolves.toEqual([
+      { pagina: 1, texto: 'Apuntes de cálculo' },
+      { pagina: 2, texto: 'derivadas de funciones' },
+    ]);
+    // El documento se busca con el dueño (RB-01).
+    expect(m.consultar.mock.calls[0]?.[1]).toEqual(['d', U]);
+  });
+
+  it('un documento de otro usuario no existe, y sin inicio de páginas no se separa', async () => {
+    m.consultar.mockReset();
+    m.consultar.mockResolvedValueOnce([]);
+    await expect(textoDePaginas(U, 'x')).rejects.toMatchObject({ codigo: 'DOCUMENTO_NO_ENCONTRADO' });
+    m.consultar.mockResolvedValueOnce([{ paginas: 1, inicioPaginas: null }]);
+    await expect(textoDePaginas(U, 'viejo')).resolves.toEqual([]);
+    // Mientras se indexa no se muestra un texto a medias.
+    m.consultar.mockResolvedValueOnce([{ paginas: 2, inicioPaginas: [0, 3], progreso: 50 }]);
+    await expect(textoDePaginas(U, 'indexando')).resolves.toEqual([]);
   });
 });

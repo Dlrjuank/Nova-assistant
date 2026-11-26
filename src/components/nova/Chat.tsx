@@ -14,6 +14,7 @@ import { AVISO_BUSQUEDA_CORTA, esConsultaValida as esValida, normalizarConsulta 
 import { MENSAJES } from '@/lib/reglas/errores';
 import { CONSULTA_MAX_CARACTERES } from '@/lib/config/nova';
 import { BUSCAR_EN_IA, BUSCAR_EN_WEB, BUSCAR_EN_WIKIPEDIA, type OrigenMensaje } from '@/lib/reglas/fuentesWeb';
+import { agruparPorTipo, filtrarDocumentos, UMBRAL_BUSCADOR, type DocumentoBuscable } from '@/lib/reglas/buscarEn';
 import { ofrecePreguntarIa } from '@/lib/reglas/iaGeneral';
 import type { ModoExplicar } from '@/lib/reglas/preguntasLibro';
 import { useSeguirConversacion } from './seguirConversacion';
@@ -81,7 +82,7 @@ export function Chat({
   /** E03: pregunta escrita en "Pregúntale a Nova" (Inicio); se envía al cargar, una sola vez. */
   preguntaInicial?: string;
   /** E10c: los documentos listos, para el selector "Buscar en". */
-  documentos?: ReadonlyArray<{ id: string; nombre: string }>;
+  documentos?: ReadonlyArray<DocumentoBuscable>;
   /** E20b (commit 5): preguntas de ejemplo que se envían al tocarlas (solo con "Todos los documentos"). */
   sugerencias?: readonly string[];
 }) {
@@ -89,6 +90,13 @@ export function Chat({
     historial.map((m, i) => ({ id: i, autor: m.autor, texto: m.texto, fuentes: m.fuentes, origen: m.origen ?? null, ...(m.explicable ? { explicableId: Number(m.id) } : {}) })),
   );
   const [buscarEn, setBuscarEn] = useState('');
+  // Con muchos documentos, un campo filtra "Buscar en" por nombre (pedido del usuario del 2026-11-26).
+  const [filtroDocumentos, setFiltroDocumentos] = useState('');
+  const conBuscador = documentos.length > UMBRAL_BUSCADOR;
+  const coinciden = filtrarDocumentos(documentos, filtroDocumentos);
+  // El documento elegido sigue en la lista aunque no coincida, para que el selector no lo pierda.
+  const elegido = documentos.find((d) => d.id === buscarEn);
+  const visibles = elegido && !coinciden.includes(elegido) ? [elegido, ...coinciden] : coinciden;
   const [conversacionId, setConversacionId] = useState(idInicial);
   const [texto, setTexto] = useState('');
   // E20c-1 (RB-79): sin una IA que sirva, ni preguntar ni explicar; en su lugar, el aviso con la guía.
@@ -383,6 +391,46 @@ export function Chat({
       )}
 
       <form ref={formulario} onSubmit={enviar} className="flex scroll-mb-24 flex-col gap-2">
+        {conBuscador && (
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="filtro-documentos" className="text-sm font-medium text-texto">
+              Buscar documento
+            </label>
+            <input
+              id="filtro-documentos"
+              type="search"
+              value={filtroDocumentos}
+              placeholder="Escribe parte del título"
+              autoComplete="off"
+              enterKeyHint="done"
+              // Enter (o "Listo" en el teclado del iPhone) cierra el teclado; no envía la pregunta del chat.
+              onKeyDown={(e) => {
+                if (e.key !== 'Enter') return;
+                e.preventDefault();
+                e.currentTarget.blur();
+              }}
+              aria-describedby="filtro-documentos-ayuda"
+              onChange={(e) => {
+                const valor = e.target.value;
+                setFiltroDocumentos(valor);
+                // Al escribir se elige el primero que coincide: con un nombre bien escrito, no hace falta abrir la lista.
+                const primero = valor.trim() ? filtrarDocumentos(documentos, valor)[0] : undefined;
+                if (primero) {
+                  setBuscarEn(primero.id);
+                  recordarBuscarEn(primero.id);
+                }
+              }}
+              className={`${CLASE_CONTROL} border-borde`}
+            />
+            <p id="filtro-documentos-ayuda" className="text-xs text-texto-suave" aria-live="polite">
+              {filtroDocumentos.trim()
+                ? coinciden.length === 0
+                  ? `Ningún documento tiene «${filtroDocumentos.trim()}» en el título${elegido ? '; sigue elegido el que tenías' : ''}.`
+                  : `${coinciden.length} de ${documentos.length} documentos. Se eligió el primero; cámbialo abajo si no es.`
+                : `Tienes ${documentos.length} documentos: escribe parte del título para encontrarlo.`}
+            </p>
+          </div>
+        )}
         <Selector
           id="buscar-en"
           etiqueta="Buscar en"
@@ -393,10 +441,12 @@ export function Chat({
           }}
           opciones={[
             { valor: '', texto: 'Todos los documentos' },
-            ...documentos.map((d) => ({ valor: d.id, texto: d.nombre })),
-            { valor: BUSCAR_EN_WEB, texto: 'Fuentes web' },
-            { valor: BUSCAR_EN_WIKIPEDIA, texto: 'Wikipedia' },
-            { valor: BUSCAR_EN_IA, texto: 'IA (conocimiento general)' },
+            ...agruparPorTipo(visibles).flatMap(({ grupo, documentos: delGrupo }) =>
+              delGrupo.map((d) => ({ valor: d.id, texto: d.nombre, grupo })),
+            ),
+            { valor: BUSCAR_EN_WEB, texto: 'Fuentes web', grupo: 'Otras fuentes' },
+            { valor: BUSCAR_EN_WIKIPEDIA, texto: 'Wikipedia', grupo: 'Otras fuentes' },
+            { valor: BUSCAR_EN_IA, texto: 'IA (conocimiento general)', grupo: 'Otras fuentes' },
           ]}
         />
         {buscarEn === BUSCAR_EN_IA && (

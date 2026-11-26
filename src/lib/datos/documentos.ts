@@ -11,7 +11,7 @@ import { validarTamanoPdf, validarTextoExtraido } from '@/lib/reglas/documento';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
 import type { EtapaServidor } from '@/lib/reglas/etapasIndexacion';
 import { hoyBogota } from '@/lib/reglas/fechas';
-import { detectarCapitulos, fragmentarPaginas, inicioDePaginas, validarPaginas, type FragmentoLibro } from '@/lib/reglas/libros';
+import { detectarCapitulos, fragmentarPaginas, inicioDePaginas, soloTextoDePagina, validarPaginas, type FragmentoLibro } from '@/lib/reglas/libros';
 import type { Capitulo, CapitulosDocumento, Documento, EstadoOcr, ResultadoIndexacion } from './tipos';
 import { conIaDe } from '@/lib/llm/contextoIa';
 import { descargarArchivo } from './descargas';
@@ -504,6 +504,34 @@ export async function capitulosDeDocumento(usuarioId: string, id: string): Promi
     [id, usuarioId],
   );
   return { documento, capitulos };
+}
+
+/** Las fotos de un documento tienen como máximo 30 páginas (OCR_MAX_FOTOS); el tope protege la pantalla. */
+const MAX_PAGINAS_TEXTO = 30;
+
+/**
+ * Ajuste de E20d-4 (pedido del usuario): "Ver contenido" de las fotos muestra lo que Nova leyó en cada una. Arma el
+ * texto de cada página con los fragmentos guardados, sin repetir el solapamiento (RB-39). Sin `inicio_paginas`
+ * (documentos viejos) no se puede separar por página y devuelve una lista vacía.
+ */
+export async function textoDePaginas(usuarioId: string, documentoId: string): Promise<Array<{ pagina: number; texto: string }>> {
+  const [documento] = await consultar<{ paginas: number | null; inicioPaginas: number[] | null; progreso: number | null }>(
+    'SELECT paginas, inicio_paginas AS "inicioPaginas", progreso FROM documentos WHERE id = $1 AND usuario_id = $2',
+    [documentoId, usuarioId],
+  );
+  if (!documento) throw new ErrorDeNegocio('DOCUMENTO_NO_ENCONTRADO');
+  // Mientras se indexa, los fragmentos llegan por partes: no se muestra un texto a medias.
+  if (!documento.paginas || !documento.inicioPaginas || documento.progreso !== null) return [];
+  const fragmentos = await consultar<{ numero: number; contenido: string }>(
+    // El documento ya se comprobó como del usuario (RB-01); los fragmentos se buscan por él.
+    'SELECT numero, contenido FROM fragmentos_pdf WHERE documento_id = $1 ORDER BY numero',
+    [documentoId],
+  );
+  const total = Math.min(documento.paginas, MAX_PAGINAS_TEXTO);
+  return Array.from({ length: total }, (_, i) => ({
+    pagina: i + 1,
+    texto: soloTextoDePagina(fragmentos, i + 1, documento.inicioPaginas as number[]).map((f) => f.contenido).join(' '),
+  }));
 }
 
 /**
