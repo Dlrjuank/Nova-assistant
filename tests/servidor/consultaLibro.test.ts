@@ -154,7 +154,7 @@ describe('capítulo (RB-40)', () => {
     base([LIBRO], []);
     await expect(consultar(U, 'Resume el capítulo 9', [], { documentoId: D })).resolves.toMatchObject({ respuesta: 'No encontré el capítulo 9 en este documento.' });
     m.capitulos.mockResolvedValue({ documento: {}, capitulos: [] });
-    await expect(consultar(U, 'Resume el capítulo 1', [], { documentoId: D })).resolves.toMatchObject({ respuesta: 'No encontré capítulos en este PDF. Puedes preguntar por página.' });
+    await expect(consultar(U, 'Resume el capítulo 1', [], { documentoId: D })).resolves.toMatchObject({ respuesta: 'No encontré capítulos en este documento. Puedes preguntar por página.' });
     expect(m.responder).not.toHaveBeenCalled();
   });
 

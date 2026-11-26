@@ -38,7 +38,8 @@ describe('varias fotos', () => {
     fireEvent.change(screen.getByLabelText('Archivo'), { target: { files: [foto('IMG_1.jpg'), foto('IMG_2.png', 'image/png'), foto('IMG_3.jpg')] } });
     expect(screen.getByText('3 fotos')).toBeTruthy();
     const titulo = screen.getByLabelText('Título del documento') as HTMLInputElement;
-    expect(titulo.value).toBe('IMG_1');
+    // Ajuste E20d-4: el nombre que pone la cámara se cambia por la fecha.
+    expect(titulo.value).toMatch(/^Fotos del \d{1,2} de [a-z]+$/);
     fireEvent.change(titulo, { target: { value: 'Apuntes de clase' } });
     fireEvent.click(screen.getByRole('button', { name: 'Indexar' }));
     await waitFor(() => expect(pedidos).toHaveLength(1));

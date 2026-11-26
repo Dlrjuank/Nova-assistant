@@ -4,7 +4,9 @@ import { ErrorDeNegocio } from './errores';
 /** E10b (PLAN_AMPLIACION 5.9, RB-36 a RB-38): páginas y capítulos de un PDF. Funciones puras. */
 
 export const MENSAJE_REINDEXAR = 'Vuelve a indexar este documento para ver páginas y capítulos.';
-export const MENSAJE_SIN_CAPITULOS = 'No encontré capítulos en este PDF. Puedes preguntar por página.';
+export const MENSAJE_SIN_CAPITULOS = 'No encontré capítulos en este documento. Puedes preguntar por página.';
+/** E20d-4 (ajuste tras la prueba del usuario): una foto nunca tiene capítulos; no es una falta. */
+export const MENSAJE_FOTOS_SIN_CAPITULOS = 'Las fotos no tienen capítulos. Pregúntale al Asistente por lo que dicen.';
 
 /** Del índice interno del PDF. `pagina` empieza en 1; `nivel` 1 es lo más alto. */
 export interface EntradaIndice {

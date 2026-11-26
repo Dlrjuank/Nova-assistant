@@ -83,6 +83,23 @@ function validarArchivos(lista: readonly File[]): string | null {
 
 const sinExtension = (nombre: string) => nombre.replace(/.[a-z0-9]{1,5}$/i, '');
 
+const sonFotos = (lista: File[]) => lista.length > 0 && lista.every((a) => tipoDeArchivo(a.name) === 'imagen');
+
+/** Nombres que pone la cámara o el iPhone (un código al azar, IMG_1234…): no sirven como título. */
+const NOMBRE_DE_CAMARA = /^([0-9a-f]{8}-[0-9a-f]{4}-|(img|dsc|pxl|image|photo|foto)[_ -]?\d|\d{8}[_ -]\d)/i;
+
+/**
+ * Ajuste de E20d-4 tras la prueba del usuario: el título se pide también con una sola foto, y si la cámara le puso un
+ * código, se propone "Foto del 26 de noviembre".
+ */
+export function tituloPorDefecto(lista: File[], hoy = new Date()): string {
+  if (!lista[0]) return '';
+  const base = sinExtension(lista[0].name);
+  if (!sonFotos(lista) || !NOMBRE_DE_CAMARA.test(base)) return base;
+  const fecha = new Intl.DateTimeFormat('es-CO', { day: 'numeric', month: 'long', timeZone: 'America/Bogota' }).format(hoy);
+  return `${lista.length > 1 ? 'Fotos' : 'Foto'} del ${fecha}`;
+}
+
 /** Blob rechaza algunos caracteres en la ruta. El nombre original se conserva aparte para mostrarlo. E20d: con su extensión. */
 function rutaEnBlob(nombre: string): string {
   const extension = extensionDe(nombre) || 'pdf';
@@ -99,6 +116,7 @@ export function SubidorPdf({ materias = [] }: { materias?: ReadonlyArray<{ id: s
   const [archivos, setArchivos] = useState<File[]>([]);
   const archivo = archivos[0] ?? null;
   const varias = archivos.length > 1;
+  const fotos = sonFotos(archivos);
   const [titulo, setTitulo] = useState('');
   const [categoria, setCategoria] = useState(CATEGORIA_POR_DEFECTO);
   const [materiaId, setMateriaId] = useState('');
@@ -131,7 +149,7 @@ export function SubidorPdf({ materias = [] }: { materias?: ReadonlyArray<{ id: s
     const invalido = lista.length > 0 ? validarArchivos(lista) : null;
     setError(invalido ?? '');
     setArchivos(invalido ? [] : lista);
-    setTitulo(lista[0] ? sinExtension(lista[0].name) : '');
+    setTitulo(tituloPorDefecto(lista));
   }
 
   async function enviar(evento: FormEvent) {
@@ -180,7 +198,7 @@ export function SubidorPdf({ materias = [] }: { materias?: ReadonlyArray<{ id: s
         body: JSON.stringify({
           urlBlob: urls[0],
           ...(urls.length > 1 ? { masUrls: urls.slice(1) } : {}),
-          nombreArchivo: varias ? titulo.trim() || sinExtension(archivo.name) : archivo.name,
+          nombreArchivo: fotos ? titulo.trim() || tituloPorDefecto(archivos) : archivo.name,
           categoria: materia ? materia.nombre : categoria.trim() || CATEGORIA_POR_DEFECTO,
           ...(materia ? { materiaId: materia.id } : {}),
         }),
@@ -262,7 +280,7 @@ export function SubidorPdf({ materias = [] }: { materias?: ReadonlyArray<{ id: s
         </div>
       </div>
 
-      {varias && (
+      {fotos && (
         <Campo
           id="titulo-fotos"
           etiqueta="Título del documento"
@@ -270,7 +288,7 @@ export function SubidorPdf({ materias = [] }: { materias?: ReadonlyArray<{ id: s
           onChange={(e) => setTitulo(e.target.value)}
           maxLength={200}
           disabled={ocupado}
-          ayuda="Las fotos quedan como sus páginas, en el orden en que las elegiste."
+          ayuda={varias ? 'Las fotos quedan como sus páginas, en el orden en que las elegiste.' : 'La foto queda como la página 1 del documento.'}
         />
       )}
 

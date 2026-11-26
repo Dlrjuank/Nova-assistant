@@ -5,7 +5,7 @@ const m = vi.hoisted(() => ({ refresh: vi.fn(), upload: vi.fn() }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: m.refresh }) }));
 vi.mock('@vercel/blob/client', () => ({ upload: m.upload }));
 
-import { SubidorPdf } from '@/components/nova/SubidorPdf';
+import { SubidorPdf, tituloPorDefecto } from '@/components/nova/SubidorPdf';
 import { PDF_MAX_BYTES } from '@/lib/config/nova';
 
 const URL_BLOB = 'https://abc.public.blob.vercel-storage.com/a-x.pdf';
@@ -144,5 +144,31 @@ describe('SubidorPdf', () => {
   it("sin materias no aparece el selector", () => {
     render(<SubidorPdf />);
     expect(screen.queryByLabelText("Materia (opcional)")).toBeNull();
+  });
+
+  it('ajuste E20d-4: con una sola foto también se pide el título; un PDF no lo pide', () => {
+    render(<SubidorPdf />);
+    elegir(archivoDe('pizarra.jpg', 10, 'image/jpeg'));
+    expect((screen.getByLabelText('Título del documento') as HTMLInputElement).value).toBe('pizarra');
+    expect(screen.getByText('La foto queda como la página 1 del documento.')).toBeTruthy();
+    elegir(archivoDe('libro.pdf'));
+    expect(screen.queryByLabelText('Título del documento')).toBeNull();
+  });
+});
+
+describe('tituloPorDefecto (ajuste E20d-4)', () => {
+  const hoy = new Date('2026-11-26T22:00:00Z'); // 26 de noviembre en Bogotá
+  const foto = (nombre: string) => new File(['x'], nombre, { type: 'image/jpeg' });
+
+  it('el código al azar del iPhone o de la cámara se cambia por la fecha', () => {
+    expect(tituloPorDefecto([foto('6dcfab87-40bf-4f29-92ad-4851a54c8703.jpeg')], hoy)).toBe('Foto del 26 de noviembre');
+    expect(tituloPorDefecto([foto('IMG_1234.JPG'), foto('IMG_1235.JPG')], hoy)).toBe('Fotos del 26 de noviembre');
+    expect(tituloPorDefecto([foto('20261126_101500.jpg')], hoy)).toBe('Foto del 26 de noviembre');
+  });
+
+  it('un nombre puesto por la persona se respeta, y los demás tipos no cambian', () => {
+    expect(tituloPorDefecto([foto('Apuntes de cálculo.jpg')], hoy)).toBe('Apuntes de cálculo');
+    expect(tituloPorDefecto([new File(['x'], 'IMG_1234.pdf')], hoy)).toBe('IMG_1234');
+    expect(tituloPorDefecto([], hoy)).toBe('');
   });
 });

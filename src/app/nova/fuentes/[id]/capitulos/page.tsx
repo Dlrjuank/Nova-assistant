@@ -6,7 +6,7 @@ import { PlanLectura } from '@/components/nova/PlanLectura';
 import { EstadoVacio } from '@/components/ui/EstadoVacio';
 import { capitulosDeDocumento, exigirSesion, listarCategorias, type CapitulosDocumento } from '@/lib/dataService';
 import { ErrorDeNegocio, MENSAJES } from '@/lib/reglas/errores';
-import { MENSAJE_REINDEXAR, MENSAJE_SIN_CAPITULOS } from '@/lib/reglas/libros';
+import { MENSAJE_FOTOS_SIN_CAPITULOS, MENSAJE_REINDEXAR, MENSAJE_SIN_CAPITULOS } from '@/lib/reglas/libros';
 import { contarUnidades } from '@/lib/reglas/tiposDocumento';
 import { SelloDocumento } from '@/components/nova/SelloDocumento';
 import { esquemaIdDocumento } from '@/lib/validacion/esquemas';
@@ -77,7 +77,9 @@ export default async function CapitulosPage({ params }: { params: Promise<{ id: 
         )}
       </div>
       {capitulos.length === 0 ? (
-        <EstadoVacio titulo={sinPaginas ? MENSAJE_REINDEXAR : MENSAJE_SIN_CAPITULOS} />
+        <EstadoVacio
+          titulo={sinPaginas ? MENSAJE_REINDEXAR : documento.tipo === 'imagen' ? MENSAJE_FOTOS_SIN_CAPITULOS : MENSAJE_SIN_CAPITULOS}
+        />
       ) : (
         <PlanLectura
           documentoId={documento.id}
