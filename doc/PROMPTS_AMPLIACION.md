@@ -956,7 +956,7 @@ Guía de la clave (TAREA 1, revisada el 2026-11-25 en aistudio.google.com/docs/a
 
 ## E20d · PDF escaneados (OCR) y más tipos de documento (propuesta del 2026-11-24, aprobada el 2026-11-25)
 
-**Cuándo:** después de E20c y antes de E21. Con la clave propia de cada persona (E20c), leer páginas con Gemini gasta su cuota, no la compartida. **Requisito:** E20c. **Estado:** aprobada por el usuario el 2026-11-25 tal como está escrita; se programa después de E20c. La migración es **M26** (E20c usa M24 y M25).
+**Cuándo:** después de E20c y antes de E21. Con la clave propia de cada persona (E20c), leer páginas con Gemini gasta su cuota, no la compartida. **Requisito:** E20c. **Estado:** **terminada el 2026-11-26** (E20d-1 a E20d-4 y sus ajustes), probada por el usuario sin fallas. Aprobada el 2026-11-25 tal como está escrita. La migración es **M26** (E20c usa M24 y M25).
 
 **Pedido del usuario (2026-11-24):**
 - Un libro escaneado (cada página es una imagen) no se pudo leer.
@@ -1064,6 +1064,12 @@ Guía de la clave (TAREA 1, revisada el 2026-11-25 en aistudio.google.com/docs/a
 - **Fotos (E20d-4):** .jpg, .jpeg y .png (el iPhone convierte las HEIC a JPEG). Varias fotos elegidas juntas son un solo documento, con "Título del documento" (por defecto, el nombre de la primera) y una página por foto; un PDF con fotos juntos se rechaza. Tipo `imagen`, sello "Foto".
 - **Citas:** "Libro.pdf · p. 45 (escaneada)".
 - `PDF_SIN_TEXTO` pasa a decir "El documento no tiene texto ni páginas escaneadas que leer."
+
+**Cómo quedó, ajustes tras la prueba del usuario (2026-11-26):**
+- **Título de las fotos:** se pide con cualquier foto (también con una sola); si el nombre es de la cámara se propone "Foto del 26 de noviembre" o "Fotos del …".
+- **"Ver contenido" de las fotos:** muestra lo que Nova leyó en cada una ("Foto N"), en un solo párrafo porque los fragmentos no guardan los saltos de línea; tope de 30.
+- **"Buscar en":** con más de 5 documentos aparece "Buscar documento" (por título, sin tildes ni mayúsculas) y los documentos van agrupados por tipo; web, Wikipedia e IA en "Otras fuentes".
+- **Terminada el 2026-11-26:** probada por el usuario sin fallas.
 
 ### 3. Orden propuesto (un commit por paso, con la prueba del usuario entre uno y otro)
 

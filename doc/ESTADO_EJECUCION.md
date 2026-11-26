@@ -31,6 +31,7 @@
 | Ajustes de E06 (columnas, prioridad, botón "+") | completado | correcto | 391 pasan | 2026-11-07 |
 | E06b Ampliación: horario de las tareas (M14) | completado | correcto | 404 pasan | 2026-11-07 |
 | Ajuste: tope de 4 tareas por columna y completadas al final | completado | correcto | 406 pasan | 2026-11-07 |
+| E20d Ampliación: más tipos de documento y OCR (M26) | completado, probado por el usuario | correcto | 1645 pasan | 2026-11-26 |
 
 ## Bitácora
 
@@ -1688,3 +1689,11 @@ Total de fallas: 0
 - **"Buscar en" del Asistente:** con más de 5 documentos aparece "Buscar documento" (`src/lib/reglas/buscarEn.ts`): filtra por título sin tildes ni mayúsculas, con todas las palabras en cualquier orden, elige el primero que coincide y el elegido no se pierde aunque no coincida. Enter o "Listo" cierra el teclado sin enviar la pregunta. Los documentos van agrupados por tipo (PDF, Word, PowerPoint, Fotos, Markdown, Texto) y web, Wikipedia e IA en "Otras fuentes" (`Selector` admite `grupo` → `<optgroup>`). Se sigue usando el selector nativo, que en el iPhone abre la rueda del sistema.
 - **Revisor:** 5 puntos, corregidos: Enter enviaba el formulario, la palabra "nombre" en el campo (Safari ofrece contactos), texto a medias mientras se indexa, `whitespace-pre-line` sin efecto y la ayuda sin contar el elegido.
 - **Pruebas:** `npm test` 1645 de 1645 (nuevas: `reglas/buscarEn`, casos en `interfaz/Chat` y `servidor/documentos`), `tsc` sin errores nuevos, eslint sin errores. Sin build local.
+
+#### E20d terminada (2026-11-26)
+
+- **Prueba del usuario:** E20d-1 a E20d-4 y los ajustes de fotos y de "Buscar en", sin fallas. La corrección de los filtros que subían la página (`e093ab2`) iba en la misma ronda y el usuario no la nombró aparte.
+- **Build:** los dos últimos ajustes no tuvieron build local; la vista previa de `6b918f2` (`nova-assistant-fnyoikexp-dlrjuank.vercel.app`) quedó en Ready.
+- **Pruebas:** `npm test` 1645 de 1645 (última ejecución, con el código de `6b918f2`).
+- **Commits:** `a7aabb1` (E20d-1), `e353e38` (E20d-2), `8a9f818` (E20d-3), `2cad017` (E20d-4), `4784905` y `6b918f2` (ajustes).
+- **Sigue:** E21 (aceptación y unión con `master`). Primero la propuesta; no se programa hasta que el usuario la apruebe.

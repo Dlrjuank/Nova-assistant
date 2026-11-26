@@ -9,16 +9,16 @@ Asistente RAG (Next.js 15 + Supabase/pgvector + Vercel Blob + Gemini), desplegad
 - Historial completo de este archivo hasta el 2026-11-26 (decisiones y trucos antiguos): `doc/HISTORIAL_CLAUDE.md`. Buscar ahí antes de preguntar algo que ya se decidió.
 
 ## Estado actual (actualizar al cerrar cada etapa; el detalle va en `ESTADO_EJECUCION.md`)
-- **En curso: E20d** (más tipos de documento y OCR; M26 aplicada). E20d-1 (Markdown y texto) y E20d-2 (Word y PowerPoint) programadas: **pendiente la prueba del usuario de las dos juntas**. Luego E20d-3 y E20d-4 juntas, y después E21 (unión con `master`).
+- **Sigue: E21** (aceptación y unión con `master`): propuesta entregada el 2026-11-26, **sin programar; espera la aprobación del usuario**.
+- Terminadas y probadas por el usuario: E01 a E20d (E20d, más tipos de documento y OCR, M26, cerrada el 2026-11-26; E20c clave de Gemini propia, Administración y Entrar con Google; E20b Diseño final). Detalle en `ESTADO_EJECUCION.md`.
 - Hechos el 2026-11-26: filtros y pestañas que no suben la página (`e093ab2`, Inicio en `src/app/nova/(inicio)/`) y Sentry (`273cccb`).
-- Terminadas y probadas por el usuario: E01 a E20c (E20c-1 clave de Gemini propia, E20c-2 Administración con niveles, E20c-3 Entrar con Google y contraseña temporal); E20b Diseño final. Detalle en `ESTADO_EJECUCION.md` y en el plan 5.14.
 - `/privacidad` está en `ampliacion` y va a `master` con E21. El control de registro ya está en producción (`6ce9a4d`). Etiqueta `v1-original` en `d175142`.
 - El aviso de cada minuto (pg_cron) sigue llamando a la vista previa hasta E21. El disparador de dueño por defecto de M5 se quita en E21.
 
 ## Forma de trabajar (pedidos del usuario)
 - Skills: `nueva-etapa`, `prueba-corta`, `trabajo-en-paralelo` (de usuario); `migracion-segura` y `cierre-etapa` (de este proyecto). Agentes: `investigador`, `revisor`, `probador`, `documentador`, `vigia-produccion`.
 - Tras cada etapa: resumir qué se hizo, qué debe probar el usuario (lista corta) y esperar su confirmación antes de la siguiente.
-- Agilizar (2026-11-25): E20d-3 y E20d-4 se prueban juntas, luego E21. Los pasos externos (Google Cloud, Supabase, Vercel) se dan al empezar, para que el usuario los haga mientras se programa.
+- Agilizar (2026-11-25): los pasos externos (Google Cloud, Supabase, Vercel) se dan al empezar, para que el usuario los haga mientras se programa.
 - No hacer commit salvo que el usuario lo pida. **Toda la app usa tuteo.** Sin librería de animación: solo CSS; en cada cambio se revisa lo de sin conexión.
 - `doc/PRESENTACION_AMPLIACION.md` (del usuario) y `doc/CORREO RESEND VERCEL CONNECT (1).md` nunca van en un commit. Nunca mostrar ni subir el contenido de `.env.local` ni de `.env.respaldo.local`.
 
