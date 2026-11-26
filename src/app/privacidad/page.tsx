@@ -89,6 +89,10 @@ export default function PrivacidadPage() {
             Nova funciona sobre Vercel (la app) y Supabase (la base de datos y las cuentas), en Estados Unidos. Las notificaciones pasan por el servicio
             de tu navegador (Apple, Google o Microsoft).
           </p>
+          <p>
+            Cuando algo falla, Nova le avisa a <span className="text-texto">Sentry</span> (también en Estados Unidos) qué error fue y en qué
+            pantalla, para poder corregirlo. Ese aviso no lleva tu nombre, tu correo, tu IP ni lo que escribes en Nova.
+          </p>
         </Seccion>
 
         <Seccion titulo="Cómo eliminar tu cuenta">

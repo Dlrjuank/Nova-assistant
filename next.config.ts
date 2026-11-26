@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next';
+import { withSentryConfig } from '@sentry/nextjs/config';
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
@@ -28,4 +29,17 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// Sentry (ajuste del 2026-11-26): errores del navegador, del servidor y del middleware. Con `SENTRY_AUTH_TOKEN`
+// (solo en Vercel) sube los mapas de código para ver el archivo y la línea reales, y los borra del build: nunca se
+// publican. Sin él (local), no los genera.
+export default withSentryConfig(nextConfig, {
+  org: 'juank-ing',
+  project: 'nova-assistant',
+  silent: !process.env.CI,
+  telemetry: false,
+  widenClientFileUpload: true,
+  sourcemaps: { disable: !process.env.SENTRY_AUTH_TOKEN },
+  // El middleware corre en cada pedido: sin Sentry adentro pesa ~57 kB menos. Sus errores igual salen como 500
+  // en los registros de Vercel.
+  webpack: { autoInstrumentMiddleware: false },
+});

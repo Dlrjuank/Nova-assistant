@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs';
 import { NextResponse } from 'next/server';
 import { ZodError, type ZodType } from 'zod';
 import { ErrorDeNegocio, ESTADO_HTTP, MENSAJES, type CodigoError } from '@/lib/reglas/errores';
@@ -35,6 +36,8 @@ export function responderError(error: unknown): NextResponse {
   } else {
     console.error('Error interno', error);
   }
+  // Los errores inesperados que atrapa la API no llegan solos a Sentry: se avisan aquí.
+  if (codigo === 'ERROR_INTERNO') Sentry.captureException(error);
   return NextResponse.json(cuerpoError(codigo), { status: ESTADO_HTTP[codigo], headers: CABECERAS });
 }
 
