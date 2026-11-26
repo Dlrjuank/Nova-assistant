@@ -91,7 +91,8 @@ export default function PrivacidadPage() {
           </p>
           <p>
             Cuando algo falla, Nova le avisa a <span className="text-texto">Sentry</span> (también en Estados Unidos) qué error fue y en qué
-            pantalla, para poder corregirlo. Ese aviso no lleva tu nombre, tu correo, tu IP ni lo que escribes en Nova.
+            pantalla, para poder corregirlo. Ese aviso no lleva tu nombre, tu correo, tu IP ni lo que escribes en Nova; Sentry solo anota el
+            país y la ciudad aproximada de la conexión.
           </p>
         </Seccion>
 
