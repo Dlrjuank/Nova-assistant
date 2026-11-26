@@ -1,6 +1,6 @@
 'use client';
 
-import { KeyRound, Lock, LockOpen, Search, ShieldMinus, ShieldPlus, Trash2, UserCheck, type LucideIcon } from 'lucide-react';
+import { Copy, KeyRound, Lock, LockKeyhole, LockOpen, Search, ShieldMinus, ShieldPlus, Trash2, UserCheck, type LucideIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useId, useRef, useState, type MouseEvent } from 'react';
 import { pedirSemestre } from '@/components/nova/semestre/peticion';
@@ -23,6 +23,7 @@ import {
   TEXTO_SIN_COINCIDENCIAS,
   textoConfirmarBloquear,
   textoConfirmarEliminar,
+  textoContrasenaTemporal,
   textoEliminada,
   type AccionCuenta,
   type FiltroCuentas,
@@ -36,7 +37,7 @@ import {
  * el correo.
  */
 
-type AccionPantalla = AccionCuenta | 'eliminar';
+type AccionPantalla = AccionCuenta | 'eliminar' | 'contrasena_temporal';
 
 interface Opcion {
   accion: AccionPantalla;
@@ -56,6 +57,7 @@ function opcionesPara(yo: { id: string; nivel: Nivel }, c: CuentaAdmin): Opcion[
     c.usaClaveProyecto
       ? { accion: 'permiso_clave_off', texto: 'Quitar la clave del proyecto', icono: KeyRound }
       : { accion: 'permiso_clave_on', texto: 'Dar la clave del proyecto', icono: KeyRound },
+    { accion: 'contrasena_temporal', texto: 'Contraseña temporal', icono: LockKeyhole, confirmar: true },
     { accion: 'eliminar', texto: 'Eliminar', icono: Trash2, confirmar: true, peligro: true },
   ];
   return todas.filter((o) => revisarAccion(yo, { id: c.id, nivel: c.nivel, estado: c.estado }, o.accion) === null);
@@ -117,6 +119,9 @@ export function CuentasAdministracion({ cuentas, yo, topeMb, ahora }: { cuentas:
   const [mensaje, setMensaje] = useState<{ tipo: 'exito' | 'error'; texto: string } | null>(null);
   const [confirmar, setConfirmar] = useState<{ c: CuentaAdmin; accion: AccionPantalla } | null>(null);
   const [escrito, setEscrito] = useState('');
+  // E20c-3 (RB-91): la contraseña temporal recién dada; se muestra una sola vez, en el diálogo.
+  const [temporal, setTemporal] = useState<{ correo: string; contrasena: string } | null>(null);
+  const [copiada, setCopiada] = useState(false);
   const origen = useRef<HTMLElement | null>(null);
   const momento = new Date(ahora);
   const visibles = filtrarCuentas(cuentas, busqueda, filtro);
@@ -125,6 +130,18 @@ export function CuentasAdministracion({ cuentas, yo, topeMb, ahora }: { cuentas:
     setOcupado(`${c.id}:${accion}`);
     setMensaje(null);
     const url = `/api/nova/administracion/cuentas/${c.id}`;
+    if (accion === 'contrasena_temporal') {
+      const t = await pedirSemestre<{ correo: string; contrasena: string }>(`${url}/contrasena-temporal`, 'POST');
+      setOcupado('');
+      if (!t.ok) {
+        setMensaje({ tipo: 'error', texto: t.mensaje });
+        return;
+      }
+      setCopiada(false);
+      setTemporal({ correo: t.datos.correo, contrasena: t.datos.contrasena });
+      router.refresh();
+      return;
+    }
     const r = accion === 'eliminar' ? await pedirSemestre(url, 'DELETE', { correo }) : await pedirSemestre(url, 'POST', { accion });
     setOcupado('');
     if (!r.ok) {
@@ -286,14 +303,46 @@ export function CuentasAdministracion({ cuentas, yo, topeMb, ahora }: { cuentas:
 
       <Dialogo
         abierto={confirmar !== null}
-        titulo={confirmar?.accion === 'eliminar' ? 'Eliminar cuenta' : confirmar?.accion === 'bloquear' ? 'Bloquear cuenta' : 'Nombrar administrador'}
+        titulo={
+          confirmar?.accion === 'eliminar' ? 'Eliminar cuenta' : confirmar?.accion === 'bloquear' ? 'Bloquear cuenta' : confirmar?.accion === 'contrasena_temporal' ? 'Contraseña temporal' : 'Nombrar administrador'
+        }
         alCerrar={() => {
           setConfirmar(null);
           setMensaje(null);
+          setTemporal(null);
         }}
         origen={origen}
       >
-        {enDialogo && confirmar && (
+        {temporal && (
+          <div className="flex flex-col gap-4" data-contrasena-temporal>
+            <p role="status" className="text-sm text-texto">
+              {textoContrasenaTemporal(temporal.correo, temporal.contrasena)}
+            </p>
+            <p className="rounded-xl border border-borde bg-superficie-2 px-4 py-3 text-center font-mono text-lg tracking-wider break-all text-texto select-all">{temporal.contrasena}</p>
+            <div className="flex flex-wrap justify-end gap-2">
+              <Boton
+                variante="secundario"
+                listo={copiada}
+                textoListo="Copiada"
+                onClick={() => {
+                  void navigator.clipboard?.writeText(temporal.contrasena).then(() => setCopiada(true)).catch(() => {});
+                }}
+              >
+                <Copy aria-hidden="true" className="size-4" />
+                Copiar
+              </Boton>
+              <Boton
+                onClick={() => {
+                  setTemporal(null);
+                  setConfirmar(null);
+                }}
+              >
+                Listo
+              </Boton>
+            </div>
+          </div>
+        )}
+        {!temporal && enDialogo && confirmar && (
           <form
             className="flex flex-col gap-4"
             onSubmit={(e) => {
@@ -310,6 +359,8 @@ export function CuentasAdministracion({ cuentas, yo, topeMb, ahora }: { cuentas:
               </>
             ) : confirmar.accion === 'bloquear' ? (
               <p className="text-sm text-texto">{textoConfirmarBloquear(enDialogo.correo)}</p>
+            ) : confirmar.accion === 'contrasena_temporal' ? (
+              <p className="text-sm text-texto">{`¿Dar una contraseña temporal a ${enDialogo.correo}? Su contraseña actual deja de servir. Con la temporal entra una sola vez en las próximas 24 horas y pone una propia.`}</p>
             ) : (
               <p className="text-sm text-texto">{`¿Nombrar administrador a ${enDialogo.correo}? Podrá ver las cuentas, habilitarlas y bloquear usuarios.`}</p>
             )}
@@ -326,11 +377,11 @@ export function CuentasAdministracion({ cuentas, yo, topeMb, ahora }: { cuentas:
               </Boton>
               <Boton
                 type="submit"
-                variante={confirmar.accion === 'nombrar_admin' ? 'primario' : 'peligro'}
+                variante={confirmar.accion === 'nombrar_admin' || confirmar.accion === 'contrasena_temporal' ? 'primario' : 'peligro'}
                 cargando={ocupado !== ''}
                 disabled={confirmar.accion === 'eliminar' && !correoConfirmado(escrito, enDialogo.correo)}
               >
-                {confirmar.accion === 'eliminar' ? 'Eliminar cuenta' : confirmar.accion === 'bloquear' ? 'Bloquear' : 'Nombrar administrador'}
+                {confirmar.accion === 'eliminar' ? 'Eliminar cuenta' : confirmar.accion === 'bloquear' ? 'Bloquear' : confirmar.accion === 'contrasena_temporal' ? 'Dar contraseña temporal' : 'Nombrar administrador'}
               </Boton>
             </div>
           </form>

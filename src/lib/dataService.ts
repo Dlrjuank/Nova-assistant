@@ -152,7 +152,8 @@ export { desvincularClaveGemini, estadoIa, guardarClaveGemini, infoClaveGemini }
 
 export { exigirAdministrador, exigirSesion, obtenerSesion } from '@/lib/auth/sesion';
 export { accesoDe, exigirEspacio } from '@/lib/datos/cuentas';
-export { accionSobreCuenta, cambiarTopes, eliminarCuenta, panelAdministracion } from '@/lib/datos/administracion';
+export { vencerContrasenasTemporales } from '@/lib/datos/contrasenas';
+export { accionSobreCuenta, cambiarTopes, darContrasenaTemporal, eliminarCuenta, panelAdministracion } from '@/lib/datos/administracion';
 export { conversacionActual, crearConversacion } from '@/lib/datos/conversacion';
 export {
   eliminarDocumento,

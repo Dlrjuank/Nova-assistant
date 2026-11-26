@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { accesoDe } from '@/lib/datos/cuentas';
+import { temporalDe, temporalVencidaDe, usarTemporal } from '@/lib/datos/contrasenas';
+import { TEXTO_TEMPORAL_USADA, TEXTO_TEMPORAL_VENCIDA } from '@/lib/reglas/cuentas';
 import { MENSAJES } from '@/lib/reglas/errores';
 import { isAdminEmail } from '@/modules/auth/admin';
 
@@ -36,8 +38,10 @@ export async function POST(request: Request) {
     }
 
     if (error || !data.user) {
+      // E20c-3 (RB-91): si esa cuenta tenía una contraseña temporal que venció sin usarse, se dice.
+      const vencida = await temporalVencidaDe(parsed.data.email).catch(() => false);
       return NextResponse.json(
-        { success: false, error: 'Correo o contraseña incorrectos.' },
+        { success: false, error: vencida ? TEXTO_TEMPORAL_VENCIDA : 'Correo o contraseña incorrectos.' },
         { status: 401 },
       );
     }
@@ -79,8 +83,19 @@ export async function POST(request: Request) {
 
     // E20c-2 (RB-82, RB-92): una cuenta pendiente o bloqueada no entra; se cierra la sesión que se acaba de abrir.
     const acceso = await accesoDe({ id: data.user.id, email: data.user.email ?? '' });
+    // E20c-3 (RB-91): con la contraseña temporal se entra una sola vez, antes de que venza; después solo queda la
+    // pantalla para poner una propia (el layout de Nova lleva a /cambiar-contrasena).
+    if (!acceso.permitido && acceso.codigo === 'DEBE_CAMBIAR_CONTRASENA') {
+      const temporal = await temporalDe(data.user.id);
+      const usada = temporal === 'primera' ? !(await usarTemporal(data.user.id)) : temporal === 'usada';
+      if (usada || temporal === 'vencida') {
+        await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+        return NextResponse.json({ success: false, error: usada ? TEXTO_TEMPORAL_USADA : TEXTO_TEMPORAL_VENCIDA }, { status: 403 });
+      }
+      return NextResponse.json({ success: true, data: { id: data.user.id, email: data.user.email, isAdmin: false, debeCambiar: true } });
+    }
     if (!acceso.permitido) {
-      await supabase.auth.signOut().catch(() => {});
+      await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
       return NextResponse.json({ success: false, error: MENSAJES[acceso.codigo] }, { status: 403 });
     }
 

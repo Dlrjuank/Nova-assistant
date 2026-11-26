@@ -7,6 +7,8 @@ import { ErrorDeNegocio } from '@/lib/reglas/errores';
 export interface Sesion {
   id: string; // id de Supabase Auth; identifica al dueño del historial del chat
   email: string;
+  /** E20c-3: la sesión se abrió con "Entrar con Google" (`amr` del token): puede poner una contraseña sin la anterior. */
+  conGoogle?: boolean;
 }
 
 /** Una sesión que entra a Nova, con su nivel (E20c-2, RB-93). */
@@ -30,7 +32,9 @@ export const obtenerSesion = cache(async (): Promise<Sesion | null> => {
     if (!error || error.status === 401 || error.name === 'AuthSessionMissingError' || error.name === 'AuthInvalidJwtError') return null;
     throw new Error('No se pudo verificar la sesión con Supabase.', { cause: error });
   }
-  return { id: claims.sub, email: typeof claims.email === 'string' ? claims.email : '' };
+  const amr = (claims as { amr?: Array<{ method?: string }> }).amr;
+  const conGoogle = Array.isArray(amr) && amr.some((a) => a?.method === 'oauth');
+  return { id: claims.sub, email: typeof claims.email === 'string' ? claims.email : '', ...(conGoogle ? { conGoogle } : {}) };
 });
 
 /**

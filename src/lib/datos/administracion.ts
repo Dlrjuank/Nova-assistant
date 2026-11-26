@@ -3,8 +3,10 @@ import type { PoolClient } from 'pg';
 import type { SesionNova } from '@/lib/auth/sesion';
 import { consultar, conTransaccion } from '@/lib/db/conexion';
 import { olvidarClaveEnMemoria } from '@/lib/datos/claveGemini';
+import { contrasenaAlAzar } from '@/lib/datos/contrasenas';
 import {
   correoConfirmado,
+  HORAS_TEMPORAL,
   revisarAccion,
   TEXTO_SIN_PERMISO,
   validarTopes,
@@ -233,6 +235,31 @@ export async function eliminarCuenta(sesion: SesionNova, id: string, correoEscri
   }
   await consultar('INSERT INTO acciones_admin (admin_id, accion, correo) VALUES ($1, $2, $3)', [sesion.id, 'eliminar', objetivo.correo]);
   return { correo: objetivo.correo };
+}
+
+/**
+ * RB-91 (E20c-3): una contraseña temporal para un usuario activo. Se genera aquí, se pone en Supabase Auth y se
+ * devuelve una sola vez; en la base solo quedan la marca de cambiarla, el vencimiento (24 h) y el registro de quién la
+ * dio. Si Supabase no la acepta, no cambia nada.
+ */
+export async function darContrasenaTemporal(sesion: SesionNova, id: string): Promise<{ correo: string; contrasena: string; venceEn: string }> {
+  const contrasena = contrasenaAlAzar();
+  return conTransaccion(async (tx) => {
+    const objetivo = await cuentaParaCambiar(tx, id);
+    exigirPermitida(revisarAccion(sesion, { id, nivel: objetivo.nivel, estado: objetivo.estado }, 'contrasena_temporal'));
+    const { rows } = await tx.query<{ venceEn: string }>(
+      `UPDATE cuentas SET debe_cambiar_contrasena = true, temporal_vence_en = now() + make_interval(hours => $2), temporal_usada_en = NULL
+       WHERE usuario_id = $1 RETURNING temporal_vence_en AS "venceEn"`,
+      [id, HORAS_TEMPORAL],
+    );
+    await tx.query("INSERT INTO acciones_admin (admin_id, accion, correo) VALUES ($1, 'contrasena_temporal', $2)", [sesion.id, objetivo.correo]);
+    const { error } = await createSupabaseAdminClient().auth.admin.updateUserById(id, { password: contrasena });
+    if (error) {
+      console.error('Supabase no aceptó la contraseña temporal:', error.message);
+      throw new ErrorDeNegocio('ERROR_INTERNO');
+    }
+    return { correo: objetivo.correo, contrasena, venceEn: (rows[0] as { venceEn: string }).venceEn };
+  });
 }
 
 /** RB-85, RB-88 (solo el dueño): cambiar los topes. Bajar un tope no borra nada. */

@@ -17,6 +17,7 @@ export default async function CuentaPage() {
   if (!sesion) redirect('/login');
   const acceso = await accesoDe(sesion);
   if (acceso.permitido) redirect('/nova');
+  if (acceso.codigo === 'DEBE_CAMBIAR_CONTRASENA') redirect('/cambiar-contrasena');
   const bloqueada = acceso.codigo === 'CUENTA_BLOQUEADA';
   return (
     <TarjetaAcceso titulo={bloqueada ? 'Cuenta bloqueada' : 'Cuenta en espera'} subtitulo={sesion.email}>

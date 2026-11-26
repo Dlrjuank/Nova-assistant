@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+import { TEXTO_REGISTRO_GOOGLE } from '@/lib/reglas/cuentas';
+
+/** E20c-3 (RB-81): con correo ya no se crean cuentas; las nuevas llegan con "Entrar con Google". */
+const REGISTRO_CON_CORREO = false;
 
 const registrationSchema = z.object({
   email: z.email().max(254),
@@ -9,6 +13,9 @@ const registrationSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  if (!REGISTRO_CON_CORREO) {
+    return NextResponse.json({ success: false, error: TEXTO_REGISTRO_GOOGLE }, { status: 403 });
+  }
   let body: unknown;
   try {
     body = await request.json();

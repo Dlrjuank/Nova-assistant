@@ -13,6 +13,10 @@ import {
   textoAccion,
   textoVariacion,
   validarTopes,
+  generarContrasenaTemporal,
+  revisarTemporal,
+  textoContrasenaTemporal,
+  validarContrasenaNueva,
   type AccionCuenta,
   type Nivel,
 } from '@/lib/reglas/cuentas';
@@ -166,5 +170,44 @@ describe('tabla, resumen y registro', () => {
     expect(estadoAviso('2026-11-25T19:59:30Z', 2, ahora)).toBe('errores');
     expect(estadoAviso('2026-11-25T19:50:00Z', 0, ahora)).toBe('detenido');
     expect(estadoAviso(null, 0, ahora)).toBe('detenido');
+  });
+});
+
+describe('E20c-3: contraseña temporal y cambio obligatorio (RB-91)', () => {
+  it('una cuenta activa que debe cambiar la contraseña no entra a Nova (DEBE_CAMBIAR_CONTRASENA)', () => {
+    expect(resolverAcceso('a@x.com', { estado: 'activa', nivel: 'usuario', debeCambiar: true }, DUENO, [])).toEqual({ permitido: false, codigo: 'DEBE_CAMBIAR_CONTRASENA' });
+    expect(resolverAcceso('a@x.com', { estado: 'bloqueada', nivel: 'usuario', debeCambiar: true }, DUENO, [])).toEqual({ permitido: false, codigo: 'CUENTA_BLOQUEADA' });
+  });
+
+  it('la dan administradores y el dueño, solo a usuarios activos', () => {
+    const obj = (nivel: Nivel, estado: 'activa' | 'pendiente' | 'bloqueada') => ({ id: 'x', nivel, estado });
+    expect(revisarAccion({ id: 'a', nivel: 'admin' }, obj('usuario', 'activa'), 'contrasena_temporal')).toBeNull();
+    expect(revisarAccion({ id: 'd', nivel: 'dueno' }, obj('usuario', 'activa'), 'contrasena_temporal')).toBeNull();
+    expect(revisarAccion({ id: 'a', nivel: 'admin' }, obj('admin', 'activa'), 'contrasena_temporal')).toBe('permiso');
+    expect(revisarAccion({ id: 'u', nivel: 'usuario' }, obj('usuario', 'activa'), 'contrasena_temporal')).toBe('permiso');
+    expect(revisarAccion({ id: 'a', nivel: 'admin' }, obj('usuario', 'bloqueada'), 'contrasena_temporal')).toBe('estado');
+  });
+
+  it('16 caracteres del alfabeto sin los que se confunden', () => {
+    let i = 0;
+    const c = generarContrasenaTemporal((n) => i++ % n);
+    expect(c).toHaveLength(16);
+    expect(c).toMatch(/^[ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789]{16}$/);
+    expect(c).not.toMatch(/[01OlI]/);
+  });
+
+  it('la contraseña nueva: de 8 a 128 caracteres y escrita igual dos veces', () => {
+    expect(validarContrasenaNueva('corta', 'corta')).toBe('La contraseña debe tener entre 8 y 128 caracteres.');
+    expect(validarContrasenaNueva('una-larga-1', 'una-larga-2')).toBe('Las contraseñas no coinciden.');
+    expect(validarContrasenaNueva('una-larga-1', 'una-larga-1')).toBeNull();
+  });
+
+  it('al entrar: primera vez, ya usada o vencida', () => {
+    const ahora = new Date('2026-11-25T20:00:00Z');
+    expect(revisarTemporal({ debeCambiar: false, venceEn: null, usadaEn: null }, ahora)).toBe('normal');
+    expect(revisarTemporal({ debeCambiar: true, venceEn: '2026-11-26T10:00:00Z', usadaEn: null }, ahora)).toBe('primera');
+    expect(revisarTemporal({ debeCambiar: true, venceEn: '2026-11-26T10:00:00Z', usadaEn: '2026-11-25T19:00:00Z' }, ahora)).toBe('usada');
+    expect(revisarTemporal({ debeCambiar: true, venceEn: '2026-11-25T19:59:59Z', usadaEn: null }, ahora)).toBe('vencida');
+    expect(textoContrasenaTemporal('ana@x.com', 'Abc')).toBe('Contraseña temporal para ana@x.com: Abc. Cópiala ahora: no se vuelve a mostrar. Vence en 24 horas.');
   });
 });

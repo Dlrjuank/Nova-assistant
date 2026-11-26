@@ -23,6 +23,8 @@ vi.mock('@/lib/supabase/server', () => ({
 
 // E20c-2: la cuenta que entra está activa (la tabla `cuentas` la prueban tests/servidor/sesion.test.ts y acceso.test.ts).
 vi.mock('@/lib/datos/cuentas', () => ({ accesoDe: async () => ({ permitido: true, nivel: 'usuario' }) }));
+// E20c-3: sin contraseña temporal (la prueban tests/servidor/contrasenaTemporal.test.ts).
+vi.mock('@/lib/datos/contrasenas', () => ({ temporalDe: async () => 'normal', temporalVencidaDe: async () => false, usarTemporal: async () => true }));
 vi.mock('@/lib/supabase/admin', () => ({
   createSupabaseAdminClient: () => ({
     auth: { admin: { createUser: mocks.createUser } },
@@ -50,16 +52,7 @@ beforeEach(() => {
 });
 
 describe('Supabase authentication routes', () => {
-  it('creates confirmed accounts with Supabase and signs them in immediately', async () => {
-    mocks.createUser.mockResolvedValue({
-      data: { user: { id: 'auth-user-1', email: 'user@example.com' } },
-      error: null,
-    });
-    mocks.signInWithPassword.mockResolvedValue({
-      data: { user: { id: 'auth-user-1', email: 'user@example.com' }, session: {} },
-      error: null,
-    });
-
+  it('E20c-3 (RB-81): el registro con correo ya no crea cuentas y dice que se usa "Entrar con Google"', async () => {
     const response = await register(
       new Request('http://localhost/api/auth/register', {
         method: 'POST',
@@ -68,48 +61,10 @@ describe('Supabase authentication routes', () => {
       }),
     );
 
-    expect(response.status).toBe(201);
-    expect(await response.json()).toMatchObject({
-      data: {
-        id: 'auth-user-1',
-        email: 'user@example.com',
-        requiresEmailConfirmation: false,
-        requiresLogin: false,
-      },
-    });
-    expect(mocks.createUser).toHaveBeenCalledWith({
-      email: 'user@example.com',
-      password: 'secure-pass-123',
-      email_confirm: true,
-    });
-    expect(mocks.signInWithPassword).toHaveBeenCalledWith({
-      email: 'user@example.com',
-      password: 'secure-pass-123',
-    });
-  });
-
-  it('reports that the user must log in when automatic sign-in fails after account creation', async () => {
-    mocks.createUser.mockResolvedValue({
-      data: { user: { id: 'auth-user-1', email: 'user@example.com' } },
-      error: null,
-    });
-    mocks.signInWithPassword.mockResolvedValue({
-      data: { user: null, session: null },
-      error: new Error('sign in unavailable'),
-    });
-
-    const response = await register(
-      new Request('http://localhost/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: 'user@example.com', password: 'secure-pass-123' }),
-      }),
-    );
-
-    expect(response.status).toBe(201);
-    expect(await response.json()).toMatchObject({
-      data: { requiresEmailConfirmation: false, requiresLogin: true },
-    });
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({ success: false, error: 'Para crear tu cuenta, usa "Entrar con Google".' });
+    expect(mocks.createUser).not.toHaveBeenCalled();
+    expect(mocks.signInWithPassword).not.toHaveBeenCalled();
   });
 
   it('authenticates with Supabase and never returns access tokens', async () => {

@@ -7,6 +7,7 @@ const m = vi.hoisted(() => ({
   procesarRecordatorios: vi.fn(),
   procesarResumenes: vi.fn(),
   avanzarLibroEnSegundoPlano: vi.fn(),
+  vencerContrasenasTemporales: vi.fn(),
   guardarSuscripcion: vi.fn(),
   borrarSuscripcion: vi.fn(),
   contarSuscripciones: vi.fn(),
@@ -33,6 +34,7 @@ beforeEach(() => {
   m.procesarRecordatorios.mockResolvedValue({ enviados: 1, omitidos: 0, sinDispositivo: 0 });
   m.procesarResumenes.mockResolvedValue({ enviados: 0, sinTareas: 1, omitidos: 0, sinDispositivo: 0 });
   m.avanzarLibroEnSegundoPlano.mockResolvedValue(null);
+  m.vencerContrasenasTemporales.mockResolvedValue(0);
 });
 
 describe('POST /api/nova/recordatorios/tick', () => {
@@ -61,6 +63,14 @@ describe('POST /api/nova/recordatorios/tick', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     m.procesarResumenes.mockRejectedValue(new Error('se cayó'));
     expect(await (await tick('secreto-de-prueba-largo')).json()).toMatchObject({ ok: false, recordatorios: { enviados: 1 }, resumenes: null });
+  });
+
+  it('E20c-3 (RB-91): también vence las contraseñas temporales; si eso falla, lo demás sigue', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    await tick('secreto-de-prueba-largo');
+    expect(m.vencerContrasenasTemporales).toHaveBeenCalledTimes(1);
+    m.vencerContrasenasTemporales.mockRejectedValue(new Error('se cayó'));
+    expect(await (await tick('secreto-de-prueba-largo')).json()).toMatchObject({ ok: true, recordatorios: { enviados: 1 } });
   });
 
   it('un fallo en el libro no impide los recordatorios', async () => {

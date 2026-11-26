@@ -10,6 +10,7 @@ const base = vi.hoisted(() => ({
   cuentas: new Map<string, { estado: string; nivel: string }>(),
   topes: { cuentas: 15, mb: 30 },
   sql: [] as Array<{ sql: string; valores: unknown[] }>,
+  vencidas: [] as string[],
 }));
 const auth = vi.hoisted(() => ({ updateUserById: vi.fn(), deleteUser: vi.fn() }));
 const olvidar = vi.hoisted(() => vi.fn());
@@ -21,6 +22,8 @@ function responder(sql: string, valores: unknown[] = []) {
     return { rows: correo ? [{ correo }] : [] };
   }
   if (sql.startsWith('SELECT estado, nivel FROM cuentas')) return { rows: [base.cuentas.get(valores[0] as string)] };
+  if (sql.startsWith('UPDATE cuentas SET debe_cambiar_contrasena = true')) return { rows: [{ venceEn: '2026-11-26T20:00:00Z' }] };
+  if (sql.includes('FROM cuentas') && sql.includes('temporal_vence_en <= now()') && sql.trim().startsWith('SELECT usuario_id')) return { rows: base.vencidas.map((usuario_id) => ({ usuario_id })) };
   if (sql.startsWith('UPDATE cuentas SET')) {
     const c = base.cuentas.get(valores[0] as string)!;
     const estado = /estado = '(\w+)'/.exec(sql)?.[1];
@@ -40,7 +43,8 @@ vi.mock('@/lib/db/conexion', () => ({
 vi.mock('@/lib/supabase/admin', () => ({ createSupabaseAdminClient: () => ({ auth: { admin: auth } }) }));
 vi.mock('@/lib/datos/claveGemini', () => ({ olvidarClaveEnMemoria: olvidar }));
 
-import { accionSobreCuenta, cambiarTopes, eliminarCuenta } from '@/lib/datos/administracion';
+import { accionSobreCuenta, cambiarTopes, darContrasenaTemporal, eliminarCuenta } from '@/lib/datos/administracion';
+import { vencerContrasenasTemporales } from '@/lib/datos/contrasenas';
 
 const DUENO = { id: 'd', email: 'dueno@x.com', nivel: 'dueno' as const };
 const ADMIN = { id: 'a', email: 'admin@x.com', nivel: 'admin' as const };
@@ -166,5 +170,44 @@ describe('cambiarTopes (RB-85, RB-88, S-90)', () => {
     const fila = registros()[0];
     expect(fila?.valores[0]).toBe('d');
     expect(JSON.parse(fila?.valores[1] as string)).toEqual({ cuentas: 10, mb: 25, antes: { cuentas: 15, mb: 30 } });
+  });
+});
+
+describe('contraseña temporal (RB-91, E20c-3)', () => {
+  beforeEach(() => {
+    base.usuarios = new Map([[U, 'ana@x.com'], ['a', 'admin@x.com']]);
+    base.cuentas = new Map([[U, { estado: 'activa', nivel: 'usuario' }], ['a', { estado: 'activa', nivel: 'admin' }]]);
+    base.sql = [];
+    base.vencidas = [];
+    auth.updateUserById.mockReset().mockResolvedValue({ error: null });
+  });
+
+  it('un administrador la da a un usuario activo: 16 caracteres, en Supabase Auth, nunca en la base, y queda en el registro', async () => {
+    const r = await darContrasenaTemporal(ADMIN, U);
+    expect(r.correo).toBe('ana@x.com');
+    expect(r.contrasena).toMatch(/^[A-Za-z2-9]{16}$/);
+    expect(auth.updateUserById).toHaveBeenCalledWith(U, { password: r.contrasena });
+    expect(base.sql.some((q) => JSON.stringify(q.valores).includes(r.contrasena))).toBe(false);
+    expect(base.sql.find((q) => q.sql.startsWith('UPDATE cuentas SET debe_cambiar_contrasena = true'))?.valores).toEqual([U, 24]);
+    expect(registros().at(-1)?.sql).toContain("'contrasena_temporal'");
+    expect(registros().at(-1)?.valores).toEqual(['a', 'ana@x.com']);
+  });
+
+  it('no a otro administrador, ni a una cuenta bloqueada; si Supabase no la acepta, error', async () => {
+    await expect(darContrasenaTemporal(ADMIN, 'a')).rejects.toMatchObject({ codigo: 'ACCESO_DENEGADO' });
+    base.cuentas.set(U, { estado: 'bloqueada', nivel: 'usuario' });
+    await expect(darContrasenaTemporal(ADMIN, U)).rejects.toMatchObject({ codigo: 'CUENTA_CAMBIO' });
+    base.cuentas.set(U, { estado: 'activa', nivel: 'usuario' });
+    auth.updateUserById.mockResolvedValue({ error: { message: 'no' } });
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    await expect(darContrasenaTemporal(ADMIN, U)).rejects.toMatchObject({ codigo: 'ERROR_INTERNO' });
+    error.mockRestore();
+  });
+
+  it('el aviso de cada minuto reemplaza las vencidas sin usar por una que nadie conoce', async () => {
+    base.vencidas = [U];
+    await expect(vencerContrasenasTemporales()).resolves.toBe(1);
+    expect(auth.updateUserById).toHaveBeenCalledWith(U, { password: expect.stringMatching(/^[A-Za-z2-9]{16}$/) });
+    expect(base.sql.some((q) => q.sql.startsWith('UPDATE cuentas SET debe_cambiar_contrasena = false'))).toBe(true);
   });
 });

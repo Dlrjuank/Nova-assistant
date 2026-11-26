@@ -12,6 +12,7 @@ import {
   TEXTO_CUENTA_CAMBIO,
   TEXTO_CUENTA_NO_ENCONTRADA,
   TEXTO_CUENTA_PENDIENTE,
+  TEXTO_DEBE_CAMBIAR,
   TEXTO_TOPE_CUENTAS,
   TEXTO_TOPE_ESPACIO,
   textoEspacioAgotado,
@@ -122,6 +123,7 @@ export type CodigoError =
   | 'TOPE_CUENTAS_INVALIDO'
   | 'TOPE_ESPACIO_INVALIDO'
   | 'ESPACIO_AGOTADO'
+  | 'DEBE_CAMBIAR_CONTRASENA'
   | 'ERROR_INTERNO';
 
 // Textos de la sección 12.2; los de la sección 5.1 se usan literalmente.
@@ -242,6 +244,7 @@ export const MENSAJES: Record<CodigoError, string> = {
   TOPE_CUENTAS_INVALIDO: TEXTO_TOPE_CUENTAS,
   TOPE_ESPACIO_INVALIDO: TEXTO_TOPE_ESPACIO,
   ESPACIO_AGOTADO: textoEspacioAgotado(30), // con el tope real al lanzarlo
+  DEBE_CAMBIAR_CONTRASENA: TEXTO_DEBE_CAMBIAR, // E20c-3 (RB-91)
   ERROR_INTERNO: 'Ocurrió un error inesperado. Intenta de nuevo.',
 };
 
@@ -350,6 +353,7 @@ export const ESTADO_HTTP: Record<CodigoError, number> = {
   TOPE_CUENTAS_INVALIDO: 422,
   TOPE_ESPACIO_INVALIDO: 422,
   ESPACIO_AGOTADO: 409,
+  DEBE_CAMBIAR_CONTRASENA: 403,
   ERROR_INTERNO: 500,
 };
 

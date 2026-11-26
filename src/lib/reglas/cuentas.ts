@@ -23,9 +23,51 @@ export const textoEspacioAgotado = (mb: number) => `Llegaste al espacio máximo 
 export interface FilaCuenta {
   estado: EstadoCuenta;
   nivel: Nivel;
+  /** E20c-3 (RB-91): entró con una contraseña temporal y aún no puso una propia. */
+  debeCambiar?: boolean;
 }
 
-export type Acceso = { permitido: true; nivel: Nivel } | { permitido: false; codigo: 'CUENTA_PENDIENTE' | 'CUENTA_BLOQUEADA' };
+export type Acceso = { permitido: true; nivel: Nivel } | { permitido: false; codigo: 'CUENTA_PENDIENTE' | 'CUENTA_BLOQUEADA' | 'DEBE_CAMBIAR_CONTRASENA' };
+
+// E20c-3 (RB-81, RB-91): textos de la entrada con Google y de la contraseña temporal.
+export const TEXTO_REGISTRO_GOOGLE = 'Para crear tu cuenta, usa "Entrar con Google".';
+export const TEXTO_TOPE_ALCANZADO = 'Nova llegó al máximo de cuentas por ahora. Escríbele al administrador.';
+export const TEXTO_ERROR_GOOGLE = 'No se pudo entrar con Google. Intenta de nuevo.';
+export const TEXTO_DEBE_CAMBIAR = 'Pon una contraseña nueva para seguir.';
+export const TEXTO_TEMPORAL_USADA = 'Esta contraseña temporal ya se usó. Pide otra al administrador.';
+export const TEXTO_TEMPORAL_VENCIDA = 'Esta contraseña temporal venció. Pide otra al administrador.';
+export const textoContrasenaTemporal = (correo: string, contrasena: string) =>
+  `Contraseña temporal para ${correo}: ${contrasena}. Cópiala ahora: no se vuelve a mostrar. Vence en 24 horas.`;
+export const TEXTO_CONTRASENA_LARGO = 'La contraseña debe tener entre 8 y 128 caracteres.';
+export const TEXTO_CONTRASENAS_DISTINTAS = 'Las contraseñas no coinciden.';
+export const TEXTO_CONTRASENA_ACTUAL = 'La contraseña actual es incorrecta.';
+
+/** RB-91: 16 caracteres al azar, sin los que se confunden al copiarlos (0/O, 1/l/I). */
+export const ALFABETO_TEMPORAL = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+export const LARGO_TEMPORAL = 16;
+export const HORAS_TEMPORAL = 24;
+
+/** `azar(n)` devuelve un entero de 0 a n − 1 (en el servidor, `crypto.randomInt`). */
+export function generarContrasenaTemporal(azar: (n: number) => number): string {
+  let s = '';
+  for (let i = 0; i < LARGO_TEMPORAL; i++) s += ALFABETO_TEMPORAL[azar(ALFABETO_TEMPORAL.length)];
+  return s;
+}
+
+/** La contraseña nueva: de 8 a 128 caracteres y escrita igual dos veces. */
+export function validarContrasenaNueva(nueva: string, confirmar: string): string | null {
+  if (nueva.length < 8 || nueva.length > 128) return TEXTO_CONTRASENA_LARGO;
+  if (nueva !== confirmar) return TEXTO_CONTRASENAS_DISTINTAS;
+  return null;
+}
+
+/** RB-91: qué pasa al entrar con la contraseña de una cuenta que debe cambiarla. */
+export function revisarTemporal(fila: { debeCambiar: boolean; venceEn: string | null; usadaEn: string | null }, ahora: Date): 'normal' | 'primera' | 'usada' | 'vencida' {
+  if (!fila.debeCambiar) return 'normal';
+  if (fila.usadaEn) return 'usada';
+  if (fila.venceEn && new Date(fila.venceEn).getTime() <= ahora.getTime()) return 'vencida';
+  return 'primera';
+}
 
 /** Los correos de `SUPABASE_ADMIN_EMAILS`: solo para emergencias y pruebas automáticas (nunca el dueño). */
 export function correosDeEmergencia(valor: string | undefined): string[] {
@@ -47,6 +89,7 @@ export function resolverAcceso(email: string, fila: FilaCuenta | null, correoDue
   if (correo && emergencia.includes(correo)) return { permitido: true, nivel: 'admin' };
   if (!fila || fila.estado === 'pendiente') return { permitido: false, codigo: 'CUENTA_PENDIENTE' };
   if (fila.estado === 'bloqueada') return { permitido: false, codigo: 'CUENTA_BLOQUEADA' };
+  if (fila.debeCambiar) return { permitido: false, codigo: 'DEBE_CAMBIAR_CONTRASENA' };
   return { permitido: true, nivel: fila.nivel === 'dueno' ? 'admin' : fila.nivel };
 }
 
@@ -70,7 +113,7 @@ export interface Objetivo {
  * - Dueño: además nombra y quita administradores, da y quita el permiso de la clave del proyecto y elimina usuarios.
  *   A un administrador primero se le quita el nivel para bloquearlo o eliminarlo.
  */
-export function revisarAccion(actor: { id: string; nivel: Nivel }, objetivo: Objetivo, accion: AccionCuenta | 'eliminar'): null | 'permiso' | 'estado' {
+export function revisarAccion(actor: { id: string; nivel: Nivel }, objetivo: Objetivo, accion: AccionCuenta | 'eliminar' | 'contrasena_temporal'): null | 'permiso' | 'estado' {
   if (!esAdministrador(actor.nivel) || objetivo.id === actor.id || objetivo.nivel === 'dueno') return 'permiso';
   const soloDueno = accion === 'nombrar_admin' || accion === 'quitar_admin' || accion === 'permiso_clave_on' || accion === 'permiso_clave_off' || accion === 'eliminar';
   if (soloDueno && actor.nivel !== 'dueno') return 'permiso';
@@ -93,6 +136,10 @@ export function revisarAccion(actor: { id: string; nivel: Nivel }, objetivo: Obj
       return null;
     case 'eliminar':
       return objetivo.nivel === 'usuario' ? null : 'permiso';
+    case 'contrasena_temporal':
+      // RB-91: un administrador o el dueño, a un usuario activo (no a otro administrador ni al dueño).
+      if (objetivo.nivel !== 'usuario') return 'permiso';
+      return objetivo.estado === 'activa' ? null : 'estado';
   }
 }
 

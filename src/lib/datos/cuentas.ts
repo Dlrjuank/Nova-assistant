@@ -16,7 +16,7 @@ export const leerCuenta = cache(async (usuarioId: string): Promise<FilaCuenta | 
        WHERE usuario_id = $1 AND estado = 'activa' AND (ultimo_acceso IS NULL OR ultimo_acceso < now() - interval '1 hour')
        RETURNING 1
      )
-     SELECT estado, nivel FROM cuentas WHERE usuario_id = $1 AND (SELECT count(*) FROM toque) >= 0`,
+     SELECT estado, nivel, debe_cambiar_contrasena AS "debeCambiar" FROM cuentas WHERE usuario_id = $1 AND (SELECT count(*) FROM toque) >= 0`,
     [usuarioId],
   );
   return fila ?? null;

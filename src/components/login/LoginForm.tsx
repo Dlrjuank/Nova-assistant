@@ -13,6 +13,7 @@ import {
   CLASE_EXITO_ACCESO,
 } from './TarjetaAcceso';
 import { EntradaNova } from './EntradaNova';
+import { EntrarConGoogle } from './EntrarConGoogle';
 
 type FormErrors = {
   email?: string;
@@ -21,14 +22,16 @@ type FormErrors = {
 
 interface LoginFormProps {
   successMessage?: string | undefined;
+  /** E20c-3: el aviso al volver de Google (tope de cuentas o un error). */
+  errorInicial?: string | undefined;
 }
 
-export function LoginForm({ successMessage }: LoginFormProps) {
+export function LoginForm({ successMessage, errorInicial }: LoginFormProps) {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<FormErrors>({});
-  const [authError, setAuthError] = useState('');
+  const [authError, setAuthError] = useState(errorInicial ?? '');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -88,6 +91,10 @@ export function LoginForm({ successMessage }: LoginFormProps) {
         </a>
       }
     >
+      {/* E20c-3 (RB-81): "Entrar con Google" arriba; el correo y la contraseña, debajo. */}
+      <div className="mb-5">
+        <EntrarConGoogle />
+      </div>
       <form className="space-y-5" noValidate onSubmit={handleSubmit}>
         <div>
           <label htmlFor="email" className={CLASE_ETIQUETA_ACCESO}>

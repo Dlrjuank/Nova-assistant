@@ -52,7 +52,8 @@ describe('pantallas de arranque del iPhone', () => {
     expect(new Set(imagenes.map((i) => i.media)).size).toBe(imagenes.length); // ninguna se repite
   });
 
-  it('ajuste de E20: las etiquetas del iPhone van en el <head> real del layout, no en metadata (que Next manda al cuerpo)', async () => {
+  // Importa el layout completo: bajo la carga de la suite entera pasa de 5 s.
+  it('ajuste de E20: las etiquetas del iPhone van en el <head> real del layout, no en metadata (que Next manda al cuerpo)', { timeout: 20_000 }, async () => {
     const fuente = () => ({ variable: 'fuente' });
     vi.doMock('next/font/google', () => ({ Bricolage_Grotesque: fuente, Instrument_Sans: fuente, JetBrains_Mono: fuente }));
     const { default: RootLayout, metadata } = await import('@/app/layout');

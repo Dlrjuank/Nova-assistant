@@ -48,6 +48,11 @@ describe('sin colores sueltos en Nova', () => {
     'src/components/login/RegisterForm.tsx',
     'src/components/login/RecoveryRequestForm.tsx',
     'src/components/login/PasswordResetForm.tsx',
+    'src/components/login/EntrarConGoogle.tsx', // E20c-3 (LogoGoogle lleva los colores de Google: queda fuera)
+    'src/components/login/FormularioContrasenaNueva.tsx',
+    'src/components/login/SalirDeCuenta.tsx',
+    'src/app/cuenta/page.tsx',
+    'src/app/cambiar-contrasena/page.tsx',
     'src/app/login/page.tsx',
     'src/app/register/page.tsx',
     'src/app/recuperar-contrasena/page.tsx',

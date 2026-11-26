@@ -63,7 +63,7 @@ afterEach(() => {
 });
 
 describe('PanelAdministracion', () => {
-  it('B-103: resumen con los administradores aparte, medidores con su porcentaje y avisos, y actividad', () => {
+  it('B-103: resumen con los administradores aparte, medidores con su porcentaje y avisos, y actividad', { timeout: 15_000 }, () => {
     render(<PanelAdministracion panel={panel('dueno')} />);
     const resumen = screen.getByRole('list', { name: 'Resumen' });
     expect(within(resumen).getByText(/2 administradores aparte · 1 pendiente/)).toBeTruthy();

@@ -46,7 +46,7 @@ export default async function ConfiguracionPage() {
             <BloqueInstalar />
           </div>
           <div id="config-sesion">
-            <BloqueSesion />
+            <BloqueSesion pideActual={!sesion.conGoogle} />
           </div>
         </div>
       </div>
