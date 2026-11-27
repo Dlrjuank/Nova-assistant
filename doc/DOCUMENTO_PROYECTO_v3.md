@@ -2,6 +2,8 @@
 
 Proyecto de Lógica y Programación · 27 de noviembre de 2026
 
+**Autor:** Juan Carlos De La Rosa Henríquez
+
 - **Código e historial:** https://github.com/Dlrjuank/Nova-assistant (rama `ampliacion`).
 - **Acceso a la aplicación:** la cuenta de Vercel (plan gratuito) está en pausa por consumo de CPU hasta el 27 de diciembre de 2026. Mientras tanto, Nova corre en un computador y se publica con un enlace temporal de Cloudflare Tunnel, que se entrega por aparte junto con el usuario y la contraseña de la cuenta de prueba.
 - **Sobre las capturas:** son de la aplicación real, en tema claro, con una cuenta de prueba y datos de ejemplo.
