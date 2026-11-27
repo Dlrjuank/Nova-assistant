@@ -8,7 +8,7 @@ export const maxDuration = 30;
 
 /**
  * E21 (plan 6.12 y 13): el cron diario de Vercel (vercel.json), independiente de la base. No usa sesión (el
- * middleware lo deja pasar): Vercel manda `Authorization: Bearer <CRON_SECRET>`. Solo hace una consulta mínima y
+ * middleware no corre en la API): Vercel manda `Authorization: Bearer <CRON_SECRET>`. Solo hace una consulta mínima y
  * no devuelve datos; si la base no responde, el error llega a Sentry.
  */
 export const GET = conManejoDeErrores(async (peticion: Request) => {

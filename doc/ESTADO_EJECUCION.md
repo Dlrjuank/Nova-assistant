@@ -1777,4 +1777,43 @@ Total de fallas: 0
 - **2. Sin conexión: el aviso seguía al volver internet.** `ConexionNova` revisa también al volver a verse la app (`visibilitychange`) y en `pageshow` desde la memoria del navegador. No en el `pageshow` de una carga normal: una copia servida con "onLine" se recargaría sin parar.
 - **4. Con la barra inferior, Tab dejaba controles detrás de ella:** `scroll-padding-bottom` de 6,5 rem más el área segura en `html`, solo con la barra a la vista.
 - **Pruebas:** `npm test` 1709 de 1709, `tsc` y `eslint` sin errores, build correcto. Edge: `ui_arreglos.mjs` partes 1 y 2, 11 de 11 (19 pantallas a `/cuenta`, sin errores de cuenta en el servidor; recarga al volver sin evento "online"); parte 4, 8 de 8 (sin la regla quedaban tapados entre 1 de 4 y 15 de 18 controles según la pantalla; con ella, ninguno); `ui_e21.mjs` 24 de 24; `ui_e20sin.mjs` 16 de 16.
+- **Después, a pedido del usuario desde su otra sesión (sin commit todavía):**
+  - **5b. Middleware solo en las páginas que leen la sesión** (`/`, `/cuenta`, `/cambiar-contrasena`, `/nova/…`): ya no corre en `/api`, `/auth`, el service worker, el manifiesto, los íconos ni las pantallas sin sesión. Los 85 manejadores de `/api/nova` comprueban la sesión (o su secreto) antes que nada, y renuevan sus cookies ellos mismos.
+  - **5a. M29 preparada, sin aplicar:** el aviso de cada minuto llama a la app solo si hay trabajo. `node scripts/m29.mjs --ensayo`: 23 de 23, todo revertido.
+  - **6. "Entrar con Google" detrás del túnel de Cloudflare** volvía a `localhost`: `origenPublico` usa `x-forwarded-host` o `host` solo si es de `APP_URL`, de Nova en Vercel o, fuera de Vercel, de este PC o `*.trycloudflare.com`. Se usa en `/auth/google`, `/auth/callback`, el reenvío de confirmación y el enlace del .ics. La dirección del túnel debe estar en las Redirect URLs de Supabase.
+  - **Pruebas:** `npm test` 1763 de 1763 (nuevas: `reglas/middleware`, `servidor/origenPublico`), `tsc` y `eslint` sin errores, `db:verificar` sin fallas. Build en una copia aparte (el de la carpeta lo usa el servidor del túnel). Contra ese build: `proxy_sesion.mjs` 16 de 16 (con encabezados de proxy Google vuelve a la dirección pública; la API sin sesión responde 401 y renueva sola una sesión vencida), `ui_e21.mjs` 24 de 24 y `ui_e20sin.mjs` 16 de 16.
+- **"Atrás" tras filtrar, causa hallada:** Next 15.5.27 reutiliza la vista ya cargada de la misma pantalla con otro filtro; si la pantalla se abrió recargando, "Atrás" cambia la dirección y no la lista. El filtro no está en un `useState` (sale de la dirección, en el servidor). Con esa reutilización desactivada solo para la prueba, 8 de 8 en Edge. Hay un arreglo sin probar ni aprobar guardado en `git stash` (pide la vista completa al tocar el filtro); el usuario no vio la falla en la vista previa.
 - **Vercel pausó la cuenta Hobby** (124 % de las 4 h de CPU activa; aviso de la otra sesión del usuario, comprobado: producción responde 402 `DEPLOYMENT_DISABLED`): producción y la vista previa están caídas hasta el 27 de diciembre o hasta pasar a Pro. Nada de esto se subió.
+
+#### E21-3: ensayo de la unión (2026-11-27)
+
+- En una copia de trabajo aparte y sin commit, sobre `origin/master` (`6ce9a4d`) se unió `ampliacion` (`c556e56`). `master` no se tocó y no hubo push; la copia se borró al terminar.
+- **3 conflictos**, todos del registro (`src/app/api/auth/register/route.ts`, `src/app/register/page.tsx`, `src/modules/auth/auth.test.ts`): vale la versión de `ampliacion`.
+- **Sobra un archivo:** `src/lib/auth/registro.ts` llega desde `master` y nada lo usa; borrarlo en la unión real.
+- Con la unión resuelta **más los cambios sin commit de ese día** (middleware, Google tras el túnel y M29): pruebas, 164 de 164 archivos; `tsc` sin errores; `eslint` sin errores (3 avisos anteriores); build correcto.
+
+#### Pasos para cuando vuelva Vercel (27 de diciembre, o antes si se pasa a Pro)
+
+Estado al 2026-11-27: variables comprobadas por nombre en Production (`APP_URL`, `CRON_SECRET`, `GEMINI_API_KEY`, `BLOB_READ_WRITE_TOKEN`, `NOVA_LLAVE_CLAVES_ACTUAL`, `NOVA_LLAVE_CLAVES_V1`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `RECORDATORIOS_SECRETO`, `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_AUTH_TOKEN` y las de Supabase y Postgres). Cada push, la unión y cada migración se hacen solo cuando el usuario lo pida.
+
+**Antes de esa fecha**
+
+1. Commit de los cambios pendientes de E21-1 (pedido el 2026-11-27, con push de `ampliacion`).
+2. M29 aplicada (`supabase/pendientes/README.md`): así el aviso de cada minuto no vuelve a gastar CPU sin necesidad. Por decisión del usuario, después de la entrega del 2026-11-28.
+3. Claves por cambiar, también después de la entrega: contraseña de la base y claves de servicio, secreta y JWT de Supabase.
+4. Decidir el arreglo de "Atrás" guardado en `git stash` (sin probar).
+5. Entrar a Nova o al panel de Supabase al menos una vez por semana y comprobar que el proyecto no quedó en pausa por inactividad.
+
+**El día que vuelva, en este orden**
+
+1. **Variables en Vercel (primero):** si las claves se cambiaron y Vercel no dejó editarlas en pausa, actualizarlas en Production y Preview antes de nada; con las viejas, producción no funciona. Opcional: quitar `DATA_DIR`, que deja de usarse.
+2. Push de `ampliacion` y esperar la vista previa.
+3. **Prueba corta en la vista previa:** entrar con Google; Inicio, Tareas y Fuentes cargan; una pregunta al Asistente; subir un documento pequeño; bloquear la segunda cuenta y recargar (sale "Cuenta bloqueada"); sin conexión y de vuelta (el aviso desaparece).
+4. **Unión:** quitar la copia de trabajo temporal que tiene `master` tomado (`git worktree list`), `npm run db:respaldar`, unir (3 conflictos: versión de `ampliacion`), borrar `src/lib/auth/registro.ts`, pruebas y build, push de `master`.
+5. **Comprobar producción:** entrar, `/privacidad` sin sesión, Sentry y registros sin errores, y la ejecución del cron diario `GET /api/nova/salud`.
+6. **Aviso de cada minuto a producción:** `NOVA_TICK_URL` = `https://novaassistantjc.vercel.app/api/nova/recordatorios/tick`, quitar `VERCEL_AUTOMATION_BYPASS_SECRET` de `.env.local`, `npm run db:configurar-tick`, revocar la omisión de la protección en Vercel y comprobar respuestas 200 en `net._http_response`.
+7. Reinstalar la app y volver a activar las notificaciones en cada dispositivo (las suscripciones son por dirección).
+8. Cambiar `BLOB_READ_WRITE_TOKEN` en Vercel y en `.env.local`, volver a desplegar y comprobar que subir un documento funciona.
+9. **Google:** en Google Auth Platform, página principal y de privacidad de producción, `novaassistantjc.vercel.app` en dominios autorizados y "Publicar app". Comprobar que el proveedor Google y el gancho siguen activos en Supabase y probar con la segunda cuenta (B-87 a B-101).
+10. Quitar de las Redirect URLs de Supabase las direcciones del túnel de Cloudflare.
+11. **Entre 24 y 48 horas después de unir:** M27, que quita el disparador de dueño por defecto de M5 (`supabase/pendientes/README.md`).

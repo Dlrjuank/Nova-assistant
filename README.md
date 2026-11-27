@@ -88,7 +88,7 @@ Next.js 15 (App Router) con TypeScript y Tailwind CSS 4 · Supabase (Auth, Postg
 
 ## Tareas programadas
 
-- **Cada minuto** (pg_cron en Supabase → `POST /api/nova/recordatorios/tick`): recordatorios, resumen diario, avance de documentos a medias y vencimientos. Se configura con `npm run db:configurar-tick`.
+- **Cada minuto** (pg_cron en Supabase → `POST /api/nova/recordatorios/tick`): recordatorios, resumen diario, avance de documentos a medias y vencimientos. Se configura con `npm run db:configurar-tick`. Con M29 (pendiente) la llamada sale solo cuando hay algo que hacer.
 - **Cada día** (cron de Vercel, `vercel.json` → `GET /api/nova/salud`): consulta mínima a la base. Solo corre en producción.
 - **Cada noche** (pg_cron): limpieza de registros antiguos.
 
@@ -123,7 +123,7 @@ src/
   lib/llm/             cliente de Gemini y prompts (único lugar que conoce al proveedor)
   lib/db/              conexión a Postgres con la CA de Supabase
   lib/dataService.ts   fachada de datos que usan páginas y rutas
-  middleware.ts        protege /nova y /api/nova
+  middleware.ts        renueva la sesión y protege las páginas de Nova (la API se protege sola)
 public/                service worker, íconos y archivos de la app instalable
 supabase/migrations/   migraciones SQL
 supabase/pendientes/   migraciones preparadas y todavía sin aplicar

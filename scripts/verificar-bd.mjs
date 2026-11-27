@@ -827,6 +827,17 @@ try {
   } else {
     console.log('     pendiente: M28 sin aplicar');
   }
+  console.log('== 6w. El aviso de cada minuto llama solo si hay trabajo (M29)');
+  const m29 = await c.query("SELECT 1 FROM _migrations WHERE nombre = '20261128120000_nova_tick_solo_con_trabajo.sql'");
+  if (m29.rowCount === 1) {
+    const f = await c.query(
+      "SELECT (SELECT prosrc LIKE '%nova_hay_trabajo_tick%' FROM pg_proc WHERE proname = 'nova_llamar_tick') AS usa, has_function_privilege('anon', 'public.nova_hay_trabajo_tick()', 'EXECUTE') AS publica",
+    );
+    marcar(f.rows[0]?.usa === true && f.rows[0]?.publica === false, 'M29: nova_llamar_tick revisa antes de llamar; la revisión no se puede ejecutar desde la API pública');
+    marcar(typeof (await c.query('SELECT public.nova_hay_trabajo_tick() AS hay')).rows[0].hay === 'boolean', 'M29: la revisión se ejecuta');
+  } else {
+    console.log('     pendiente: M29 sin aplicar');
+  }
   await c.query('ROLLBACK');
 
   console.log(`== 7. Total de fallas: ${fallas}`);

@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const RAIZ = join('src', 'app', 'api', 'nova');
-/** Las llama una máquina sin sesión; cada una comprueba su secreto y el middleware las deja pasar. */
+/** Las llama una máquina sin sesión; cada una comprueba su secreto. */
 const CON_SECRETO = ['recordatorios/tick/route.ts', 'salud/route.ts'];
 
 const rutas = (readdirSync(RAIZ, { recursive: true }) as string[])
@@ -46,6 +46,9 @@ describe('rutas /api/nova', () => {
     expect(hallados.length).toBeGreaterThan(0);
     for (const [metodo, cuerpo] of hallados) {
       expect(cuerpo, `${metodo} sin exigirSesion ni exigirAdministrador`).toMatch(/await (exigirSesion|exigirAdministrador)\(\)/);
+      // El middleware ya no corre en la API: la sesión se comprueba antes de hacer cualquier otra cosa.
+      const antes = cuerpo.slice(0, cuerpo.search(/await (exigirSesion|exigirAdministrador)\(\)/)).replace(/\/\/.*$/gm, '');
+      expect(antes.match(/await\s+[\w.]+|\b(?!async\b|function\b|conManejoDeErrores\b|if\b)[a-zA-Z_][\w.]*\(/g), `${metodo} hace algo antes de comprobar la sesión`).toBeNull();
     }
   });
 

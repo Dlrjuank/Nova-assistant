@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { origenPublico } from '@/lib/http/origen';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -8,7 +9,7 @@ export const dynamic = 'force-dynamic';
  * (PKCE) que /auth/callback usa al volver. `select_account`: Google deja elegir la cuenta aunque haya una abierta.
  */
 export async function GET(peticion: Request) {
-  const origen = new URL(peticion.url).origin;
+  const origen = origenPublico(peticion);
   try {
     const supabase = await createSupabaseServerClient();
     const { data, error } = await supabase.auth.signInWithOAuth({

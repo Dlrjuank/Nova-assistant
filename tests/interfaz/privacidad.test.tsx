@@ -6,8 +6,8 @@ vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: vi.fn(), push: 
 
 import PrivacidadPage from '@/app/privacidad/page';
 import { LoginForm } from '@/components/login/LoginForm';
-import { middleware } from '@/middleware';
-import { NextRequest } from 'next/server';
+import { unstable_doesMiddlewareMatch } from 'next/experimental/testing/server';
+import { config as configMiddleware } from '@/middleware';
 
 afterEach(cleanup);
 
@@ -22,10 +22,8 @@ describe('/privacidad', () => {
     expect(correos[0]?.getAttribute('href')).toBe('mailto:nova.asistente.app@gmail.com');
   });
 
-  it('se ve sin iniciar sesión (el middleware no la toca)', async () => {
-    const r = await middleware(new NextRequest('https://novaassistantjc.vercel.app/privacidad'));
-    expect(r.status).toBe(200);
-    expect(r.headers.get('location')).toBeNull();
+  it('se ve sin iniciar sesión (el middleware no corre en ella)', () => {
+    expect(unstable_doesMiddlewareMatch({ config: configMiddleware, url: '/privacidad' })).toBe(false);
   });
 
   it('el inicio de sesión la enlaza', () => {

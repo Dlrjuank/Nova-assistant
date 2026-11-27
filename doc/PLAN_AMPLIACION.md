@@ -750,6 +750,10 @@ Antes de migrar: `npm run db:respaldar`, y la tabla nueva entra en `scripts/tabl
 
 - RLS en `_migrations` y sin permisos para `anon` ni `authenticated`; sin ejecución pública de `handle_auth_user_profile` y `handle_auth_user_public_account`. Compatible con `master`. Aplicada con la aprobación del usuario.
 
+### 6.24 M29 · El aviso de cada minuto llama solo si hay trabajo (E21, preparada el 2026-11-26)
+
+- `nova_hay_trabajo_tick()` revisa en SQL las mismas condiciones de las cinco tareas de la ruta `tick` (recordatorios, resumen diario, libros a medias, OCR y contraseñas temporales) y `nova_llamar_tick()` llama solo si hay algo. Si la revisión falla, llama igual. Compatible con `master`. **Sin aplicar:** espera la aprobación del usuario (`supabase/pendientes/README.md`).
+
 ## 7. Reglas de cálculo
 
 Todas en funciones puras de `src/lib/reglas/` (sin red, sin base, sin reloj salvo `fechas.ts`), probadas con Vitest. Notas en centésimas (0 a 500), porcentajes en centésimas de punto (0 a 10000). Los productos se calculan con enteros; la división final y el redondeo, con aritmética exacta sobre esos enteros.

@@ -1,7 +1,10 @@
 // @vitest-environment node
 // E21: el cron diario de Vercel (GET /api/nova/salud con CRON_SECRET).
 import { readFileSync } from 'node:fs';
+import { unstable_doesMiddlewareMatch } from 'next/experimental/testing/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { config as configMiddleware } from '@/middleware';
 
 const m = vi.hoisted(() => ({ comprobarBase: vi.fn() }));
 vi.mock('@/lib/dataService', () => m);
@@ -46,9 +49,9 @@ describe('GET /api/nova/salud', () => {
     expect((await pedir('Bearer secreto-del-cron-de-prueba')).status).toBe(500);
   });
 
-  it('vercel.json lo llama una vez al día (el plan Hobby no admite más) y el middleware lo deja pasar sin sesión', () => {
+  it('vercel.json lo llama una vez al día (el plan Hobby no admite más) y el middleware no corre en esa ruta', () => {
     const config = JSON.parse(readFileSync('vercel.json', 'utf8')) as { crons: Array<{ path: string; schedule: string }> };
     expect(config.crons).toEqual([{ path: '/api/nova/salud', schedule: '0 13 * * *' }]);
-    expect(readFileSync('src/middleware.ts', 'utf8')).toContain("ruta === '/api/nova/salud'");
+    expect(unstable_doesMiddlewareMatch({ config: configMiddleware, url: '/api/nova/salud' })).toBe(false);
   });
 });

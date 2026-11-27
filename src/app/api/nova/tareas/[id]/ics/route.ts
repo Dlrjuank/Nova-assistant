@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { exigirSesion } from '@/lib/auth/sesion';
 import { obtenerPreferencias, obtenerTarea } from '@/lib/dataService';
+import { origenPublico } from '@/lib/http/origen';
 import { conManejoDeErrores } from '@/lib/http/respuestas';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
 import { generarIcs, nombreArchivoIcs } from '@/lib/reglas/ics';
@@ -22,7 +23,7 @@ export const GET = conManejoDeErrores(
       obtenerPreferencias(sesion.id),
     ]);
     if (!tarea) throw new ErrorDeNegocio('TAREA_NO_ENCONTRADA');
-    const origen = new URL(peticion.url);
+    const origen = new URL(origenPublico(peticion));
     const ics = generarIcs(
       {
         id: tarea.id,

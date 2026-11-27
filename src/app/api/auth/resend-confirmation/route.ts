@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { origenPublico } from '@/lib/http/origen';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 const resendSchema = z.object({
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
       type: 'signup',
       email: parsed.data.email,
       options: {
-        emailRedirectTo: new URL('/auth/callback', request.url).toString(),
+        emailRedirectTo: new URL('/auth/callback', origenPublico(request)).toString(),
       },
     });
 

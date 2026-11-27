@@ -7,7 +7,7 @@ export const maxDuration = 60;
 
 /**
  * E11c (6.12, 7.10, RB-57): el aviso de cada minuto. Lo llama pg_cron (con pg_net) desde Supabase con el
- * secreto en `x-nova-tick`; no usa sesión (el middleware lo deja pasar). Envía los recordatorios que llegaron y
+ * secreto en `x-nova-tick`; no usa sesión (el middleware no corre en la API). Envía los recordatorios que llegaron y
  * avanza una parte del libro a medias más antiguo. E11d: también el resumen diario (RB-46). E20c-3 (RB-91): reemplaza las
  * contraseñas temporales que vencieron sin usarse. E20d-3: la pregunta del OCR sin respuesta en 24 horas es "Ahora no". Un fallo en una parte no impide la otra.
  */

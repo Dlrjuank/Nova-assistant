@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { consultar } from '@/lib/db/conexion';
+import { origenPublico } from '@/lib/http/origen';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
@@ -18,8 +19,9 @@ function destinoSeguro(next: string | null): string {
  */
 export async function GET(peticion: Request) {
   const url = new URL(peticion.url);
+  const origen = origenPublico(peticion);
   const code = url.searchParams.get('code');
-  const aLogin = (error: string) => NextResponse.redirect(new URL(`/login?error=${error}`, url.origin));
+  const aLogin = (error: string) => NextResponse.redirect(new URL(`/login?error=${error}`, origen));
 
   if (!code) {
     // Sin código: Google o el gancho rechazaron la entrada (el gancho del tope dice "máximo de cuentas").
@@ -50,5 +52,5 @@ export async function GET(peticion: Request) {
     }
   }
 
-  return NextResponse.redirect(new URL(destinoSeguro(url.searchParams.get('next')), url.origin));
+  return NextResponse.redirect(new URL(destinoSeguro(url.searchParams.get('next')), origen));
 }
