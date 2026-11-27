@@ -6,6 +6,8 @@ Proyecto de Lógica y Programación. Plan del MVP: [`doc/PLAN_NOVA.md`](doc/PLAN
 
 Producción: https://novaassistantjc.vercel.app (https://nova-assistantsm-kappa.vercel.app redirige a ella)
 
+> **Aviso (27 de noviembre de 2026):** la cuenta gratuita de Vercel está en pausa por consumo de CPU hasta el 27 de diciembre de 2026, así que el enlace de producción no carga por ahora. Mientras tanto, Nova corre en un computador y se publica con un enlace temporal de Cloudflare Tunnel. La versión entregada está en esta rama (`ampliacion`) y se explica, con capturas, en el [documento del proyecto v3](doc/DOCUMENTO_PROYECTO_v3.md) ([PDF](doc/DOCUMENTO_PROYECTO_v3.pdf)).
+
 ## Funcionalidades
 
 | Sección | Qué hace |
