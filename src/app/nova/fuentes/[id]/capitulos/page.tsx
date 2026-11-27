@@ -4,7 +4,7 @@ import { claseBoton, CLASE_FOCO } from '@/components/ui/Boton';
 import { EncabezadoPantalla } from '@/components/ui/EncabezadoPantalla';
 import { PlanLectura } from '@/components/nova/PlanLectura';
 import { EstadoVacio } from '@/components/ui/EstadoVacio';
-import { capitulosDeDocumento, exigirSesion, listarCategorias, textoDePaginas, type CapitulosDocumento } from '@/lib/dataService';
+import { capitulosDeDocumento, exigirSesionDePagina, listarCategorias, textoDePaginas, type CapitulosDocumento } from '@/lib/dataService';
 import { ErrorDeNegocio, MENSAJES } from '@/lib/reglas/errores';
 import { MENSAJE_FOTOS_SIN_CAPITULOS, MENSAJE_REINDEXAR, MENSAJE_SIN_CAPITULOS } from '@/lib/reglas/libros';
 import { contarUnidades } from '@/lib/reglas/tiposDocumento';
@@ -19,7 +19,7 @@ export const dynamic = 'force-dynamic';
  */
 export default async function CapitulosPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const sesion = await exigirSesion();
+  const sesion = await exigirSesionDePagina();
   const idValido = esquemaIdDocumento.safeParse(id);
   let datos: CapitulosDocumento | null = null;
   if (idValido.success) {

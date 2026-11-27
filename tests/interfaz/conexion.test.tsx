@@ -13,13 +13,16 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: (url: string) => nav.push(url) }),
 }));
 
-const carga = vi.hoisted(() => ({ cargarPagina: vi.fn<(url: string) => void>(), marcarSalida: vi.fn(), reiniciarSalida: vi.fn(), saliendoDePagina: vi.fn(() => false) }));
+const carga = vi.hoisted(() => ({ cargarPagina: vi.fn<(url: string) => void>(), recargarPagina: vi.fn(), marcarSalida: vi.fn(), reiniciarSalida: vi.fn(), saliendoDePagina: vi.fn(() => false) }));
 vi.mock('@/lib/cargarPagina', () => carga);
 
 let enLinea = true;
 beforeEach(() => {
   enLinea = true;
   carga.cargarPagina.mockReset();
+  carga.recargarPagina.mockReset();
+  carga.reiniciarSalida.mockReset();
+  carga.saliendoDePagina.mockReturnValue(false);
   vi.spyOn(navigator, 'onLine', 'get').mockImplementation(() => enLinea);
 });
 afterEach(() => {
@@ -104,6 +107,74 @@ describe('ConexionNova', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Completar' }));
     expect(alGuardar).toHaveBeenCalled();
     expect(document.documentElement.hasAttribute('data-nova-sin-conexion')).toBe(false);
+  });
+
+  // E21: en el iPhone, "online" no siempre llega si la app estaba en segundo plano.
+  describe('volver a la app', () => {
+    const copia = () => {
+      const meta = document.createElement('meta');
+      meta.name = 'nova-copia';
+      meta.content = '2026-11-13T18:05:00.000Z';
+      document.head.append(meta);
+    };
+    const verse = (estado: DocumentVisibilityState) => {
+      vi.spyOn(document, 'visibilityState', 'get').mockReturnValue(estado);
+      act(() => {
+        document.dispatchEvent(new Event('visibilitychange'));
+      });
+    };
+    const mostrar = (persisted: boolean) =>
+      act(() => {
+        window.dispatchEvent(Object.assign(new Event('pageshow'), { persisted }));
+      });
+
+    it('una página de la copia se recarga al volver a verse con conexión, aunque no haya llegado "online"', () => {
+      copia();
+      enLinea = false;
+      pantalla();
+      verse('visible');
+      expect(carga.recargarPagina).not.toHaveBeenCalled(); // sigue sin conexión
+      enLinea = true;
+      verse('hidden');
+      expect(carga.recargarPagina).not.toHaveBeenCalled(); // al irse al segundo plano, no
+      verse('visible');
+      expect(carga.recargarPagina).toHaveBeenCalledTimes(1);
+    });
+
+    it('pageshow desde la memoria del navegador también; el de una carga normal no (se recargaría sin parar)', () => {
+      copia();
+      pantalla();
+      mostrar(false);
+      expect(carga.recargarPagina).not.toHaveBeenCalled();
+      mostrar(true);
+      expect(carga.reiniciarSalida).toHaveBeenCalled();
+      expect(carga.recargarPagina).toHaveBeenCalledTimes(1);
+    });
+
+    it('no se recarga si la página ya se está yendo, ni en el formulario de nueva tarea', () => {
+      copia();
+      pantalla();
+      carga.saliendoDePagina.mockReturnValue(true);
+      verse('visible');
+      carga.saliendoDePagina.mockReturnValue(false);
+      window.history.pushState({}, '', '/nova/tareas/nueva');
+      verse('visible');
+      window.history.pushState({}, '', '/');
+      expect(carga.recargarPagina).not.toHaveBeenCalled();
+    });
+
+    it('una página que no salió de la copia no se recarga: solo se quita el aviso', () => {
+      enLinea = false;
+      pantalla();
+      act(() => {
+        window.dispatchEvent(new Event('offline'));
+      });
+      expect(screen.getByRole('status').textContent).toMatch(/^Sin conexión/);
+      enLinea = true;
+      verse('visible');
+      expect(screen.queryByRole('status')).toBeNull();
+      expect(carga.recargarPagina).not.toHaveBeenCalled();
+    });
   });
 
   it('guarda el aviso "Instalar" de Chrome para ofrecerlo en Configuración', () => {

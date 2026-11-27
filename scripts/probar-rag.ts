@@ -116,12 +116,10 @@ async function main(): Promise<void> {
   const URL_FUENTE = 'https://es.wikipedia.org/wiki/Prueba_Nova_purificador';
   let usuarioFuente: string | undefined;
 
-  // Todo se crea a nombre del dueño por defecto (M5), es decir, la cuenta del usuario.
-  const { rows: config } = await sql.query<{ valor: string }>(
-    "SELECT valor FROM nova_config WHERE clave = 'dueno_por_defecto'",
-  );
-  const DUENO = config[0]?.valor;
-  if (!DUENO) throw new Error('Falta nova_config.dueno_por_defecto: aplique la migración M5 (npm run db:migrar)');
+  // Todo se crea a nombre de la cuenta dueña (M25).
+  const { rows: duenas } = await sql.query<{ usuario_id: string }>("SELECT usuario_id FROM cuentas WHERE nivel = 'dueno'");
+  const DUENO = duenas[0]?.usuario_id;
+  if (!DUENO) throw new Error('No hay cuenta dueña: aplique las migraciones (npm run db:migrar)');
 
   // Paso 10 (RB-01): otro usuario, temporal, que no debe ver nada del dueño. Se borra al final.
   const admin = supabaseAdmin();

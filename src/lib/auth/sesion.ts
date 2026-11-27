@@ -1,7 +1,8 @@
+import { redirect } from 'next/navigation';
 import { cache } from 'react';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { accesoDe } from '@/lib/datos/cuentas';
-import { esAdministrador, TEXTO_SIN_PERMISO, type Nivel } from '@/lib/reglas/cuentas';
+import { destinoSinAcceso, esAdministrador, TEXTO_SIN_PERMISO, type Nivel } from '@/lib/reglas/cuentas';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
 
 export interface Sesion {
@@ -38,7 +39,7 @@ export const obtenerSesion = cache(async (): Promise<Sesion | null> => {
 });
 
 /**
- * Primera instrucción de toda ruta /api/nova. Sin sesión → NO_AUTORIZADO (401). E20c-2: decide la fila de
+ * Primera instrucción de toda ruta /api/nova (las páginas usan exigirSesionDePagina). Sin sesión → NO_AUTORIZADO (401). E20c-2: decide la fila de
  * `cuentas` (RB-92): pendiente o sin fila → CUENTA_PENDIENTE (403); bloqueada → CUENTA_BLOQUEADA (403).
  */
 export async function exigirSesion(): Promise<SesionNova> {
@@ -46,6 +47,20 @@ export async function exigirSesion(): Promise<SesionNova> {
   if (!sesion) throw new ErrorDeNegocio('NO_AUTORIZADO');
   const acceso = await accesoDe(sesion);
   if (!acceso.permitido) throw new ErrorDeNegocio(acceso.codigo);
+  return { ...sesion, nivel: acceso.nivel };
+}
+
+/**
+ * Primera instrucción de toda página de Nova que necesita la cuenta. Lo que en la API es un error aquí es una
+ * redirección, igual que en el layout: sin sesión → /login; la cuenta que no entra → /cuenta o /cambiar-contrasena.
+ * El layout y la página se dibujan a la vez (y al navegar sin recargar solo la página): si la página lanzaba el error
+ * antes de que el layout redirigiera, salía "Algo salió mal" (E21, Sentry NOVA-ASSISTANT-5).
+ */
+export async function exigirSesionDePagina(): Promise<SesionNova> {
+  const sesion = await obtenerSesion();
+  if (!sesion) redirect('/login');
+  const acceso = await accesoDe(sesion);
+  if (!acceso.permitido) redirect(destinoSinAcceso(acceso.codigo));
   return { ...sesion, nivel: acceso.nivel };
 }
 

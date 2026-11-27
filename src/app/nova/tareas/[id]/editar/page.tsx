@@ -4,7 +4,7 @@ import { claseBoton } from '@/components/ui/Boton';
 import { EncabezadoPantalla } from '@/components/ui/EncabezadoPantalla';
 import { EstadoVacio } from '@/components/ui/EstadoVacio';
 import { Tarjeta } from '@/components/ui/Tarjeta';
-import { exigirSesion, listarCategorias, obtenerTarea } from '@/lib/dataService';
+import { exigirSesionDePagina, listarCategorias, obtenerTarea } from '@/lib/dataService';
 import { MENSAJES } from '@/lib/reglas/errores';
 import { rutaVolverSegura } from '@/lib/rutasTareas';
 import { esquemaIdTarea } from '@/lib/validacion/esquemas';
@@ -21,7 +21,7 @@ export default async function EditarTareaPage({
 }) {
   const [{ id }, { volver }] = await Promise.all([params, searchParams]);
   const destino = rutaVolverSegura(volver);
-  const sesion = await exigirSesion();
+  const sesion = await exigirSesionDePagina();
   const idValido = esquemaIdTarea.safeParse(id);
   // Una tarea de otro usuario se comporta como inexistente (RB-01).
   const tarea = idValido.success ? await obtenerTarea(sesion.id, idValido.data) : null;

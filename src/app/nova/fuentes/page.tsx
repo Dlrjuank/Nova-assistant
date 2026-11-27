@@ -8,7 +8,7 @@ import { EncabezadoPantalla } from '@/components/ui/EncabezadoPantalla';
 import { EstadoVacio } from '@/components/ui/EstadoVacio';
 import { Pestanas } from '@/components/ui/Pestanas';
 import { Tarjeta } from '@/components/ui/Tarjeta';
-import { exigirSesion, listarDocumentos, listarFuentesWeb, nombresMaterias } from '@/lib/dataService';
+import { exigirSesionDePagina, listarDocumentos, listarFuentesWeb, nombresMaterias } from '@/lib/dataService';
 import { esTipoDocumento, NOMBRE_TIPO, TIPOS_DOCUMENTO, type TipoDocumento } from '@/lib/reglas/tiposDocumento';
 
 export const dynamic = 'force-dynamic';
@@ -37,7 +37,7 @@ export default async function FuentesPage({ searchParams }: { searchParams: Prom
 }
 
 async function PestanaWeb() {
-  const { id } = await exigirSesion();
+  const { id } = await exigirSesionDePagina();
   const fuentes = await listarFuentesWeb(id); // E10b2 (RB-54)
   return <FuentesGuardadas fuentes={fuentes} />;
 }
@@ -45,7 +45,7 @@ async function PestanaWeb() {
 /** E20d: `tipo` filtra la lista con la fila de píldoras (solo los tipos que hay). */
 async function PestanaPdf({ tipo }: { tipo: TipoDocumento | null }) {
   // El layout ya exige sesión con acceso; aquí hace falta el id para ver solo sus documentos (RB-01).
-  const { id } = await exigirSesion();
+  const { id } = await exigirSesionDePagina();
   const [documentos, materias] = await Promise.all([listarDocumentos(id), nombresMaterias(id)]);
   const tipos = TIPOS_DOCUMENTO.filter((t) => documentos.some((d) => d.tipo === t));
   const elegido = tipo && tipos.includes(tipo) ? tipo : null;

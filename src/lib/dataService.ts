@@ -150,7 +150,7 @@ export const crearCuestionario = usaIa(crearCuestionarioSinIa);
 export const buscarEnWikipedia = usaIa((_usuarioId: string, consulta: string) => buscarEnWikipediaSinIa(consulta));
 export { desvincularClaveGemini, estadoIa, guardarClaveGemini, infoClaveGemini } from '@/lib/datos/claveGemini';
 
-export { exigirAdministrador, exigirSesion, obtenerSesion } from '@/lib/auth/sesion';
+export { exigirAdministrador, exigirSesion, exigirSesionDePagina, obtenerSesion } from '@/lib/auth/sesion';
 export { accesoDe, exigirEspacio } from '@/lib/datos/cuentas';
 export { vencerContrasenasTemporales } from '@/lib/datos/contrasenas';
 export { accionSobreCuenta, cambiarTopes, darContrasenaTemporal, eliminarCuenta, panelAdministracion } from '@/lib/datos/administracion';
@@ -212,6 +212,7 @@ export {
   procesarResumenes,
 } from '@/lib/datos/notificaciones';
 export { avanzarLibroEnSegundoPlano, responderOcr, vencerPreguntasOcr } from '@/lib/datos/documentos';
+export { comprobarBase } from '@/lib/datos/salud';
 export type {
   Categoria,
   ConversacionActual,

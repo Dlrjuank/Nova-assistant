@@ -1,5 +1,6 @@
 // Tablas de los respaldos, con los padres primero: la restauración inserta en este orden y el simulacro borra al revés.
-// nova_config va primero porque el disparador de dueño por defecto (M5) la lee al insertar.
+// nova_config va primero porque el disparador de dueño por defecto (M5) la lee al insertar. M27 la elimina: el
+// respaldo omite las tablas que no existen y la restauración también.
 export const TABLAS_RESPALDO = [
   'nova_config',
   // M25 (E20c-2): cuentas con su nivel y estado, los topes y el registro de acciones (sin FK a las cuentas)

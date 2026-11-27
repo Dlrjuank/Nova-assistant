@@ -2,7 +2,7 @@ import { ArrowLeft, ExternalLink, ShieldAlert } from 'lucide-react';
 import Link from 'next/link';
 import { EncabezadoPantalla } from '@/components/ui/EncabezadoPantalla';
 import { Tarjeta } from '@/components/ui/Tarjeta';
-import { exigirSesion } from '@/lib/dataService';
+import { exigirSesionDePagina } from '@/lib/dataService';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +15,7 @@ const AI_STUDIO = 'https://aistudio.google.com/apikey';
  * También se ve sin clave (es justo para quien no la tiene).
  */
 export default async function GuiaClaveGeminiPage() {
-  await exigirSesion();
+  await exigirSesionDePagina();
   return (
     <>
       <EncabezadoPantalla titulo="Cómo crear tu clave de Gemini" subtitulo="Es gratis y toma unos minutos. Solo necesitas una cuenta de Google." />

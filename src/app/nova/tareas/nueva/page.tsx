@@ -1,7 +1,7 @@
 import { FormularioTarea } from '@/components/nova/FormularioTarea';
 import { EncabezadoPantalla } from '@/components/ui/EncabezadoPantalla';
 import { Tarjeta } from '@/components/ui/Tarjeta';
-import { exigirSesion, listarCategorias } from '@/lib/dataService';
+import { exigirSesionDePagina, listarCategorias } from '@/lib/dataService';
 import { esFechaISOValida } from '@/lib/reglas/fechas';
 
 export const dynamic = 'force-dynamic';
@@ -11,7 +11,7 @@ export default async function NuevaTareaPage({ searchParams }: { searchParams: P
   const { fecha } = await searchParams;
   const fechaInicial = typeof fecha === 'string' && esFechaISOValida(fecha) ? fecha : '';
   // E08: las categorías del usuario (RB-01) para la lista del campo de categoría.
-  const { id } = await exigirSesion();
+  const { id } = await exigirSesionDePagina();
   const categorias = await listarCategorias(id);
 
   return (

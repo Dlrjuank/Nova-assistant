@@ -9,7 +9,7 @@ import { EstadoVacio } from '@/components/ui/EstadoVacio';
 import { pestanasSemestre } from '@/components/nova/semestre/pestanas';
 import { Pestanas } from '@/components/ui/Pestanas';
 import { Tarjeta } from '@/components/ui/Tarjeta';
-import { exigirSesion, listarMaterias, type Materia } from '@/lib/dataService';
+import { exigirSesionDePagina, listarMaterias, type Materia } from '@/lib/dataService';
 import { obtenerPreferencias } from '@/lib/datos/configuracion';
 import {
   avisoDeComponentes,
@@ -88,7 +88,7 @@ function TarjetaMateria({ materia, calculo, notaAprobar, redondeo }: { materia: 
 
 /** E12 y E13 (5.7): Semestre, con el promedio del semestre y la pestaña "Materias y notas". */
 export default async function SemestrePage() {
-  const sesion = await exigirSesion();
+  const sesion = await exigirSesionDePagina();
   const [materias, { notaAprobar, redondeo }] = await Promise.all([listarMaterias(sesion.id), obtenerPreferencias(sesion.id)]);
   const calculos = materias.map((m) => calcularMateria(entradaDe(m)));
   const promedio = promedioSemestre(materias.map((m, i) => ({ creditos: m.creditos, calculo: calculos[i] as Calculo })));

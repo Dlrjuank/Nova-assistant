@@ -1098,3 +1098,12 @@ TAREA 8. (Privacidad, adelantada el 2026-11-26) `/privacidad` ya está en `ampli
 ```
 
 **Commit:** `docs: aceptación de la ampliación`
+
+**Cómo quedó E21-1 (2026-11-26), cambios frente al texto de arriba:**
+- Se hace en cuatro partes (E21-1 preparar, E21-2 prueba del usuario, E21-3 unir, E21-4 cerrar). Requisito real: E20d.
+- **TAREA 1 y 5:** por decisión del usuario, las pruebas automáticas reemplazan la ejecución a mano: la tabla es B-01 a B-116 (11 casos nuevos), marca lo no cubierto, y el usuario hace 20 pruebas en iPhone y PC.
+- **TAREA 4:** es M27 y se aplica entre 24 y 48 horas después de unir. Espera en `supabase/pendientes/` (no en `migrations/`), con reverso, ensayo (`scripts/m27.mjs`) y los scripts adaptados. M28 (proteger `_migrations`) se aprobó y se aplicó aparte.
+- **TAREA 6:** la ruta `salud`, `vercel.json` y `CRON_SECRET` en Production ya quedaron en E21-1; el resto es de E21-4.
+- **TAREA 7:** las variables son `NOVA_LLAVE_CLAVES_ACTUAL` y `NOVA_LLAVE_CLAVES_V1`; existen en Production.
+- **Fuera del prompt, aprobado por el usuario:** se quitaron las pantallas y rutas anteriores a Nova (`/home`, `/dashboard`, `/status`, `/api/data`, `/api/admin/users`).
+- Detalle y la falla abierta de "Atrás" en `ESTADO_EJECUCION.md`, E21-1.

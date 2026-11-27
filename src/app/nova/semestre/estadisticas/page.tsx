@@ -5,7 +5,7 @@ import { pestanasSemestre } from '@/components/nova/semestre/pestanas';
 import { EncabezadoPantalla } from '@/components/ui/EncabezadoPantalla';
 import { EstadoVacio } from '@/components/ui/EstadoVacio';
 import { Pestanas } from '@/components/ui/Pestanas';
-import { estadisticasSemestre, exigirSesion } from '@/lib/dataService';
+import { estadisticasSemestre, exigirSesionDePagina } from '@/lib/dataService';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,7 +31,7 @@ async function Contenido({ usuarioId }: { usuarioId: string }) {
  * pestaña de Semestre la navegación a veces no terminaba (solo en producción; ver ESTADO_EJECUCION, E20).
  */
 export default async function EstadisticasPage() {
-  const sesion = await exigirSesion();
+  const sesion = await exigirSesionDePagina();
   return (
     <>
       <EncabezadoPantalla titulo="Semestre" subtitulo="Cómo van tus notas por corte, cómo se comparan tus materias y cuáles están en riesgo." />

@@ -7,13 +7,13 @@ import { BloquePerfil } from '@/components/nova/configuracion/BloquePerfil';
 import { BloqueSesion } from '@/components/nova/configuracion/BloqueSesion';
 import { IndiceConfiguracion } from '@/components/nova/configuracion/IndiceConfiguracion';
 import { EncabezadoPantalla } from '@/components/ui/EncabezadoPantalla';
-import { exigirSesion, infoClaveGemini, obtenerConfiguracion } from '@/lib/dataService';
+import { exigirSesionDePagina, infoClaveGemini, obtenerConfiguracion } from '@/lib/dataService';
 
 export const dynamic = 'force-dynamic';
 
 /** E11 (PLAN_AMPLIACION 5.8): Perfil, Apariencia, Académico, Asistente y Cerrar sesión. E11b: Instalar Nova. E11c: Notificaciones. */
 export default async function ConfiguracionPage() {
-  const sesion = await exigirSesion();
+  const sesion = await exigirSesionDePagina();
   const [{ perfil, preferencias }, claveGemini] = await Promise.all([obtenerConfiguracion(sesion.id, sesion.email), infoClaveGemini(sesion.id)]);
   return (
     <>

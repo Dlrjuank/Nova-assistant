@@ -6,7 +6,7 @@ import { RecordarMateria } from '@/components/nova/semestre/RecordarMateria';
 import { EncabezadoPantalla } from '@/components/ui/EncabezadoPantalla';
 import { EstadoVacio } from '@/components/ui/EstadoVacio';
 import { Pestanas } from '@/components/ui/Pestanas';
-import { documentosDeMaterias, exigirSesion, listarMaterias, listarMetasNota, listarTemas, materiaMasReciente, planesDeMateria } from '@/lib/dataService';
+import { documentosDeMaterias, exigirSesionDePagina, listarMaterias, listarMetasNota, listarTemas, materiaMasReciente, planesDeMateria } from '@/lib/dataService';
 import { obtenerPreferencias } from '@/lib/datos/configuracion';
 import { hoyBogota } from '@/lib/reglas/fechas';
 import { COOKIE_MATERIA, elegirMateria } from '@/lib/reglas/materiaElegida';
@@ -19,7 +19,7 @@ export const dynamic = 'force-dynamic';
  * o la más reciente.
  */
 export default async function ObjetivosPage({ searchParams }: { searchParams: Promise<{ materia?: string | string[] }> }) {
-  const sesion = await exigirSesion();
+  const sesion = await exigirSesionDePagina();
   const { materia: pedida } = await searchParams;
   const [materias, { redondeo }, recordada, masReciente] = await Promise.all([
     listarMaterias(sesion.id),

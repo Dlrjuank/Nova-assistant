@@ -10,7 +10,7 @@ import { PantallaCarga } from '@/components/nova/PantallaCarga';
 import { ProveedorPreferencias } from '@/components/nova/PreferenciasNova';
 import { ProveedorPendientes } from '@/components/nova/pendientes/ProveedorPendientes';
 import { accesoDe, estadoIa, obtenerPreferencias, obtenerSesion } from '@/lib/dataService';
-import { esAdministrador } from '@/lib/reglas/cuentas';
+import { destinoSinAcceso, esAdministrador } from '@/lib/reglas/cuentas';
 
 export const metadata: Metadata = { title: 'Nova Assistant' };
 export const dynamic = 'force-dynamic';
@@ -21,7 +21,7 @@ export default async function NovaLayout({ children }: Readonly<{ children: Reac
   // E11: tema y formato de hora. E20c-1: qué IA tiene (para el aviso de RB-79 en lugar de los botones de IA).
   // E20c-2 (RB-92, RB-93): si entra lo decide la fila de `cuentas`, revisada en cada pedido; si no, /cuenta lo explica.
   const [acceso, preferencias, ia] = await Promise.all([accesoDe(sesion), obtenerPreferencias(sesion.id), estadoIa(sesion.id)]);
-  if (!acceso.permitido) redirect(acceso.codigo === 'DEBE_CAMBIAR_CONTRASENA' ? '/cambiar-contrasena' : '/cuenta');
+  if (!acceso.permitido) redirect(destinoSinAcceso(acceso.codigo));
   // RB-83: para quien no es administrador, "Administración" no existe (404 de verdad: aquí aún no se envió nada).
   const ruta = (await headers()).get('x-nova-ruta') ?? '';
   if ((ruta === '/nova/administracion' || ruta.startsWith('/nova/administracion/')) && !esAdministrador(acceso.nivel)) notFound();

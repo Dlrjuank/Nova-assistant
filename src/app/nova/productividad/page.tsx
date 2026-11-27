@@ -1,13 +1,13 @@
 import { MetasSemanales } from '@/components/nova/MetasSemanales';
 import { TarjetaProductividad } from '@/components/nova/TarjetaProductividad';
 import { EncabezadoPantalla } from '@/components/ui/EncabezadoPantalla';
-import { exigirSesion, listarCategorias, listarMetasSemanales } from '@/lib/dataService';
+import { exigirSesionDePagina, listarCategorias, listarMetasSemanales } from '@/lib/dataService';
 import { hoyBogota } from '@/lib/reglas/fechas';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ProductividadPage() {
-  const sesion = await exigirSesion();
+  const sesion = await exigirSesionDePagina();
   // E15 (5.6): debajo del índice del día, las metas semanales con el progreso de esta semana.
   const [semana, categorias] = await Promise.all([listarMetasSemanales(sesion.id), listarCategorias(sesion.id)]);
   return (

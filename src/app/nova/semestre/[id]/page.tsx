@@ -5,7 +5,7 @@ import { RecordarMateria } from '@/components/nova/semestre/RecordarMateria';
 import { CLASE_FOCO } from '@/components/ui/Boton';
 import { EncabezadoPantalla } from '@/components/ui/EncabezadoPantalla';
 import { EstadoVacio } from '@/components/ui/EstadoVacio';
-import { exigirSesion, listarMetasNota, obtenerMateria, type Materia } from '@/lib/dataService';
+import { exigirSesionDePagina, listarMetasNota, obtenerMateria, type Materia } from '@/lib/dataService';
 import { obtenerPreferencias } from '@/lib/datos/configuracion';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
 import { esquemaIdSemestre } from '@/lib/validacion/esquemas';
@@ -15,7 +15,7 @@ export const dynamic = 'force-dynamic';
 /** E12 y E13 (5.7): una materia con su calculadora. Una de otro usuario se comporta como inexistente (RB-01). */
 export default async function MateriaPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const sesion = await exigirSesion();
+  const sesion = await exigirSesionDePagina();
   const valido = esquemaIdSemestre.safeParse(id);
   let materia: Materia | null = null;
   if (valido.success) {

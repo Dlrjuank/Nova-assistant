@@ -267,6 +267,16 @@ html:has([data-nova-fondo]) body {
   background: var(--nova-fondo);
 }
 
+/*
+ * E21: con la barra inferior (ventana angosta), lo que recibe el foco con el teclado queda por encima de ella y del
+ * botón central, no detrás. 6,5rem es lo que ocupan desde el borde.
+ */
+@media (max-width: 1023.98px) {
+  html:has([data-barra-inferior]) {
+    scroll-padding-bottom: calc(6.5rem + var(--nova-seguro-abajo));
+  }
+}
+
 /* E11c: la tarea que abrió una notificación queda resaltada unos segundos (ResaltarTarea). Sin animación. */
 [data-resaltada] {
   outline: 2px solid var(--nova-acento);

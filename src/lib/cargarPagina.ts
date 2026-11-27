@@ -8,6 +8,11 @@ export function cargarPagina(url: string): void {
   window.location.assign(url);
 }
 
+/** Vuelve a pedir la pantalla actual (una que salió de la copia, al volver la conexión). */
+export function recargarPagina(): void {
+  window.location.reload();
+}
+
 let saliendo = false;
 
 /** La página empezó a irse (a otra pantalla o recargándose). */

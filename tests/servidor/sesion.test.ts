@@ -8,7 +8,7 @@ const conSesion = (u: { id?: string; email?: string } | null) =>
   getClaims.mockResolvedValue(u ? { data: { claims: { sub: u.id ?? 'u0', email: u.email } }, error: null } : { data: null, error: null });
 
 // E20c-2: la fila de `cuentas` de cada usuario (y las consultas que se hicieron).
-const filas = vi.hoisted(() => new Map<string, { estado: string; nivel: string }>());
+const filas = vi.hoisted(() => new Map<string, { estado: string; nivel: string; debeCambiar?: boolean }>());
 const consultas = vi.hoisted(() => [] as Array<{ sql: string; valores: unknown[] }>);
 vi.mock('@/lib/db/conexion', () => ({
   consultar: async (sql: string, valores: unknown[]) => {
@@ -18,7 +18,7 @@ vi.mock('@/lib/db/conexion', () => ({
   },
 }));
 
-import { exigirAdministrador, exigirDueno, exigirSesion, obtenerSesion } from '@/lib/auth/sesion';
+import { exigirAdministrador, exigirDueno, exigirSesion, exigirSesionDePagina, obtenerSesion } from '@/lib/auth/sesion';
 import { CORREO_DUENO } from '@/modules/auth/admin';
 
 describe('acceso a Nova con la tabla cuentas (E20c-2, RB-92, RB-93)', () => {
@@ -58,6 +58,40 @@ describe('acceso a Nova con la tabla cuentas (E20c-2, RB-92, RB-93)', () => {
     await expect(exigirSesion()).resolves.toMatchObject({ nivel: 'usuario' });
     filas.set('u3', { estado: 'bloqueada', nivel: 'usuario' });
     await expect(exigirSesion()).rejects.toMatchObject({ codigo: 'CUENTA_BLOQUEADA', message: 'Tu cuenta está bloqueada. Escríbele al administrador.' });
+  });
+
+  // E21 (Sentry NOVA-ASSISTANT-5): una página que lanzaba el error le ganaba a la redirección del layout.
+  describe('exigirSesionDePagina: en las páginas se redirige igual que en el layout', () => {
+    const destino = async () => {
+      const error = await exigirSesionDePagina().then(
+        () => null,
+        (e: { digest?: string; codigo?: string }) => e,
+      );
+      expect(error?.codigo).toBeUndefined(); // nunca un ErrorDeNegocio
+      expect(error?.digest).toMatch(/^NEXT_REDIRECT;/);
+      return error?.digest?.split(';')[2];
+    };
+
+    it('sin sesión → /login', async () => {
+      conSesion(null);
+      await expect(destino()).resolves.toBe('/login');
+    });
+
+    it('bloqueada (también con la sesión ya abierta) o pendiente → /cuenta', async () => {
+      filas.set('b', { estado: 'activa', nivel: 'usuario' });
+      conSesion({ id: 'b', email: 'b@ejemplo.com' });
+      await expect(exigirSesionDePagina()).resolves.toMatchObject({ id: 'b', nivel: 'usuario' });
+      filas.set('b', { estado: 'bloqueada', nivel: 'usuario' });
+      await expect(destino()).resolves.toBe('/cuenta');
+      filas.set('b', { estado: 'pendiente', nivel: 'usuario' });
+      await expect(destino()).resolves.toBe('/cuenta');
+    });
+
+    it('con contraseña temporal → /cambiar-contrasena', async () => {
+      filas.set('t', { estado: 'activa', nivel: 'usuario', debeCambiar: true });
+      conSesion({ id: 't', email: 't@ejemplo.com' });
+      await expect(destino()).resolves.toBe('/cambiar-contrasena');
+    });
   });
 
   it('el correo incorporado siempre entra como dueño; SUPABASE_ADMIN_EMAILS, como administrador (nunca dueño)', async () => {

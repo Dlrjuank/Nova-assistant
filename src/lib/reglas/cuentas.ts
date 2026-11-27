@@ -29,6 +29,9 @@ export interface FilaCuenta {
 
 export type Acceso = { permitido: true; nivel: Nivel } | { permitido: false; codigo: 'CUENTA_PENDIENTE' | 'CUENTA_BLOQUEADA' | 'DEBE_CAMBIAR_CONTRASENA' };
 
+/** La pantalla a la que va una cuenta que no entra a Nova (el layout y las páginas deciden lo mismo). */
+export const destinoSinAcceso = (codigo: Extract<Acceso, { permitido: false }>['codigo']) => (codigo === 'DEBE_CAMBIAR_CONTRASENA' ? '/cambiar-contrasena' : '/cuenta');
+
 // E20c-3 (RB-81, RB-91): textos de la entrada con Google y de la contraseña temporal.
 export const TEXTO_REGISTRO_GOOGLE = 'Para crear tu cuenta, usa "Entrar con Google".';
 export const TEXTO_TOPE_ALCANZADO = 'Nova llegó al máximo de cuentas por ahora. Escríbele al administrador.';

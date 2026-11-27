@@ -31,7 +31,38 @@
 | Ajustes de E06 (columnas, prioridad, botón "+") | completado | correcto | 391 pasan | 2026-11-07 |
 | E06b Ampliación: horario de las tareas (M14) | completado | correcto | 404 pasan | 2026-11-07 |
 | Ajuste: tope de 4 tareas por columna y completadas al final | completado | correcto | 406 pasan | 2026-11-07 |
+| E07 Ampliación: Calendario | completado | correcto | 419 pasan | 2026-11-07 |
+| E08 Ampliación: Tareas con pestañas y categorías | completado | correcto | 434 pasan | 2026-11-07 |
+| E09 Ampliación: editar tareas | completado | correcto | 451 pasan | 2026-11-09 |
+| E10 Ampliación: Fuentes | completado | correcto | 456 pasan | 2026-11-09 |
+| E10b Ampliación: libros, páginas y capítulos | completado | correcto | 487 pasan | 2026-11-09 |
+| E10b2 Ampliación: fuentes web guardadas | completado | correcto | 500 pasan | 2026-11-09 |
+| E10c Ampliación: libros en el Asistente | completado | correcto | 562 pasan | 2026-11-10 |
+| E10c2 Ampliación: Wikipedia y fuentes guardadas en "Buscar en" | completado | correcto | 638 pasan | 2026-11-10 |
+| E10c3 Ampliación: IA general en "Buscar en" | completado | correcto | 655 pasan | 2026-11-12 |
+| E10d Ampliación: plan de lectura por capítulos | completado | correcto | 688 pasan | 2026-11-12 |
+| E10e Ampliación: cuestionarios | completado | correcto | 766 pasan | 2026-11-12 |
+| E10f Ampliación: historial de cuestionarios y repaso | completado | correcto | 793 pasan | 2026-11-12 |
+| E11 Ampliación: Configuración completa | completado | correcto | 826 pasan | 2026-11-13 |
+| E11b Ampliación: app instalable y consulta sin conexión | completado | correcto | 900 pasan | 2026-11-13 |
+| E11c Ampliación: recordatorios con notificaciones push | completado | — | — | 2026-11-13 |
+| E11d Ampliación: resumen diario y "Agregar a mi calendario" | completado | correcto | 993 pasan | 2026-11-13 |
+| E11e Ampliación: crear tareas sin conexión | completado | correcto | 1042 pasan | 2026-11-14 |
+| E10g Ampliación: tipos de pregunta en los cuestionarios | completado | correcto | 1122 pasan | 2026-11-14 |
+| E12 Ampliación: Semestre, materias, componentes y notas | completado | correcto | 1165 pasan | 2026-11-14 |
+| E13 Ampliación: Semestre, calculadora de notas | completado | correcto | 1186 pasan | 2026-11-16 |
+| E14 Ampliación: fallas | completado | correcto | 1196 pasan | 2026-11-16 |
+| E15 Ampliación: metas semanales en Productividad | completado | correcto | 1214 pasan | 2026-11-16 |
+| E16 Ampliación: metas de nota | completado | correcto | 1232 pasan | 2026-11-16 |
+| E17 Ampliación: temas del corte | completado | correcto | 1255 pasan | 2026-11-17 |
+| E18 Ampliación: plan de estudio con el asistente | completado | correcto | 1288 pasan | 2026-11-18 |
+| E19 Ampliación: pasar pasos del plan a Tareas | completado | correcto | 1294 pasan | 2026-11-18 |
+| E19b Ampliación: Semestre sin conexión | completado | correcto | 1309 pasan | 2026-11-18 |
+| E20 Ampliación: Estadísticas | completado | correcto | 1335 pasan | 2026-11-21 |
+| E20b Ampliación: Diseño final | completado | correcto | 1455 pasan | 2026-11-25 |
+| E20c Ampliación: clave de Gemini propia y acceso de otras personas | completado | correcto | 1570 pasan | 2026-11-26 |
 | E20d Ampliación: más tipos de documento y OCR (M26) | completado, probado por el usuario | correcto | 1645 pasan | 2026-11-26 |
+| E21 Ampliación: aceptación y unión con `master` | E21-1 terminada (con commit, sin push) y E21-2 probada; falta E21-3 y E21-4 | correcto | 1709 pasan | — |
 
 ## Bitácora
 
@@ -1697,3 +1728,53 @@ Total de fallas: 0
 - **Pruebas:** `npm test` 1645 de 1645 (última ejecución, con el código de `6b918f2`).
 - **Commits:** `a7aabb1` (E20d-1), `e353e38` (E20d-2), `8a9f818` (E20d-3), `2cad017` (E20d-4), `4784905` y `6b918f2` (ajustes).
 - **Sigue:** E21 (aceptación y unión con `master`). Primero la propuesta; no se programa hasta que el usuario la apruebe.
+
+### E21 Ampliación: aceptación y unión con `master`
+
+#### Propuesta y decisiones (2026-11-26)
+
+- **Partes:** E21-1 preparar (solo `ampliacion`), E21-2 prueba del usuario en la vista previa, E21-3 unir, E21-4 aplicar M27, pasar el aviso de cada minuto a producción, publicar la app de Google y probar con la segunda cuenta.
+- **Decisiones del usuario:** (1) la entrega de la versión original ya está hecha: se puede unir cuando termine E21-2; (2) pruebas automáticas que marquen lo no cubierto, y unas 20 pruebas para iPhone y PC, en lugar de ejecutar a mano todos los casos; (3) M27 entre 24 y 48 horas después de unir; (4) `CRON_SECRET` creado en Production sin mostrar el valor.
+- La corrección de los filtros (`e093ab2`) sigue sin confirmar: la respuesta llegó con la plantilla sin completar.
+
+#### E21-1: preparar (2026-11-26)
+
+- **`CRON_SECRET`:** creado al azar en Vercel Production como secreto (comprobado por nombre). Toma efecto con el próximo despliegue de producción. No está en Preview ni en `.env.local`.
+- **Cron diario:** `GET /api/nova/salud` (`Authorization: Bearer <CRON_SECRET>`, consulta mínima), `vercel.json` a las 13:00 UTC (8:00 en Bogotá), excepción en el middleware y `secretoValido` compartido con el aviso de cada minuto (`src/lib/http/secreto.ts`).
+- **M27 preparada, sin aplicar:** `supabase/pendientes/20261128100000_nova_quitar_dueno_por_defecto.sql` (fuera de `supabase/migrations/` porque `db:migrar` aplica todo lo que haya allí), reverso en `supabase/reversos/M27_reverso.sql`, `node scripts/m27.mjs --ensayo | --revertir --confirmar` y pasos en `supabase/pendientes/README.md`. `db:verificar` sirve antes y después (`--con-m27` la aplica solo dentro de su transacción); `probar:rag` toma el dueño de `cuentas`; la restauración omite las tablas que ya no existen.
+- **M28 preparada, sin aplicar (propuesta):** `20261128110000_nova_proteger_registro.sql`: RLS en `_migrations` y sin permisos para la API pública (el asesor de Supabase la marcó; los roles `anon` y `authenticated` tienen lectura y escritura), y sin ejecución pública de dos funciones de disparador antiguas.
+- **`db:verificar`:** la comprobación `fj` fallaba desde E20d-4 (las fotos van por páginas); corregida.
+- **Aceptación:** `doc/ACEPTACION.md`, sección "Ampliación": B-01 a B-116 (B-106 a B-116 nuevos, también en el plan 12) con 66 cubiertos, 49 en parte y 1 solo en producción; A-01 a A-21 con 12 cubiertos, 8 en parte y 1 sin cubrir (A-14); y 20 pruebas para el usuario.
+- **Documentos:** README y `.env.example` al día, `doc/checkpoints/AMPLIACION_COMPLETADA.md` y la tabla de estado completada de E07 a E20c con lo anotado en cada sección.
+- **Revisión final:**
+  - Todas las rutas de `/api/nova` exigen sesión en cada método, salvo las dos que comprueban su secreto (lo vigila `tests/reglas/rutasProtegidas.test.ts`). Las consultas que filtran solo por id comprueban antes el dueño.
+  - Edge (`ui_e21.mjs`), 17 de 17: 32 pantallas sin enlaces rotos, botones sin acción, textos en inglés (salvo los nombres de botones de Google AI Studio que cita la guía de la clave) ni desborde a 393 y 1280 px; foco visible en Inicio; claro y oscuro; direcciones antiguas.
+  - Claves: ninguna en las ramas ni etiquetas publicadas en GitHub, ni en los archivos versionados.
+  - **Pantallas y rutas anteriores a Nova (también en `master`), sin cambiar, esperan decisión:** `/api/data/[collection]` responde sin sesión (datos de ejemplo; no se comprobó si en Vercel se puede escribir), `/status` es pública, y `/home` y `/dashboard` siguen con colores fuera de los tokens. `/api/auth/password` sí se usa desde Configuración.
+- **Falla abierta: "Atrás" después de filtrar.** En Edge sin ventana, al volver de un filtro en una pantalla abierta recargando (casi siempre Fuentes), la dirección cambia y la lista sigue filtrada, aun esperando 14 s; el servidor responde la lista completa. Tocar "Todos" sí funciona, y llegando por el menú pasó cuando se pudo probar. Ya ocurría en `e093ab2` (una de dos veces), así que el "Atrás" que se anotó allí como correcto dependió del momento. Se probaron dos arreglos (pedir de nuevo la vista y navegar en lugar de restaurar); los dos fallaron más y se retiraron: el código de navegación quedó como estaba. Sin comprobar en un teléfono ni en un navegador con ventana (prueba 20).
+- **Pruebas:**
+  - `npm test` 1710 de 1710 (nuevas: `servidor/rutaSalud`, `reglas/rutasProtegidas`). `eslint` sin errores (3 avisos anteriores), `tsc` con los 2 errores anteriores de `json-db.test.ts`, build correcto.
+  - Base: respaldo `respaldos/2026-11-26_232128`; `db:verificar` sin fallas antes de M27 y con M27 ensayada; `m27.mjs --ensayo` 7 de 7 (todo revertido); simulacro de restauración correcto. La base no cambió.
+  - Edge de etapas anteriores, repetidos: `ui_e20d34` 14/14, `ui_e20d2` 30/30, `ui_e20c3` 31/31, `ui_e20c2` 33/33, `ui_e20c1` 28/28, `ui_e20sin` 16/16, `ui_e20b12` 36/36 (tres tenían esperas o textos viejos en la prueba). Con la falla de "Atrás": `ui_scroll` 7/8 y `ui_atras` 17/26.
+- **Sin probar aquí:** `probar:rag` adaptado (gasta cuota); la restauración de un respaldo que traiga `nova_config` cuando la tabla ya no exista; el cron (solo corre en producción); que las llaves de cifrado de Production sean iguales a las de Preview.
+- La vista previa sigue con `6b918f2`; E21-1 no cambia ninguna pantalla de Nova.
+
+#### E21-1: decisiones del usuario y cierre (2026-11-26)
+
+- **Decisiones:** aplicar M28; quitar las pantallas anteriores a Nova, `/api/data` y `/status`, dejando `/api/auth/password`; borrar las referencias de git con claves; commit de E21-1 sin push.
+- **Redirect URLs:** el usuario confirmó que Supabase tiene `https://novaassistantjc.vercel.app/**`.
+- La prueba 1 (filtros) volvió a llegar con la plantilla sin completar: sigue sin confirmar.
+- **M28 aplicada** (`supabase/migrations/20261128110000_nova_proteger_registro.sql`). Respaldos `respaldos/2026-11-27_034928` (antes) y `respaldos/2026-11-27_035214` (después), con simulacro de restauración correcto de los dos. `db:verificar` sin fallas (6v: `_migrations` con RLS y sin permisos). Con el código de `master` (`6ce9a4d`): `db:verificar` y `probar:rag` sin fallas (una sola ejecución). La API pública responde 401 (`42501`) al leer `_migrations`, y crear y borrar una cuenta temporal sigue funcionando.
+- **Quitado:** `/home`, `/dashboard`, `/status`, `/api/data/[collection]` y `/api/admin/users/[id]` (solo lo usaba `/dashboard`; cambiaba correo y contraseña de cualquier cuenta), con lo que solo ellas usaban: `UserPortal`, `UserTable`, `ChangePasswordForm`, `LogoutButton`, `modules/auth/session`, `modules/notes`, `json-db` y su prueba, `lib/types`, `lib/utils`, los archivos versionados de `data/`, el alias `@data` y `DATA_DIR`. El formulario de registro (sin uso desde E20c-3) apunta ahora a `/nova`; la descripción de la página dejó de mencionar la base JSON. `data/user.json`, local e ignorado por git y sin registros, no se tocó.
+- **Referencias con claves:** se borraron las 10 referencias locales `refs/agents/…` que alcanzaban la copia antigua de `.env.example`, y sus 60 objetos sueltos; se reescribió el índice de commits y `git fsck` quedó sin errores. Una búsqueda en todos los objetos de git ya no encuentra secretos. Quedan 17 referencias de ese tipo, sin claves.
+- **Claves que estaban en esa copia (todas las vigentes, por cambiar):** la contraseña de la base (también dentro de las tres direcciones de conexión), `NOVAASSISTANT_SUPABASE_SERVICE_ROLE_KEY`, `NOVAASSISTANT_SUPABASE_SECRET_KEY` y `NOVAASSISTANT_SUPABASE_JWT_SECRET`. Las claves anon y publicable también estaban, pero son públicas. La carpeta sigue teniendo secretos en `.env.local` y `.env.respaldo.local`, que OneDrive sincroniza.
+- **Pruebas:** `npm test` 1701 de 1701 (se fueron las pruebas de lo quitado), `tsc` sin errores (los 2 anteriores eran de `json-db.test.ts`), `eslint` sin errores (3 avisos anteriores), build correcto. Edge (`ui_e21.mjs`) 24 de 24: las 32 pantallas, las rutas quitadas responden 404 y cambiar la contraseña desde la sesión responde 200.
+
+#### E21-2: pruebas del usuario y arreglos (2026-11-26)
+
+- **Resultado:** todo bien en iPhone y PC salvo lo de abajo. Incluye la prueba 20: "Atrás" en Fuentes funcionó en la vista previa (con F5 y con dos filtros seguidos). La prueba 1 (filtros) no se informó aparte.
+- **1. Bloquear con la sesión abierta mostraba "Algo salió mal"** (Sentry NOVA-ASSISTANT-5): la página lanzaba `CUENTA_BLOQUEADA` antes de que el layout redirigiera, y al navegar sin recargar solo se dibuja la página. Ahora las 18 páginas usan `exigirSesionDePagina`, que redirige igual que el layout (`/login`, `/cuenta` o `/cambiar-contrasena`); la API sigue con `exigirSesion`.
+- **2. Sin conexión: el aviso seguía al volver internet.** `ConexionNova` revisa también al volver a verse la app (`visibilitychange`) y en `pageshow` desde la memoria del navegador. No en el `pageshow` de una carga normal: una copia servida con "onLine" se recargaría sin parar.
+- **4. Con la barra inferior, Tab dejaba controles detrás de ella:** `scroll-padding-bottom` de 6,5 rem más el área segura en `html`, solo con la barra a la vista.
+- **Pruebas:** `npm test` 1709 de 1709, `tsc` y `eslint` sin errores, build correcto. Edge: `ui_arreglos.mjs` partes 1 y 2, 11 de 11 (19 pantallas a `/cuenta`, sin errores de cuenta en el servidor; recarga al volver sin evento "online"); parte 4, 8 de 8 (sin la regla quedaban tapados entre 1 de 4 y 15 de 18 controles según la pantalla; con ella, ninguno); `ui_e21.mjs` 24 de 24; `ui_e20sin.mjs` 16 de 16.
+- **Vercel pausó la cuenta Hobby** (124 % de las 4 h de CPU activa; aviso de la otra sesión del usuario, comprobado: producción responde 402 `DEPLOYMENT_DISABLED`): producción y la vista previa están caídas hasta el 27 de diciembre o hasta pasar a Pro. Nada de esto se subió.

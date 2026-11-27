@@ -4,7 +4,7 @@ import { Cuestionario } from '@/components/nova/cuestionarios/Cuestionario';
 import { CLASE_FOCO } from '@/components/ui/Boton';
 import { EncabezadoPantalla } from '@/components/ui/EncabezadoPantalla';
 import { EstadoVacio } from '@/components/ui/EstadoVacio';
-import { exigirSesion, listarCategorias, obtenerCuestionario, type CuestionarioVista } from '@/lib/dataService';
+import { exigirSesionDePagina, listarCategorias, obtenerCuestionario, type CuestionarioVista } from '@/lib/dataService';
 import { ErrorDeNegocio, MENSAJES } from '@/lib/reglas/errores';
 import { esquemaIdCuestionario } from '@/lib/validacion/esquemas';
 
@@ -21,7 +21,7 @@ export default async function CuestionarioPage({
   searchParams: Promise<{ obtenidas?: string | string[]; pedidas?: string | string[] }>;
 }) {
   const [{ id }, parametros] = await Promise.all([params, searchParams]);
-  const sesion = await exigirSesion();
+  const sesion = await exigirSesionDePagina();
   const valido = esquemaIdCuestionario.safeParse(id);
   let datos: CuestionarioVista | null = null;
   if (valido.success) {

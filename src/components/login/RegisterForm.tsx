@@ -66,7 +66,7 @@ export function RegisterForm() {
         return;
       }
 
-      router.replace('/home');
+      router.replace('/nova');
     } catch (error) {
       // E11b: sin internet (o sin llegar al servidor) no es un problema de configuración.
       setError(esFallaDeRed(error) ? NECESITAS_CONEXION : 'No se pudo conectar con Supabase. Revisa la configuración del proyecto.');

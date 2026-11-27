@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Chat } from '@/components/nova/Chat';
 import { Aviso } from '@/components/ui/Aviso';
 import { EncabezadoPantalla } from '@/components/ui/EncabezadoPantalla';
-import { conversacionActual, exigirSesion, existenDocumentos, hayTareasPendientes, listarDocumentos } from '@/lib/dataService';
+import { conversacionActual, exigirSesionDePagina, existenDocumentos, hayTareasPendientes, listarDocumentos } from '@/lib/dataService';
 import { sugerenciasAsistente } from '@/lib/reglas/asistente';
 import { AVISO_PROVEEDOR, AVISO_SIN_FUENTES, AVISO_SOLO_TAREAS, avisoAsistente } from '@/lib/reglas/consulta';
 
@@ -13,7 +13,7 @@ export default async function AsistentePage({ searchParams }: { searchParams: Pr
   const { pregunta } = await searchParams;
   const preguntaInicial = typeof pregunta === 'string' ? pregunta : undefined;
   // El layout ya exige sesión con acceso; aquí hace falta el id para el historial (RN-20) y sus documentos (RB-01).
-  const { id } = await exigirSesion();
+  const { id } = await exigirSesionDePagina();
   const [hayDocumentos, hayTareas, conversacion, documentos] = await Promise.all([
     existenDocumentos(id),
     hayTareasPendientes(id),

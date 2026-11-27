@@ -1,18 +1,9 @@
-import { timingSafeEqual } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { avanzarLibroEnSegundoPlano, procesarRecordatorios, procesarResumenes, vencerContrasenasTemporales, vencerPreguntasOcr } from '@/lib/dataService';
+import { secretoValido } from '@/lib/http/secreto';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
-
-/** Compara el secreto sin revelar por el tiempo cuántos caracteres coinciden. */
-function secretoValido(recibido: string | null): boolean {
-  const esperado = process.env.RECORDATORIOS_SECRETO;
-  if (!esperado || !recibido) return false;
-  const a = Buffer.from(recibido);
-  const b = Buffer.from(esperado);
-  return a.length === b.length && timingSafeEqual(a, b);
-}
 
 /**
  * E11c (6.12, 7.10, RB-57): el aviso de cada minuto. Lo llama pg_cron (con pg_net) desde Supabase con el
@@ -21,7 +12,7 @@ function secretoValido(recibido: string | null): boolean {
  * contraseñas temporales que vencieron sin usarse. E20d-3: la pregunta del OCR sin respuesta en 24 horas es "Ahora no". Un fallo en una parte no impide la otra.
  */
 export async function POST(peticion: Request) {
-  if (!secretoValido(peticion.headers.get('x-nova-tick'))) {
+  if (!secretoValido(peticion.headers.get('x-nova-tick'), process.env.RECORDATORIOS_SECRETO)) {
     return NextResponse.json({ ok: false }, { status: 401, headers: { 'Cache-Control': 'no-store' } });
   }
   const [recordatorios, resumenes, libro, temporales, ocr] = await Promise.allSettled([procesarRecordatorios(), procesarResumenes(), avanzarLibroEnSegundoPlano(), vencerContrasenasTemporales(), vencerPreguntasOcr()]);

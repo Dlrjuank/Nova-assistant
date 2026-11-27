@@ -18,7 +18,9 @@ export async function middleware(request: NextRequest) {
     ruta === '/manifest.webmanifest' ||
     ruta.startsWith('/icons/') ||
     // E11c: el aviso de cada minuto lo llama Supabase sin sesión; la ruta exige su propio secreto.
-    ruta === '/api/nova/recordatorios/tick'
+    ruta === '/api/nova/recordatorios/tick' ||
+    // E21: el cron diario de Vercel, también sin sesión y con su propio secreto.
+    ruta === '/api/nova/salud'
   ) {
     return NextResponse.next();
   }

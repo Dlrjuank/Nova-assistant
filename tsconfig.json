@@ -29,9 +29,6 @@
     "paths": {
       "@/*": [
         "./src/*"
-      ],
-      "@data/*": [
-        "./data/*"
       ]
     },
     "noEmit": true

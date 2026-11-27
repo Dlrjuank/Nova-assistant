@@ -94,14 +94,14 @@ describe('RegisterForm', () => {
     expect(screen.getByRole('link', { name: 'Inicia sesión' }).getAttribute('href')).toBe('/login');
   });
 
-  it('cuenta creada con sesión: lleva a /home como antes', async () => {
+  it('cuenta creada con sesión: lleva a Nova', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json({ success: true, data: { requiresLogin: false } })));
     render(<RegisterForm />);
     escribir('Correo electrónico', 'yo@ejemplo.com');
     escribir('Contraseña', 'larga12345');
     escribir('Confirmar contraseña', 'larga12345');
     fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
-    await waitFor(() => expect(nav.replace).toHaveBeenCalledWith('/home'));
+    await waitFor(() => expect(nav.replace).toHaveBeenCalledWith('/nova'));
   });
 });
 

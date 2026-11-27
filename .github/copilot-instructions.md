@@ -11,7 +11,7 @@
 - Embeddings y chat con la API de Gemini (clave en `GEMINI_API_KEY`). Modelos: `gemini-embedding-001` (outputDimensionality 768) y `gemini-3.1-flash-lite` (respaldo `gemini-3.5-flash-lite`).
 - PDF de hasta 15 MB subidos a Vercel Blob (`BLOB_READ_WRITE_TOKEN`); extracción de texto con `unpdf`.
 - Validación con Zod. Pruebas con Vitest.
-- Login existente: Supabase Auth con `@supabase/ssr`, cookie `sb-<project-ref>-auth-token`; se conserva y no se reescribe. El login actual redirige a `/dashboard` o `/home`; el plan prevé `/nova`. Puerta única, sin roles para Nova.
+- Login existente: Supabase Auth con `@supabase/ssr`, cookie `sb-<project-ref>-auth-token`; se conserva y no se reescribe. El login lleva a `/nova`; las pantallas anteriores a Nova (`/home`, `/dashboard`, `/status`, `/api/data`) se quitaron en E21.
 
 ## Convenciones
 - Identificadores, comentarios, mensajes y textos de interfaz en español.

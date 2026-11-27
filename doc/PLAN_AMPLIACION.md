@@ -17,7 +17,7 @@ Los prompts de ejecución están en `doc/PROMPTS_AMPLIACION.md` (etapas E00 a E2
 9. [El asistente en Semestre](#9-el-asistente-en-semestre)
 10. [API](#10-api)
 11. [Pruebas](#11-pruebas)
-12. [Casos de aceptación B-01 a B-105](#12-casos-de-aceptación-b-01-a-b-105)
+12. [Casos de aceptación B-01 a B-116](#12-casos-de-aceptación-b-01-a-b-116)
 13. [Riesgos y decisiones](#13-riesgos-y-decisiones)
 
 ---
@@ -740,6 +740,16 @@ Antes de migrar: `npm run db:respaldar`, y la tabla nueva entra en `scripts/tabl
 - Desde el 2026-11-25 el nivel se guarda en `cuentas.nivel` (un solo `dueno`, con índice único parcial; un disparador impide cambiarle el nivel, bloquearlo o borrar su fila). `SUPABASE_ADMIN_EMAILS` queda solo para emergencias. Un disparador en `auth.users` crea la fila de cada cuenta nueva en `pendiente` (ver "Cambios aprobados el 2026-11-25" en 5.14). `acciones_admin.accion` suma `habilitar`, `nombrar_admin`, `quitar_admin`, `permiso_clave_on`, `permiso_clave_off` y `contrasena_temporal`.
 - Las tres tablas entran en `scripts/tablas-respaldo.mjs`.
 
+### 6.22 M27 · Quitar el dueño por defecto (E21, preparada el 2026-11-26)
+
+- Comprueba que no haya filas sin dueño; borra los tres disparadores, `asignar_dueno_por_defecto` y `nova_config`; `usuario_id` pasa a `NOT NULL` en `tareas_personales`, `documentos` y `fuentes_web` (cumple la nota de 6.1).
+- Es la única migración que no es compatible con el código anterior a la unión: se aplica entre 24 y 48 horas después de unir (decisión del usuario). Después, volver a un despliegue anterior exige primero su reverso.
+- Espera en `supabase/pendientes/` con los pasos en su README. **Sin aplicar.**
+
+### 6.23 M28 · Proteger el registro de migraciones (E21, aplicada el 2026-11-26)
+
+- RLS en `_migrations` y sin permisos para `anon` ni `authenticated`; sin ejecución pública de `handle_auth_user_profile` y `handle_auth_user_public_account`. Compatible con `master`. Aplicada con la aprobación del usuario.
+
 ## 7. Reglas de cálculo
 
 Todas en funciones puras de `src/lib/reglas/` (sin red, sin base, sin reloj salvo `fechas.ts`), probadas con Vitest. Notas en centésimas (0 a 500), porcentajes en centésimas de punto (0 a 10000). Los productos se calculan con enteros; la división final y el redondeo, con aritmética exacta sobre esos enteros.
@@ -1195,7 +1205,7 @@ Con un `git worktree` de `master` en una carpeta temporal: `npm run probar:rag` 
 
 En cada etapa con interfaz: navegador real a 1280 px y 390 px (sin desplazamiento horizontal, sin errores de página, foco visible) y prueba del usuario en la **vista previa de Vercel** desde su teléfono.
 
-## 12. Casos de aceptación B-01 a B-105
+## 12. Casos de aceptación B-01 a B-116
 
 Se ejecutan en la vista previa de Vercel de `ampliacion`, en computador y en teléfono, y se registran en `doc/ACEPTACION.md` (sección nueva). Antes, se repiten A-01 a A-21 en la vista previa.
 
@@ -1306,6 +1316,17 @@ Se ejecutan en la vista previa de Vercel de `ampliacion`, en computador y en tel
 | B-76 | (E11b) Cerrar sesión; luego, con otra sesión, hacer que el servidor la rechace y volver a abrir | En ambos casos ya no se ven los datos guardados sin conexión |
 | B-41 | Editar una tarea pendiente desde Tareas, Inicio y Calendario (título, categoría, prioridad y fecha) | El formulario abre lleno; al guardar, el cambio se ve en las tres pantallas y en su día del Calendario; "Cancelar" no cambia nada |
 | B-42 | Al editar, poner fecha "2026-02-30" y luego prioridad 5 por la API; intentar editar una tarea completada | Mismos mensajes que al crear (A-03, A-04); la completada responde "La tarea ya está completada." y no muestra "Editar" |
+| B-106 | (E20d-1) Subir un Markdown y un texto; preguntar por una sección | Sello de su tipo, secciones o partes en "Ver contenido" y cita con el título de la sección o la parte |
+| B-107 | (E20d-2) Subir un Word y un PowerPoint; intentar un .doc antiguo | Secciones por título y diapositivas con su título; la cita dice la diapositiva; el .doc se rechaza |
+| B-108 | (E20d) Con dos tipos o más en Fuentes, filtrar por tipo | Cada filtro muestra solo ese tipo |
+| B-109 | (E20d-3) Subir un PDF escaneado y tocar "Leerlas" | Pregunta antes de gastar, con las páginas y las consultas; muestra el avance y las citas dicen "(escaneada)" |
+| B-110 | (E20d-3) Responder "Ahora no" (o no responder en 24 horas) | Solo se indexa lo que tenía texto; si no había, no se guarda y se avisa; los archivos se borran de Blob |
+| B-111 | (E20d-4) Subir una o varias fotos juntas | Un solo documento con su título (propuesto si el nombre es de la cámara); "Ver contenido" muestra lo leído en cada foto |
+| B-112 | (E20d) Con más de 5 documentos, usar "Buscar documento" en el Asistente | Filtra por título sin tildes, agrupa por tipo y no envía la pregunta al cerrar el teclado |
+| B-113 | Tocar filtros y pestañas de la misma pantalla (Fuentes, Tareas, Calendario, Mi semana) con la página a media altura | La página no sube; Atrás vuelve al filtro anterior; las secciones de Semestre empiezan arriba |
+| B-114 | Abrir `/privacidad` sin sesión | Se lee la política, con enlace desde el inicio de sesión |
+| B-115 | (E21) Cron diario: `GET /api/nova/salud` sin secreto y con él; en producción, revisar la ejecución del cron | 401 sin el secreto; 200 con él; el cron aparece ejecutado en Vercel |
+| B-116 | Provocar un error y revisarlo en Sentry | Llega sin contenido del usuario, sin cuenta y sin IP |
 
 ## 13. Riesgos y decisiones
 

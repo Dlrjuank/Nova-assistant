@@ -9,7 +9,7 @@ import { claseBoton } from '@/components/ui/Boton';
 import { EncabezadoPantalla } from '@/components/ui/EncabezadoPantalla';
 import { EstadoVacio } from '@/components/ui/EstadoVacio';
 import { Pestanas } from '@/components/ui/Pestanas';
-import { exigirSesion, listarCategorias, listarTareas } from '@/lib/dataService';
+import { exigirSesionDePagina, listarCategorias, listarTareas } from '@/lib/dataService';
 import { hoyBogota } from '@/lib/reglas/fechas';
 import {
   descripcionVacio,
@@ -47,7 +47,7 @@ export default async function TareasPage({
   const vista = vistaDeParametros(uno(parametros.vista), uno(parametros.estado));
   const hoy = hoyBogota();
   // El layout ya exige sesión con acceso; aquí hace falta el id para ver solo sus tareas (RB-01).
-  const { id } = await exigirSesion();
+  const { id } = await exigirSesionDePagina();
   // E05b: filtro por categoría (sin distinguir mayúsculas); se muestra con el nombre guardado.
   // E20b (tiempo de carga): categorías y tareas a la vez; el filtro ya compara sin mayúsculas en la base.
   const pedida = uno(parametros.categoria)?.trim() ?? '';

@@ -4,7 +4,7 @@ import { HistorialCuestionarios } from '@/components/nova/cuestionarios/Historia
 import { claseBoton, CLASE_FOCO } from '@/components/ui/Boton';
 import { EncabezadoPantalla } from '@/components/ui/EncabezadoPantalla';
 import { EstadoVacio } from '@/components/ui/EstadoVacio';
-import { exigirSesion, listarCuestionarios } from '@/lib/dataService';
+import { exigirSesionDePagina, listarCuestionarios } from '@/lib/dataService';
 import { esquemaIdDocumento } from '@/lib/validacion/esquemas';
 
 export const dynamic = 'force-dynamic';
@@ -14,7 +14,7 @@ const uno = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 /** E10f (5.11): historial de cuestionarios. `?documento=` muestra solo los de ese documento (desde "Ver capítulos"). */
 export default async function CuestionariosPage({ searchParams }: { searchParams: Promise<{ documento?: string | string[] }> }) {
   const parametros = await searchParams;
-  const sesion = await exigirSesion();
+  const sesion = await exigirSesionDePagina();
   const filtro = esquemaIdDocumento.safeParse(uno(parametros.documento));
   const documentoId = filtro.success ? filtro.data : undefined;
   // Uno ajeno o inexistente simplemente no trae nada (RB-01).

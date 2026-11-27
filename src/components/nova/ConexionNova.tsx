@@ -4,7 +4,7 @@ import { WifiOff } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { useFormatoHora } from '@/components/nova/PreferenciasNova';
-import { cargarPagina, marcarSalida, reiniciarSalida, saliendoDePagina } from '@/lib/cargarPagina';
+import { cargarPagina, marcarSalida, recargarPagina, reiniciarSalida, saliendoDePagina } from '@/lib/cargarPagina';
 import { guardarEventoInstalar, type EventoInstalar } from '@/lib/instalacion';
 import { formatearHora } from '@/lib/reglas/horario';
 import { bloqueadoSinConexion, ESPERA_GUARDAR_MS, NECESITAS_CONEXION, RUTA_NUEVA_TAREA, rutaConCopia, textoSinConexion } from '@/lib/reglas/sinConexion';
@@ -109,14 +109,27 @@ export function ConexionNova() {
       // La copia es una foto: se pide la página de verdad. E11e: no en el formulario de nueva tarea, que puede
       // estar a medio llenar (al guardar ya hay conexión y se envía normal), ni si la página ya se está yendo a
       // otra: el navegador puede avisar "online" justo al salir y la recarga se comería esa navegación.
-      if (horaDeCopia() && navigator.onLine && !saliendoDePagina() && window.location.pathname !== RUTA_NUEVA_TAREA) window.location.reload();
+      if (horaDeCopia() && navigator.onLine && !saliendoDePagina() && window.location.pathname !== RUTA_NUEVA_TAREA) recargarPagina();
+    };
+    // E21: con la app en segundo plano, el iPhone no siempre avisa "online". Al volver a verse la app (o al
+    // regresar a la página desde el historial) se revisa lo mismo.
+    const revisar = () => {
+      if (navigator.onLine) alVolver();
+    };
+    const alVerse = () => {
+      if (document.visibilityState === 'visible') revisar();
     };
     const alPerder = () => setEnLinea(false);
     const alSalir = () => marcarSalida();
+    // Solo al volver desde la memoria del navegador: en una carga normal, una copia servida con "onLine" (sin llegar
+    // al servidor) se recargaría sin parar.
     const alMostrar = (e: PageTransitionEvent) => {
-      if (e.persisted) reiniciarSalida();
+      if (!e.persisted) return;
+      reiniciarSalida();
+      revisar();
     };
     window.addEventListener('pageshow', alMostrar);
+    document.addEventListener('visibilitychange', alVerse);
     window.addEventListener('online', alVolver);
     window.addEventListener('offline', alPerder);
     window.addEventListener('pagehide', alSalir);
@@ -127,6 +140,7 @@ export function ConexionNova() {
       window.removeEventListener('pagehide', alSalir);
       window.removeEventListener('beforeunload', alSalir);
       window.removeEventListener('pageshow', alMostrar);
+      document.removeEventListener('visibilitychange', alVerse);
     };
   }, []);
 

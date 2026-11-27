@@ -5,7 +5,7 @@ import { CLASE_FOCO } from '@/components/ui/Boton';
 import { EncabezadoPantalla } from '@/components/ui/EncabezadoPantalla';
 import { EstadoVacio } from '@/components/ui/EstadoVacio';
 import { Tarjeta } from '@/components/ui/Tarjeta';
-import { capitulosDeDocumento, exigirSesion, type CapitulosDocumento } from '@/lib/dataService';
+import { capitulosDeDocumento, exigirSesionDePagina, type CapitulosDocumento } from '@/lib/dataService';
 import { ErrorDeNegocio, MENSAJES } from '@/lib/reglas/errores';
 import { MENSAJE_REINDEXAR } from '@/lib/reglas/libros';
 import { contarUnidades } from '@/lib/reglas/tiposDocumento';
@@ -18,7 +18,7 @@ const uno = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 /** E10e (5.11): "Crear cuestionario" desde Fuentes o desde "Ver contenido". */
 export default async function NuevoCuestionarioPage({ searchParams }: { searchParams: Promise<{ documento?: string | string[]; capitulo?: string | string[] }> }) {
   const parametros = await searchParams;
-  const sesion = await exigirSesion();
+  const sesion = await exigirSesionDePagina();
   const id = esquemaIdDocumento.safeParse(uno(parametros.documento));
   let datos: CapitulosDocumento | null = null;
   if (id.success) {

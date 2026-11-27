@@ -11,7 +11,7 @@ const jetbrains = JetBrains_Mono({ subsets: ['latin'], variable: '--font-jetbrai
 
 export const metadata: Metadata = {
   title: process.env.NEXT_PUBLIC_APP_NAME ?? 'NovaAssistant',
-  description: 'Sistema fullstack TypeScript con JSON Database Layer',
+  description: 'Asistente de estudio: tus tareas, documentos y semestre.',
   // E11b: lo del iPhone (app, ícono, nombre y pantallas de arranque) va en <head> con EtiquetasIphone.
 };
 

@@ -37,7 +37,7 @@ const MODOS = {
 };
 
 describe('sin colores sueltos en Nova', () => {
-  // Las pantallas y componentes de Nova solo usan los tokens. /home y el panel de administración quedan fuera.
+  // Las pantallas y componentes de Nova solo usan los tokens.
   const CARPETAS = ['src/components/ui', 'src/components/nova', 'src/app/nova'];
   // E04: el acceso (login, registro y recuperación) también usa solo tokens.
   const ACCESO = [

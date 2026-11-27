@@ -1,6 +1,6 @@
 import { CalendarioMes } from '@/components/nova/calendario/CalendarioMes';
 import { EncabezadoPantalla } from '@/components/ui/EncabezadoPantalla';
-import { exigirSesion, listarCategorias, mesDeTareas } from '@/lib/dataService';
+import { exigirSesionDePagina, listarCategorias, mesDeTareas } from '@/lib/dataService';
 import { nombreMes, sumarMeses } from '@/lib/reglas/calendario';
 
 export const dynamic = 'force-dynamic';
@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 export default async function CalendarioPage({ searchParams }: { searchParams: Promise<{ mes?: string | string[]; dia?: string | string[] }> }) {
   const { mes, dia } = await searchParams;
   // El layout ya exige sesión con acceso; aquí hace falta el id para ver solo sus tareas (RB-01).
-  const { id } = await exigirSesion();
+  const { id } = await exigirSesionDePagina();
   const [datos, categorias] = await Promise.all([mesDeTareas(id, typeof mes === 'string' ? mes : undefined), listarCategorias(id)]);
 
   return (

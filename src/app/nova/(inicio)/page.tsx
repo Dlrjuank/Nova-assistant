@@ -3,7 +3,7 @@ import { PrioridadesHoy } from '@/components/nova/inicio/PrioridadesHoy';
 import { ProgresoSemanal } from '@/components/nova/inicio/ProgresoSemanal';
 import { ProximoCorte, SaludoInicio, TarjetasInicio } from '@/components/nova/inicio/ResumenInicio';
 import { PreguntaleANova } from '@/components/nova/PreguntaleANova';
-import { exigirSesion, listarCategorias, resumenInicio, semanaDeTareas } from '@/lib/dataService';
+import { exigirSesionDePagina, listarCategorias, resumenInicio, semanaDeTareas } from '@/lib/dataService';
 import { hoyBogota, semanaDe, sumarDias } from '@/lib/reglas/fechas';
 import { horaBogota } from '@/lib/reglas/inicio';
 import { prioridadesDeHoy, rangoSemana } from '@/lib/reglas/semana';
@@ -20,7 +20,7 @@ export const dynamic = 'force-dynamic';
 export default async function InicioPage({ searchParams }: { searchParams: Promise<{ semana?: string | string[] }> }) {
   const { semana: pedida } = await searchParams;
   // El layout ya exige sesión con acceso; aquí hace falta el id para ver solo sus tareas (RB-01).
-  const { id } = await exigirSesion();
+  const { id } = await exigirSesionDePagina();
   // E20b (tiempo de carga): las tres a la vez; el resumen solo necesita la fecha de hoy, no la semana.
   const [semana, categorias, resumen] = await Promise.all([
     semanaDeTareas(id, typeof pedida === 'string' ? pedida : undefined),

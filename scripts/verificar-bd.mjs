@@ -1,4 +1,8 @@
 // Verifica extensión, tablas, restricciones, RLS y búsqueda vectorial. Pruebas dentro de una transacción con ROLLBACK.
+// Sirve antes y después de M27 (E21). Con --con-m27 aplica M27 dentro de esa transacción y verifica el estado final
+// sin cambiar la base (bloquea las tres tablas con dueño mientras dura, unos segundos).
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import pg from 'pg';
 import { cargarEnv, opcionesConexion } from './cargar-env.mjs';
 
@@ -61,6 +65,14 @@ try {
 
   console.log('== 6. Integridad (transacción con ROLLBACK)');
   await c.query('BEGIN');
+  if (process.argv.includes('--con-m27')) {
+    await c.query("SET LOCAL lock_timeout = '3s'");
+    await c.query(readFileSync(join(process.cwd(), 'supabase', 'pendientes', '20261128100000_nova_quitar_dueno_por_defecto.sql'), 'utf8'));
+    console.log('     (M27 aplicada solo dentro de esta transacción)');
+  }
+  // El dueño sale de cuentas (M25): nova_config desaparece con M27.
+  const dueno = (await c.query("SELECT usuario_id FROM cuentas WHERE nivel = 'dueno'")).rows[0]?.usuario_id;
+  marcar(Boolean(dueno), 'hay una cuenta dueña');
   const esperaFalla = async (nombre, codigo, sql, params = []) => {
     await c.query('SAVEPOINT caso');
     try {
@@ -71,31 +83,31 @@ try {
     }
     await c.query('ROLLBACK TO SAVEPOINT caso');
   };
-  const insTarea = 'INSERT INTO tareas_personales (titulo, prioridad, fecha_limite, fecha_creacion) VALUES ($1,$2,$3,$3)';
+  const insTarea = 'INSERT INTO tareas_personales (titulo, prioridad, fecha_limite, fecha_creacion, usuario_id) VALUES ($1,$2,$3,$3,$4)';
 
   try {
     const a = await c.query(
-      "INSERT INTO tareas_personales (titulo, fecha_limite, fecha_creacion) VALUES ('Verif',$1,$1) RETURNING estado, prioridad",
-      [hoy],
+      "INSERT INTO tareas_personales (titulo, fecha_limite, fecha_creacion, usuario_id) VALUES ('Verif',$1,$1,$2) RETURNING estado, prioridad",
+      [hoy, dueno],
     );
     marcar(a.rows[0].estado === 'Pendiente' && a.rows[0].prioridad === 2, 'a) tarea válida: Pendiente, prioridad 2 por defecto');
   } catch (e) {
     marcar(false, `a) tarea válida: ${e.message}`);
   }
 
-  await esperaFalla('b) prioridad 5', '23514', insTarea, ['Verif', 5, hoy]);
-  await esperaFalla('c) prioridad 0', '23514', insTarea, ['Verif', 0, hoy]);
+  await esperaFalla('b) prioridad 5', '23514', insTarea, ['Verif', 5, hoy, dueno]);
+  await esperaFalla('c) prioridad 0', '23514', insTarea, ['Verif', 0, hoy, dueno]);
   await esperaFalla(
     'd) Completada sin fecha_cierre',
     '23514',
-    "INSERT INTO tareas_personales (titulo, estado, fecha_limite, fecha_creacion) VALUES ('Verif','Completada',$1,$1)",
-    [hoy],
+    "INSERT INTO tareas_personales (titulo, estado, fecha_limite, fecha_creacion, usuario_id) VALUES ('Verif','Completada',$1,$1,$2)",
+    [hoy, dueno],
   );
 
   let docId;
   try {
     docId = (
-      await c.query("INSERT INTO documentos (nombre_archivo, fecha_guardado) VALUES ('verif.pdf',$1) RETURNING id", [hoy])
+      await c.query("INSERT INTO documentos (nombre_archivo, fecha_guardado, usuario_id) VALUES ('verif.pdf',$1,$2) RETURNING id", [hoy, dueno])
     ).rows[0].id;
     await c.query('INSERT INTO fragmentos_pdf (documento_id, numero, contenido, vector) VALUES ($1,1,$2,$3::vector)', [docId, 'uno', vec(0)]);
     await c.query('INSERT INTO fragmentos_pdf (documento_id, numero, contenido, vector) VALUES ($1,2,$2,$3::vector)', [docId, 'dos', vec(1)]);
@@ -149,18 +161,32 @@ try {
     [conDueno],
   );
   for (const t of conDueno) marcar(cols.rows.some((r) => r.table_name === t), `columna usuario_id en ${t}`);
-  // Sin M5 no se consulta nova_config: un error abortaría la transacción de las pruebas.
-  const hayConfig = (await c.query("SELECT to_regclass('public.nova_config') AS r")).rows[0].r !== null;
-  const dueno = hayConfig
-    ? (await c.query("SELECT valor FROM nova_config WHERE clave='dueno_por_defecto'")).rows[0]?.valor
-    : undefined;
-  marcar(Boolean(dueno), 'nova_config.dueno_por_defecto');
-  const rlsConfig = await c.query("SELECT relrowsecurity FROM pg_class WHERE oid = to_regclass('public.nova_config')");
-  marcar(rlsConfig.rows[0]?.relrowsecurity === true, 'RLS activo en nova_config');
+  // M27 (E21) quita nova_config y el disparador, y hace obligatorio usuario_id. Se verifica el estado que haya.
+  const hayConfig = (await c.query("SELECT to_regclass('public.nova_config') IS NOT NULL AS hay")).rows[0].hay;
   const disp = await c.query(
     "SELECT tgname FROM pg_trigger WHERE tgname IN ('tareas_dueno_por_defecto','documentos_dueno_por_defecto','fuentes_dueno_por_defecto') AND NOT tgisinternal",
   );
-  marcar(disp.rowCount === 3, `disparadores de dueño por defecto (${disp.rowCount} de 3; temporales, se quitan al unir con master)`);
+  const obligatorias = await c.query(
+    "SELECT table_name FROM information_schema.columns WHERE table_schema='public' AND column_name='usuario_id' AND is_nullable = 'NO' AND table_name = ANY($1)",
+    [conDueno],
+  );
+  if (hayConfig) {
+    console.log('     (antes de M27)');
+    const valor = (await c.query("SELECT valor FROM nova_config WHERE clave='dueno_por_defecto'")).rows[0]?.valor;
+    marcar(valor === dueno, 'nova_config.dueno_por_defecto es la cuenta dueña');
+    const rlsConfig = await c.query("SELECT relrowsecurity FROM pg_class WHERE oid = to_regclass('public.nova_config')");
+    marcar(rlsConfig.rows[0]?.relrowsecurity === true, 'RLS activo en nova_config');
+    marcar(disp.rowCount === 3, `disparadores de dueño por defecto (${disp.rowCount} de 3; temporales, los quita M27)`);
+    marcar(obligatorias.rowCount === 0, 'usuario_id todavía opcional (el código anterior no lo envía)');
+  } else {
+    console.log('     (después de M27)');
+    marcar(disp.rowCount === 0, `M27: sin disparadores de dueño por defecto (${disp.rowCount})`);
+    marcar((await c.query("SELECT 1 FROM pg_proc WHERE proname = 'asignar_dueno_por_defecto'")).rowCount === 0, 'M27: sin la función asignar_dueno_por_defecto');
+    marcar(obligatorias.rowCount === 3, `M27: usuario_id obligatorio (${obligatorias.rowCount} de 3)`);
+    await esperaFalla('M27: tarea sin dueño', '23502', "INSERT INTO tareas_personales (titulo, fecha_limite, fecha_creacion) VALUES ('Verificación', $1, $1)", [hoy]);
+    await esperaFalla('M27: documento sin dueño', '23502', "INSERT INTO documentos (nombre_archivo, fecha_guardado) VALUES ('x.pdf', $1)", [hoy]);
+    await esperaFalla('M27: fuente sin dueño', '23502', "INSERT INTO fuentes_web (categoria, url, extracto, fecha_guardado) VALUES ('Verificación','u','e',$1)", [hoy]);
+  }
   const idxDueno = await c.query(
     "SELECT indexname FROM pg_indexes WHERE indexname IN ('idx_tareas_usuario','idx_documentos_usuario','idx_fuentes_usuario')",
   );
@@ -176,8 +202,9 @@ try {
 
   if (dueno && docId) {
     try {
-      // k) Como master: INSERT sin usuario_id → el disparador pone el dueño por defecto.
-      const docDueno = (await c.query('SELECT usuario_id FROM documentos WHERE id = $1', [docId])).rows[0]?.usuario_id;
+     if (hayConfig) {
+      // k) Como el código anterior: INSERT sin usuario_id → el disparador pone el dueño por defecto.
+      const docDueno = (await c.query("INSERT INTO documentos (nombre_archivo, fecha_guardado) VALUES ('verif-k.pdf',$1) RETURNING usuario_id", [hoy])).rows[0].usuario_id;
       const tareaMaster = (
         await c.query(
           "INSERT INTO tareas_personales (titulo, fecha_limite, fecha_creacion) VALUES ('Verificación', $1, $1) RETURNING usuario_id",
@@ -190,7 +217,8 @@ try {
           [hoy],
         )
       ).rows[0].usuario_id;
-      marcar(docDueno === dueno && tareaMaster === dueno && fuenteMaster === dueno, 'k) INSERT sin usuario_id (como master) queda con el dueño por defecto');
+      marcar(docDueno === dueno && tareaMaster === dueno && fuenteMaster === dueno, 'k) INSERT sin usuario_id (como el código anterior) queda con el dueño por defecto');
+     }
 
       // l) Como el código nuevo: un usuario_id explícito se respeta.
       const otro = (await c.query('SELECT id FROM auth.users WHERE id <> $1 LIMIT 1', [dueno])).rows[0]?.id;
@@ -242,16 +270,16 @@ try {
   );
   marcar(colsHora.rowCount === 2, `columnas hora_inicio y hora_fin (${colsHora.rowCount} de 2)`);
   if (colsHora.rowCount === 2) {
-    const insHora = 'INSERT INTO tareas_personales (titulo, fecha_limite, fecha_creacion, hora_inicio, hora_fin) VALUES ($1, $2, $2, $3, $4)';
+    const insHora = 'INSERT INTO tareas_personales (titulo, fecha_limite, fecha_creacion, hora_inicio, hora_fin, usuario_id) VALUES ($1, $2, $2, $3, $4, $5)';
     try {
-      await c.query(insHora, ['Verificación horario', hoy, '08:00', '09:30']);
-      await c.query(insHora, ['Verificación solo inicio', hoy, '08:00', null]);
+      await c.query(insHora, ['Verificación horario', hoy, '08:00', '09:30', dueno]);
+      await c.query(insHora, ['Verificación solo inicio', hoy, '08:00', null, dueno]);
       marcar(true, 'q) horario completo y solo inicio se aceptan');
     } catch (e) {
       marcar(false, `q) horario válido: ${e.message}`);
     }
-    await esperaFalla('r) hora de fin sin inicio', '23514', insHora, ['Verificación', hoy, null, '09:30']);
-    await esperaFalla('s) hora de fin antes del inicio', '23514', insHora, ['Verificación', hoy, '10:00', '09:30']);
+    await esperaFalla('r) hora de fin sin inicio', '23514', insHora, ['Verificación', hoy, null, '09:30', dueno]);
+    await esperaFalla('s) hora de fin antes del inicio', '23514', insHora, ['Verificación', hoy, '10:00', '09:30', dueno]);
   }
   console.log('== 6e. Libros: páginas y capítulos (M15)');
   const colsLibro = await c.query(
@@ -775,8 +803,8 @@ try {
   marcar(columnasM26.rowCount === 4, 'columnas documentos.tipo y unidad, fragmentos_pdf.ocr y capitulos.tipo');
   if (columnasM26.rowCount === 4 && dueno) {
     try {
-      const viejos = (await c.query("SELECT count(*)::int AS n FROM documentos WHERE tipo <> 'pdf' AND unidad = 'pagina' AND tipo <> 'pdf_escaneado'")).rows[0].n;
-      marcar(viejos === 0, `fj) solo los PDF van por páginas (${viejos} de otro tipo por páginas)`);
+      const viejos = (await c.query("SELECT count(*)::int AS n FROM documentos WHERE unidad = 'pagina' AND tipo NOT IN ('pdf', 'pdf_escaneado', 'imagen')")).rows[0].n;
+      marcar(viejos === 0, `fj) solo los PDF y las fotos van por páginas (${viejos} de otro tipo por páginas)`);
       await c.query('SAVEPOINT m26');
       // Como lo crea el código de master: sin tipo ni unidad, queda como un PDF por páginas.
       const doc = (await c.query("INSERT INTO documentos (nombre_archivo, categoria, num_fragmentos, fecha_guardado, usuario_id) VALUES ('verificar-m26.pdf', 'General', 0, '2026-11-26', $1) RETURNING id, tipo, unidad", [dueno])).rows[0];
@@ -788,6 +816,16 @@ try {
     } catch (e) {
       marcar(false, `fj-fn) tipos de documento: ${e.message}`);
     }
+  }
+  console.log('== 6v. Registro de migraciones protegido (M28)');
+  const m28 = await c.query("SELECT 1 FROM _migrations WHERE nombre = '20261128110000_nova_proteger_registro.sql'");
+  if (m28.rowCount === 1) {
+    const registro = await c.query(
+      "SELECT relrowsecurity AS rls, has_table_privilege('anon', oid, 'SELECT, INSERT, UPDATE, DELETE') OR has_table_privilege('authenticated', oid, 'SELECT, INSERT, UPDATE, DELETE') AS publico FROM pg_class WHERE oid = to_regclass('public._migrations')",
+    );
+    marcar(registro.rows[0]?.rls === true && registro.rows[0]?.publico === false, 'M28: _migrations con RLS y sin permisos para la API pública');
+  } else {
+    console.log('     pendiente: M28 sin aplicar');
   }
   await c.query('ROLLBACK');
 

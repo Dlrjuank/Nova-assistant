@@ -2,6 +2,8 @@
 
 > **Corrección posterior (P03):** esta auditoría dice que `middleware.ts` en la raíz refresca la sesión. En realidad nunca se ejecutó, porque con carpeta `src/` Next.js solo reconoce `src/middleware.ts`. Se movió allí en P03. También cambiaron los modelos de Gemini: ver `doc/ESTADO_EJECUCION.md`.
 
+> **E21 (2026-11-26):** se quitaron `/home`, `/dashboard`, `/status`, `/api/data`, `/api/admin/users`, `json-db`, `modules/notes` y `data/`. Lo de abajo describe el repositorio antes de Nova.
+
 Auditoría del repositorio para P00, contrastada con [PLAN_NOVA.md](./PLAN_NOVA.md). Se inspeccionaron los archivos y nombres de variables presentes localmente; no se copiaron valores secretos.
 
 ## 1. Versiones en `package.json`

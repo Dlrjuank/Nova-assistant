@@ -24,8 +24,8 @@ const confirmar = bandera === '--confirmar';
 const probar = bandera === '--probar';
 
 // Un respaldo anterior puede no traer las tablas agregadas después: esas se dejan como están.
-const TABLAS = TABLAS_RESPALDO.filter((tabla) => existsSync(join(carpeta, `${tabla}.csv`)));
-const omitidas = TABLAS_RESPALDO.filter((tabla) => !TABLAS.includes(tabla));
+const enRespaldo = TABLAS_RESPALDO.filter((tabla) => existsSync(join(carpeta, `${tabla}.csv`)));
+const omitidas = TABLAS_RESPALDO.filter((tabla) => !enRespaldo.includes(tabla));
 if (omitidas.length > 0) console.log(`Este respaldo no trae: ${omitidas.join(', ')}. No se tocan.`);
 
 // CSV como COPY de Postgres: campo vacío sin comillas = NULL; entre comillas = texto (puede tener saltos de línea).
@@ -72,6 +72,14 @@ const cliente = new pg.Client(opcionesConexion(url));
 try {
   await cliente.connect();
   await cliente.query('BEGIN');
+  // Un respaldo anterior a M27 trae nova_config, que ya no existe: se omite.
+  const { rows: presentes } = await cliente.query(
+    "SELECT t AS tabla FROM unnest($1::text[]) t WHERE to_regclass('public.' || t) IS NOT NULL",
+    [enRespaldo],
+  );
+  const TABLAS = enRespaldo.filter((tabla) => presentes.some((p) => p.tabla === tabla));
+  const retiradas = enRespaldo.filter((tabla) => !TABLAS.includes(tabla));
+  if (retiradas.length > 0) console.log(`Ya no existen en la base: ${retiradas.join(', ')}. Se omiten.`);
   // M25: el simulacro también vacía cuentas; la fila del dueño solo se deja borrar con esta marca (dura la transacción).
   if (probar) await cliente.query("SELECT set_config('nova.restaurando', 'si', true)");
   if (probar) await cliente.query(`DELETE FROM ${[...TABLAS].reverse().join('; DELETE FROM ')}`);
