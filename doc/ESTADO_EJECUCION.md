@@ -1817,3 +1817,9 @@ Estado al 2026-11-27: variables comprobadas por nombre en Production (`APP_URL`,
 9. **Google:** en Google Auth Platform, página principal y de privacidad de producción, `novaassistantjc.vercel.app` en dominios autorizados y "Publicar app". Comprobar que el proveedor Google y el gancho siguen activos en Supabase y probar con la segunda cuenta (B-87 a B-101).
 10. Quitar de las Redirect URLs de Supabase las direcciones del túnel de Cloudflare.
 11. **Entre 24 y 48 horas después de unir:** M27, que quita el disparador de dueño por defecto de M5 (`supabase/pendientes/README.md`).
+
+#### Entrega al profesor (2026-11-27)
+
+- Push de `ampliacion` (`74e77e3`), pedido por el usuario; `master` sin cambios.
+- **Cuenta de prueba** de nivel usuario, activa, con permiso de la clave del proyecto y sin cambio obligatorio de contraseña. La contraseña está solo en un archivo local fuera del repositorio. Datos de ejemplo cargados por la API (materias, notas, fallas, metas, tareas) y copias de documentos de prueba ya indexados y de un plan de estudio generado antes (sin gastar indexación). Gemini usado: un cuestionario, las consultas al Asistente de las capturas y las recomendaciones de Productividad.
+- **Documento del proyecto v3:** `doc/DOCUMENTO_PROYECTO_v3.md` y su PDF, con 20 capturas en `doc/capturas/` (Edge, tema claro, cuenta de prueba, build del 2026-11-27 en local).
